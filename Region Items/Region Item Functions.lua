@@ -909,7 +909,7 @@ function pasteSourceAutomationItems(inputSourceRegion, inputDestinationRegion)
 
                     local newAIAverageTempo = getAverageTempoOfRange(newAIPositionTime, newAIPositionTime + newAILengthTime)
                     local newAITempoRatio = sourceAIs[i][j][k].averageTempo / newAIAverageTempo
-                    newAIStartOffsetTime = sourceAIs[i][j][k].startOffsetTime * newAITempoRatio
+                    newAIStartOffsetTime = sourceAIs[i][j][k].startOffsetTime
                     newAIPlayrate = sourceAIs[i][j][k].unscaledPlayrate * newAITempoRatio
                 end
 
