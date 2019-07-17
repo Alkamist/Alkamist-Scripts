@@ -1086,9 +1086,13 @@ function copyChildItems(inputRegion)
             copiedItemStats[i].lengthTime = getItemLength(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].snapOffsetBeats = (timeToBeats(getItemLeftBound(selectedItems[i]) + getItemSnapOffset(selectedItems[i])) - timeToBeats(getItemLeftBound(selectedItems[i]))) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].snapOffsetPercent = getItemSnapOffset(selectedItems[i]) / getItemLength(selectedItems[i])
+            copiedItemStats[i].fadeIn = getItemFadeIn(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].fadeInBeats = getItemFadeInBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
+            copiedItemStats[i].fadeOut = getItemFadeOut(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].fadeOutBeats = getItemFadeOutBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
+            copiedItemStats[i].autoFadeIn = getItemAutoFadeIn(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].autoFadeInBeats = getItemAutoFadeInBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
+            copiedItemStats[i].autoFadeOut = getItemAutoFadeOut(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].autoFadeOutBeats = getItemAutoFadeOutBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
 
             for j = 1, reaper.CountTakes(selectedItems[i]) do
@@ -1330,6 +1334,16 @@ function adjustItemParamsToMatchRegion(sourceRegion, inputRegion, items)
                     reaper.SetMediaItemPosition(items[i], newItemLeftBoundTime, false)
                     reaper.SetMediaItemLength(items[i], newItemLengthTime, false)
                     reaper.SetMediaItemInfo_Value(items[i], "D_SNAPOFFSET", newItemSnapOffsetTime)
+
+                    local autoFadeInTime = copiedItemStats[i].autoFadeIn / regionPlayrate
+                    local fadeInTime = copiedItemStats[i].fadeIn / regionPlayrate
+                    local autoFadeOutTime = copiedItemStats[i].autoFadeOut / regionPlayrate
+                    local fadeOutTime = copiedItemStats[i].fadeOut / regionPlayrate
+
+                    reaper.SetMediaItemInfo_Value(items[i], "D_FADEINLEN_AUTO", autoFadeInTime)
+                    reaper.SetMediaItemInfo_Value(items[i], "D_FADEINLEN", fadeInTime)
+                    reaper.SetMediaItemInfo_Value(items[i], "D_FADEOUTLEN_AUTO", autoFadeOutTime)
+                    reaper.SetMediaItemInfo_Value(items[i], "D_FADEOUTLEN", fadeOutTime)
 
                     for j = 1, reaper.CountTakes(items[i]) do
                         local currentTake = getItemTake(items[i], j - 1)
