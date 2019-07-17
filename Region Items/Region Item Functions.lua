@@ -887,12 +887,12 @@ function pasteSourceAutomationItems(inputSourceRegion, inputDestinationRegion)
 
                 if beatAttachMode == "time" then
                     newAIPositionTime = getRegionStart(inputDestinationRegion) + sourceAIs[i][j][k].startSpacingTime / destinationRegionPlayrate
-                    newAILengthTime = sourceAIs[i][j][k].unscaledLengthTime
+                    newAILengthTime = sourceAIs[i][j][k].lengthTime / destinationRegionPlayrate
 
                     local newAIAverageTempo = getAverageTempoOfRange(newAIPositionTime, newAIPositionTime + newAILengthTime)
                     local newAITempoRatio = sourceAIs[i][j][k].averageTempo / newAIAverageTempo
                     newAIStartOffsetTime = sourceAIs[i][j][k].startOffsetTime
-                    newAIPlayrate = sourceAIs[i][j][k].unscaledPlayrate
+                    newAIPlayrate = sourceAIs[i][j][k].playrate * destinationRegionPlayrate
 
                 elseif beatAttachMode == "all_beats" then
                     local newAIStartBeats = destinationRegionBeats + sourceAIs[i][j][k].startSpacingBeats / destinationRegionPlayrate
