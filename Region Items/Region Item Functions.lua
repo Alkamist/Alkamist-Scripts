@@ -676,9 +676,9 @@ function insertTransferItems(inputSourceRegion, inputDestinationRegion)
                     local itemStartOffsetTime = sourceStartOffset - destinationStartOffset * newPlayrate
 
                     if beatAttachMode ~= "time" then
-                        local sourceStartOffsetBeats = timeToBeats(getRegionEffectiveStart(inputSourceRegion)) - timeToBeats(getRegionStart(inputSourceRegion))
-                        local destinationStartOffsetBeats = timeToBeats(getRegionEffectiveStart(inputDestinationRegion)) - timeToBeats(getRegionStart(inputDestinationRegion))
-                        local itemStartOffsetBeats = (sourceStartOffsetBeats * sourcePlayrate - destinationStartOffsetBeats * regionPlayrate) / newPlayrate
+                        local sourceStartOffsetBeats = (timeToBeats(getRegionEffectiveStart(inputSourceRegion)) - timeToBeats(getRegionStart(inputSourceRegion))) * sourcePlayrate
+                        local destinationStartOffsetBeats = (timeToBeats(getRegionEffectiveStart(inputDestinationRegion)) - timeToBeats(getRegionStart(inputDestinationRegion))) * regionPlayrate
+                        local itemStartOffsetBeats = (sourceStartOffsetBeats - destinationStartOffsetBeats) / regionPlayrate
                         itemStartOffsetTime = (beatsToTime(timeToBeats(getRegionEffectiveStart(inputDestinationRegion)) + itemStartOffsetBeats) - getRegionEffectiveStart(inputDestinationRegion)) * newPlayrate
                     end
 
