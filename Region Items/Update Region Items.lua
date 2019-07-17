@@ -1,7 +1,7 @@
 -- @description Update Region Items
 -- @version 1.0
 -- @author Alkamist
--- @donate paypal.me/CoreyLehmanMusic
+-- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This action will copy the items and automation of all child tracks underneath
 --   and within the bounds of a single selected MIDI item. It will then paste those

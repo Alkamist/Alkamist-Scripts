@@ -1,7 +1,7 @@
 -- @description Region Item Functions
 -- @version 1.0
 -- @author Alkamist
--- @donate paypal.me/CoreyLehmanMusic
+-- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This file contains various functions that are used by the region item actions.
 
