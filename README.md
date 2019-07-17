@@ -1,5 +1,5 @@
 # Alkamist Scripts
-Hi, this is the repository of my custom scripts. I mainly write them for my own personal use, but I don't mind releasing them to the public since they might help someone out.
+Hi, this is the repository of my custom Reaper scripts. I mainly write them for my own personal use, but I don't mind releasing them to the public since they might help someone out.
 
 # Installation
 First, make sure you have [ReaPack](https://reapack.com/) installed.
