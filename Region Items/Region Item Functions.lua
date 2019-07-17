@@ -668,14 +668,14 @@ function insertTransferItems(inputSourceRegion, inputDestinationRegion)
                 if sourceTransferItems[i][j].poolID ~= nil then
                     local newTransferItemIndex = reaper.InsertAutomationItem(currentEnvelope, sourceTransferItems[i][j].poolID, itemStart, itemLength)
 
+                    local newPlayrate = regionPlayrate / sourcePlayrate
+                    reaper.GetSetAutomationItemInfo(currentEnvelope, newTransferItemIndex, "D_PLAYRATE", newPlayrate, true)
+
                     local sourceStartOffset = getRegionEffectiveStart(inputSourceRegion) - getRegionStart(inputSourceRegion)
                     local destinationStartOffset = getRegionEffectiveStart(inputDestinationRegion) - getRegionStart(inputDestinationRegion)
-                    local itemStartOffsetTime = sourceStartOffset - destinationStartOffset
+                    local itemStartOffsetTime = sourceStartOffset - destinationStartOffset * newPlayrate
 
                     if beatAttachMode ~= "time" then
-                        newPlayrate = regionPlayrate / sourcePlayrate
-                        reaper.GetSetAutomationItemInfo(currentEnvelope, newTransferItemIndex, "D_PLAYRATE", newPlayrate, true)
-
                         local sourceStartOffsetBeats = timeToBeats(getRegionEffectiveStart(inputSourceRegion)) - timeToBeats(getRegionStart(inputSourceRegion))
                         local destinationStartOffsetBeats = timeToBeats(getRegionEffectiveStart(inputDestinationRegion)) - timeToBeats(getRegionStart(inputDestinationRegion))
                         local itemStartOffsetBeats = (sourceStartOffsetBeats * sourcePlayrate - destinationStartOffsetBeats * regionPlayrate) / newPlayrate
@@ -1083,6 +1083,7 @@ function copyChildItems(inputRegion)
             copiedItemStats[i].startOffsetTime = (getItemPosition(selectedItems[i]) - getRegionStart(inputRegion)) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].lengthBeats = getItemLengthBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].unscaledLengthTime = getItemLength(selectedItems[i])
+            copiedItemStats[i].lengthTime = getItemLength(selectedItems[i]) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].snapOffsetBeats = (timeToBeats(getItemLeftBound(selectedItems[i]) + getItemSnapOffset(selectedItems[i])) - timeToBeats(getItemLeftBound(selectedItems[i]))) * getRegionPlayrate(inputRegion)
             copiedItemStats[i].snapOffsetPercent = getItemSnapOffset(selectedItems[i]) / getItemLength(selectedItems[i])
             copiedItemStats[i].fadeInBeats = getItemFadeInBeats(selectedItems[i]) * getRegionPlayrate(inputRegion)
@@ -1323,11 +1324,18 @@ function adjustItemParamsToMatchRegion(sourceRegion, inputRegion, items)
                 local newItemLeftBoundTime = newItemStartTime - newItemSnapOffsetTime
 
                 if itemBeatAttachMode == "time" then
-                    reaper.SetMediaItemPosition(items[i], newItemLeftBoundTime, false)
+                    newItemLengthTime = copiedItemStats[i].lengthTime / regionPlayrate
+                    newItemSnapOffsetTime = newItemLengthTime * copiedItemStats[i].snapOffsetPercent
 
-                    if getItemType(items[i]) == "midi" then
-                        reaper.SetMediaItemLength(items[i], newItemLengthTime, false)
-                        reaper.SetMediaItemInfo_Value(items[i], "D_SNAPOFFSET", newItemSnapOffsetTime)
+                    reaper.SetMediaItemPosition(items[i], newItemLeftBoundTime, false)
+                    reaper.SetMediaItemLength(items[i], newItemLengthTime, false)
+                    reaper.SetMediaItemInfo_Value(items[i], "D_SNAPOFFSET", newItemSnapOffsetTime)
+
+                    for j = 1, reaper.CountTakes(items[i]) do
+                        local currentTake = getItemTake(items[i], j - 1)
+                        local takePlayrate = copiedItemStats[i][j].playrate * regionPlayrate
+
+                        reaper.SetMediaItemTakeInfo_Value(currentTake, "D_PLAYRATE", takePlayrate)
                     end
 
                 else
