@@ -1,3 +1,10 @@
+-- @description Region Functions
+-- @version 1.0
+-- @author Alkamist
+-- @donate paypal.me/CoreyLehmanMusic
+-- @about
+--   This file contains various functions that are used by the region item actions.
+
 function msg(message)
   reaper.ShowConsoleMsg(tostring(message).."\n")
 end

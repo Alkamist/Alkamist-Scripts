@@ -1,3 +1,12 @@
+-- @description Clear Selected Region Items
+-- @version 1.0
+-- @author Alkamist
+-- @donate paypal.me/CoreyLehmanMusic
+-- @about
+--   This action clears the contained contents of the child tracks of the selected
+--   MIDI items. Used to clean up the contents of a region item if you want to change
+--   or remove it.
+
 label = 'Alkamist: Clear Selected Region Items'
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path

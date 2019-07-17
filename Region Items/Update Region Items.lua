@@ -1,3 +1,12 @@
+-- @description Update Region Items
+-- @version 1.0
+-- @author Alkamist
+-- @donate paypal.me/CoreyLehmanMusic
+-- @about
+--   This action will copy the items and automation of all child tracks underneath
+--   and within the bounds of a single selected MIDI item. It will then paste those
+--   contents to the child tracks of all pooled MIDI items, removing their previous contents.
+
 label = 'Alkamist: Update Region Items'
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
