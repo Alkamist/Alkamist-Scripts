@@ -1,2 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="Alkamist Scripts"/>
+<index version="1" name="Alkamist Scripts" commit="ad16fc793e91cda8eafd25a7af64e82d3fbb7060">
+  <category name="Region Items">
+    <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+
+{\pard \ql \f0 \sa180 \li0 \fi0 This action clears the contained contents of the child tracks of the selected MIDI items. Used to clean up the contents of a region item if you want to change or remove it.\par}
+}
+]]></description>
+        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
+      </metadata>
+      <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad16fc793e91cda8eafd25a7af64e82d3fbb7060/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
+      </version>
+    </reapack>
+    <reapack name="Region Item Functions.lua" type="script" desc="Region Item Functions">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+
+{\pard \ql \f0 \sa180 \li0 \fi0 This file contains various functions that are used by the region item actions.\par}
+}
+]]></description>
+        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
+      </metadata>
+      <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad16fc793e91cda8eafd25a7af64e82d3fbb7060/Region%20Items/Region%20Item%20Functions.lua</source>
+      </version>
+    </reapack>
+    <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+
+{\pard \ql \f0 \sa180 \li0 \fi0 This action will copy the items and automation of all child tracks underneath and within the bounds of a single selected MIDI item. It will then paste those contents to the child tracks of all pooled MIDI items, removing their previous contents.\par}
+}
+]]></description>
+        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
+      </metadata>
+      <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad16fc793e91cda8eafd25a7af64e82d3fbb7060/Region%20Items/Update%20Region%20Items.lua</source>
+      </version>
+    </reapack>
+  </category>
+</index>
