@@ -10,10 +10,9 @@
 label = 'Alkamist: Update Region Items'
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
-require "Scripts.Alkamist Scripts.Region Items.Region Functions"
+require "Scripts.Alkamist Scripts.Region Items.Region Item Functions"
 
 function updateRegionItems()
-    --local startTime = reaper.time_precise()
     reaperCMD("_SWS_SAVETIME1")
     reaperCMD("_SWS_SAVEVIEW")
     reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
@@ -99,8 +98,6 @@ function updateRegionItems()
     reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
     reaperCMD("_SWS_RESTOREVIEW")
     reaperCMD("_SWS_RESTTIME1")
-
-    --msg(reaper.time_precise() - startTime)
 
     return 0
 end
