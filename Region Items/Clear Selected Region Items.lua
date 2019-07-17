@@ -1,7 +1,7 @@
 label = 'Alkamist: Clear Selected Region Items'
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
-require "Scripts.Alkamist.Region Items.Region Functions"
+require "Scripts.Alkamist Scripts.Region Items.Region Functions"
 
 function clearSelectedRegionItems()
     reaperCMD("_SWS_SAVETIME1")

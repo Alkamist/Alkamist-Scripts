@@ -1,7 +1,7 @@
 label = 'Alkamist: Update Region Items'
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
-require "Scripts.Alkamist.Region Items.Region Functions"
+require "Scripts.Alkamist Scripts.Region Items.Region Functions"
 
 function updateRegionItems()
     --local startTime = reaper.time_precise()
