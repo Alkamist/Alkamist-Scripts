@@ -1074,6 +1074,11 @@ function selectAllChildTracksIncludingIgnored(inputRegion)
     setOnlyTrackSelected(parentTrack)
     reaperCMD("_SWS_SELCHILDREN")
     selectAllTracksThatMatchRegionName(inputRegion)
+
+    -- This will select the children of the tracks that match the region name.
+    -- If you don't want a child track to be selected then you can add the
+    -- ignore symbol to the beginning of the name.
+    reaperCMD("_SWS_SELCHILDREN2")
 end
 
 function selectChildTracks(inputRegion)
