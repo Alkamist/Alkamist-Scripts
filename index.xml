@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="Alkamist Scripts" commit="171e3050bbeed82dfa57843cf5e2589af8cf542b">
+<index version="1" commit="171e3050bbeed82dfa57843cf5e2589af8cf542b">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -28,7 +28,7 @@
         <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
       </metadata>
       <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/171e3050bbeed82dfa57843cf5e2589af8cf542b/Region%20Items/Region%20Item%20Functions.lua</source>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad16fc793e91cda8eafd25a7af64e82d3fbb7060/Region%20Items/Region%20Item%20Functions.lua</source>
       </version>
     </reapack>
     <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
