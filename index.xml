@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="dc035f2e8781b1b2ba1a0c1f7d6cea32c29abd6e">
+<index version="1" commit="dc035f2e8781b1b2ba1a0c1f7d6cea32c29abd6e" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
