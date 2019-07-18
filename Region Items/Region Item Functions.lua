@@ -1069,13 +1069,24 @@ function selectAllTracksThatMatchRegionName(inputRegion)
     end
 end
 
+function selectExtendedChildTracks(inputRegion)
+    local parentTrack = getItemTrack(inputRegion)
+    local sendCount = reaper.GetTrackNumSends(parentTrack, 0)
+
+    for i = 1, sendCount do
+        local extendedChild = reaper.GetTrackSendInfo_Value(parentTrack, 0, i - 1, "P_DESTTRACK")
+
+        setTrackSelected(extendedChild, true)
+    end
+end
+
 function selectAllChildTracksIncludingIgnored(inputRegion)
     local parentTrack = getItemTrack(inputRegion)
     setOnlyTrackSelected(parentTrack)
     reaperCMD("_SWS_SELCHILDREN")
-    selectAllTracksThatMatchRegionName(inputRegion)
+    selectExtendedChildTracks(inputRegion)
 
-    -- This will select the children of the tracks that match the region name.
+    -- This will select the children of the extended child tracks.
     -- If you don't want a child track to be selected then you can add the
     -- ignore symbol to the beginning of the name.
     reaperCMD("_SWS_SELCHILDREN2")
