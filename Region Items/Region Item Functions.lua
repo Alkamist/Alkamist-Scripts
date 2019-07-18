@@ -281,6 +281,22 @@ function trackIsValid(track)
     return track ~= nil and trackExists
 end
 
+function unselectItems(items)
+    if items ~= nil then
+        for i = 1, #items do
+            setItemSelected(items[i], false)
+        end
+    end
+end
+
+function selectItems(items)
+    if items ~= nil then
+        for i = 1, #items do
+            setItemSelected(items[i], true)
+        end
+    end
+end
+
 function restoreSelectedItems(items)
     if items ~= nil then
         reaperCMD(40289) -- unselect all items
@@ -1212,15 +1228,39 @@ end
 function trimAndApplyFadesIfPresent(inputRegion, items)
     restoreSelectedItems(items)
 
+    local itemsToDelete = {}
+    local itemsToAdd = {}
+
     if getRegionFadeIn(inputRegion) > 0 then
-        reaper.SetEditCurPos(getRegionLeftBound(inputRegion), false, false)
-        reaperCMD(40757) -- split items at edit cursor (no change selection)
+        for i = 1, #items do
+            if itemIsValid(items[i]) then
+                local rightSplit = reaper.SplitMediaItem(items[i], getRegionLeftBound(inputRegion))
+
+                if rightSplit ~= nil then
+                    table.insert(itemsToDelete, items[i])
+                    table.insert(itemsToAdd, rightSplit)
+                end
+            end
+        end
     end
 
     if getRegionFadeOut(inputRegion) > 0 then
-        reaper.SetEditCurPos(getRegionRightBound(inputRegion), false, false)
-        reaperCMD(40757) -- split items at edit cursor (no change selection)
+        for i = 1, #items do
+            if itemIsValid(items[i]) then
+                local rightSplit = reaper.SplitMediaItem(items[i], getRegionRightBound(inputRegion))
+
+                if rightSplit ~= nil then
+                    table.insert(itemsToDelete, rightSplit)
+                end
+            end
+        end
     end
+
+    restoreSelectedItems(itemsToDelete)
+    reaperCMD(40006) -- remove items
+
+    table.insert(items, itemsToAdd)
+    restoreSelectedItems(items)
 
     return getSelectedItems()
 end
