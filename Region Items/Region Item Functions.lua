@@ -4,6 +4,7 @@
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This file contains various functions that are used by the region item actions.
+--   The other region item scripts won't run without it.
 
 function msg(message)
   reaper.ShowConsoleMsg(tostring(message).."\n")
