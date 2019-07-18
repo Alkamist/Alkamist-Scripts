@@ -1388,6 +1388,7 @@ function adjustItemParamsToMatchRegion(sourceRegion, inputRegion, items)
                 if itemBeatAttachMode == "time" then
                     newItemLengthTime = copiedItemStats[i].lengthTime / regionPlayrate
                     newItemSnapOffsetTime = newItemLengthTime * copiedItemStats[i].snapOffsetPercent
+                    newItemLeftBoundTime = newItemStartTime - newItemSnapOffsetTime
 
                     reaper.SetMediaItemPosition(items[i], newItemLeftBoundTime, false)
                     reaper.SetMediaItemLength(items[i], newItemLengthTime, false)
