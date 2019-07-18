@@ -531,12 +531,30 @@ function getRegionName(item)
     end
 end
 
+function unselectItemsThatAreNotOnSelectedTracks()
+    local selectedTracks = getSelectedTracks()
+    local selectedItems = getSelectedItems()
+
+    for i = 1, #selectedItems do
+        local itemTrackNumber = getItemTrackNumber(selectedItems[i])
+
+        for j = 1, #selectedTracks do
+            local currentTrackNumber = getTrackNumber(selectedTracks[j])
+
+            if itemTrackNumber ~= currentTrackNumber then
+                setItemSelected(selectedItems[i], false)
+            end
+        end
+    end
+end
+
 function getRegionItems(inputRegion)
     local parentTrack = reaper.GetMediaItem_Track(inputRegion)
     setOnlyTrackSelected(parentTrack)
 
     reaperCMD(41611) -- select all pooled items
     setItemSelected(inputRegion, false)
+    unselectItemsThatAreNotOnSelectedTracks()
 
     local outputRegionItems = {}
     local countItems = reaper.CountSelectedMediaItems(0)
@@ -711,7 +729,8 @@ end
 
 -- This function essentially checks if you put a region on a different set of tracks
 -- and will copy the source child tracks and paste them as children under the
--- destination region.
+-- destination region. This is currently disabled since I added functionality to
+-- include tracks as children by naming them with the region item's name as a tag.
 local alreadyPreparedTrack = {}
 function prepareDestinationForTransfer(inputSourceRegion, inputDestinationRegion)
     reaperCMD(40769) -- unselect all tracks/items/envelope points
@@ -1029,10 +1048,32 @@ function showAllTracksInRegion(inputRegion)
     reaperCMD("_SWSTL_BOTH")
 end
 
+function selectAllTracksThatMatchRegionName(inputRegion)
+    local regionName = reaper.GetTakeName(getItemActiveTake(inputRegion))
+
+    local trackCount = reaper.CountTracks(0)
+    for i = 1, trackCount do
+        local currentTrack = reaper.GetTrack(0, i - 1)
+        local _, currentTrackName = reaper.GetSetMediaTrackInfo_String(currentTrack, "P_NAME", "", false);
+
+        local trackRegionTagWithUnderscore = string.match(currentTrackName, ".+[_]")
+        local trackRegionTag = nil
+
+        if trackRegionTagWithUnderscore ~= nil then
+            trackRegionTag = string.sub(trackRegionTagWithUnderscore, 1, -2)
+        end
+
+        if trackRegionTag == regionName then
+            setTrackSelected(currentTrack, true)
+        end
+    end
+end
+
 function selectAllChildTracksIncludingIgnored(inputRegion)
     local parentTrack = getItemTrack(inputRegion)
     setOnlyTrackSelected(parentTrack)
     reaperCMD("_SWS_SELCHILDREN")
+    selectAllTracksThatMatchRegionName(inputRegion)
 end
 
 function selectChildTracks(inputRegion)
