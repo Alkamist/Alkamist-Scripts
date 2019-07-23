@@ -72,6 +72,44 @@ function waitSeconds(seconds)
     end
 end
 
+-- Make sure to lock any solo-defeated tracks. I can't seem to find a way to
+-- check for that. This won't account for sends of sends so you should probably
+-- lock those as well.
+function muteIrrelevantTracks(track)
+    local initialTrackSelection = getSelectedTracks()
+    reaperCMD(40341) -- mute all tracks
+    reaperCMD(40297) -- unselect all tracks
+    reaperCMD(40340) -- unsolo all tracks
+
+    reaper.SetMediaTrackInfo_Value(track, "B_MUTE", 0)
+
+    -- Unmute child tracks.
+    setTrackSelected(track, true)
+    reaperCMD("_SWS_SELCHILDREN2")
+    reaperCMD(40731) -- unmute tracks
+
+    -- Unmute sends.
+    for i = 1, reaper.GetTrackNumSends(track, 0) do
+        local currentTrack = reaper.GetTrackSendInfo_Value(track, 0, i - 1, "P_DESTTRACK")
+        reaper.SetMediaTrackInfo_Value(currentTrack, "B_MUTE", 0)
+    end
+
+    -- Unmute receives.
+    for i = 1, reaper.GetTrackNumSends(track, -1) do
+        local currentTrack = reaper.GetTrackSendInfo_Value(track, -1, i - 1, "P_SRCTRACK")
+        reaper.SetMediaTrackInfo_Value(currentTrack, "B_MUTE", 0)
+    end
+
+    -- Unmute parent tracks.
+    local currentParentTrack = reaper.GetParentTrack(track)
+    while currentParentTrack ~= nil do
+        reaper.SetMediaTrackInfo_Value(currentParentTrack, "B_MUTE", 0)
+        currentParentTrack = reaper.GetParentTrack(currentParentTrack)
+    end
+
+    restoreSelectedTracks(initialTrackSelection)
+end
+
 
 
 function renderTracksFromTopLevel()
@@ -109,11 +147,15 @@ function renderTracksFromTopLevel()
             setTrackSelected(topLevelTrack, true)
             reaper.SetMediaTrackInfo_Value(initialTrackSelection[i], "I_SOLO", 1)
 
+            reaperCMD("_BR_SAVE_SOLO_MUTE_ALL_TRACKS_SLOT_16")
+            muteIrrelevantTracks(initialTrackSelection[i])
+
             -- You have to pause the script shortly or else the solo won't go through before the render.
             waitSeconds(0.1)
             reaperCMD(42230) -- render project, using the most recent render settings, auto-close render dialog
 
             reaper.GetSetMediaTrackInfo_String(topLevelTrack, "P_NAME", topLevelTrackName, true)
+            reaperCMD("_BR_RESTORE_SOLO_MUTE_ALL_TRACKS_SLOT_16")
             reaperCMD(40340) -- unsolo all tracks
         else
             setTrackSelected(initialTrackSelection[i], true)
