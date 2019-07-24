@@ -56,14 +56,11 @@ end
 function scriptShouldStop()
     local prevCycleTime = thisCycleTime or startTime
     thisCycleTime = reaper.time_precise()
-    dragTimeStarted = dragTimeStarted or (thisCycleTime > startTime + dragTime)
 
     local prevKeyState = keyState
     keyState = reaper.JS_VKeys_GetState(startTime - 0.5):sub(VKLow, VKHi)
-    if dragTimeStarted and keyState ~= prevKeyState and keyState == VKState0 then
-        return true
-    end
 
+    -- Any keys were pressed.
     local keyDown = reaper.JS_VKeys_GetDown(prevCycleTime):sub(VKLow, VKHi)
     if keyDown ~= prevKeyState and keyDown ~= VKState0 then
         local p = 0
@@ -79,10 +76,10 @@ function scriptShouldStop()
         end
     end
 
+    -- Mouse was clicked.
     local previousMouseState = mouseState or 0xFF
     mouseState = reaper.JS_Mouse_GetState(0xFF)
-    if (mouseState & 61) > (previousMouseState & 61) -- 61 = 0b00111101 = Ctrl | Shift | Alt | Win | Left button
-    or (dragTimeStarted and (mouseState & 1) < (previousMouseState & 1)) then
+    if mouseState > previousMouseState then
         return true
     end
 
@@ -91,6 +88,9 @@ end
 
 local windowType = nil
 function init()
+    startTime = reaper.time_precise()
+    thisCycleTime = startTime
+
     reaper.atexit(atExit)
 
     -- Load REAPER's native "zoom" cursor
@@ -102,14 +102,13 @@ function init()
     -- Intercept keyboard input.
     reaper.JS_VKeys_Intercept(-1, 1)
 
+    -- Initialize mouse and keyboard states.
     mouseState = reaper.JS_Mouse_GetState(0xFF)
-    startTime = reaper.time_precise()
     keyState = reaper.JS_VKeys_GetState(-2):sub(VKLow, VKHi)
-
-    thisCycleTime = reaper.time_precise()
 
     initialMousePos.x, initialMousePos.y = reaper.GetMousePosition()
 
+    -- Find out what kind of window is under the mouse and focus it.
     windowUnderMouse = reaper.JS_Window_FromPoint(initialMousePos.x, initialMousePos.y)
     if windowUnderMouse then
         parentWindow = reaper.JS_Window_GetParent(windowUnderMouse)
