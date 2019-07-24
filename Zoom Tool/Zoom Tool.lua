@@ -21,10 +21,6 @@ local keyState = nil
 local initialMousePos = {}
 local previousMousePos = {}
 local currentMousePos = {}
-local initalTrackHeights = {}
-
-local focusedWindow =  reaper.JS_Window_GetFocus()
-local yAdjustment = 0
 
 
 
@@ -40,84 +36,7 @@ function reaperCMD(id)
     end
 end
 
-function trackIsValid(track)
-    local trackExists = reaper.ValidatePtr(track, "MediaTrack*")
-    return track ~= nil and trackExists
-end
-
-function getTCPTracksOnScreen()
-    local tracksOnScreen = {}
-
-    local trackPixelStart = 0
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(focusedWindow, "VERT")
-
-    local trackIndex = 1
-    for i = 1, reaper.CountTracks(0) do
-        local currentTrack = reaper.GetTrack(0, i - 1)
-        trackPixelEnd = trackPixelStart + reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
-
-        local screenStart = scrollPos
-        local screenEnd = scrollPos + scrollPageSize
-
-        local trackIsCompletelyOnScreen = trackPixelStart >= screenStart and trackPixelEnd < screenEnd
-        local trackStartsOffScreenButEndsOnScreen = trackPixelStart < screenStart and trackPixelEnd >= screenStart
-        local trackStartsOnScreenButEndsOffScreen = trackPixelStart < screenEnd and trackPixelEnd >= screenEnd
-
-        if trackIsCompletelyOnScreen or trackStartsOffScreenButEndsOnScreen or trackStartsOnScreenButEndsOffScreen then
-            tracksOnScreen[trackIndex] = currentTrack
-            trackIndex = trackIndex + 1
-        end
-
-        trackPixelStart = trackPixelEnd
-    end
-
-    return tracksOnScreen
-end
-
-function moveVerticalScroll(value)
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(focusedWindow, "VERT")
-    reaper.JS_Window_SetScrollPos(focusedWindow, "VERT", math.max(math.floor(scrollPos + value), 0))
-end
-
-function zoomAllTracksToAdjustment()
-    --reaper.PreventUIRefresh(1)
-
-    local _, previousScrollPos, previousScrollPageSize, previousScrollMin, previousScrollMax, previousScrollTrackPos = reaper.JS_Window_GetScrollInfo(focusedWindow, "VERT")
-    local scrollRatio = previousScrollPos / previousScrollMax
-
-    for i = 1, reaper.CountTracks(0) do
-        local currentTrack = reaper.GetTrack(0, i - 1)
-        local trackHeight = initalTrackHeights[i] + yAdjustment
-        local trackHeight = math.max(trackHeight, 0)
-
-        reaper.SetMediaTrackInfo_Value(currentTrack, "I_HEIGHTOVERRIDE", trackHeight);
-    end
-    reaper.TrackList_AdjustWindows(false)
-
-    local tracksOnScreen = getTCPTracksOnScreen()
-    local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
-
-    local scrollAccumulation = 0
-    for i = 1, firstTrackOnScreenNumber - 1 do
-        local currentTrack = reaper.GetTrack(0, i - 1)
-
-        local shiftValue = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH") - initalTrackHeights[i]
-        scrollAccumulation = scrollAccumulation + shiftValue
-    end
-
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(focusedWindow, "VERT")
-    local unwantedScrollMovement = scrollPos - previousScrollPos
-    --msg(unwantedScrollMovement)
-
-    local scrollShift = scrollAccumulation-- - unwantedScrollMovement
-    reaper.JS_Window_SetScrollPos(focusedWindow, "VERT", math.max(math.floor(previousScrollPos + scrollShift), 0))
-
-    --reaper.PreventUIRefresh(-1)
-end
-
 function atExit()
-    --zoomAllTracksToAdjustment()
-
     -- Stop intercepting keyboard input.
     reaper.JS_VKeys_Intercept(-1, -1)
 end
@@ -173,28 +92,22 @@ function init()
     initialMousePos.x, initialMousePos.y = reaper.GetMousePosition()
     previousMousePos.x, previousMousePos.y = reaper.GetMousePosition()
 
-    for i = 1, reaper.CountTracks(0) do
-        local currentTrack = reaper.GetTrack(0, i - 1)
-
-        if reaper.IsTrackVisible(currentTrack, false) then
-            if trackIsValid(currentTrack) then
-                initalTrackHeights[i] = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
-            end
-        end
-    end
-
     reaper.defer(update)
 end
 
+local previousYAdjustment = 0
+local yZoomTick = 0.5
+local yAdjustment = 0
 function update()
     if scriptShouldStop() then return 0 end
-    reaper.PreventUIRefresh(1)
+    --reaper.PreventUIRefresh(1)
 
     currentMousePos.x, currentMousePos.y = reaper.GetMousePosition()
 
-    local xAdjustment = (currentMousePos.x - previousMousePos.x) * mouseSensitivity
-    yAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity * 3.0
-    local yRelativeAdjustment = (currentMousePos.y - previousMousePos.y) * mouseSensitivity * 3.0
+    local xAdjustment = (currentMousePos.x - initialMousePos.x) * mouseSensitivity
+    local yRelativeAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
+    yAdjustment = yAdjustment + yRelativeAdjustment
+    --local yAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
 
     previousMousePos.x = currentMousePos.x
     previousMousePos.y = currentMousePos.y
@@ -202,21 +115,20 @@ function update()
     -- Horizontal zoom is easy.
     reaper.adjustZoom(xAdjustment, 0, true, -1)
 
-    local tracksOnScreen = getTCPTracksOnScreen()
+    local tickLowValue = yZoomTick * math.floor(yAdjustment / yZoomTick)
+    local tickHighValue = yZoomTick * math.ceil(yAdjustment / yZoomTick)
 
-    -- Vertical zoom is a bit more complicated.
-    for i = 1, #tracksOnScreen do
-        local currentTrack = tracksOnScreen[i]
-        local currentTrackNumber = reaper.GetMediaTrackInfo_Value(currentTrack, "IP_TRACKNUMBER")
-
-        local trackHeight = initalTrackHeights[currentTrackNumber] + yAdjustment
-        local trackHeight = math.max(trackHeight, 0)
-
-        reaper.SetMediaTrackInfo_Value(currentTrack, "I_HEIGHTOVERRIDE", trackHeight);
+    if previousYAdjustment < tickLowValue then
+        reaperCMD(40111) -- zoom in vertical
+    elseif previousYAdjustment > tickHighValue then
+        reaperCMD(40112) -- zoom out vertical
     end
-    reaper.TrackList_AdjustWindows(false)
 
-    reaper.PreventUIRefresh(-1)
+    previousYAdjustment = yAdjustment
+
+    reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
+
+    --reaper.PreventUIRefresh(-1)
 
     reaper.defer(update)
 end
