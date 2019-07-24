@@ -37,6 +37,14 @@ function reaperCMD(id)
     end
 end
 
+function reaperMIDICMD(id)
+    if type(id) == "string" then
+        reaper.MIDIEditor_LastFocused_OnCommand(reaper.NamedCommandLookup(id), 0)
+    else
+        reaper.MIDIEditor_LastFocused_OnCommand(id, 0)
+    end
+end
+
 function atExit()
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseAll()
@@ -81,6 +89,7 @@ function scriptShouldStop()
     return false
 end
 
+local windowType = nil
 function init()
     reaper.atexit(atExit)
 
@@ -101,49 +110,105 @@ function init()
 
     initialMousePos.x, initialMousePos.y = reaper.GetMousePosition()
 
+    windowUnderMouse = reaper.JS_Window_FromPoint(initialMousePos.x, initialMousePos.y)
+    if windowUnderMouse then
+        parentWindow = reaper.JS_Window_GetParent(windowUnderMouse)
+        if parentWindow then
+            -- Window under mouse is a MIDI editor.
+            if windowUnderMouse == reaper.JS_Window_FindChildByID(parentWindow, 1001) then
+                reaper.JS_Window_SetFocus(windowUnderMouse)
+                windowType = "midi"
+            -- Window under mouse is the main editor.
+            elseif parentWindow == reaper.GetMainHwnd() then
+                reaper.JS_Window_SetFocus(windowUnderMouse)
+                windowType = "main"
+            end
+        end
+    end
+
     reaper.defer(update)
 end
 
-local previousYAdjustment = 0
+local previousXAccumAdjust = 0
+local previousYAccumAdjust = 0
+local xZoomTick = 1
 local yZoomTick = 0.3
-local yAdjustment = 0
+local xAccumAdjust = 0
+local yAccumAdjust = 0
 function update()
     if scriptShouldStop() then return 0 end
-    --reaper.PreventUIRefresh(1)
 
     currentMousePos.x, currentMousePos.y = reaper.GetMousePosition()
 
-    local xAdjustment = (currentMousePos.x - initialMousePos.x) * mouseSensitivity
-    local yRelativeAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
-    yAdjustment = yAdjustment + yRelativeAdjustment
+    -- ==================== HORIZONTAL ZOOM ====================
 
-    -- Handle horizontal zoom.
-    reaper.adjustZoom(xAdjustment, 0, true, -1)
+    local xAdjust = (currentMousePos.x - initialMousePos.x) * mouseSensitivity
+    xAccumAdjust = xAccumAdjust + xAdjust
 
-    -- Handle vertical zoom.
-    local tickLowValue = yZoomTick * math.floor(yAdjustment / yZoomTick)
-    local tickHighValue = yZoomTick * math.ceil(yAdjustment / yZoomTick)
+    -- Handle horizontal zoom in main view.
+    if windowType == "main" then
+        reaper.adjustZoom(xAdjust, 0, true, -1)
 
-    if previousYAdjustment < tickLowValue then
-        local overflow = math.ceil((tickLowValue - previousYAdjustment) / yZoomTick)
+    -- I can't find a way to adjust the MIDI editor's zoom via the API,
+    -- so I have to do it with Reaper actions.
+    elseif windowType == "midi" then
+        local tickLowValue = xZoomTick * math.floor(xAccumAdjust / xZoomTick)
+        local tickHighValue = xZoomTick * math.ceil(xAccumAdjust / xZoomTick)
+
+        if previousXAccumAdjust < tickLowValue then
+            local overflow = math.ceil((tickLowValue - previousXAccumAdjust) / yZoomTick)
+            for i = 1, overflow do
+                reaperMIDICMD(1012) -- zoom in horizontal
+                reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
+            end
+
+        elseif previousXAccumAdjust > tickHighValue then
+            local overflow = math.ceil((previousXAccumAdjust - tickHighValue) / yZoomTick)
+            for i = 1, overflow do
+                reaperMIDICMD(1011) -- zoom out horizontal
+                reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
+            end
+        end
+
+    end
+
+    -- ==================== VERTICAL ZOOM ====================
+
+    local yAdjust = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
+    yAccumAdjust = yAccumAdjust + yAdjust
+
+    local tickLowValue = yZoomTick * math.floor(yAccumAdjust / yZoomTick)
+    local tickHighValue = yZoomTick * math.ceil(yAccumAdjust / yZoomTick)
+
+    if previousYAccumAdjust < tickLowValue then
+        local overflow = math.ceil((tickLowValue - previousYAccumAdjust) / yZoomTick)
         for i = 1, overflow do
-            reaperCMD(40111) -- zoom in vertical
+            if windowType == "main" then
+                reaperCMD(40111) -- zoom in vertical
+            elseif windowType == "midi" then
+                reaperMIDICMD(40111) -- zoom in vertical
+            end
             reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
         end
 
-    elseif previousYAdjustment > tickHighValue then
-        local overflow = math.ceil((previousYAdjustment - tickHighValue) / yZoomTick)
+    elseif previousYAccumAdjust > tickHighValue then
+        local overflow = math.ceil((previousYAccumAdjust - tickHighValue) / yZoomTick)
         for i = 1, overflow do
-            reaperCMD(40112) -- zoom out vertical
+            if windowType == "main" then
+                reaperCMD(40112) -- zoom out vertical
+            elseif windowType == "midi" then
+                reaperMIDICMD(40112) -- zoom out vertical
+            end
             reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
         end
     end
 
-    previousYAdjustment = yAdjustment
+    -- =======================================================
+
+    previousXAccumAdjust = xAccumAdjust
+    previousYAccumAdjust = yAccumAdjust
 
     reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
-
-    --reaper.PreventUIRefresh(-1)
 
     reaper.defer(update)
 end
