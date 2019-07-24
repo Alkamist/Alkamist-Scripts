@@ -87,6 +87,9 @@ function scriptShouldStop()
 end
 
 local windowType = nil
+local midiWindow = nil
+local midiTake = nil
+local noteIsSelected = {}
 function init()
     startTime = reaper.time_precise()
     thisCycleTime = startTime
@@ -117,6 +120,30 @@ function init()
             if windowUnderMouse == reaper.JS_Window_FindChildByID(parentWindow, 1001) then
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "midi"
+
+                -- Simulate a mouse left click in the MIDI editor to set the pitch cursor, since
+                -- the vertical zoom seems to follow where the pitch cursor is. Restore the old note
+                -- selection in case any MIDI notes were selected.
+                midiWindow = parentWindow
+                midiTake = reaper.MIDIEditor_GetTake(midiWindow)
+                local _, numMIDINotes = reaper.MIDI_CountEvts(midiTake)
+
+                -- Save the current selection of MIDI notes.
+                for i = 1, numMIDINotes do
+                    _, noteIsSelected[i] = reaper.MIDI_GetNote(midiTake, i - 1)
+                end
+
+                -- Simulate the mouse click.
+                midiMouseX, midiMouseY = reaper.JS_Window_ScreenToClient(windowUnderMouse, initialMousePos.x, initialMousePos.y)
+                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONDOWN", 0, 0, midiMouseX, midiMouseY)
+                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONUP", 0, 0, midiMouseX, midiMouseY)
+
+                -- Check if any notes were accidentally created and delete them.
+                local _, newMIDINoteCount = reaper.MIDI_CountEvts(midiTake)
+                if newMIDINoteCount > numMIDINotes then
+                    reaperMIDICMD(40002) -- delete notes
+                end
+
             -- Window under mouse is the main editor.
             elseif parentWindow == reaper.GetMainHwnd() then
                 reaper.JS_Window_SetFocus(windowUnderMouse)
@@ -128,6 +155,18 @@ function init()
     reaper.defer(update)
 end
 
+local midiSelectionRestored = false
+function restoreMIDISelection()
+    -- Restore the previous selection of MIDI notes.
+    for i = 1, #noteIsSelected do
+        reaper.MIDI_SetNote(midiTake, i - 1, noteIsSelected[i], nil, nil, nil, nil, nil, nil, true)
+
+        local _, currentNoteIsSelected = reaper.MIDI_GetNote(midiTake, i - 1)
+        midiSelectionRestored = noteIsSelected[i] == currentNoteIsSelected
+    end
+    reaper.MIDI_Sort(midiTake)
+end
+
 local previousXAccumAdjust = 0
 local previousYAccumAdjust = 0
 local xZoomTick = 1
@@ -136,6 +175,10 @@ local xAccumAdjust = 0
 local yAccumAdjust = 0
 function update()
     if scriptShouldStop() then return 0 end
+
+    if not midiSelectionRestored then
+        restoreMIDISelection()
+    end
 
     currentMousePos.x, currentMousePos.y = reaper.GetMousePosition()
 
