@@ -5,7 +5,8 @@
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
 
-local mouseSensitivity = 0.1
+local xSensitivity = 0.1
+local ySensitivity = 0.1
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
@@ -90,7 +91,6 @@ local windowType = nil
 local midiWindow = nil
 local midiTake = nil
 local noteIsSelected = {}
-local editCursorPos = nil
 function init()
     startTime = reaper.time_precise()
     thisCycleTime = startTime
@@ -128,10 +128,6 @@ function init()
                 midiWindow = parentWindow
                 midiTake = reaper.MIDIEditor_GetTake(midiWindow)
                 local _, numMIDINotes = reaper.MIDI_CountEvts(midiTake)
-
-                -- Simulating the left click will unfortunately move the edit cursor, so store its
-                -- position to restore it later.
-                editCursorPos = reaper.GetCursorPosition()
 
                 -- Save the current selection of MIDI notes.
                 for i = 1, numMIDINotes do
@@ -173,14 +169,12 @@ function restoreMIDISelection()
         midiSelectionRestored = noteIsSelected[i] == currentNoteIsSelected
     end
     reaper.MIDI_Sort(midiTake)
-
-    reaper.SetEditCurPos(editCursorPos, false, false)
 end
 
 local previousXAccumAdjust = 0
 local previousYAccumAdjust = 0
 local xZoomTick = 1
-local yZoomTick = 0.3
+local yZoomTick = 1
 local xAccumAdjust = 0
 local yAccumAdjust = 0
 function update()
@@ -190,7 +184,7 @@ function update()
 
     -- ==================== HORIZONTAL ZOOM ====================
 
-    local xAdjust = (currentMousePos.x - initialMousePos.x) * mouseSensitivity
+    local xAdjust = (currentMousePos.x - initialMousePos.x) * xSensitivity
     xAccumAdjust = xAccumAdjust + xAdjust
 
     -- Handle horizontal zoom in main view.
@@ -227,7 +221,7 @@ function update()
 
     -- ==================== VERTICAL ZOOM ====================
 
-    local yAdjust = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
+    local yAdjust = (currentMousePos.y - initialMousePos.y) * ySensitivity
     yAccumAdjust = yAccumAdjust + yAdjust
 
     local tickLowValue = yZoomTick * math.floor(yAccumAdjust / yZoomTick)
