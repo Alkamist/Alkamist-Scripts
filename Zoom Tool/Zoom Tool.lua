@@ -144,6 +144,9 @@ function init()
                     reaperMIDICMD(40002) -- delete notes
                 end
 
+                -- The mouse button clicks are asynchronously handled, so we need restore the MIDI
+                -- selection later on in the code after the mouse up event happens.
+
             -- Window under mouse is the main editor.
             elseif parentWindow == reaper.GetMainHwnd() then
                 reaper.JS_Window_SetFocus(windowUnderMouse)
@@ -176,10 +179,6 @@ local yAccumAdjust = 0
 function update()
     if scriptShouldStop() then return 0 end
 
-    if not midiSelectionRestored then
-        restoreMIDISelection()
-    end
-
     currentMousePos.x, currentMousePos.y = reaper.GetMousePosition()
 
     -- ==================== HORIZONTAL ZOOM ====================
@@ -194,6 +193,11 @@ function update()
     -- I can't find a way to adjust the MIDI editor's zoom via the API,
     -- so I have to do it with Reaper actions.
     elseif windowType == "midi" then
+        -- Keep checking if we need to restore the original MIDI note selection.
+        if not midiSelectionRestored then
+            restoreMIDISelection()
+        end
+
         local tickLowValue = xZoomTick * math.floor(xAccumAdjust / xZoomTick)
         local tickHighValue = xZoomTick * math.ceil(xAccumAdjust / xZoomTick)
 
