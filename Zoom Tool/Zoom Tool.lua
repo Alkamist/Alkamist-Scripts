@@ -61,6 +61,11 @@ function scriptShouldStop()
     local prevKeyState = keyState
     keyState = reaper.JS_VKeys_GetState(startTime - 0.5):sub(VKLow, VKHi)
 
+    -- All keys are released.
+    if keyState ~= prevKeyState and keyState == VKState0 then
+        return true
+    end
+
     -- Any keys were pressed.
     local keyDown = reaper.JS_VKeys_GetDown(prevCycleTime):sub(VKLow, VKHi)
     if keyDown ~= prevKeyState and keyDown ~= VKState0 then
