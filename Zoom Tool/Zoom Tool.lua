@@ -19,8 +19,9 @@ local mouseState = nil
 local keyState = nil
 
 local initialMousePos = {}
-local previousMousePos = {}
 local currentMousePos = {}
+
+local focusedWindow = reaper.JS_Window_GetFocus()
 
 
 
@@ -37,6 +38,9 @@ function reaperCMD(id)
 end
 
 function atExit()
+    -- Release any intercepts.
+    reaper.JS_WindowMessage_ReleaseAll()
+
     -- Stop intercepting keyboard input.
     reaper.JS_VKeys_Intercept(-1, -1)
 end
@@ -80,6 +84,12 @@ end
 function init()
     reaper.atexit(atExit)
 
+    -- Load REAPER's native "zoom" cursor
+    reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(1009))
+
+    -- Prevent REAPER from changing cursor back, by intercepting "SETCURSOR" messages
+    reaper.JS_WindowMessage_Intercept(focusedWindow, "WM_SETCURSOR", false)
+
     -- Intercept keyboard input.
     reaper.JS_VKeys_Intercept(-1, 1)
 
@@ -90,13 +100,12 @@ function init()
     thisCycleTime = reaper.time_precise()
 
     initialMousePos.x, initialMousePos.y = reaper.GetMousePosition()
-    previousMousePos.x, previousMousePos.y = reaper.GetMousePosition()
 
     reaper.defer(update)
 end
 
 local previousYAdjustment = 0
-local yZoomTick = 0.5
+local yZoomTick = 0.3
 local yAdjustment = 0
 function update()
     if scriptShouldStop() then return 0 end
@@ -107,21 +116,27 @@ function update()
     local xAdjustment = (currentMousePos.x - initialMousePos.x) * mouseSensitivity
     local yRelativeAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
     yAdjustment = yAdjustment + yRelativeAdjustment
-    --local yAdjustment = (currentMousePos.y - initialMousePos.y) * mouseSensitivity
 
-    previousMousePos.x = currentMousePos.x
-    previousMousePos.y = currentMousePos.y
-
-    -- Horizontal zoom is easy.
+    -- Handle horizontal zoom.
     reaper.adjustZoom(xAdjustment, 0, true, -1)
 
+    -- Handle vertical zoom.
     local tickLowValue = yZoomTick * math.floor(yAdjustment / yZoomTick)
     local tickHighValue = yZoomTick * math.ceil(yAdjustment / yZoomTick)
 
     if previousYAdjustment < tickLowValue then
-        reaperCMD(40111) -- zoom in vertical
+        local overflow = math.ceil((tickLowValue - previousYAdjustment) / yZoomTick)
+        for i = 1, overflow do
+            reaperCMD(40111) -- zoom in vertical
+            reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
+        end
+
     elseif previousYAdjustment > tickHighValue then
-        reaperCMD(40112) -- zoom out vertical
+        local overflow = math.ceil((previousYAdjustment - tickHighValue) / yZoomTick)
+        for i = 1, overflow do
+            reaperCMD(40112) -- zoom out vertical
+            reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
+        end
     end
 
     previousYAdjustment = yAdjustment
