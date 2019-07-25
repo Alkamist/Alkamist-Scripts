@@ -5,14 +5,13 @@
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
 
+-- Change these sensitivities to change the feel of the zoom tool.
 local xSensitivity = 0.1
 local ySensitivity = 0.1
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
 
-local dragTime = 0.5 -- How long must the shortcut key be held down before left-drag is activated?
-local dragTimeStarted = false
 local startTime = 0
 local thisCycleTime = 0
 
@@ -21,8 +20,6 @@ local keyState = nil
 
 local initialMousePos = {}
 local currentMousePos = {}
-
-local focusedWindow = reaper.JS_Window_GetFocus()
 
 
 
@@ -105,9 +102,6 @@ function init()
     -- Load REAPER's native "zoom" cursor
     reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(1009))
 
-    -- Prevent REAPER from changing cursor back, by intercepting "SETCURSOR" messages
-    reaper.JS_WindowMessage_Intercept(focusedWindow, "WM_SETCURSOR", false)
-
     -- Intercept keyboard input.
     reaper.JS_VKeys_Intercept(-1, 1)
 
@@ -120,6 +114,9 @@ function init()
     -- Find out what kind of window is under the mouse and focus it.
     windowUnderMouse = reaper.JS_Window_FromPoint(initialMousePos.x, initialMousePos.y)
     if windowUnderMouse then
+        -- Prevent REAPER from changing cursor back, by intercepting "SETCURSOR" messages
+        reaper.JS_WindowMessage_Intercept(windowUnderMouse, "WM_SETCURSOR", false)
+
         parentWindow = reaper.JS_Window_GetParent(windowUnderMouse)
         if parentWindow then
             -- Window under mouse is a MIDI editor.
@@ -174,6 +171,22 @@ function restoreMIDISelection()
         midiSelectionRestored = noteIsSelected[i] == currentNoteIsSelected
     end
     reaper.MIDI_Sort(midiTake)
+end
+
+function zoomInVertically()
+    if windowType == "main" then
+        reaperCMD(40111) -- zoom in vertical
+    elseif windowType == "midi" then
+        reaperMIDICMD(40111) -- zoom in vertical
+    end
+end
+
+function zoomOutVertically()
+    if windowType == "main" then
+        reaperCMD(40112) -- zoom out vertical
+    elseif windowType == "midi" then
+        reaperMIDICMD(40112) -- zoom out vertical
+    end
 end
 
 local previousXAccumAdjust = 0
@@ -235,22 +248,14 @@ function update()
     if previousYAccumAdjust < tickLowValue then
         local overflow = math.ceil((tickLowValue - previousYAccumAdjust) / yZoomTick)
         for i = 1, overflow do
-            if windowType == "main" then
-                reaperCMD(40111) -- zoom in vertical
-            elseif windowType == "midi" then
-                reaperMIDICMD(40111) -- zoom in vertical
-            end
+            zoomInVertically()
             reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
         end
 
     elseif previousYAccumAdjust > tickHighValue then
         local overflow = math.ceil((previousYAccumAdjust - tickHighValue) / yZoomTick)
         for i = 1, overflow do
-            if windowType == "main" then
-                reaperCMD(40112) -- zoom out vertical
-            elseif windowType == "midi" then
-                reaperMIDICMD(40112) -- zoom out vertical
-            end
+            zoomOutVertically()
             reaper.JS_Mouse_SetPosition(initialMousePos.x, initialMousePos.y)
         end
     end
