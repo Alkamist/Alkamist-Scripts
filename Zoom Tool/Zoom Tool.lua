@@ -340,7 +340,7 @@ function adjustAllTrackHeightsToZoom(zoom)
     --reaper.PreventUIRefresh(-1)
 end
 
-local previousFirstTrackOnScreenNumber = nil
+local previousFirstTrackOnScreenNumber = 0
 function adjustMainViewVerticalZoom(relative, zoom)
     local tracksOnScreen = getTCPTracksOnScreen()
 
@@ -348,6 +348,11 @@ function adjustMainViewVerticalZoom(relative, zoom)
         reaper.PreventUIRefresh(1)
 
         local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
+
+        local newFirstTrackScrollCorrection = 0
+        if firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
+            newFirstTrackScrollCorrection = initallyVisibleTracks[firstTrackOnScreenNumber].currentHeight
+        end
 
         -- Some envelopes will change height based on whether or not their height was
         -- manually set. We need to account for them as we find them.
@@ -358,12 +363,16 @@ function adjustMainViewVerticalZoom(relative, zoom)
         end
         reaper.TrackList_AdjustWindows(false)
 
+        if firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
+            newFirstTrackScrollCorrection = initallyVisibleTracks[firstTrackOnScreenNumber].currentHeight - newFirstTrackScrollCorrection
+        end
+
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(trackWindow)
 
         local mouseYRatio = mainViewOrigMousePos.y / windowHeight
         local scrollCorrection = relative * #tracksOnScreen * trackHeightFactor * mouseYRatio
-        local newScrollPos = math.max(round(scrollPos + scrollCorrection), 0)
+        local newScrollPos = math.max(round(scrollPos + scrollCorrection + newFirstTrackScrollCorrection), 0)
         reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
 
         previousFirstTrackOnScreenNumber = firstTrackOnScreenNumber
