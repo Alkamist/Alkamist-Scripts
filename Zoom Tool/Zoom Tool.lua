@@ -9,10 +9,11 @@
 local xSensitivity = 0.1
 local ySensitivity = 0.1
 
--- Whether or not to use actions to zoom in the main view, or zoom by changing
--- track height directly.
+-- Change this if you want to use action-based vertical zoom in the main view
+-- vs. setting the track height directly
 local useActionBasedVerticalZoom = false
 
+-- Change this to the minimum track height of your Reaper skin.
 local minTrackHeight = 25
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
@@ -241,7 +242,7 @@ function zoomOutVertically()
     end
 end
 
-function getEnvelopeHeight(envelope, trackHeight)
+function getEnvelopeHeight(envelope)
     local _, envelopeChunk = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
     local envelopeVisibilityChunk = envelopeChunk:match("VIS (%d%s%d)")
@@ -250,9 +251,8 @@ function getEnvelopeHeight(envelope, trackHeight)
 
     local envelopeHeight = tonumber(envelopeChunk:match("LANEHEIGHT (%d+)"))
 
-    -- Need to work on getting the actual track height
     if envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible then
-        envelopeHeight = floor(trackHeight / (1.0 + 1.0 / 3.0))
+        --envelopeHeight = floor(trackHeight * 0.75)
     end
 
     if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
@@ -335,20 +335,23 @@ end
 function setTrackZoom(track, zoom)
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
 
-    --for j = 1, reaper.CountTrackEnvelopes(track) do
-    --    local currentEnvelope = reaper.GetTrackEnvelope(track, j - 1)
-        --currentHeight = currentHeight - getEnvelopeHeight(currentEnvelope)
-        --getEnvelopeHeight(currentEnvelope, currentHeight)
-    --end
+    local trackLaneHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
+    local trackHeight = trackLaneHeight
 
-    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
-    local trackHeight = math.max(trackHeight, minTrackHeight)
-    local changeInHeight = trackHeight - initallyVisibleTracks[currentTrackNumber].currentHeight
+    local envelopeAccumulativeHeights = 0
+    for j = 1, reaper.CountTrackEnvelopes(track) do
+        local currentEnvelope = reaper.GetTrackEnvelope(track, j - 1)
+        envelopeAccumulativeHeights = envelopeAccumulativeHeights + getEnvelopeHeight(currentEnvelope)
+        --msg(getEnvelopeHeight(currentEnvelope))
+    end
+
+    trackHeight = trackHeight - envelopeAccumulativeHeights
+    trackHeight = math.max(trackHeight, minTrackHeight)
+
+    trackLaneHeight = trackHeight + envelopeAccumulativeHeights
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
-    initallyVisibleTracks[currentTrackNumber].currentHeight = trackHeight
-
-    return changeInHeight
+    initallyVisibleTracks[currentTrackNumber].currentHeight = trackLaneHeight
 end
 
 function setMainViewVerticalScroll(position)
@@ -359,7 +362,6 @@ end
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 then
         local correctScrollPosition = 0
-        --local newMouseOverTrackHeight = reaper.GetMediaTrackInfo_Value(initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].track, "I_WNDH")
         local newMouseOverTrackHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentHeight
         local correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverTrackHeight
 
@@ -367,7 +369,6 @@ function correctMainViewVerticalScroll()
             local currentTrack = initallyVisibleTracks[trackNumber].track
 
             if trackNumber < mainViewOrigMouseLocation.trackNumber then
-                --local currentTrackHeight = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
                 local currentTrackHeight = initallyVisibleTracks[trackNumber].currentHeight
 
                 correctScrollPosition = correctScrollPosition + currentTrackHeight
@@ -384,7 +385,7 @@ function adjustAllTrackHeightsToZoom(zoom)
     reaper.PreventUIRefresh(1)
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
-        local changeInHeight = setTrackZoom(value.track, zoom)
+        setTrackZoom(value.track, zoom)
     end
     reaper.TrackList_AdjustWindows(false)
 
@@ -400,8 +401,7 @@ function adjustMainViewVerticalZoom(relative, zoom)
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
         if initallyVisibleTracks[trackNumber].isOnScreen then
-            local changeInHeight = setTrackZoom(value.track, zoom)
-            --showTempHiddenTrack(value.track)
+            setTrackZoom(value.track, zoom)
         end
     end
     reaper.TrackList_AdjustWindows(false)
