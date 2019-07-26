@@ -275,7 +275,6 @@ end
 
 function setTrackZoom(track, zoom)
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
-    local currentHeight = initallyVisibleTracks[currentTrackNumber].initialHeight
 
     --for j = 1, reaper.CountTrackEnvelopes(track) do
     --    local currentEnvelope = reaper.GetTrackEnvelope(track, j - 1)
@@ -283,15 +282,18 @@ function setTrackZoom(track, zoom)
         --getEnvelopeHeight(currentEnvelope, currentHeight)
     --end
 
-    local trackHeight = currentHeight + zoom * trackHeightFactor
+    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
     local trackHeight = math.max(trackHeight, minTrackHeight)
+    local changeInHeight = trackHeight - initallyVisibleTracks[currentTrackNumber].currentHeight
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
     initallyVisibleTracks[currentTrackNumber].currentHeight = trackHeight
+
+    return changeInHeight
 end
 
 function adjustAllTrackHeightsToZoom(zoom)
-    --reaper.PreventUIRefresh(1)
+    reaper.PreventUIRefresh(1)
 
     local tracksOnScreen = getTCPTracksOnScreen()
     local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
@@ -299,12 +301,12 @@ function adjustAllTrackHeightsToZoom(zoom)
 
     -- Set the zoom of all of the tracks and record all of the height changes of the
     -- tracks above the screen.
-    local initialHeightsOfTracksAbove = {}
-    for i = 1, #initallyVisibleTracks do
-        local currentTrack = initallyVisibleTracks[i]
+    local previousHeightsOfTracksAbove = {}
+    for trackNumber, value in pairs(initallyVisibleTracks) do
+        local currentTrack = value.track
 
         if i < firstTrackOnScreenNumber then
-            initialHeightsOfTracksAbove[i] = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
+            previousHeightsOfTracksAbove[i] = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
         end
 
         setTrackZoom(currentTrack, zoom)
@@ -318,7 +320,7 @@ function adjustAllTrackHeightsToZoom(zoom)
         if i < firstTrackOnScreenNumber then
             local currentTrack = initallyVisibleTracks[i]
 
-            heightChangeOfTracksAbove = heightChangeOfTracksAbove + initialHeightsOfTracksAbove[i] - reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
+            heightChangeOfTracksAbove = heightChangeOfTracksAbove + previousHeightsOfTracksAbove[i] - reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
         end
     end
 
@@ -337,7 +339,7 @@ function adjustAllTrackHeightsToZoom(zoom)
     local newScrollPos = math.max(round(scrollPos + scrollCorrection), 0)
     reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
 
-    --reaper.PreventUIRefresh(-1)
+    reaper.PreventUIRefresh(-1)
 end
 
 local previousFirstTrackOnScreenNumber = 0
@@ -349,30 +351,23 @@ function adjustMainViewVerticalZoom(relative, zoom)
 
         local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
 
-        local newFirstTrackScrollCorrection = 0
-        if firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
-            newFirstTrackScrollCorrection = initallyVisibleTracks[firstTrackOnScreenNumber].currentHeight
-        end
-
-        -- Some envelopes will change height based on whether or not their height was
-        -- manually set. We need to account for them as we find them.
-        local numZoomingEnvelopes = 0
+        local newFirstTrackScrollBumpCorrection = 0
         for i = 1, #tracksOnScreen do
             local currentTrack = tracksOnScreen[i]
-            setTrackZoom(currentTrack, zoom)
+            local changeInHeight = setTrackZoom(currentTrack, zoom)
+
+            if i == 1 and firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
+                newFirstTrackScrollBumpCorrection = changeInHeight
+            end
         end
         reaper.TrackList_AdjustWindows(false)
-
-        if firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
-            newFirstTrackScrollCorrection = initallyVisibleTracks[firstTrackOnScreenNumber].currentHeight - newFirstTrackScrollCorrection
-        end
 
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(trackWindow)
 
         local mouseYRatio = mainViewOrigMousePos.y / windowHeight
         local scrollCorrection = relative * #tracksOnScreen * trackHeightFactor * mouseYRatio
-        local newScrollPos = math.max(round(scrollPos + scrollCorrection + newFirstTrackScrollCorrection), 0)
+        local newScrollPos = math.max(round(scrollPos + scrollCorrection + newFirstTrackScrollBumpCorrection), 0)
         reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
 
         previousFirstTrackOnScreenNumber = firstTrackOnScreenNumber
