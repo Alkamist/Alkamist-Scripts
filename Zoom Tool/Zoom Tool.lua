@@ -242,6 +242,9 @@ function zoomOutVertically()
     end
 end
 
+function getNumZoomingEnvelopes(track)
+end
+
 function getEnvelopeStats(envelope)
     local _, envelopeChunk = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
@@ -254,13 +257,27 @@ function getEnvelopeStats(envelope)
     return envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane
 end
 
+function getNumZoomingEnvelopes(track)
+    local numZoomingEnvelopes = 0
+    for i = 1, reaper.CountTrackEnvelopes(track) do
+        local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(reaper.GetTrackEnvelope(track, i - 1))
+
+        local envelopeZooms = envelopeHeight == 0 and envelopeIsVisible and envelopeIsInOwnLane
+        if envelopeZooms then
+            numZoomingEnvelopes = numZoomingEnvelopes + 1
+        end
+    end
+
+    return numZoomingEnvelopes
+end
+
 function getEnvelopeHeight(envelope, track)
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
     local currentTrackLaneHeight = initallyVisibleTracks[currentTrackNumber].currentHeight
 
     local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(envelope)
 
-    local envelopeZooms = envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible
+    --[[local envelopeZooms = envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible
     if envelopeZooms then
         local totalHeight = currentTrackLaneHeight
 
@@ -279,7 +296,7 @@ function getEnvelopeHeight(envelope, track)
         --envelopeHeight = math.floor(trackHeight * 0.75)
         --envelopeHeight = math.floor(totalHeight / (4/3 + numZoomingEnvelopes))
         envelopeHeight = totalHeight / (4/3 + numZoomingEnvelopes)
-    end
+    end]]--
 
     if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
         envelopeHeight = 0
@@ -364,19 +381,17 @@ function setTrackZoom(track, zoom)
     local trackLaneHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
     local trackHeight = trackLaneHeight
 
-    local envelopeAccumulativeHeights = 0
     for i = 1, reaper.CountTrackEnvelopes(track) do
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
-        envelopeAccumulativeHeights = envelopeAccumulativeHeights + getEnvelopeHeight(currentEnvelope, track)
+        trackHeight = trackHeight - getEnvelopeHeight(currentEnvelope, track)
     end
 
-    --trackHeight = trackHeight - envelopeAccumulativeHeights
+    local numZoomingEnvelopes = getNumZoomingEnvelopes(track)
+    if numZoomingEnvelopes > 0 then
+        trackHeight = (4.0 * trackHeight) / (3.0 + 3.0 * numZoomingEnvelopes)
+    end
+
     trackHeight = math.max(trackHeight, minTrackHeight)
-
-    trackLaneHeight = trackHeight + envelopeAccumulativeHeights
-
-    --msg(trackLaneHeight)
-    --msg(envelopeAccumulativeHeights)
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
     initallyVisibleTracks[currentTrackNumber].currentHeight = trackLaneHeight
