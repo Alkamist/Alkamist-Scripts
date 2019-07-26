@@ -242,16 +242,41 @@ function zoomOutVertically()
     end
 end
 
-function getEnvelopeHeight(envelope)
+function getEnvelopeStats(envelope)
     local _, envelopeChunk = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
     local envelopeVisibilityChunk = envelopeChunk:match("VIS (%d%s%d)")
-    local envelopeIsVisible = envelopeVisibilityChunk:sub(1, 1)
-    local envelopeIsInOwnLane = envelopeVisibilityChunk:sub(3, 3)
+    local envelopeIsVisible = tonumber(envelopeVisibilityChunk:sub(1, 1)) > 0
+    local envelopeIsInOwnLane = tonumber(envelopeVisibilityChunk:sub(3, 3)) > 0
 
     local envelopeHeight = tonumber(envelopeChunk:match("LANEHEIGHT (%d+)"))
 
-    if envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible then
+    return envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane
+end
+
+function getEnvelopeHeight(envelope, track)
+    local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+    local currentTrackLaneHeight = initallyVisibleTracks[currentTrackNumber].currentHeight
+
+    local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(envelope)
+
+    local envelopeZooms = envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible
+    if envelopeZooms then
+        local trackHeight = currentTrackLaneHeight
+
+        local numZoomingEnvelopes = 0
+        for i = 1, reaper.CountTrackEnvelopes(track) do
+            local otherHeight, otherIsVisible, otherIsInOwnLane = getEnvelopeStats(reaper.GetTrackEnvelope(track, i - 1))
+
+            local otherEnvZooms = otherHeight == 0 and otherIsVisible and otherIsInOwnLane
+            if otherEnvZooms then
+                numZoomingEnvelopes = numZoomingEnvelopes + 1
+            else
+                --trackHeight = trackHeight - envelopeHeight
+            end
+        end
+
+        --envHeight = totalHeight / (4/3 + numEnvs)
         --envelopeHeight = floor(trackHeight * 0.75)
     end
 
@@ -339,9 +364,9 @@ function setTrackZoom(track, zoom)
     local trackHeight = trackLaneHeight
 
     local envelopeAccumulativeHeights = 0
-    for j = 1, reaper.CountTrackEnvelopes(track) do
-        local currentEnvelope = reaper.GetTrackEnvelope(track, j - 1)
-        envelopeAccumulativeHeights = envelopeAccumulativeHeights + getEnvelopeHeight(currentEnvelope)
+    for i = 1, reaper.CountTrackEnvelopes(track) do
+        local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
+        envelopeAccumulativeHeights = envelopeAccumulativeHeights + getEnvelopeHeight(currentEnvelope, track)
         --msg(getEnvelopeHeight(currentEnvelope))
     end
 
