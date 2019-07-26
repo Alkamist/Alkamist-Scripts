@@ -13,7 +13,7 @@ local ySensitivity = 0.1
 -- track height directly.
 local useActionBasedVerticalZoom = false
 
-local minTrackHeight = 24
+local minTrackHeight = 25
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
@@ -100,9 +100,16 @@ function trackIsValid(track)
     return track ~= nil and trackExists
 end
 
-local mainViewOrigMousePos = {}
+local mainViewOrigMouseLocation = {}
 local initallyVisibleTracks = {}
+local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
+    mainViewOrigMouseClientLocation.x, mainViewOrigMouseClientLocation.y = reaper.JS_Window_ScreenToClient(trackWindow, initialMousePos.x, initialMousePos.y)
+    local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
+    local mousePixelYPosRecorded = false
+    local currentTrackPixelEnd = 0
+
     for i = 1, reaper.CountTracks(0) do
         local currentTrack = reaper.GetTrack(0, i - 1)
 
@@ -110,13 +117,20 @@ function initializeMainViewVerticalZoom()
             if trackIsValid(currentTrack) then
                 initallyVisibleTracks[i] = {}
                 initallyVisibleTracks[i].track = currentTrack
-                initallyVisibleTracks[i].initialHeight = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
-                initallyVisibleTracks[i].currentHeight = initallyVisibleTracks[i].initialHeight
+                local currentTrackHeight = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
+                initallyVisibleTracks[i].initialHeight = currentTrackHeight
+                initallyVisibleTracks[i].currentHeight = currentTrackHeight
+
+                currentTrackPixelEnd = currentTrackPixelEnd + initallyVisibleTracks[i].initialHeight
+
+                if currentTrackPixelEnd > mousePixelYPos and not mousePixelYPosRecorded then
+                    mainViewOrigMouseLocation.trackNumber = i
+                    mainViewOrigMouseLocation.trackRatio = (mousePixelYPos - currentTrackPixelEnd + currentTrackHeight) / currentTrackHeight
+                    mousePixelYPosRecorded = true
+                end
             end
         end
     end
-
-    mainViewOrigMousePos.x, mainViewOrigMousePos.y = reaper.JS_Window_ScreenToClient(trackWindow, initialMousePos.x, initialMousePos.y)
 end
 
 local windowType = nil
@@ -292,88 +306,61 @@ function setTrackZoom(track, zoom)
     return changeInHeight
 end
 
+function setMainViewVerticalScroll(position)
+    local newPosition = math.max(round(position), 0)
+    reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newPosition)
+end
+
+function correctMainViewVerticalScroll()
+    local correctScrollPosition = 0
+    local newMouseOverTrackHeight = reaper.GetMediaTrackInfo_Value(initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].track, "I_WNDH")
+    local correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverTrackHeight
+
+    for trackNumber, value in pairs(initallyVisibleTracks) do
+        local currentTrack = initallyVisibleTracks[trackNumber].track
+
+        if trackNumber < mainViewOrigMouseLocation.trackNumber then
+            --local currentTrackHeight = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
+            local currentTrackHeight = initallyVisibleTracks[trackNumber].currentHeight
+
+            correctScrollPosition = correctScrollPosition + currentTrackHeight
+        end
+    end
+
+    correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
+
+    setMainViewVerticalScroll(correctScrollPosition)
+end
+
 function adjustAllTrackHeightsToZoom(zoom)
     reaper.PreventUIRefresh(1)
 
-    local tracksOnScreen = getTCPTracksOnScreen()
-    local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
-    local numberOfTracksAboveScreen = firstTrackOnScreenNumber - 1
-
-    -- Set the zoom of all of the tracks and record all of the height changes of the
-    -- tracks above the screen.
-    local previousHeightsOfTracksAbove = {}
     for trackNumber, value in pairs(initallyVisibleTracks) do
         local currentTrack = value.track
-
-        if i < firstTrackOnScreenNumber then
-            previousHeightsOfTracksAbove[i] = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
-        end
-
-        setTrackZoom(currentTrack, zoom)
+        local changeInHeight = setTrackZoom(currentTrack, zoom)
     end
     reaper.TrackList_AdjustWindows(false)
 
-    -- Calculate the cumulative change in height of the tracks above the screen so we can
-    -- adjust the scroll bar to be in the right place.
-    local heightChangeOfTracksAbove = 0
-    for i = 1, numberOfTracksAboveScreen do
-        if i < firstTrackOnScreenNumber then
-            local currentTrack = initallyVisibleTracks[i]
-
-            heightChangeOfTracksAbove = heightChangeOfTracksAbove + previousHeightsOfTracksAbove[i] - reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
-        end
-    end
-
-    -- Some tracks are already scaled when they fall off the screen. You need to take that into account.
-    -- Maybe loop through and compare their old heights to their new ones and accumulate the values.
-    -- Do the same for the new track that pops on screen and screws up scrolling.
-
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
-
-    --local scrollCorrection = zoom * numberOfTracksAboveScreen * trackHeightFactor
-    local scrollCorrection = -heightChangeOfTracksAbove
-
-    --msg(scrollCorrection)
-    --msg(zoom * numberOfTracksAboveScreen * trackHeightFactor)
-
-    local newScrollPos = math.max(round(scrollPos + scrollCorrection), 0)
-    reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
-
     reaper.PreventUIRefresh(-1)
+
+    correctMainViewVerticalScroll()
+
+    --reaper.PreventUIRefresh(-1)
 end
 
-local previousFirstTrackOnScreenNumber = 0
 function adjustMainViewVerticalZoom(relative, zoom)
     local tracksOnScreen = getTCPTracksOnScreen()
 
     if tracksOnScreen[1] ~= nil then
         reaper.PreventUIRefresh(1)
 
-        local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
-
-        local newFirstTrackScrollBumpCorrection = 0
-        local scrollCorrection = 0
         for i = 1, #tracksOnScreen do
             local currentTrack = tracksOnScreen[i]
             local changeInHeight = setTrackZoom(currentTrack, zoom)
-
-            if i == 1 and firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
-                newFirstTrackScrollBumpCorrection = changeInHeight
-            else
-                scrollCorrection = scrollCorrection + changeInHeight
-            end
         end
         reaper.TrackList_AdjustWindows(false)
 
-        local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
-        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(trackWindow)
-
-        local mouseYRatio = mainViewOrigMousePos.y / windowHeight
-        scrollCorrection = scrollCorrection * mouseYRatio
-        local newScrollPos = math.max(round(scrollPos + scrollCorrection + newFirstTrackScrollBumpCorrection), 0)
-        reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
-
-        previousFirstTrackOnScreenNumber = firstTrackOnScreenNumber
+        correctMainViewVerticalScroll()
 
         reaper.PreventUIRefresh(-1)
     end
@@ -466,9 +453,9 @@ function update()
 end
 
 function atExit()
-    --if (not useActionBasedVerticalZoom) and windowType == "main" then
-    --    adjustAllTrackHeightsToZoom(yAccumAdjust)
-    --end
+    if (not useActionBasedVerticalZoom) and windowType == "main" then
+        adjustAllTrackHeightsToZoom(yAccumAdjust)
+    end
 
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseAll()
