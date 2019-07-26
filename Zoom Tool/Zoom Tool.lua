@@ -381,17 +381,26 @@ function setTrackZoom(track, zoom)
     local trackLaneHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
     local trackHeight = trackLaneHeight
 
+    local cumulativeEnvelopeHeight = 0
     for i = 1, reaper.CountTrackEnvelopes(track) do
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
-        trackHeight = trackHeight - getEnvelopeHeight(currentEnvelope, track)
+        cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + getEnvelopeHeight(currentEnvelope, track)
     end
+
+    trackHeight = trackHeight - cumulativeEnvelopeHeight
 
     local numZoomingEnvelopes = getNumZoomingEnvelopes(track)
     if numZoomingEnvelopes > 0 then
         trackHeight = (4.0 * trackHeight) / (3.0 + 3.0 * numZoomingEnvelopes)
+        trackHeight = math.floor(trackHeight) - 6
     end
 
     trackHeight = math.max(trackHeight, minTrackHeight)
+
+    local minimumEnvelopeHeight = 24
+    local zoomingEnvLanesHeight = math.max(math.floor(0.75 * trackHeight), minimumEnvelopeHeight) * numZoomingEnvelopes
+    local fullEnvLanesHeight = cumulativeEnvelopeHeight + zoomingEnvLanesHeight
+    local trackLaneHeight = trackHeight + fullEnvLanesHeight
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
     initallyVisibleTracks[currentTrackNumber].currentHeight = trackLaneHeight
