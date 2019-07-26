@@ -352,12 +352,15 @@ function adjustMainViewVerticalZoom(relative, zoom)
         local firstTrackOnScreenNumber = reaper.GetMediaTrackInfo_Value(tracksOnScreen[1], "IP_TRACKNUMBER")
 
         local newFirstTrackScrollBumpCorrection = 0
+        local scrollCorrection = 0
         for i = 1, #tracksOnScreen do
             local currentTrack = tracksOnScreen[i]
             local changeInHeight = setTrackZoom(currentTrack, zoom)
 
             if i == 1 and firstTrackOnScreenNumber < previousFirstTrackOnScreenNumber then
                 newFirstTrackScrollBumpCorrection = changeInHeight
+            else
+                scrollCorrection = scrollCorrection + changeInHeight
             end
         end
         reaper.TrackList_AdjustWindows(false)
@@ -366,7 +369,7 @@ function adjustMainViewVerticalZoom(relative, zoom)
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(trackWindow)
 
         local mouseYRatio = mainViewOrigMousePos.y / windowHeight
-        local scrollCorrection = relative * #tracksOnScreen * trackHeightFactor * mouseYRatio
+        scrollCorrection = scrollCorrection * mouseYRatio
         local newScrollPos = math.max(round(scrollPos + scrollCorrection + newFirstTrackScrollBumpCorrection), 0)
         reaper.JS_Window_SetScrollPos(trackWindow, "VERT", newScrollPos)
 
