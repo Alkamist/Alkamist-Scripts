@@ -262,7 +262,7 @@ function getEnvelopeHeight(envelope, track)
 
     local envelopeZooms = envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible
     if envelopeZooms then
-        local trackHeight = currentTrackLaneHeight
+        local totalHeight = currentTrackLaneHeight
 
         local numZoomingEnvelopes = 0
         for i = 1, reaper.CountTrackEnvelopes(track) do
@@ -272,12 +272,13 @@ function getEnvelopeHeight(envelope, track)
             if otherEnvZooms then
                 numZoomingEnvelopes = numZoomingEnvelopes + 1
             else
-                --trackHeight = trackHeight - envelopeHeight
+                totalHeight = totalHeight - envelopeHeight
             end
         end
 
-        --envHeight = totalHeight / (4/3 + numEnvs)
-        --envelopeHeight = floor(trackHeight * 0.75)
+        --envelopeHeight = math.floor(trackHeight * 0.75)
+        --envelopeHeight = math.floor(totalHeight / (4/3 + numZoomingEnvelopes))
+        envelopeHeight = totalHeight / (4/3 + numZoomingEnvelopes)
     end
 
     if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
@@ -367,13 +368,15 @@ function setTrackZoom(track, zoom)
     for i = 1, reaper.CountTrackEnvelopes(track) do
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
         envelopeAccumulativeHeights = envelopeAccumulativeHeights + getEnvelopeHeight(currentEnvelope, track)
-        --msg(getEnvelopeHeight(currentEnvelope))
     end
 
-    trackHeight = trackHeight - envelopeAccumulativeHeights
+    --trackHeight = trackHeight - envelopeAccumulativeHeights
     trackHeight = math.max(trackHeight, minTrackHeight)
 
     trackLaneHeight = trackHeight + envelopeAccumulativeHeights
+
+    --msg(trackLaneHeight)
+    --msg(envelopeAccumulativeHeights)
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
     initallyVisibleTracks[currentTrackNumber].currentHeight = trackLaneHeight
@@ -391,12 +394,8 @@ function correctMainViewVerticalScroll()
         local correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverTrackHeight
 
         for trackNumber, value in pairs(initallyVisibleTracks) do
-            local currentTrack = initallyVisibleTracks[trackNumber].track
-
             if trackNumber < mainViewOrigMouseLocation.trackNumber then
-                local currentTrackHeight = initallyVisibleTracks[trackNumber].currentHeight
-
-                correctScrollPosition = correctScrollPosition + currentTrackHeight
+                correctScrollPosition = correctScrollPosition + value.currentHeight
             end
         end
 
