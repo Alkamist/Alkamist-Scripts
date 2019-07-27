@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="9cb218092bee72ff9c34e06f216edabdc525263c" name="Alkamist Scripts">
+<index version="1" commit="c27079d9f2ad225a636652da0f12bbf72afa6325" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -14,6 +14,9 @@
       </metadata>
       <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/dc035f2e8781b1b2ba1a0c1f7d6cea32c29abd6e/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
+      </version>
+      <version name="1.1" author="Alkamist" time="2019-07-27T22:41:44Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c27079d9f2ad225a636652da0f12bbf72afa6325/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
       </version>
     </reapack>
     <reapack name="Region Item Functions.lua" type="script" desc="Region Item Functions">
@@ -30,6 +33,9 @@
       <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/8ec7d5a2d03c0197c82779327b11ff3bd9a20930/Region%20Items/Region%20Item%20Functions.lua</source>
       </version>
+      <version name="1.1" author="Alkamist" time="2019-07-27T22:41:44Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c27079d9f2ad225a636652da0f12bbf72afa6325/Region%20Items/Region%20Item%20Functions.lua</source>
+      </version>
     </reapack>
     <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
       <metadata>
@@ -44,6 +50,9 @@
       </metadata>
       <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/dc035f2e8781b1b2ba1a0c1f7d6cea32c29abd6e/Region%20Items/Update%20Region%20Items.lua</source>
+      </version>
+      <version name="1.1" author="Alkamist" time="2019-07-27T22:41:44Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c27079d9f2ad225a636652da0f12bbf72afa6325/Region%20Items/Update%20Region%20Items.lua</source>
       </version>
     </reapack>
   </category>
