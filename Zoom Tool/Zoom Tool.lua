@@ -137,7 +137,6 @@ function initializeMainViewVerticalZoom()
     end
 
     updateTrackOnScreenStatus()
-    --hideOffScreenTracks()
 end
 
 local windowType = nil
@@ -244,9 +243,6 @@ function zoomOutVertically()
     end
 end
 
-function getNumZoomingEnvelopes(track)
-end
-
 function getEnvelopeStats(envelope)
     local _, envelopeChunk = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
@@ -279,67 +275,11 @@ function getEnvelopeHeight(envelope, track)
 
     local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(envelope)
 
-    --[[local envelopeZooms = envelopeHeight == 0 and envelopeIsInOwnLane and envelopeIsVisible
-    if envelopeZooms then
-        local totalHeight = currentTrackLaneHeight
-
-        local numZoomingEnvelopes = 0
-        for i = 1, reaper.CountTrackEnvelopes(track) do
-            local otherHeight, otherIsVisible, otherIsInOwnLane = getEnvelopeStats(reaper.GetTrackEnvelope(track, i - 1))
-
-            local otherEnvZooms = otherHeight == 0 and otherIsVisible and otherIsInOwnLane
-            if otherEnvZooms then
-                numZoomingEnvelopes = numZoomingEnvelopes + 1
-            else
-                totalHeight = totalHeight - envelopeHeight
-            end
-        end
-
-        --envelopeHeight = math.floor(trackHeight * 0.75)
-        --envelopeHeight = math.floor(totalHeight / (4/3 + numZoomingEnvelopes))
-        envelopeHeight = totalHeight / (4/3 + numZoomingEnvelopes)
-    end]]--
-
     if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
         envelopeHeight = 0
     end
 
     return envelopeHeight
-end
-
-function hideOffScreenTracks()
-    local paddingTracksBeforeHide = 20
-    local firstOnScreenTrackNumber, lastOnScreenTrackNumber = updateTrackOnScreenStatus()
-    for trackNumber, value in pairs(initallyVisibleTracks) do
-        if trackNumber < firstOnScreenTrackNumber or trackNumber > lastOnScreenTrackNumber then
-            reaper.SetMediaTrackInfo_Value(value.track, "B_SHOWINTCP", 0);
-            reaper.SetMediaTrackInfo_Value(value.track, "B_SHOWINMIXER", 0);
-
-            initallyVisibleTracks[trackNumber].isTempHidden = true
-        end
-    end
-    reaper.TrackList_AdjustWindows(false)
-
-    correctMainViewVerticalScroll()
-end
-
-function showTempHiddenTrack(track)
-    local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
-
-    if initallyVisibleTracks[currentTrackNumber].isTempHidden then
-        reaper.SetMediaTrackInfo_Value(track, "B_SHOWINTCP", 1);
-        reaper.SetMediaTrackInfo_Value(track, "B_SHOWINMIXER", 1);
-
-        initallyVisibleTracks[currentTrackNumber].isTempHidden = false
-    end
-end
-
-function showTempHiddenTracks()
-    for trackNumber, value in pairs(initallyVisibleTracks) do
-        showTempHiddenTrack(value.track)
-    end
-
-    correctMainViewVerticalScroll()
 end
 
 function updateTrackOnScreenStatus()
@@ -435,6 +375,9 @@ function correctMainViewVerticalScroll()
 
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
 
+        -- If you zoom too far then you unfortunately have to allow for the UI to update,
+        -- otherwise you will end up hitting the end of the tracklist and scrolling to
+        -- the wrong place.
         if correctScrollPosition + scrollPageSize > scrollMax then
             reaper.PreventUIRefresh(-1)
         end
@@ -561,7 +504,6 @@ end
 
 function atExit()
     if (not useActionBasedVerticalZoom) and windowType == "main" then
-        --showTempHiddenTracks()
         adjustAllTrackHeightsToZoom(yAccumAdjust)
     end
 
