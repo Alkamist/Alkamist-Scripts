@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.3
+-- @version 1.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -156,7 +156,6 @@ local initallyVisibleTracks = {}
 local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-    mainViewOrigMouseClientLocation.x, mainViewOrigMouseClientLocation.y = reaper.JS_Window_ScreenToClient(arrangeWindow, initialMousePos.x, initialMousePos.y)
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
     local mousePixelYPosRecorded = false
     local currentTrackPixelEnd = 0
@@ -196,6 +195,13 @@ function initializeMainViewVerticalZoom()
         mainViewOrigMouseLocation.trackNumber = lastVisibleTrackNumber
         mainViewOrigMouseLocation.trackRatio = 1.0
     end
+end
+
+local mainViewMouseXSeconds = 0
+function initializeMainViewHorizontalZoom()
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+
+    mainViewMouseXSeconds = (scrollPos + mainViewOrigMouseClientLocation.x) / reaper.GetHZoomLevel()
 end
 
 local windowType = nil
@@ -263,6 +269,10 @@ function init()
             elseif parentWindow == reaper.GetMainHwnd() then
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "main"
+
+                mainViewOrigMouseClientLocation.x, mainViewOrigMouseClientLocation.y = reaper.JS_Window_ScreenToClient(arrangeWindow, initialMousePos.x, initialMousePos.y)
+
+                initializeMainViewHorizontalZoom()
 
                 if not useActionBasedVerticalZoom then
                     initializeMainViewVerticalZoom()
@@ -404,7 +414,7 @@ function correctMainViewVerticalScroll()
     end
 end
 
-function adjustMainViewVerticalZoom(relative, zoom)
+function setMainViewVerticalZoom(zoom)
     setUIRefresh(false)
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
@@ -415,6 +425,24 @@ function adjustMainViewVerticalZoom(relative, zoom)
     correctMainViewVerticalScroll()
 
     setUIRefresh(true)
+end
+
+function setMainViewHorizontalScroll(position)
+    local newPosition = math.max(round(position), 0)
+    reaper.JS_Window_SetScrollPos(arrangeWindow, "HORZ", newPosition)
+end
+
+function correctMainViewHorizontalScroll()
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+
+    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - mainViewOrigMouseClientLocation.x
+
+    setMainViewHorizontalScroll(correctScrollPosition)
+end
+
+function adjustMainViewHorizontalZoom(zoom)
+    reaper.adjustZoom(zoom, 0, true, -1)
+    correctMainViewHorizontalScroll()
 end
 
 local previousXAccumAdjust = 0
@@ -435,7 +463,7 @@ function update()
 
     -- Handle horizontal zoom in main view.
     if windowType == "main" then
-        reaper.adjustZoom(xAdjust, 0, true, -1)
+        adjustMainViewHorizontalZoom(xAdjust)
 
     -- I can't find a way to adjust the MIDI editor's zoom via the API,
     -- so I have to do it with Reaper actions.
@@ -488,7 +516,7 @@ function update()
             end
         end
     else
-        adjustMainViewVerticalZoom(yAdjust, yAccumAdjust)
+        setMainViewVerticalZoom(yAccumAdjust)
     end
 
     -- =======================================================
