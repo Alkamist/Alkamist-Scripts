@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="f895338388e7ab470bab6ceed59a419b79100350" name="Alkamist Scripts">
+<index version="1" commit="6a7d17c24def952df88bad86dd3d0b3297b59585" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -84,6 +84,9 @@
       </version>
       <version name="1.2" author="Alkamist" time="2019-07-27T18:52:12Z">
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/f895338388e7ab470bab6ceed59a419b79100350/Zoom%20Tool/Zoom%20Tool.lua</source>
+      </version>
+      <version name="1.3" author="Alkamist" time="2019-07-27T19:31:47Z">
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/6a7d17c24def952df88bad86dd3d0b3297b59585/Zoom%20Tool/Zoom%20Tool.lua</source>
       </version>
     </reapack>
   </category>
