@@ -167,9 +167,7 @@ function initializeMainViewVerticalZoom()
 
                 local currentTrackHeight = getTrackHeight(currentTrack)
                 initallyVisibleTracks[i].initialTrackHeight = currentTrackHeight
-                initallyVisibleTracks[i].currentTrackHeight = currentTrackHeight
 
-                initallyVisibleTracks[i].isOnScreen = false
                 initallyVisibleTracks[i].zoomWasSetOnce = false
 
                 currentTrackPixelEnd = currentTrackPixelEnd + currentLaneHeight
@@ -182,8 +180,6 @@ function initializeMainViewVerticalZoom()
             end
         end
     end
-
-    updateTrackOnScreenStatus()
 
     if not mousePixelYPosRecorded then
         mainViewOrigMouseLocation.trackNumber = lastVisibleTrackNumber
@@ -334,41 +330,6 @@ function getEnvelopeHeight(envelope, track)
     return envelopeHeight
 end
 
-function updateTrackOnScreenStatus()
-    local trackPixelStart = 0
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
-
-    local firstOnScreenTrackNumber = 0
-    local lastOnScreenTrackNumber = 0
-
-    for trackNumber, value in pairs(initallyVisibleTracks) do
-        trackPixelEnd = trackPixelStart + initallyVisibleTracks[trackNumber].currentLaneHeight
-
-        local screenStart = scrollPos
-        local screenEnd = scrollPos + windowHeight
-
-        local trackIsCompletelyOnScreen = trackPixelStart >= screenStart and trackPixelEnd < screenEnd
-        local trackStartsOffScreenButEndsOnScreen = trackPixelStart < screenStart and trackPixelEnd >= screenStart
-        local trackStartsOnScreenButEndsOffScreen = trackPixelStart < screenEnd and trackPixelEnd >= screenEnd
-
-        if trackIsCompletelyOnScreen or trackStartsOffScreenButEndsOnScreen or trackStartsOnScreenButEndsOffScreen then
-            initallyVisibleTracks[trackNumber].isOnScreen = true
-
-            if trackStartsOffScreenButEndsOnScreen then
-                firstOnScreenTrackNumber = trackNumber
-            end
-            if trackStartsOnScreenButEndsOffScreen then
-                lastOnScreenTrackNumber = trackNumber
-            end
-        end
-
-        trackPixelStart = trackPixelEnd
-    end
-
-    return firstOnScreenTrackNumber, lastOnScreenTrackNumber
-end
-
 function setTrackZoom(track, zoom)
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
 
@@ -432,28 +393,11 @@ function correctMainViewVerticalScroll()
     end
 end
 
-function adjustAllTrackHeightsToZoom(zoom)
+function adjustMainViewVerticalZoom(relative, zoom)
     reaper.PreventUIRefresh(1)
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
         setTrackZoom(value.track, zoom)
-    end
-    reaper.TrackList_AdjustWindows(false)
-
-    correctMainViewVerticalScroll()
-
-    reaper.PreventUIRefresh(-1)
-end
-
-function adjustMainViewVerticalZoom(relative, zoom)
-    updateTrackOnScreenStatus()
-
-    reaper.PreventUIRefresh(1)
-
-    for trackNumber, value in pairs(initallyVisibleTracks) do
-        if initallyVisibleTracks[trackNumber].isOnScreen then
-            setTrackZoom(value.track, zoom)
-        end
     end
     reaper.TrackList_AdjustWindows(false)
 
@@ -547,10 +491,6 @@ function update()
 end
 
 function atExit()
-    if (not useActionBasedVerticalZoom) and windowType == "main" then
-        adjustAllTrackHeightsToZoom(yAccumAdjust)
-    end
-
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseAll()
 
