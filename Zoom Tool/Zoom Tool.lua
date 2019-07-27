@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.2
+-- @version 1.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -57,6 +57,18 @@ function reaperMIDICMD(id)
         reaper.MIDIEditor_LastFocused_OnCommand(reaper.NamedCommandLookup(id), 0)
     else
         reaper.MIDIEditor_LastFocused_OnCommand(id, 0)
+    end
+end
+
+local uiShouldRefresh = true
+function setUIRefresh(state)
+    -- Enable UI refresh.
+    if state and not uiShouldRefresh then
+        reaper.PreventUIRefresh(-1)
+
+    -- Disable UI refresh.
+    elseif not state and uiShouldRefresh then
+        reaper.PreventUIRefresh(1)
     end
 end
 
@@ -385,7 +397,7 @@ function correctMainViewVerticalScroll()
         -- otherwise you will end up hitting the end of the tracklist and scrolling to
         -- the wrong place.
         if correctScrollPosition + scrollPageSize > scrollMax then
-            reaper.PreventUIRefresh(-1)
+            setUIRefresh(true)
         end
 
         setMainViewVerticalScroll(correctScrollPosition)
@@ -393,7 +405,7 @@ function correctMainViewVerticalScroll()
 end
 
 function adjustMainViewVerticalZoom(relative, zoom)
-    reaper.PreventUIRefresh(1)
+    setUIRefresh(false)
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
         setTrackZoom(value.track, zoom)
@@ -402,7 +414,7 @@ function adjustMainViewVerticalZoom(relative, zoom)
 
     correctMainViewVerticalScroll()
 
-    reaper.PreventUIRefresh(-1)
+    setUIRefresh(true)
 end
 
 local previousXAccumAdjust = 0
