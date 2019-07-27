@@ -32,7 +32,7 @@ local currentMousePos = {}
 
 local mainWindow = reaper.GetMainHwnd()
 local arrangeWindow = reaper.JS_Window_FindChildByID(mainWindow, 1000)
-local trackHeightFactor = 20.0
+local trackYZoomFactor = 0.2
 
 
 
@@ -352,9 +352,13 @@ function getEnvelopeHeight(envelope, track)
 end
 
 function setTrackZoom(track, zoom)
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
 
-    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight + zoom * trackHeightFactor
+    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom
+    trackHeight = math.max(trackHeight, minTrackHeight)
+    trackHeight = math.min(trackHeight, windowHeight * 1.3333333333333)
 
     local cumulativeEnvelopeHeight = 0
     for i = 1, reaper.CountTrackEnvelopes(track) do
@@ -367,8 +371,6 @@ function setTrackZoom(track, zoom)
     if numZoomingEnvelopes > 0 then
         zoomingEnvelopeHeights = math.max(math.floor(trackHeight * 0.75), minimumEnvelopeHeight) * numZoomingEnvelopes
     end
-
-    trackHeight = math.max(trackHeight, minTrackHeight)
 
     local fullEnvLanesHeight = cumulativeEnvelopeHeight + zoomingEnvelopeHeights
 
@@ -516,7 +518,7 @@ function update()
             end
         end
     else
-        setMainViewVerticalZoom(yAccumAdjust)
+        setMainViewVerticalZoom(2.0 ^ (yAccumAdjust * trackYZoomFactor))
     end
 
     -- =======================================================
