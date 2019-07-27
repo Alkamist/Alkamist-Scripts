@@ -10,8 +10,7 @@ local xSensitivity = 0.1
 local ySensitivity = 0.1
 
 -- Change this if you want to use action-based vertical zoom in the main view
--- vs. setting the track height directly. Setting the track height directly lags
--- terribly in large projects so it is not recommended.
+-- vs. setting the track height directly.
 local useActionBasedVerticalZoom = false
 
 -- Change this to the minimum track height of your Reaper skin. This only matters
