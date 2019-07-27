@@ -111,12 +111,14 @@ function initializeMainViewVerticalZoom()
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
     local mousePixelYPosRecorded = false
     local currentTrackPixelEnd = 0
+    local lastVisibleTrackNumber = 0
 
     for i = 1, reaper.CountTracks(0) do
         local currentTrack = reaper.GetTrack(0, i - 1)
 
         if reaper.IsTrackVisible(currentTrack, false) then
             if trackIsValid(currentTrack) then
+                lastVisibleTrackNumber = i
                 initallyVisibleTracks[i] = {}
                 initallyVisibleTracks[i].track = currentTrack
                 local currentTrackHeight = reaper.GetMediaTrackInfo_Value(currentTrack, "I_WNDH")
@@ -137,6 +139,11 @@ function initializeMainViewVerticalZoom()
     end
 
     updateTrackOnScreenStatus()
+
+    if not mousePixelYPosRecorded then
+        mainViewOrigMouseLocation.trackNumber = lastVisibleTrackNumber
+        mainViewOrigMouseLocation.trackRatio = 1.0
+    end
 end
 
 local windowType = nil
