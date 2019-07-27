@@ -1,5 +1,5 @@
 -- @description Update Region Items
--- @version 1.0
+-- @version 1.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -13,24 +13,52 @@ label = 'Alkamist: Update Region Items'
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
 require "Scripts.Alkamist Scripts.Region Items.Region Item Functions"
 
-function updateRegionItems()
+local envAttach = nil
+local splitAutoXFade = nil
+local projRipEdit = nil
+local initialTrackSelection = {}
+local initalItemSelection = {}
+function saveSettings()
     reaperCMD("_SWS_SAVETIME1")
     reaperCMD("_SWS_SAVEVIEW")
     reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
+
+    -- Save the previous settings before we temporarily change them.
+    envAttach = reaper.SNM_GetIntConfigVar("envattach", 0)
+    splitAutoXFade = reaper.SNM_GetIntConfigVar("splitautoxfade", 0)
+    projRipEdit = reaper.SNM_GetIntConfigVar("projripedit", 0)
+
+    -- Save the initial track and item selection.
+    initialTrackSelection = getSelectedTracks()
+    initalItemSelection = getSelectedItems()
+end
+
+function restoreSettings()
+    -- Restore the settings we changed.
+    reaper.SNM_SetIntConfigVar("envattach", envAttach)
+    reaper.SNM_SetIntConfigVar("splitautoxfade", splitAutoXFade)
+    reaper.SNM_SetIntConfigVar("projripedit", projRipEdit)
+    reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
+    reaperCMD("_SWS_RESTOREVIEW")
+    reaperCMD("_SWS_RESTTIME1")
+
+    -- Restore the initial track and item selection.
+    restoreSelectedTracks(initialTrackSelection)
+    restoreSelectedItems(initalItemSelection)
+end
+
+function updateRegionItems()
+    saveSettings()
 
     reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
     reaperCMD(40928) -- disable auto crossfade on split
     reaperCMD(41195) -- enable auto fade-in/fade-out
     reaperCMD(40309) -- disable ripple editing
 
-    -- Save the initial track and item selection.
-    local initialTrackSelection = getSelectedTracks()
-    local initalItemSelection = getSelectedItems()
-
     -- Determine if we even have any region items selected.
     local numSelectedStartingItems = reaper.CountSelectedMediaItems(0)
     if numSelectedStartingItems ~= 1 then
-        return -1
+        return "more_than_one_item"
     end
 
     local sourceRegion = reaper.GetSelectedMediaItem(0, 0)
@@ -38,7 +66,7 @@ function updateRegionItems()
     -- Check to make sure the region track has children.
     selectChildTracks(sourceRegion)
     if reaper.CountSelectedTracks(0) <= 0 then
-        return -2
+        return "no_children"
     end
 
     populateSourceEnvelopes(sourceRegion)
@@ -91,14 +119,7 @@ function updateRegionItems()
         reaperCMD(40005) -- remove tracks
     end
 
-    -- Restore the initial track and item selection.
-    restoreSelectedTracks(initialTrackSelection)
-    restoreSelectedItems(initalItemSelection)
-
-    reaperCMD(41196) -- disable auto fade-in/fade-out
-    reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
-    reaperCMD("_SWS_RESTOREVIEW")
-    reaperCMD("_SWS_RESTTIME1")
+    restoreSettings()
 
     return 0
 end
@@ -109,10 +130,12 @@ if(reaper.CountSelectedMediaItems(0) > 0) then
     reaper.PreventUIRefresh(1)
 
     local errorResult = updateRegionItems()
-    if errorResult == -1 then
+    if errorResult == "more_than_one_item" then
         reaper.ShowMessageBox("Please select only one region item.", "Error!", 0)
-    elseif errorResult == -2 then
+        restoreSettings()
+    elseif errorResult == "no_children" then
         reaper.ShowMessageBox("The track of the region item must have children.", "Error!", 0)
+        restoreSettings()
     end
 
     reaper.PreventUIRefresh(-1)

@@ -1,5 +1,5 @@
 -- @description Clear Selected Region Items
--- @version 1.0
+-- @version 1.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,10 +12,37 @@ label = 'Alkamist: Clear Selected Region Items'
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .. package.path
 require "Scripts.Alkamist Scripts.Region Items.Region Item Functions"
 
-function clearSelectedRegionItems()
+local projRipEdit = nil
+local initialTrackSelection = {}
+local initalItemSelection = {}
+function saveSettings()
     reaperCMD("_SWS_SAVETIME1")
     reaperCMD("_SWS_SAVEVIEW")
     reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
+
+    -- Save the previous ripple editing setting before we temporarily change it.
+    projRipEdit = reaper.SNM_GetIntConfigVar("projripedit", 0)
+
+    -- Save the initial track and item selection.
+    initialTrackSelection = getSelectedTracks()
+    initalItemSelection = getSelectedItems()
+end
+
+function restoreSettings()
+    -- Restore the settings we changed.
+    reaper.SNM_SetIntConfigVar("projripedit", projRipEdit)
+    reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
+    reaperCMD("_SWS_RESTOREVIEW")
+    reaperCMD("_SWS_RESTTIME1")
+
+    -- Restore the initial track and item selection.
+    restoreSelectedTracks(initialTrackSelection)
+    restoreSelectedItems(initalItemSelection)
+end
+
+function clearSelectedRegionItems()
+    saveSettings()
+
     reaperCMD(40309) -- disable ripple editing
 
     -- Save the initial track and item selection.
@@ -31,13 +58,7 @@ function clearSelectedRegionItems()
         clearRegion(selectedItems[i])
     end
 
-    -- Restore the initial track and item selection.
-    restoreSelectedTracks(initialTrackSelection)
-    restoreSelectedItems(initalItemSelection)
-
-    reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
-    reaperCMD("_SWS_RESTOREVIEW")
-    reaperCMD("_SWS_RESTTIME1")
+    restoreSettings()
 
     return 0
 end

@@ -1,5 +1,5 @@
 -- @description Region Item Functions
--- @version 1.0
+-- @version 1.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
