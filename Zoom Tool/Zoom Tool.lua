@@ -15,6 +15,7 @@ local useActionBasedVerticalZoom = false
 
 -- Change this to the minimum track height of your Reaper skin.
 local minTrackHeight = 25
+local minimumEnvelopeHeight = 24
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
@@ -122,6 +123,7 @@ function initializeMainViewVerticalZoom()
                 initallyVisibleTracks[i].initialHeight = currentTrackHeight
                 initallyVisibleTracks[i].currentHeight = currentTrackHeight
                 initallyVisibleTracks[i].isOnScreen = false
+                initallyVisibleTracks[i].zoomWasSetOnce = false
 
                 currentTrackPixelEnd = currentTrackPixelEnd + initallyVisibleTracks[i].initialHeight
 
@@ -378,7 +380,10 @@ end
 function setTrackZoom(track, zoom)
     local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
 
-    local trackLaneHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor
+    local numZoomingEnvelopes = getNumZoomingEnvelopes(track)
+    local zoomingEnvelopeFactor = 1.0 + 0.75 * numZoomingEnvelopes
+
+    local trackLaneHeight = initallyVisibleTracks[currentTrackNumber].initialHeight + zoom * trackHeightFactor * zoomingEnvelopeFactor
     local trackHeight = trackLaneHeight
 
     local cumulativeEnvelopeHeight = 0
@@ -389,21 +394,24 @@ function setTrackZoom(track, zoom)
 
     trackHeight = trackHeight - cumulativeEnvelopeHeight
 
-    local numZoomingEnvelopes = getNumZoomingEnvelopes(track)
     if numZoomingEnvelopes > 0 then
         trackHeight = (4.0 * trackHeight) / (3.0 + 3.0 * numZoomingEnvelopes)
-        trackHeight = math.floor(trackHeight) - 6
+        trackHeight = round(trackHeight) - 6
     end
 
     trackHeight = math.max(trackHeight, minTrackHeight)
 
-    local minimumEnvelopeHeight = 24
     local zoomingEnvLanesHeight = math.max(math.floor(0.75 * trackHeight), minimumEnvelopeHeight) * numZoomingEnvelopes
     local fullEnvLanesHeight = cumulativeEnvelopeHeight + zoomingEnvLanesHeight
-    local trackLaneHeight = trackHeight + fullEnvLanesHeight
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
-    initallyVisibleTracks[currentTrackNumber].currentHeight = trackLaneHeight
+
+    if initallyVisibleTracks[currentTrackNumber].zoomWasSetOnce then
+        initallyVisibleTracks[currentTrackNumber].currentHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + fullEnvLanesHeight
+    else
+        initallyVisibleTracks[currentTrackNumber].currentHeight = trackHeight + fullEnvLanesHeight
+        initallyVisibleTracks[currentTrackNumber].zoomWasSetOnce = true
+    end
 end
 
 function setMainViewVerticalScroll(position)
@@ -424,6 +432,12 @@ function correctMainViewVerticalScroll()
         end
 
         correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
+
+        local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(trackWindow, "VERT")
+
+        if correctScrollPosition + scrollPageSize > scrollMax then
+            reaper.PreventUIRefresh(-1)
+        end
 
         setMainViewVerticalScroll(correctScrollPosition)
     end
