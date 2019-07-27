@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.1
+-- @version 1.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
