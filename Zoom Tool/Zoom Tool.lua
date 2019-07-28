@@ -9,6 +9,11 @@
 local xSensitivity = 0.1
 local ySensitivity = 0.1
 
+-- If this is true, the script will precisely scroll to the horizontal position
+-- you have your mouse over in the main view. This introduces some graphical
+-- glitches.
+local usePreciseMainViewHorizontalPositionTracking = true
+
 -- Change this if you want to use action-based vertical zoom in the main view
 -- vs. setting the track height directly.
 local useActionBasedVerticalZoom = false
@@ -575,7 +580,10 @@ end
 
 function adjustMainViewHorizontalZoom(zoom)
     reaper.adjustZoom(zoom, 0, true, -1)
-    correctMainViewHorizontalScroll()
+
+    if usePreciseMainViewHorizontalPositionTracking then
+        correctMainViewHorizontalScroll()
+    end
 end
 
 local previousXAccumAdjust = 0
