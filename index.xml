@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="f758a9ad0b79b9fe55471777405636d019d72b45" name="Alkamist Scripts">
+<index version="1" commit="0f91f6526523641c314a43215ecb98cf04244425" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -74,6 +74,22 @@
     </reapack>
   </category>
   <category name="Zoom Tool">
+    <reapack name="Default Settings.lua" type="script" desc="Zoom Tool">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+
+{\pard \ql \f0 \sa180 \li0 \fi0 This script will activate a zoom tool similar to what is used in Melodyne.\par}
+}
+]]></description>
+        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
+      </metadata>
+      <version name="1.5.4" author="Alkamist" time="2019-07-28T21:32:20Z">
+        <changelog><![CDATA[+ Added the ability to import your own settings file, so your settings don't get overwritten when updating.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/0f91f6526523641c314a43215ecb98cf04244425/Zoom%20Tool/Default%20Settings.lua</source>
+      </version>
+    </reapack>
     <reapack name="Zoom Tool.lua" type="script" desc="Zoom Tool">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
