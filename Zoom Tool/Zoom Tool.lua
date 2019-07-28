@@ -1,9 +1,11 @@
 -- @description Zoom Tool
--- @version 1.5.1
+-- @version 1.5.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
+-- @changelog
+--   Fixed unnecessarily setting the zoom of the master track twice.
 
 -- Change these sensitivities to change the feel of the zoom tool.
 local xSensitivity = 0.1
@@ -550,10 +552,6 @@ end
 
 function setMainViewVerticalZoom(zoom)
     setUIRefresh(false)
-
-    if masterIsVisibleInTCP() then
-        setTrackZoom(masterTrack, zoom)
-    end
 
     for trackNumber, value in pairs(initallyVisibleTracks) do
         setTrackZoom(value.track, zoom)
