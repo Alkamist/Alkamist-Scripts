@@ -13,7 +13,7 @@
 
 DO NOT CHANGE THIS FILE. INSTEAD, COPY THIS FILE AS:
 
-"Scripts\Alkamist Scripts\Zoom Tool\User Settings.lua"
+"Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool User Settings.lua"
 
 AND CHANGE THE SETTINGS THERE.
 
@@ -22,8 +22,8 @@ AND CHANGE THE SETTINGS THERE.
 
 
 -- Change these sensitivities to change the feel of the zoom tool.
-xSensitivity = 0.1
-ySensitivity = 0.1
+xSensitivity = 1.0
+ySensitivity = 1.0
 
 -- If this is true, the script will precisely scroll to the horizontal position
 -- you have your mouse over in the main view. This introduces some graphical

@@ -10,13 +10,17 @@
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
 -- This loads the default settings to be used in the script.
-require 'Scripts.Alkamist Scripts.Zoom Tool.Default Settings'
+require 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool Default Settings'
 
 -- This will overwrite the default settings with your settings from the file:
--- "Scripts\Alkamist Scripts\Zoom Tool\User Settings.lua"
-pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.User Settings')
+-- "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool User Settings.lua"
+pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool User Settings')
 
 
+
+-- A rescale of sensitivity for aesthetic purposes.
+xSensitivity = xSensitivity * 0.1
+ySensitivity = ySensitivity * 0.1
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
