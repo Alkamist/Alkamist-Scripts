@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="c5277d32b3c0030da3335ea5703e2a787a7b755f" name="Alkamist Scripts">
+<index version="1" commit="998a32ad074c0e4cc4630bbac94e3d3a8d368f1d" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -74,7 +74,7 @@
     </reapack>
   </category>
   <category name="Zoom Tool">
-    <reapack name="Zoom Tool Default Settings.lua" type="script" desc="Zoom Tool">
+    <reapack name="Zoom Tool Default Settings.lua" type="script" desc="Zoom Tool Default Settings">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
@@ -87,7 +87,7 @@
       </metadata>
       <version name="1.5.4" author="Alkamist" time="2019-07-28T21:41:32Z">
         <changelog><![CDATA[+ Added the ability to import your own settings file, so your settings don't get overwritten when updating.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c5277d32b3c0030da3335ea5703e2a787a7b755f/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/998a32ad074c0e4cc4630bbac94e3d3a8d368f1d/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
       </version>
     </reapack>
     <reapack name="Zoom Tool.lua" type="script" desc="Zoom Tool">
