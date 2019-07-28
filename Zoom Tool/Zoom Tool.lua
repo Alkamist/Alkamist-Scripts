@@ -20,10 +20,9 @@ local usePreciseMainViewHorizontalPositionTracking = true
 -- vs. setting the track height directly.
 local useActionBasedVerticalZoom = false
 
--- Change this to the minimum track height of your Reaper skin. This only matters
--- if you are zooming by setting the track height directly.
-local minTrackHeight = 25
 local minimumEnvelopeHeight = 24
+local minimumMasterHeight = 74
+
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
@@ -80,6 +79,37 @@ function setUIRefresh(state)
         reaper.PreventUIRefresh(1)
     end
 end
+
+function getMinimumTrackHeight()
+    local _, currentTheme = reaper.get_config_var_string("lastthemefn5")
+
+    local previousTheme = reaper.GetExtState("Previous stats since Alkamist: Zoom Tool run", "Theme")
+    local minimumTrackHeight = tonumber(reaper.GetExtState("Previous stats since Alkamist: Zoom Tool run", "Minimum Track Height"))
+
+    if currentTheme ~= previousTheme then
+        local prevvzoom2 = reaper.SNM_GetIntConfigVar("vzoom2", -1)
+        reaper.SNM_SetIntConfigVar("vzoom2", 0)
+
+        local lastTrackNumber = reaper.GetNumTracks()
+
+        reaper.InsertTrackAtIndex(lastTrackNumber, false)
+
+        local tempTrack = reaper.GetTrack(0, lastTrackNumber)
+        reaper.SetMediaTrackInfo_Value(tempTrack, "I_HEIGHTOVERRIDE", 1)
+
+        minimumTrackHeight = reaper.GetMediaTrackInfo_Value(tempTrack, "I_WNDH")
+
+        reaper.DeleteTrack(tempTrack)
+
+        reaper.SNM_SetIntConfigVar("vzoom2", prevvzoom2)
+
+        reaper.SetExtState("Previous stats since Alkamist: Zoom Tool run", "Theme", currentTheme, true)
+        reaper.SetExtState("Previous stats since Alkamist: Zoom Tool run", "Minimum Track Height", minimumTrackHeight, true)
+    end
+
+    return minimumTrackHeight
+end
+local minTrackHeight = 0
 
 function scriptShouldStop()
     local prevCycleTime = thisCycleTime or startTime
@@ -181,6 +211,8 @@ local initallyVisibleTracks = {}
 local mainViewOrigMouseLocation = {}
 local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
+    minTrackHeight = getMinimumTrackHeight()
+
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
     local mousePixelYPosRecorded = false
@@ -437,19 +469,6 @@ function getEnvelopeHeight(envelope, trackHeight)
     return 0, false
 end
 
--- Unfortunately setting envelope height manually is extremely slow and will lag the script.
--- Until I find a faster way to set it, I will have this disabled.
---[[function zoomEnvelope(envelope, zoom, initialHeight)
-    local _, envelopeState = reaper.GetEnvelopeStateChunk(envelope, "", false)
-
-    local _, heightIsManuallySet = getEnvelopeHeight(envelope, 1)
-
-    if heightIsManuallySet then
-        newHeight = round(initialHeight * zoom)
-        reaper.SetEnvelopeStateChunk(envelope, envelopeState:gsub("LANEHEIGHT %d+", "LANEHEIGHT " .. tostring(newHeight)), false)
-    end
-end]]--
-
 function setTrackZoom(track, zoom)
     local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
 
@@ -458,8 +477,7 @@ function setTrackZoom(track, zoom)
     local trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom
 
     if currentTrackNumber == 0 then
-        local minMasterHeight = 74
-        trackHeight = math.max(trackHeight, minMasterHeight)
+        trackHeight = math.max(trackHeight, minimumMasterHeight)
     else
         trackHeight = math.max(trackHeight, minTrackHeight)
     end
@@ -470,12 +488,11 @@ function setTrackZoom(track, zoom)
     for i = 1, reaper.CountTrackEnvelopes(track) do
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
 
-        --zoomEnvelope(currentEnvelope, zoom, initallyVisibleTracks[currentTrackNumber][currentEnvelope].initialHeight)
         local envelopeHeight = getEnvelopeHeight(currentEnvelope, trackHeight)
         cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + envelopeHeight
     end
 
-    reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
+    reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight)
 
     initallyVisibleTracks[currentTrackNumber].currentLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
 end
