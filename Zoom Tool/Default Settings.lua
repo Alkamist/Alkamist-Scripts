@@ -1,3 +1,14 @@
+-- @description Zoom Tool
+-- @version 1.5.4
+-- @author Alkamist
+-- @donate https://paypal.me/CoreyLehmanMusic
+-- @about
+--   This script will activate a zoom tool similar to what is used in Melodyne.
+-- @changelog
+--   + Added the ability to import your own settings file, so your settings don't get overwritten when updating.
+
+
+
 --[[
 
 DO NOT CHANGE THIS FILE. INSTEAD, COPY THIS FILE AS:
