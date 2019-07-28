@@ -1,4 +1,4 @@
--- @description Zoom Tool
+-- @description Zoom Tool Default Settings
 -- @version 1.5.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
