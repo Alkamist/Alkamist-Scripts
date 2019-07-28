@@ -1,11 +1,12 @@
 -- @description Zoom Tool
--- @version 1.5.2
+-- @version 1.5.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
 -- @changelog
---   Fixed unnecessarily setting the zoom of the master track twice.
+--   + Fixed jitter with envelopes caused by not rounding track height.
+--   + Added automatic minimum track height detection.
 
 -- Change these sensitivities to change the feel of the zoom tool.
 local xSensitivity = 0.1
@@ -262,7 +263,8 @@ function initializeMainViewVerticalZoom()
                     mainViewOrigMouseLocation.envelope = nil
                     mainViewOrigMouseLocation.envelopeNumber = 0
                     mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentTrackHeight) / currentTrackHeight
-                    mainViewOrigMouseLocation.fullLaneRatio = (mousePixelYPos - currentLanePixelEnd + currentLaneHeight) / currentLaneHeight
+                    mainViewOrigMouseLocation.trackRatio = mainViewOrigMouseLocation.zoneRatio
+                    mainViewOrigMouseLocation.fullEnvelopeLaneRatio = 0.0
                     mousePixelYPosRecorded = true
                 end
 
@@ -286,7 +288,9 @@ function initializeMainViewVerticalZoom()
                         mainViewOrigMouseLocation.envelope = currentEnvelope
                         mainViewOrigMouseLocation.envelopeNumber = j
                         mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentEnvelopeHeight) / currentEnvelopeHeight
-                        mainViewOrigMouseLocation.fullLaneRatio = (mousePixelYPos - currentLanePixelEnd + currentLaneHeight) / currentLaneHeight
+                        mainViewOrigMouseLocation.trackRatio = 1.0
+                        local fullEnvelopeLaneHeight = currentLaneHeight - currentTrackHeight
+                        mainViewOrigMouseLocation.fullEnvelopeLaneRatio = (mousePixelYPos - currentLanePixelEnd + currentLaneHeight - currentTrackHeight) / fullEnvelopeLaneHeight
                         mousePixelYPosRecorded = true
                     end
                 end
@@ -308,7 +312,8 @@ function initializeMainViewVerticalZoom()
         mainViewOrigMouseLocation.envelope = lastVisibleEnvelope
         mainViewOrigMouseLocation.envelopeNumber = lastVisibleEnvelopeNumber
         mainViewOrigMouseLocation.zoneRatio = 1.0
-        mainViewOrigMouseLocation.fullLaneRatio = 1.0
+        mainViewOrigMouseLocation.trackRatio = 1.0
+        mainViewOrigMouseLocation.fullEnvelopeLaneRatio = 1.0
         mainViewOrigMouseLocation.needsLongEnvelopeCalc = false
     else
         for i = 1, reaper.CountTrackEnvelopes(mainViewOrigMouseLocation.track) do
@@ -474,7 +479,7 @@ function setTrackZoom(track, zoom)
 
     local currentTrackNumber = getTrackNumber(track)
 
-    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom
+    local trackHeight = round(initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom)
 
     if currentTrackNumber == 0 then
         trackHeight = math.max(trackHeight, minimumMasterHeight)
@@ -489,6 +494,7 @@ function setTrackZoom(track, zoom)
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
 
         local envelopeHeight = getEnvelopeHeight(currentEnvelope, trackHeight)
+
         cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + envelopeHeight
     end
 
@@ -542,9 +548,25 @@ function correctMainViewVerticalScroll()
                     correctScrollPosition = correctScrollPosition + currentEnvelopeHeight
                 end
             end
+
+        -- Simpler and faster broad calculation.
         else
-            local newMouseOverFullLaneHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
-            correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.fullLaneRatio * newMouseOverFullLaneHeight
+            local newMouseOverHeight = 0
+            local newMouseOverTrackHeight = getTrackHeight(mainViewOrigMouseLocation.track)
+
+            -- The mouse is over a track.
+            if mainViewOrigMouseLocation.envelopeNumber < 1 then
+                newMouseOverHeight = newMouseOverTrackHeight
+
+                correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverHeight
+
+            -- The mouse is over an envelope.
+            else
+                local newMouseOverFullLaneHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
+                newMouseOverHeight = newMouseOverFullLaneHeight - newMouseOverTrackHeight
+
+                correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.fullEnvelopeLaneRatio * newMouseOverHeight + newMouseOverTrackHeight
+            end
         end
 
         -- Add on the 5 extra pixels after the master track if it is visible.
