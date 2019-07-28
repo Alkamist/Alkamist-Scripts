@@ -210,6 +210,12 @@ function initializeMainViewVerticalZoom()
                     mainViewOrigMouseLocation.trackRatio = (mousePixelYPos - currentTrackPixelEnd + currentLaneHeight) / currentLaneHeight
                     mousePixelYPosRecorded = true
                 end
+
+                for j = 1, reaper.CountTrackEnvelopes(currentTrack) do
+                    local currentEnvelope = reaper.GetTrackEnvelope(currentTrack, j - 1)
+                    initallyVisibleTracks[i][currentEnvelope] = {}
+                    initallyVisibleTracks[i][currentEnvelope].initialHeight = getEnvelopeHeight(currentEnvelope, currentTrackHeight)
+                end
             end
         end
     end
@@ -360,7 +366,20 @@ function getEnvelopeHeight(envelope, trackHeight)
         envelopeHeight = 0
     end
 
-    return envelopeHeight
+    return envelopeHeight, envelopeHeightIsBasedOnTrack
+end
+
+-- Unfortunately setting envelope height manually is extremely slow and will lag the script.
+-- Until I find a faster way to set it, I will have this disabled.
+function zoomEnvelope(envelope, zoom, initialHeight)
+    local _, envelopeState = reaper.GetEnvelopeStateChunk(envelope, "", false)
+
+    local _, heightIsBasedOnTrack = getEnvelopeHeight(envelope, 1)
+
+    if not heightIsBasedOnTrack then
+        newHeight = round(initialHeight * zoom)
+        reaper.SetEnvelopeStateChunk(envelope, envelopeState:gsub("LANEHEIGHT %d+", "LANEHEIGHT " .. tostring(newHeight)), false)
+    end
 end
 
 function setTrackZoom(track, zoom)
@@ -384,7 +403,10 @@ function setTrackZoom(track, zoom)
     local cumulativeEnvelopeHeight = 0
     for i = 1, reaper.CountTrackEnvelopes(track) do
         local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
-        cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + getEnvelopeHeight(currentEnvelope, trackHeight)
+
+        --zoomEnvelope(currentEnvelope, zoom, initallyVisibleTracks[currentTrackNumber][currentEnvelope].initialHeight)
+        local envelopeHeight = getEnvelopeHeight(currentEnvelope, trackHeight)
+        cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + envelopeHeight
     end
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
