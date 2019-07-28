@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="de11bb4ba6eb3ef2a34a4b95bc6b916e063d8018" name="Alkamist Scripts">
+<index version="1" commit="ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -80,7 +80,9 @@
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
 \widowctrl\hyphauto
 
-{\pard \ql \f0 \sa180 \li0 \fi0 This script will activate a zoom tool similar to what is used in Melodyne.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 This is the default settings file for the Zoom Tool. You need this file installed in the proper directory for script to work:\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 "Scripts\\Alkamist Scripts\\Zoom Tool\\Zoom Tool Default Settings.lua"\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 You can copy this file into the same folder and call it "Zool Tool User Settings.lua" and change the settings in there. That way, your settings are not overwritten when updating.\par}
 }
 ]]></description>
         <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
@@ -91,7 +93,7 @@
       </version>
       <version name="1.5.5" author="Alkamist" time="2019-07-28T21:46:01Z">
         <changelog><![CDATA[+ Fixed default settings file description.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/de11bb4ba6eb3ef2a34a4b95bc6b916e063d8018/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
       </version>
     </reapack>
     <reapack name="Zoom Tool.lua" type="script" desc="Zoom Tool">
@@ -100,7 +102,9 @@
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
 \widowctrl\hyphauto
 
-{\pard \ql \f0 \sa180 \li0 \fi0 This script will activate a zoom tool similar to what is used in Melodyne.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 This script will activate a zoom tool similar to what is used in Melodyne. Be sure to install the default settings file into:\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 "Scripts\\Alkamist Scripts\\Zoom Tool\\Zoom Tool Default Settings.lua"\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 You can copy that file into the same folder and call it "Zool Tool User Settings.lua" and change the settings in there. That way, your settings are not overwritten when updating.\par}
 }
 ]]></description>
         <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
@@ -141,7 +145,7 @@
       </version>
       <version name="1.5.5" author="Alkamist" time="2019-07-28T21:46:01Z">
         <changelog><![CDATA[+ Fixed default settings file description.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/de11bb4ba6eb3ef2a34a4b95bc6b916e063d8018/Zoom%20Tool/Zoom%20Tool.lua</source>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c/Zoom%20Tool/Zoom%20Tool.lua</source>
       </version>
     </reapack>
   </category>
