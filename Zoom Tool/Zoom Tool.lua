@@ -117,6 +117,18 @@ function trackIsValid(track)
     return track ~= nil and trackExists
 end
 
+function getTrackNumber(track)
+    local trackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+
+    if trackNumber == -1 then
+        trackNumber = 0
+    elseif trackNumber == 0 then
+        trackNumber = -1
+    end
+
+    return trackNumber
+end
+
 function getTrackHeight(track)
     local trackViewWindow = nil
 
@@ -158,8 +170,6 @@ function masterIsVisibleInTCP()
     return visibility == 1 or visibility == 3
 end
 
-local initialMasterTrackHeight = 0
-local currentMasterLaneHeight = 0
 local mainViewOrigMouseLocation = {}
 local initallyVisibleTracks = {}
 local mainViewOrigMouseClientLocation = {}
@@ -170,26 +180,19 @@ function initializeMainViewVerticalZoom()
     local currentTrackPixelEnd = 0
     local lastVisibleTrackNumber = 0
 
-    if masterIsVisibleInTCP() then
-        local masterHeight = getTrackHeight(masterTrack)
+    for i = 0, reaper.CountTracks(0) do
+        local currentTrack = nil
 
-        initialMasterTrackHeight = masterHeight
-        currentMasterLaneHeight = reaper.GetMediaTrackInfo_Value(masterTrack, "I_WNDH")
-
-        currentTrackPixelEnd = currentMasterLaneHeight + 5
-
-        if currentTrackPixelEnd > mousePixelYPos then
-            mainViewOrigMouseLocation.trackNumber = 0
-            mainViewOrigMouseLocation.trackRatio = math.max(mousePixelYPos / currentMasterLaneHeight, 0)
-            mousePixelYPosRecorded = true
+        if i == 0 then
+            if masterIsVisibleInTCP() then
+                currentTrack = masterTrack
+            end
+        else
+            currentTrack = reaper.GetTrack(0, i - 1)
         end
-    end
 
-    for i = 1, reaper.CountTracks(0) do
-        local currentTrack = reaper.GetTrack(0, i - 1)
-
-        if reaper.IsTrackVisible(currentTrack, false) then
-            if trackIsValid(currentTrack) then
+        if trackIsValid(currentTrack) then
+            if reaper.IsTrackVisible(currentTrack, false) then
                 lastVisibleTrackNumber = i
 
                 initallyVisibleTracks[i] = {}
@@ -204,6 +207,10 @@ function initializeMainViewVerticalZoom()
                 initallyVisibleTracks[i].zoomWasSetOnce = false
 
                 currentTrackPixelEnd = currentTrackPixelEnd + currentLaneHeight
+
+                if i == 0 then
+                    currentTrackPixelEnd = currentTrackPixelEnd + 5
+                end
 
                 if currentTrackPixelEnd > mousePixelYPos and not mousePixelYPosRecorded then
                     mainViewOrigMouseLocation.trackNumber = i
@@ -385,16 +392,14 @@ end
 function setTrackZoom(track, zoom)
     local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
 
-    local currentTrackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+    local currentTrackNumber = getTrackNumber(track)
 
-    local trackHeight = 0
+    local trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom
 
-    if track == masterTrack then
+    if currentTrackNumber == 0 then
         local minMasterHeight = 74
-        trackHeight = initialMasterTrackHeight * zoom
         trackHeight = math.max(trackHeight, minMasterHeight)
     else
-        trackHeight = initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom
         trackHeight = math.max(trackHeight, minTrackHeight)
     end
 
@@ -411,11 +416,7 @@ function setTrackZoom(track, zoom)
 
     reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight);
 
-    if track == masterTrack then
-        currentMasterLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
-    else
-        initallyVisibleTracks[currentTrackNumber].currentLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
-    end
+    initallyVisibleTracks[currentTrackNumber].currentLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
 end
 
 function setMainViewVerticalScroll(position)
@@ -426,16 +427,10 @@ end
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
         local correctScrollPosition = 0
-        local newMouseOverTrackHeight = 0
+        local newMouseOverTrackHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
 
-        if mainViewOrigMouseLocation.trackNumber > 0 then
-            newMouseOverTrackHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
-
-            if masterIsVisibleInTCP() then
-                correctScrollPosition = currentMasterLaneHeight + 5
-            end
-        else
-            newMouseOverTrackHeight = currentMasterLaneHeight
+        if masterIsVisibleInTCP() then
+            correctScrollPosition = correctScrollPosition + 5
         end
 
         local correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverTrackHeight
