@@ -170,15 +170,19 @@ function masterIsVisibleInTCP()
     return visibility == 1 or visibility == 3
 end
 
-local mainViewOrigMouseLocation = {}
 local initallyVisibleTracks = {}
+local mainViewOrigMouseLocation = {}
 local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
     local mousePixelYPosRecorded = false
-    local currentTrackPixelEnd = 0
+    local currentLanePixelEnd = 0
+    local currentZonePixelEnd = 0
+    local lastVisibleTrack = nil
     local lastVisibleTrackNumber = 0
+    local lastVisibleEnvelope = nil
+    local lastVisibleEnvelopeNumber = 0
 
     for i = 0, reaper.CountTracks(0) do
         local currentTrack = nil
@@ -193,6 +197,7 @@ function initializeMainViewVerticalZoom()
 
         if trackIsValid(currentTrack) then
             if reaper.IsTrackVisible(currentTrack, false) then
+                lastVisibleTrack = currentTrack
                 lastVisibleTrackNumber = i
 
                 initallyVisibleTracks[i] = {}
@@ -206,30 +211,74 @@ function initializeMainViewVerticalZoom()
 
                 initallyVisibleTracks[i].zoomWasSetOnce = false
 
-                currentTrackPixelEnd = currentTrackPixelEnd + currentLaneHeight
+                currentLanePixelEnd = currentLanePixelEnd + currentLaneHeight
+                currentZonePixelEnd = currentZonePixelEnd + currentTrackHeight
 
-                if i == 0 then
-                    currentTrackPixelEnd = currentTrackPixelEnd + 5
-                end
-
-                if currentTrackPixelEnd > mousePixelYPos and not mousePixelYPosRecorded then
+                -- Record information about the initial vertical position of the mouse in arrange.
+                -- If envelopeNumber is 0 then the mouse is on a track. zoneRatio is the normalized
+                -- position of the mouse over the track or envelope (0.0 to 1.0).
+                if currentZonePixelEnd > mousePixelYPos and not mousePixelYPosRecorded then
+                    mainViewOrigMouseLocation.track = currentTrack
                     mainViewOrigMouseLocation.trackNumber = i
-                    mainViewOrigMouseLocation.trackRatio = (mousePixelYPos - currentTrackPixelEnd + currentLaneHeight) / currentLaneHeight
+                    mainViewOrigMouseLocation.envelope = nil
+                    mainViewOrigMouseLocation.envelopeNumber = 0
+                    mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentTrackHeight) / currentTrackHeight
+                    mainViewOrigMouseLocation.fullLaneRatio = (mousePixelYPos - currentLanePixelEnd + currentLaneHeight) / currentLaneHeight
                     mousePixelYPosRecorded = true
                 end
 
+                -- envelopeNumber corresponds to the envelope the mouse is over.
                 for j = 1, reaper.CountTrackEnvelopes(currentTrack) do
                     local currentEnvelope = reaper.GetTrackEnvelope(currentTrack, j - 1)
+                    lastVisibleEnvelope = currentEnvelope
+                    lastVisibleEnvelopeNumber = j
+
                     initallyVisibleTracks[i][currentEnvelope] = {}
-                    initallyVisibleTracks[i][currentEnvelope].initialHeight = getEnvelopeHeight(currentEnvelope, currentTrackHeight)
+
+                    local currentEnvelopeHeight, envelopeIsManuallySet = getEnvelopeHeight(currentEnvelope, currentTrackHeight)
+                    initallyVisibleTracks[i][currentEnvelope].initialHeight = currentEnvelopeHeight
+                    initallyVisibleTracks[i][currentEnvelope].isManuallySet = envelopeIsManuallySet
+
+                    currentZonePixelEnd = currentZonePixelEnd + currentEnvelopeHeight
+
+                    if currentZonePixelEnd > mousePixelYPos and not mousePixelYPosRecorded then
+                        mainViewOrigMouseLocation.track = currentTrack
+                        mainViewOrigMouseLocation.trackNumber = i
+                        mainViewOrigMouseLocation.envelope = currentEnvelope
+                        mainViewOrigMouseLocation.envelopeNumber = j
+                        mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentEnvelopeHeight) / currentEnvelopeHeight
+                        mainViewOrigMouseLocation.fullLaneRatio = (mousePixelYPos - currentLanePixelEnd + currentLaneHeight) / currentLaneHeight
+                        mousePixelYPosRecorded = true
+                    end
+                end
+
+                -- The master track has 5 extra pixels of empty space tacked onto the end of it.
+                -- We need to account for that.
+                if i == 0 then
+                    currentZonePixelEnd = currentZonePixelEnd + 5
+                    currentLanePixelEnd = currentLanePixelEnd + 5
                 end
             end
         end
     end
 
+    -- The mouse is below the last envelope in the track list.
     if not mousePixelYPosRecorded then
+        mainViewOrigMouseLocation.track = lastVisibleTrack
         mainViewOrigMouseLocation.trackNumber = lastVisibleTrackNumber
-        mainViewOrigMouseLocation.trackRatio = 1.0
+        mainViewOrigMouseLocation.envelope = lastVisibleEnvelope
+        mainViewOrigMouseLocation.envelopeNumber = lastVisibleEnvelopeNumber
+        mainViewOrigMouseLocation.zoneRatio = 1.0
+        mainViewOrigMouseLocation.fullLaneRatio = 1.0
+        mainViewOrigMouseLocation.needsLongEnvelopeCalc = false
+    else
+        for i = 1, reaper.CountTrackEnvelopes(mainViewOrigMouseLocation.track) do
+            local currentEnvelope = reaper.GetTrackEnvelope(mainViewOrigMouseLocation.track, i - 1)
+
+            if i <= mainViewOrigMouseLocation.envelopeNumber and initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber][currentEnvelope].isManuallySet then
+                mainViewOrigMouseLocation.needsLongEnvelopeCalc = true
+            end
+        end
     end
 end
 
@@ -361,33 +410,38 @@ function getEnvelopeStats(envelope)
 end
 
 function getEnvelopeHeight(envelope, trackHeight)
-    local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(envelope)
+    if envelope then
+        local envelopeHeight, envelopeIsVisible, envelopeIsInOwnLane = getEnvelopeStats(envelope)
 
-    local envelopeHeightIsBasedOnTrack = envelopeHeight == 0 and envelopeIsVisible and envelopeIsInOwnLane
+        local envelopeHeightIsBasedOnTrack = envelopeHeight == 0 and envelopeIsVisible and envelopeIsInOwnLane
+        local envelopeHeightIsManuallySet = (not envelopeHeightIsBasedOnTrack) and envelopeIsVisible and envelopeIsInOwnLane
 
-    if envelopeHeightIsBasedOnTrack then
-        envelopeHeight = math.max(math.floor(trackHeight * 0.75), minimumEnvelopeHeight)
+        if envelopeHeightIsBasedOnTrack then
+            envelopeHeight = math.max(math.floor(trackHeight * 0.75), minimumEnvelopeHeight)
+        end
+
+        if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
+            envelopeHeight = 0
+        end
+
+        return envelopeHeight, envelopeHeightIsManuallySet
     end
 
-    if (not envelopeIsInOwnLane) or (not envelopeIsVisible) then
-        envelopeHeight = 0
-    end
-
-    return envelopeHeight, envelopeHeightIsBasedOnTrack
+    return 0, false
 end
 
 -- Unfortunately setting envelope height manually is extremely slow and will lag the script.
 -- Until I find a faster way to set it, I will have this disabled.
-function zoomEnvelope(envelope, zoom, initialHeight)
+--[[function zoomEnvelope(envelope, zoom, initialHeight)
     local _, envelopeState = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
-    local _, heightIsBasedOnTrack = getEnvelopeHeight(envelope, 1)
+    local _, heightIsManuallySet = getEnvelopeHeight(envelope, 1)
 
-    if not heightIsBasedOnTrack then
+    if heightIsManuallySet then
         newHeight = round(initialHeight * zoom)
         reaper.SetEnvelopeStateChunk(envelope, envelopeState:gsub("LANEHEIGHT %d+", "LANEHEIGHT " .. tostring(newHeight)), false)
     end
-end
+end]]--
 
 function setTrackZoom(track, zoom)
     local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
@@ -427,18 +481,51 @@ end
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
         local correctScrollPosition = 0
-        local newMouseOverTrackHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
+        local correctScrollMouseOffsetPixels = 0
 
-        if masterIsVisibleInTCP() then
-            correctScrollPosition = correctScrollPosition + 5
-        end
-
-        local correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.trackRatio * newMouseOverTrackHeight
-
+        -- Go through all of the tracks before the current mouseover track and add their
+        -- full lane heights.
         for trackNumber, value in pairs(initallyVisibleTracks) do
             if trackNumber < mainViewOrigMouseLocation.trackNumber then
                 correctScrollPosition = correctScrollPosition + value.currentLaneHeight
             end
+        end
+
+        -- You need to run more complicated and thus slower code to calculate the mouse position
+        -- if there are any manually set envelopes, since the mouse position can't be calculated
+        -- with a broad ratio over the entire window height.
+        if mainViewOrigMouseLocation.needsLongEnvelopeCalc then
+            local newMouseOverZoneHeight = 0
+            local newMouseOverTrackHeight = getTrackHeight(mainViewOrigMouseLocation.track)
+
+            -- The mouse is over a track.
+            if mainViewOrigMouseLocation.envelopeNumber < 1 then
+                newMouseOverZoneHeight = newMouseOverTrackHeight
+
+            -- The mouse is over an envelope.
+            else
+                newMouseOverZoneHeight = getEnvelopeHeight(mainViewOrigMouseLocation.envelope, newMouseOverTrackHeight)
+                correctScrollPosition = correctScrollPosition + newMouseOverTrackHeight
+            end
+            correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.zoneRatio * newMouseOverZoneHeight
+
+            -- Go through all of the envelopes and process accordingly.
+            for i = 1, reaper.CountTrackEnvelopes(mainViewOrigMouseLocation.track) do
+                if i < mainViewOrigMouseLocation.envelopeNumber then
+                    local currentEnvelope = reaper.GetTrackEnvelope(mainViewOrigMouseLocation.track, i - 1)
+
+                    local currentEnvelopeHeight = getEnvelopeHeight(currentEnvelope, newMouseOverTrackHeight)
+                    correctScrollPosition = correctScrollPosition + currentEnvelopeHeight
+                end
+            end
+        else
+            local newMouseOverFullLaneHeight = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].currentLaneHeight
+            correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.fullLaneRatio * newMouseOverFullLaneHeight
+        end
+
+        -- Add on the 5 extra pixels after the master track if it is visible.
+        if masterIsVisibleInTCP() then
+            correctScrollPosition = correctScrollPosition + 5
         end
 
         correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
