@@ -3,7 +3,14 @@
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
---   This script will activate a zoom tool similar to what is used in Melodyne.
+--   This is the default settings file for the Zoom Tool. You need this file
+--   installed in the proper directory for script to work:
+--
+--   "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool Default Settings.lua"
+--
+--   You can copy this file into the same folder and call it "Zool Tool User Settings.lua"
+--   and change the settings in there. That way, your settings are not overwritten
+--   when updating.
 -- @changelog
 --   + Fixed default settings file description.
 
