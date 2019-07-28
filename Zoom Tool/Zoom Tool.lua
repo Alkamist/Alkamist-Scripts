@@ -1,28 +1,21 @@
 -- @description Zoom Tool
--- @version 1.5.3
+-- @version 1.5.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
 -- @changelog
---   + Fixed jitter with envelopes caused by not rounding track height.
---   + Added automatic minimum track height detection.
+--   + Added the ability to import your own settings file, so your settings don't get overwritten when updating.
 
--- Change these sensitivities to change the feel of the zoom tool.
-local xSensitivity = 0.1
-local ySensitivity = 0.1
+package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
--- If this is true, the script will precisely scroll to the horizontal position
--- you have your mouse over in the main view. This introduces some graphical
--- glitches.
-local usePreciseMainViewHorizontalPositionTracking = true
+-- This loads the default settings to be used in the script.
+require 'Scripts.Alkamist Scripts.Zoom Tool.Default Settings'
 
--- Change this if you want to use action-based vertical zoom in the main view
--- vs. setting the track height directly.
-local useActionBasedVerticalZoom = false
+-- This will overwrite the default settings with your settings from the file:
+-- "Scripts\Alkamist Scripts\Zoom Tool\User Settings.lua"
+pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.User Settings')
 
-local minimumEnvelopeHeight = 24
-local minimumMasterHeight = 74
 
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
