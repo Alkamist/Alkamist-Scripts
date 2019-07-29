@@ -12,7 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   +
+--   + Added an experimental vertical centering systems. It can be enabled in the settings.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -23,7 +23,7 @@ require 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool Default Settings'
 -- "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool User Settings.lua"
 pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool User Settings')
 
-local shouldChaseTarget = true
+
 
 -- A rescale of sensitivity for aesthetic purposes.
 xSensitivity = xSensitivity * 0.1
@@ -651,7 +651,7 @@ function correctMainViewVerticalScroll(zoom)
             end
         end
 
-        if shouldChaseTarget then
+        if shouldCenterVertically then
             local centeredOffset = round(mouseOverNormalizedZoomScale * centeredScrollMouseOffsetPixels)
             local normalOffset = round(correctScrollMouseOffsetPixels * (1.0 - mouseOverNormalizedZoomScale))
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
