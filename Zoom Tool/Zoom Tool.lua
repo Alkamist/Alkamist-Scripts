@@ -23,7 +23,7 @@ require 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool Default Settings'
 -- "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool User Settings.lua"
 pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool User Settings')
 
-
+local shouldChaseTarget = true
 
 -- A rescale of sensitivity for aesthetic purposes.
 xSensitivity = xSensitivity * 0.1
@@ -515,7 +515,14 @@ function setTrackZoom(track, zoom)
         trackHeight = math.max(trackHeight, minTrackHeight)
     end
 
-    trackHeight = math.min(trackHeight, windowHeight * 1.3333333333333)
+    -- The mouse is over a track.
+    if mainViewOrigMouseLocation.envelopeNumber < 1 then
+        trackHeight = math.min(trackHeight, windowHeight)
+
+    -- The mouse is over an envelope.
+    else
+        trackHeight = math.min(trackHeight, windowHeight * 1.3333333333333)
+    end
 
     local cumulativeEnvelopeHeight = 0
     for i = 1, reaper.CountTrackEnvelopes(track) do
@@ -558,8 +565,6 @@ function correctMainViewVerticalScroll(zoom)
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-
-        local shouldChaseTarget = true
 
         local correctScrollPosition = 0
         local correctScrollMouseOffsetPixels = 0
