@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.5.6
+-- @version 1.5.7
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,8 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Fixed really bad bug with UI refresh.
---   + Added a system that creates a padding track for smoother zooming. (Needs work)
+--   + Changed zoom factors.
 
 
 
