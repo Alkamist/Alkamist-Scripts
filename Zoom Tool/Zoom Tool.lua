@@ -44,8 +44,8 @@ local currentMousePos = {}
 
 local mainWindow = reaper.GetMainHwnd()
 local arrangeWindow = reaper.JS_Window_FindChildByID(mainWindow, 1000)
-local arrangeYZoomFactor = 1.0
-local arrangeXZoomFactor = 2.0
+local arrangeYZoomFactor = 0.3
+local arrangeXZoomFactor = 1.0
 
 local masterTrack = reaper.GetMasterTrack(0)
 
