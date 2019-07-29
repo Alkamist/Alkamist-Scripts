@@ -539,8 +539,12 @@ function setTrackZoom(track, zoom)
 end
 
 function setMainViewVerticalScroll(position)
-    local newPosition = math.max(round(position), 0)
-    reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
+
+    if position then
+        local newPosition = math.min(math.max(round(position), 0), scrollMax)
+        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
+    end
 end
 
 function moveMouseYTowardTarget(target, mouseY, speed)
@@ -717,8 +721,12 @@ function setMainViewVerticalZoom(zoom)
 end
 
 function setMainViewHorizontalScroll(position)
-    local newPosition = math.max(round(position), 0)
-    reaper.JS_Window_SetScrollPos(arrangeWindow, "HORZ", newPosition)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+
+    if position then
+        local newPosition = math.min(math.max(round(position), 0), scrollMax)
+        reaper.JS_Window_SetScrollPos(arrangeWindow, "HORZ", newPosition)
+    end
 end
 
 function correctMainViewHorizontalScroll()
