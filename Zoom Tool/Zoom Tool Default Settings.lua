@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.5.7
+-- @version 1.5.8
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Changed zoom factors.
+--   - Removed padding track because it caused jumpy behavior.
 
 
 

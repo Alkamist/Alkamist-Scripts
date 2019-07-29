@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.5.7
+-- @version 1.5.8
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Changed zoom factors.
+--   - Removed padding track because it caused jumpy behavior.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -123,22 +123,6 @@ function getMinimumTrackHeight()
     return minimumTrackHeight
 end
 
-local paddingTrack = nil
-local paddingTrackNumber = 0
-function createPaddingTrack()
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
-    local shouldCreatePaddingTrack = reaper.GetNumTracks() * minTrackHeight > windowHeight
-
-    if paddingTrack == nil and shouldCreatePaddingTrack then
-        paddingTrackNumber = reaper.GetNumTracks()
-
-        reaper.InsertTrackAtIndex(paddingTrackNumber, false)
-
-        paddingTrack = reaper.GetTrack(0, paddingTrackNumber)
-        reaper.SetMediaTrackInfo_Value(paddingTrack, "I_HEIGHTOVERRIDE", 20000)
-    end
-end
-
 function scriptShouldStop()
     local prevCycleTime = thisCycleTime or startTime
     thisCycleTime = reaper.time_precise()
@@ -240,12 +224,6 @@ local mainViewOrigMouseLocation = {}
 local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
     minTrackHeight = getMinimumTrackHeight()
-    createPaddingTrack()
-
-    local numTracks = reaper.GetNumTracks()
-    if paddingTrack then
-        numTracks = numTracks - 1
-    end
 
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
@@ -257,7 +235,7 @@ function initializeMainViewVerticalZoom()
     local lastVisibleEnvelope = nil
     local lastVisibleEnvelopeNumber = 0
 
-    for i = 0, numTracks do
+    for i = 0, reaper.GetNumTracks() do
         local currentTrack = nil
 
         if i == 0 then
@@ -750,11 +728,6 @@ function update()
 end
 
 function atExit()
-    -- Clean up the padding track.
-    if trackIsValid(paddingTrack) then
-        reaper.DeleteTrack(paddingTrack)
-    end
-
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseAll()
 
