@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c" name="Alkamist Scripts">
+<index version="1" commit="3feea3c90e990f5c3028563975c32ef26691ac7c" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -146,6 +146,11 @@
       <version name="1.5.5" author="Alkamist" time="2019-07-28T21:46:01Z">
         <changelog><![CDATA[+ Fixed default settings file description.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c/Zoom%20Tool/Zoom%20Tool.lua</source>
+      </version>
+      <version name="1.5.6" author="Alkamist" time="2019-07-29T01:02:12Z">
+        <changelog><![CDATA[+ Fixed really bad bug with UI refresh.
++ Added a system that creates a padding track for smoother zooming.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ba70cecd42ccc7e24439b27abdd736117545d3cd/Zoom%20Tool/Zoom%20Tool.lua</source>
       </version>
     </reapack>
   </category>

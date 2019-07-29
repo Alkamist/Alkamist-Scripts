@@ -12,6 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
+--   + Fixed really bad bug with UI refresh.
+--   + Added a system that creates a padding track for smoother zooming. (Needs work)
 
 
 
