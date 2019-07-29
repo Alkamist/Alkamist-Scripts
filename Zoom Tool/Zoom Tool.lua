@@ -693,7 +693,7 @@ function correctMainViewVerticalScroll(zoom)
         mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
 
         -- Add on the 5 extra pixels after the master track if it is visible.
-        if masterIsVisibleInTCP() then
+        if masterIsVisibleInTCP() and mainViewOrigMouseLocation.trackNumber > 0 then
             correctScrollPosition = correctScrollPosition + 5
         end
 
