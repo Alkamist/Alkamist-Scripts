@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.5.8
+-- @version 1.5.9
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   - Removed padding track because it caused jumpy behavior.
+--   +
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -219,6 +219,12 @@ function masterIsVisibleInTCP()
     return visibility == 1 or visibility == 3
 end
 
+function getMouseWindowLocation(window, xPosition, yPosition)
+    local xPos, yPos = reaper.JS_Window_ScreenToClient(window, xPosition, yPosition)
+
+    return xPos, yPos
+end
+
 local initallyVisibleTracks = {}
 local mainViewOrigMouseLocation = {}
 local mainViewOrigMouseClientLocation = {}
@@ -226,7 +232,8 @@ function initializeMainViewVerticalZoom()
     minTrackHeight = getMinimumTrackHeight()
 
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-    local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
+    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, initialMousePos.x, initialMousePos.y)
+    local mousePixelYPos = scrollPos + mouseWindowY
     local mousePixelYPosRecorded = false
     local currentLanePixelEnd = 0
     local currentZonePixelEnd = 0
@@ -341,7 +348,9 @@ local mainViewMouseXSeconds = 0
 function initializeMainViewHorizontalZoom()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
 
-    mainViewMouseXSeconds = (scrollPos + mainViewOrigMouseClientLocation.x) / reaper.GetHZoomLevel()
+    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, initialMousePos.x, initialMousePos.y)
+
+    mainViewMouseXSeconds = (scrollPos + mouseWindowX) / reaper.GetHZoomLevel()
 end
 
 local windowType = nil
@@ -409,8 +418,6 @@ function init()
             elseif parentWindow == reaper.GetMainHwnd() then
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "main"
-
-                mainViewOrigMouseClientLocation.x, mainViewOrigMouseClientLocation.y = reaper.JS_Window_ScreenToClient(arrangeWindow, initialMousePos.x, initialMousePos.y)
 
                 initializeMainViewHorizontalZoom()
 
@@ -523,6 +530,7 @@ local previousMaxScrollPosition = 0
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+        local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, initialMousePos.x, initialMousePos.y)
 
         local maxScrollPosition = 0
         local correctScrollPosition = 0
@@ -593,7 +601,7 @@ function correctMainViewVerticalScroll()
 
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
-        correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
+        correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mouseWindowY
 
         if correctScrollPosition + scrollPageSize > scrollMax then
             setUIRefresh(true)
@@ -625,8 +633,9 @@ end
 
 function correctMainViewHorizontalScroll()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, initialMousePos.x, initialMousePos.y)
 
-    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - mainViewOrigMouseClientLocation.x
+    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - mouseWindowX
 
     setMainViewHorizontalScroll(correctScrollPosition)
 end
