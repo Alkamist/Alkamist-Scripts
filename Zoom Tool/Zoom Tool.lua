@@ -627,11 +627,9 @@ function correctMainViewVerticalScroll()
         local halfWindowHeight = round(windowHeight * 0.5)
         local scrollBarCanMoveDown = scrollPos + scrollPageSize < scrollMax
         local scrollBarCanMoveUp = scrollPos > scrollMin
-        local mouseTarget = math.min(correctScrollPosition - scrollPos, scrollMax)
 
         local scrollIsFull = not scrollBarCanMoveDown and not scrollBarCanMoveUp
         local chaseTargetUp = not scrollBarCanMoveUp and initialMouseWindowY < halfWindowHeight and mouseYSpeed < 0
-        local chaseTargetDown = not scrollBarCanMoveDown and initialMouseWindowY > halfWindowHeight and mouseYSpeed > 0
 
         local moveUpToCenter = scrollBarCanMoveDown and mouseYSpeed > 0 and initialMouseWindowY > halfWindowHeight
         local moveDownToCenter = scrollBarCanMoveUp and mouseYSpeed > 0 and initialMouseWindowY < halfWindowHeight
@@ -640,8 +638,10 @@ function correctMainViewVerticalScroll()
         local moveToTargetSpeed = round(4.0 * math.abs(currentMousePos.y - targetMousePos.y))
 
         -- Manipulate the mouse to stay with the target position.
-        if mouseTarget >= 0 then
+        local shouldChaseTarget = true
+        if shouldChaseTarget then
             if scrollIsFull or chaseTargetUp then
+                local mouseTarget = math.min(math.max(correctScrollPosition - scrollPos, 0), scrollMax)
                 moveMouseYTowardTarget(mouseTarget, mouseWindowY, nil)
 
             elseif moveUpToCenter then
