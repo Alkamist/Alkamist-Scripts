@@ -13,7 +13,7 @@
 --   when updating.
 -- @changelog
 --   + Fixed really bad bug with UI refresh.
---   + Added a system that creates a padding track for smoother zooming.
+--   + Added a system that creates a padding track for smoother zooming. (Needs work)
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -44,8 +44,8 @@ local currentMousePos = {}
 
 local mainWindow = reaper.GetMainHwnd()
 local arrangeWindow = reaper.JS_Window_FindChildByID(mainWindow, 1000)
-local arrangeYZoomFactor = 0.3
-local arrangeXZoomFactor = 1.3
+local arrangeYZoomFactor = 1.0
+local arrangeXZoomFactor = 2.0
 
 local masterTrack = reaper.GetMasterTrack(0)
 
@@ -127,7 +127,10 @@ end
 local paddingTrack = nil
 local paddingTrackNumber = 0
 function createPaddingTrack()
-    if paddingTrack == nil then
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+    local shouldCreatePaddingTrack = reaper.GetNumTracks() * minTrackHeight > windowHeight
+
+    if paddingTrack == nil and shouldCreatePaddingTrack then
         paddingTrackNumber = reaper.GetNumTracks()
 
         reaper.InsertTrackAtIndex(paddingTrackNumber, false)
@@ -238,6 +241,12 @@ local mainViewOrigMouseLocation = {}
 local mainViewOrigMouseClientLocation = {}
 function initializeMainViewVerticalZoom()
     minTrackHeight = getMinimumTrackHeight()
+    createPaddingTrack()
+
+    local numTracks = reaper.GetNumTracks()
+    if paddingTrack then
+        numTracks = numTracks - 1
+    end
 
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     local mousePixelYPos = scrollPos + mainViewOrigMouseClientLocation.y
@@ -249,7 +258,7 @@ function initializeMainViewVerticalZoom()
     local lastVisibleEnvelope = nil
     local lastVisibleEnvelopeNumber = 0
 
-    for i = 0, reaper.GetNumTracks() do
+    for i = 0, numTracks do
         local currentTrack = nil
 
         if i == 0 then
@@ -533,10 +542,12 @@ function setMainViewVerticalScroll(position)
     reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
 end
 
+local previousMaxScrollPosition = 0
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
 
+        local maxScrollPosition = 0
         local correctScrollPosition = 0
         local correctScrollMouseOffsetPixels = 0
 
@@ -546,6 +557,8 @@ function correctMainViewVerticalScroll()
             if trackNumber < mainViewOrigMouseLocation.trackNumber then
                 correctScrollPosition = correctScrollPosition + value.currentLaneHeight
             end
+
+            maxScrollPosition = correctScrollPosition + value.currentLaneHeight
         end
 
         -- You need to run more complicated and thus slower code to calculate the mouse position
@@ -601,16 +614,21 @@ function correctMainViewVerticalScroll()
             correctScrollPosition = correctScrollPosition + 5
         end
 
-        correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
-
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
-        if correctScrollPosition + scrollPageSize > scrollMax and scrollMax > windowHeight then
+        --if maxScrollPosition > windowHeight and previousMaxScrollPosition <= windowHeight then
+        correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
+        --else
+        --    correctScrollPosition = scrollPos
+        --end
+
+        if correctScrollPosition + scrollPageSize > scrollMax then
             setUIRefresh(true)
-            createPaddingTrack()
         end
 
         setMainViewVerticalScroll(correctScrollPosition)
+
+        previousMaxScrollPosition = maxScrollPosition
     end
 end
 
