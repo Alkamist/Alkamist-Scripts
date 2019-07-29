@@ -12,7 +12,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   +
+--   + Added an experimental vertical centering systems. It can be enabled in the settings.
 
 
 
@@ -46,3 +46,7 @@ useActionBasedVerticalZoom = false
 -- Changing these to the wrong value will cause unintended scrolling while zooming.
 minimumEnvelopeHeight = 24
 minimumMasterHeight = 74
+
+-- If this is enabled, the script will try to pull the track/envelope that is under
+-- the mouse cursor to the center of the screen while zooming.
+shouldCenterVertically = false
