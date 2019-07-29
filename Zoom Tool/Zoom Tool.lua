@@ -593,11 +593,7 @@ function correctMainViewVerticalScroll()
 
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
-        --if maxScrollPosition > windowHeight and previousMaxScrollPosition <= windowHeight then
         correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels - mainViewOrigMouseClientLocation.y
-        --else
-        --    correctScrollPosition = scrollPos
-        --end
 
         if correctScrollPosition + scrollPageSize > scrollMax then
             setUIRefresh(true)
