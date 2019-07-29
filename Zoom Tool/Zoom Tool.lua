@@ -23,7 +23,7 @@ require 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool Default Settings'
 -- "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool User Settings.lua"
 pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool User Settings')
 
-local shouldChaseTarget = false
+local shouldChaseTarget = true
 
 -- A rescale of sensitivity for aesthetic purposes.
 xSensitivity = xSensitivity * 0.1
@@ -542,9 +542,8 @@ function setMainViewVerticalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
     if position then
-        if position >= 0 and position >= scrollMin and position <= scrollPos + scrollPageSize - 1 then
-            reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", round(position))
-        end
+        local newPosition = math.min(math.max(position, scrollMax), 0)
+        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", round(position))
     end
 end
 
