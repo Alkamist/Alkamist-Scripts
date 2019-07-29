@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.5.5
+-- @version 1.5.6
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,6 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Fixed default settings file description.
 
 
 

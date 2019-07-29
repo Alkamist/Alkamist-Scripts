@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.5.5
+-- @version 1.5.6
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Fixed default settings file description.
+--   + Fixed really bad bug with UI refresh.
+--   + Added a system that creates a padding track for smoother zooming.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -43,7 +44,8 @@ local currentMousePos = {}
 
 local mainWindow = reaper.GetMainHwnd()
 local arrangeWindow = reaper.JS_Window_FindChildByID(mainWindow, 1000)
-local trackYZoomFactor = 0.2
+local arrangeYZoomFactor = 0.3
+local arrangeXZoomFactor = 1.3
 
 local masterTrack = reaper.GetMasterTrack(0)
 
@@ -73,18 +75,25 @@ function reaperMIDICMD(id)
     end
 end
 
-local uiShouldRefresh = true
-function setUIRefresh(state)
+local uiEnabled = true
+function setUIRefresh(enable)
     -- Enable UI refresh.
-    if state and not uiShouldRefresh then
-        reaper.PreventUIRefresh(-1)
+    if enable then
+        if not uiEnabled then
+            reaper.PreventUIRefresh(-1)
+            uiEnabled = true
+        end
 
     -- Disable UI refresh.
-    elseif not state and uiShouldRefresh then
-        reaper.PreventUIRefresh(1)
+    else
+        if uiEnabled then
+            reaper.PreventUIRefresh(1)
+            uiEnabled = false
+        end
     end
 end
 
+local minTrackHeight = 0
 function getMinimumTrackHeight()
     local _, currentTheme = reaper.get_config_var_string("lastthemefn5")
 
@@ -114,7 +123,19 @@ function getMinimumTrackHeight()
 
     return minimumTrackHeight
 end
-local minTrackHeight = 0
+
+local paddingTrack = nil
+local paddingTrackNumber = 0
+function createPaddingTrack()
+    if paddingTrack == nil then
+        paddingTrackNumber = reaper.GetNumTracks()
+
+        reaper.InsertTrackAtIndex(paddingTrackNumber, false)
+
+        paddingTrack = reaper.GetTrack(0, paddingTrackNumber)
+        reaper.SetMediaTrackInfo_Value(paddingTrack, "I_HEIGHTOVERRIDE", 20000)
+    end
+end
 
 function scriptShouldStop()
     local prevCycleTime = thisCycleTime or startTime
@@ -228,7 +249,7 @@ function initializeMainViewVerticalZoom()
     local lastVisibleEnvelope = nil
     local lastVisibleEnvelopeNumber = 0
 
-    for i = 0, reaper.CountTracks(0) do
+    for i = 0, reaper.GetNumTracks() do
         local currentTrack = nil
 
         if i == 0 then
@@ -514,6 +535,8 @@ end
 
 function correctMainViewVerticalScroll()
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
+        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+
         local correctScrollPosition = 0
         local correctScrollMouseOffsetPixels = 0
 
@@ -582,11 +605,9 @@ function correctMainViewVerticalScroll()
 
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
-        -- If you zoom too far then you unfortunately have to allow for the UI to update,
-        -- otherwise you will end up hitting the end of the tracklist and scrolling to
-        -- the wrong place.
-        if correctScrollPosition + scrollPageSize > scrollMax then
+        if correctScrollPosition + scrollPageSize > scrollMax and scrollMax > windowHeight then
             setUIRefresh(true)
+            createPaddingTrack()
         end
 
         setMainViewVerticalScroll(correctScrollPosition)
@@ -645,7 +666,7 @@ function update()
 
     -- Handle horizontal zoom in main view.
     if windowType == "main" then
-        adjustMainViewHorizontalZoom(xAdjust)
+        adjustMainViewHorizontalZoom(xAdjust * arrangeXZoomFactor)
 
     -- I can't find a way to adjust the MIDI editor's zoom via the API,
     -- so I have to do it with Reaper actions.
@@ -698,7 +719,7 @@ function update()
             end
         end
     else
-        setMainViewVerticalZoom(2.0 ^ (yAccumAdjust * trackYZoomFactor))
+        setMainViewVerticalZoom(2.0 ^ (yAccumAdjust * arrangeYZoomFactor))
     end
 
     -- =======================================================
@@ -712,6 +733,11 @@ function update()
 end
 
 function atExit()
+    -- Clean up the padding track.
+    if trackIsValid(paddingTrack) then
+        reaper.DeleteTrack(paddingTrack)
+    end
+
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseAll()
 
