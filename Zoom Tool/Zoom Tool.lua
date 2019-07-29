@@ -267,8 +267,6 @@ function initializeMainViewVerticalZoom()
                 local currentTrackHeight = getTrackHeight(currentTrack)
                 initallyVisibleTracks[i].initialTrackHeight = currentTrackHeight
 
-                initallyVisibleTracks[i].zoomWasSetOnce = false
-
                 currentLanePixelEnd = currentLanePixelEnd + currentLaneHeight
                 currentZonePixelEnd = currentZonePixelEnd + currentTrackHeight
 
@@ -280,6 +278,7 @@ function initializeMainViewVerticalZoom()
                     mainViewOrigMouseLocation.trackNumber = i
                     mainViewOrigMouseLocation.envelope = nil
                     mainViewOrigMouseLocation.envelopeNumber = 0
+                    mainViewOrigMouseLocation.visibleEnvelopeNumber = 0
                     mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentTrackHeight) / currentTrackHeight
                     mainViewOrigMouseLocation.trackRatio = mainViewOrigMouseLocation.zoneRatio
                     mainViewOrigMouseLocation.fullEnvelopeLaneRatio = 0.0
@@ -287,16 +286,23 @@ function initializeMainViewVerticalZoom()
                 end
 
                 -- envelopeNumber corresponds to the envelope the mouse is over.
+                local numScaledEnvelopes = 0
                 for j = 1, reaper.CountTrackEnvelopes(currentTrack) do
                     local currentEnvelope = reaper.GetTrackEnvelope(currentTrack, j - 1)
-                    lastVisibleEnvelope = currentEnvelope
-                    lastVisibleEnvelopeNumber = j
 
                     initallyVisibleTracks[i][currentEnvelope] = {}
 
-                    local currentEnvelopeHeight, envelopeIsManuallySet = getEnvelopeHeight(currentEnvelope, currentTrackHeight)
+                    local currentEnvelopeHeight, envelopeIsManuallySet, envelopeHeightIsBasedOnTrack = getEnvelopeHeight(currentEnvelope, currentTrackHeight)
                     initallyVisibleTracks[i][currentEnvelope].initialHeight = currentEnvelopeHeight
                     initallyVisibleTracks[i][currentEnvelope].isManuallySet = envelopeIsManuallySet
+
+                    if envelopeHeightIsBasedOnTrack then
+                        numScaledEnvelopes = numScaledEnvelopes + 1
+                        lastVisibleEnvelope = currentEnvelope
+                        lastVisibleEnvelopeNumber = numScaledEnvelopes
+
+                        initallyVisibleTracks[i].numScaledEnvelopes = numScaledEnvelopes
+                    end
 
                     currentZonePixelEnd = currentZonePixelEnd + currentEnvelopeHeight
 
@@ -305,6 +311,7 @@ function initializeMainViewVerticalZoom()
                         mainViewOrigMouseLocation.trackNumber = i
                         mainViewOrigMouseLocation.envelope = currentEnvelope
                         mainViewOrigMouseLocation.envelopeNumber = j
+                        mainViewOrigMouseLocation.visibleEnvelopeNumber = numScaledEnvelopes
                         mainViewOrigMouseLocation.zoneRatio = (mousePixelYPos - currentZonePixelEnd + currentEnvelopeHeight) / currentEnvelopeHeight
                         mainViewOrigMouseLocation.trackRatio = 1.0
                         local fullEnvelopeLaneHeight = currentLaneHeight - currentTrackHeight
@@ -329,6 +336,7 @@ function initializeMainViewVerticalZoom()
         mainViewOrigMouseLocation.trackNumber = lastVisibleTrackNumber
         mainViewOrigMouseLocation.envelope = lastVisibleEnvelope
         mainViewOrigMouseLocation.envelopeNumber = lastVisibleEnvelopeNumber
+        mainViewOrigMouseLocation.visibleEnvelopeNumber = lastVisibleEnvelopeNumber
         mainViewOrigMouseLocation.zoneRatio = 1.0
         mainViewOrigMouseLocation.trackRatio = 1.0
         mainViewOrigMouseLocation.fullEnvelopeLaneRatio = 1.0
@@ -488,7 +496,7 @@ function getEnvelopeHeight(envelope, trackHeight)
             envelopeHeight = 0
         end
 
-        return envelopeHeight, envelopeHeightIsManuallySet
+        return envelopeHeight, envelopeHeightIsManuallySet, envelopeHeightIsBasedOnTrack
     end
 
     return 0, false
@@ -626,17 +634,12 @@ function correctMainViewVerticalScroll(zoom)
 
                 correctScrollMouseOffsetPixels = mainViewOrigMouseLocation.fullEnvelopeLaneRatio * newMouseOverHeight + newMouseOverTrackHeight
 
-                local numEnvelopes = reaper.CountTrackEnvelopes(mainViewOrigMouseLocation.track)
-                local centeredEnd = mainViewOrigMouseLocation.envelopeNumber / numEnvelopes
+                local numEnvelopes = initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].numScaledEnvelopes
+                local centeredEnd = mainViewOrigMouseLocation.visibleEnvelopeNumber / numEnvelopes
                 local centeredBackOffset = 0.5 * 1.0 / numEnvelopes
                 local centeredPosition = centeredEnd - centeredBackOffset
                 centeredScrollMouseOffsetPixels = centeredPosition * newMouseOverHeight + newMouseOverTrackHeight
             end
-        end
-
-        -- Add on the 5 extra pixels after the master track if it is visible.
-        if masterIsVisibleInTCP() then
-            correctScrollPosition = correctScrollPosition + 5
         end
 
         if shouldChaseTarget then
@@ -679,6 +682,11 @@ function correctMainViewVerticalScroll(zoom)
         end
 
         mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
+
+        -- Add on the 5 extra pixels after the master track if it is visible.
+        if masterIsVisibleInTCP() then
+            correctScrollPosition = correctScrollPosition + 5
+        end
 
         correctScrollPosition = correctScrollPosition - mouseWindowY
 
