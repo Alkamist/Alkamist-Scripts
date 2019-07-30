@@ -1,5 +1,5 @@
 -- @description Clear Selected Region Items
--- @version 1.2
+-- @version 1.2.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -7,10 +7,8 @@
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Added the ability to process regions based on item name instead of pooling.
---     To enable this option, copy the Region Items Default Settings.lua file to
---     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
---     and change the "selectRegionsByName" bool to true.
+--   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+--     pool regardless of your Reaper preferences.
 
 label = 'Alkamist: Clear Selected Region Items'
 
