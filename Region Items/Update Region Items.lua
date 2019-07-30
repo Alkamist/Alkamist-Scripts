@@ -4,9 +4,11 @@
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This action will copy the items and automation of all child tracks underneath
---   and within the bounds of a single selected MIDI item. It will then paste those
---   contents to the child tracks of all pooled MIDI items, removing their previous
+--   and within the bounds of a single selected region item. It will then paste those
+--   contents to the child tracks of all paired region items, removing their previous
 --   contents.
+--   Paired region items are determined by either MIDI pool or item name, depending on
+--   the value of the "selectRegionsByName" bool in the settings file.
 -- @changelog
 --   + Added the ability to process regions based on item name instead of pooling.
 --     To enable this option, copy the Region Items Default Settings.lua file to

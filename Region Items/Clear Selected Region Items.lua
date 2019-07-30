@@ -4,7 +4,7 @@
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This action clears the contained contents of the child tracks of the selected
---   MIDI items. Used to clean up the contents of a region item if you want to change,
+--   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
 --   + Added the ability to process regions based on item name instead of pooling.
