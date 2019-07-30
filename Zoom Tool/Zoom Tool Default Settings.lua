@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.6
+-- @version 1.6.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,9 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Added a setting (zoomMasterWithOtherTracks) that when set to false, will allow
---     independent zooming of the master track TCP.
---   + Fixed some possible crashes.
+--   + Split the sensitivities into arrange and MIDI editor parts, so you can set them
+--     individually if you want. You will have to update your user settings file.
 
 
 
@@ -31,8 +30,10 @@ AND CHANGE THE SETTINGS THERE.
 
 
 -- Change these sensitivities to change the feel of the zoom tool.
-xSensitivity = 1.0
-ySensitivity = 1.0
+xSensitivityArrange = 1.0
+ySensitivityArrange = 1.0
+xSensitivityMIDIEditor = 1.0
+ySensitivityMIDIEditor = 1.0
 
 -- If this is true, the script will precisely scroll to the horizontal position
 -- you have your mouse over in the main view. This introduces some graphical
