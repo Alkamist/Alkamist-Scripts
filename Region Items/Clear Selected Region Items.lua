@@ -1,11 +1,16 @@
 -- @description Clear Selected Region Items
--- @version 1.1
+-- @version 1.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This action clears the contained contents of the child tracks of the selected
 --   MIDI items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
+-- @changelog
+--   + Added the ability to process regions based on item name instead of pooling.
+--     To enable this option, copy the Region Items Default Settings.lua file to
+--     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
+--     and change the "selectRegionsByName" bool to true.
 
 label = 'Alkamist: Clear Selected Region Items'
 
@@ -49,7 +54,7 @@ function clearSelectedRegionItems()
     local initialTrackSelection = getSelectedTracks()
     local initalItemSelection = getSelectedItems()
 
-    local selectedItems = getSelectedMIDIItems()
+    local selectedItems = getSelectedRegionItems()
 
     -- We need to show all envelopes for the script to work properly.
     reaperCMD(41149) -- show all envelopes for all tracks

@@ -1,5 +1,5 @@
 -- @description Update Region Items
--- @version 1.1
+-- @version 1.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -7,6 +7,11 @@
 --   and within the bounds of a single selected MIDI item. It will then paste those
 --   contents to the child tracks of all pooled MIDI items, removing their previous
 --   contents.
+-- @changelog
+--   + Added the ability to process regions based on item name instead of pooling.
+--     To enable this option, copy the Region Items Default Settings.lua file to
+--     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
+--     and change the "selectRegionsByName" bool to true.
 
 label = 'Alkamist: Update Region Items'
 

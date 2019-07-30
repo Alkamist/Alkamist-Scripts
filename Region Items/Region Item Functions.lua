@@ -1,10 +1,26 @@
 -- @description Region Item Functions
--- @version 1.1
+-- @version 1.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This file contains various functions that are used by the region item actions.
 --   The other region item scripts won't run without it.
+-- @changelog
+--   + Added the ability to process regions based on item name instead of pooling.
+--     To enable this option, copy the Region Items Default Settings.lua file to
+--     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
+--     and change the "selectRegionsByName" bool to true.
+
+package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
+
+-- This loads the default settings to be used in the script.
+require 'Scripts.Alkamist Scripts.Region Items.Region Items Default Settings'
+
+-- This will overwrite the default settings with your settings from the file:
+-- "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
+pcall(require, 'Scripts.Alkamist Scripts.Region Items.Region Items User Settings')
+
+
 
 function msg(message)
   reaper.ShowConsoleMsg(tostring(message).."\n")
@@ -25,6 +41,67 @@ end
 
 function beatsToTime(beats)
     return reaper.TimeMap2_beatsToTime(0, beats)
+end
+
+function getRegionItems(inputRegion)
+    local parentTrack = reaper.GetMediaItem_Track(inputRegion)
+    setOnlyTrackSelected(parentTrack)
+
+    if selectRegionsByName then
+        reaperCMD(40421) -- select all items in track
+    else
+        reaperCMD(41611) -- select all pooled items
+        unselectItemsThatAreNotOnSelectedTracks()
+    end
+
+    setItemSelected(inputRegion, false)
+
+    local outputRegionItems = {}
+    local countItems = reaper.CountSelectedMediaItems(0)
+
+    local i = 1
+    local j = 1
+    for i = 1, countItems do
+        local currentItem = reaper.GetSelectedMediaItem(0, i - 1)
+        local itemTrack = reaper.GetMediaItem_Track(currentItem)
+
+        if selectRegionsByName then
+            if getRegionName(currentItem) == getRegionName(inputRegion) and not isTrackIgnored(itemTrack) then
+                outputRegionItems[j] = currentItem
+                j = j + 1
+            end
+        else
+            if getItemType(currentItem) ~= "empty" and not isTrackIgnored(itemTrack) then
+                outputRegionItems[j] = currentItem
+                j = j + 1
+            end
+        end
+    end
+
+    return outputRegionItems
+end
+
+function getSelectedRegionItems()
+    if selectRegionsByName then
+        local outputSelectedItems = {}
+        local countItems = reaper.CountSelectedMediaItems(0)
+
+        local i = 1
+        local j = 1
+        for i = 1, countItems do
+            local currentItem = reaper.GetSelectedMediaItem(0, i - 1)
+            local itemTrack = reaper.GetMediaItem_Track(currentItem)
+
+            if not isTrackIgnored(itemTrack) then
+                outputSelectedItems[j] = currentItem
+                j = j + 1
+            end
+        end
+
+        return outputSelectedItems
+    else
+        return getSelectedMIDIItems()
+    end
 end
 
 function getRegionLeftBound(region)
@@ -91,7 +168,11 @@ function getRegionFadeIn(region)
     local output = nil
 
     if itemIsValid(region) then
-        output = reaper.GetMediaItemInfo_Value(region, "D_FADEINLEN")
+        if getItemType(region) == "empty" then
+            output = 0.0
+        else
+            output = reaper.GetMediaItemInfo_Value(region, "D_FADEINLEN")
+        end
     end
 
     return output
@@ -101,7 +182,11 @@ function getRegionFadeOut(region)
     local output = nil
 
     if itemIsValid(region) then
-        output = reaper.GetMediaItemInfo_Value(region, "D_FADEOUTLEN")
+        if getItemType(region) == "empty" then
+            output = 0.0
+        else
+            output = reaper.GetMediaItemInfo_Value(region, "D_FADEOUTLEN")
+        end
     end
 
     return output
@@ -111,7 +196,11 @@ function getRegionPitch(region)
     local output = nil
 
     if itemIsValid(region) then
-        output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(region), "D_PITCH")
+        if getItemType(region) == "empty" then
+            output = 0
+        else
+            output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(region), "D_PITCH")
+        end
     end
 
     return output
@@ -121,7 +210,11 @@ function getRegionPlayrate(region)
     local output = nil
 
     if itemIsValid(region) then
-        output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(region), "D_PLAYRATE")
+        if getItemType(region) == "empty" then
+            output = 1.0
+        else
+            output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(region), "D_PLAYRATE")
+        end
     end
 
     return output
@@ -519,7 +612,11 @@ function getItemSourceOffset(item)
     local output = nil
 
     if itemIsValid(item) then
-        output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(item), "D_STARTOFFS")
+        if getItemType(item) == "empty" then
+            output = 0.0
+        else
+            output = reaper.GetMediaItemTakeInfo_Value(getItemActiveTake(item), "D_STARTOFFS")
+        end
     end
 
     return -output
@@ -527,7 +624,8 @@ end
 
 function getItemType(item)
     local _, selectedChunk =  reaper.GetItemStateChunk(item, "", 0)
-    local  itemType = string.match(selectedChunk, "<SOURCE%s(%P%P%P).*\n")
+    local itemType = string.match(selectedChunk, "<SOURCE%s(%P%P%P).*\n")
+
     if itemType == nil then
         return "empty"
     elseif itemType == "MID" then
@@ -562,32 +660,6 @@ function unselectItemsThatAreNotOnSelectedTracks()
             end
         end
     end
-end
-
-function getRegionItems(inputRegion)
-    local parentTrack = reaper.GetMediaItem_Track(inputRegion)
-    setOnlyTrackSelected(parentTrack)
-
-    reaperCMD(41611) -- select all pooled items
-    setItemSelected(inputRegion, false)
-    unselectItemsThatAreNotOnSelectedTracks()
-
-    local outputRegionItems = {}
-    local countItems = reaper.CountSelectedMediaItems(0)
-
-    local i = 1
-    local j = 1
-    for i = 1, countItems do
-        local currentItem = reaper.GetSelectedMediaItem(0, i - 1)
-        local itemTrack = reaper.GetMediaItem_Track(currentItem)
-
-        if getItemType(currentItem) ~= "empty" and not isTrackIgnored(itemTrack) then
-            outputRegionItems[j] = currentItem
-            j = j + 1
-        end
-    end
-
-    return outputRegionItems
 end
 
 function unselectItemsThatStartOutsideOfRegion(inputRegion)
