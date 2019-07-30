@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.5.10
+-- @version 1.6
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,9 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Added an experimental vertical centering systems. It can be enabled in the settings.
+--   + Added a setting (zoomMasterWithOtherTracks) that when set to false, will allow
+--     independent zooming of the master track TCP.
+--   + Fixed some possible crashes.
 
 
 
@@ -50,3 +52,7 @@ minimumMasterHeight = 74
 -- If this is enabled, the script will try to pull the track/envelope that is under
 -- the mouse cursor to the center of the screen while zooming.
 shouldCenterVertically = false
+
+-- If this is enabled, the script will zoom the master track (if visible in the TCP)
+-- with the rest of the other tracks.
+zoomMasterWithOtherTracks = true

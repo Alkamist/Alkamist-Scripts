@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.5.10
+-- @version 1.6
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,7 +12,9 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Added an experimental vertical centering systems. It can be enabled in the settings.
+--   + Added a setting (zoomMasterWithOtherTracks) that when set to false, will allow
+--     independent zooming of the master track TCP.
+--   + Fixed some possible crashes.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -237,9 +239,9 @@ function initializeMainViewVerticalZoom()
     local mousePixelYPosRecorded = false
     local currentLanePixelEnd = 0
     local currentZonePixelEnd = 0
-    local lastVisibleTrack = nil
+    local lastVisibleTrack = reaper.GetTrack(0, 0)
     local lastVisibleTrackNumber = 0
-    local lastVisibleEnvelope = nil
+    local lastVisibleEnvelope = reaper.GetTrackEnvelope(lastVisibleTrack, 0)
     local lastVisibleEnvelopeNumber = 0
 
     for i = 0, reaper.GetNumTracks() do
@@ -503,47 +505,55 @@ function getEnvelopeHeight(envelope, trackHeight)
 end
 
 function setTrackZoom(track, zoom)
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+    local trackIsMaster = track == masterTrack
+    local masterIsFocus = mainViewOrigMouseLocation.track == masterTrack
+    local masterShouldZoom = masterIsFocus or zoomMasterWithOtherTracks
+    local otherTracksShouldZoom = (not masterIsFocus) or (masterIsFocus and zoomMasterWithOtherTracks)
 
-    local currentTrackNumber = getTrackNumber(track)
+    if (trackIsMaster and masterShouldZoom) or (not trackIsMaster and otherTracksShouldZoom) then
+        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
 
-    local trackHeight = round(initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom)
+        local currentTrackNumber = getTrackNumber(track)
 
-    if currentTrackNumber == 0 then
-        trackHeight = math.max(trackHeight, minimumMasterHeight)
-    else
-        trackHeight = math.max(trackHeight, minTrackHeight)
+        local trackHeight = round(initallyVisibleTracks[currentTrackNumber].initialTrackHeight * zoom)
+
+        if currentTrackNumber == 0 then
+            trackHeight = math.max(trackHeight, minimumMasterHeight)
+        else
+            trackHeight = math.max(trackHeight, minTrackHeight)
+        end
+
+        -- The mouse is over a track.
+        if mainViewOrigMouseLocation.envelopeNumber < 1 then
+            trackHeight = math.min(trackHeight, windowHeight)
+
+        -- The mouse is over an envelope.
+        else
+            trackHeight = math.min(trackHeight, windowHeight * 1.3333333333333)
+        end
+
+        local cumulativeEnvelopeHeight = 0
+        for i = 1, reaper.CountTrackEnvelopes(track) do
+            local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
+
+            local envelopeHeight = getEnvelopeHeight(currentEnvelope, trackHeight)
+
+            cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + envelopeHeight
+        end
+
+        reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight)
+
+        initallyVisibleTracks[currentTrackNumber].currentLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
     end
-
-    -- The mouse is over a track.
-    if mainViewOrigMouseLocation.envelopeNumber < 1 then
-        trackHeight = math.min(trackHeight, windowHeight)
-
-    -- The mouse is over an envelope.
-    else
-        trackHeight = math.min(trackHeight, windowHeight * 1.3333333333333)
-    end
-
-    local cumulativeEnvelopeHeight = 0
-    for i = 1, reaper.CountTrackEnvelopes(track) do
-        local currentEnvelope = reaper.GetTrackEnvelope(track, i - 1)
-
-        local envelopeHeight = getEnvelopeHeight(currentEnvelope, trackHeight)
-
-        cumulativeEnvelopeHeight = cumulativeEnvelopeHeight + envelopeHeight
-    end
-
-    reaper.SetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE", trackHeight)
-
-    initallyVisibleTracks[currentTrackNumber].currentLaneHeight = reaper.GetMediaTrackInfo_Value(track, "I_HEIGHTOVERRIDE") + cumulativeEnvelopeHeight
 end
 
 function setMainViewVerticalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
     if position then
-        local newPosition = round(math.min(math.max(position, 0), scrollMax))
-        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
+        if position >= 0 then
+            reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", round(position))
+        end
     end
 end
 
@@ -715,7 +725,7 @@ function setMainViewVerticalZoom(zoom)
     end
     reaper.TrackList_AdjustWindows(false)
 
-    correctMainViewVerticalScroll(zoom)
+    pcall(correctMainViewVerticalScroll, zoom)
 
     setUIRefresh(true)
 end
@@ -724,7 +734,7 @@ function setMainViewHorizontalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
 
     if position then
-        if position >= 0 and position >= scrollMin and position <= scrollPos + scrollPageSize - 1 then
+        if position >= 0 then
             reaper.JS_Window_SetScrollPos(arrangeWindow, "HORZ", round(position))
         end
     end
