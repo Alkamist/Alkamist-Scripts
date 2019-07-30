@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="25351ac494ed5f22f395f26ea225336602a7af04" name="Alkamist Scripts">
+<index version="1" commit="2e3374a25b62e35c7b4b485ca14ba72e7527c711" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -29,6 +29,11 @@
         <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
   pool regardless of your Reaper preferences.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/6ffcf5baac414b3aecdea7f2fd35d98b941c3a27/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
+      </version>
+      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
+        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
++ Made auto-fade setting less likely to wrongly change.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
       </version>
     </reapack>
     <reapack name="Region Item Functions.lua" type="script" desc="Region Item Functions">
@@ -60,6 +65,11 @@
   pool regardless of your Reaper preferences.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Item%20Functions.lua</source>
       </version>
+      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
+        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
++ Made auto-fade setting less likely to wrongly change.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Region%20Item%20Functions.lua</source>
+      </version>
     </reapack>
     <reapack name="Region Items Default Settings.lua" type="script" desc="Region Items Default Settings">
       <metadata>
@@ -85,6 +95,11 @@
         <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
   pool regardless of your Reaper preferences.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
+      </version>
+      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
+        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
++ Made auto-fade setting less likely to wrongly change.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
       </version>
     </reapack>
     <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
@@ -115,6 +130,11 @@
         <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
   pool regardless of your Reaper preferences.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Update%20Region%20Items.lua</source>
+      </version>
+      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
+        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
++ Made auto-fade setting less likely to wrongly change.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Update%20Region%20Items.lua</source>
       </version>
     </reapack>
   </category>
