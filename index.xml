@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="6ffcf5baac414b3aecdea7f2fd35d98b941c3a27" name="Alkamist Scripts">
+<index version="1" commit="635272e779770a61d03c2c893b2a0ff40f71f2e7" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -184,6 +184,11 @@
 + Fixed some possible crashes.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/e86f639a8581a4c752973f556f2f7eb8c5285b4a/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
       </version>
+      <version name="1.6.1" author="Alkamist" time="2019-07-30T17:58:18Z">
+        <changelog><![CDATA[+ Split the sensitivities into arrange and MIDI editor parts, so you can set them
+  individually if you want. You will have to update your user settings file.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/635272e779770a61d03c2c893b2a0ff40f71f2e7/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
+      </version>
     </reapack>
     <reapack name="Zoom Tool.lua" type="script" desc="Zoom Tool">
       <metadata>
@@ -262,6 +267,11 @@
   independent zooming of the master track TCP.
 + Fixed some possible crashes.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/e86f639a8581a4c752973f556f2f7eb8c5285b4a/Zoom%20Tool/Zoom%20Tool.lua</source>
+      </version>
+      <version name="1.6.1" author="Alkamist" time="2019-07-30T17:58:18Z">
+        <changelog><![CDATA[+ Split the sensitivities into arrange and MIDI editor parts, so you can set them
+  individually if you want. You will have to update your user settings file.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/635272e779770a61d03c2c893b2a0ff40f71f2e7/Zoom%20Tool/Zoom%20Tool.lua</source>
       </version>
     </reapack>
   </category>
