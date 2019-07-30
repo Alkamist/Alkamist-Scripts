@@ -458,22 +458,6 @@ function restoreMIDISelection()
     reaper.MIDI_Sort(midiTake)
 end
 
-function zoomInVertically()
-    if windowType == "main" then
-        reaperCMD(40111) -- zoom in vertical
-    elseif windowType == "midi" then
-        reaperMIDICMD(40111) -- zoom in vertical
-    end
-end
-
-function zoomOutVertically()
-    if windowType == "main" then
-        reaperCMD(40112) -- zoom out vertical
-    elseif windowType == "midi" then
-        reaperMIDICMD(40112) -- zoom out vertical
-    end
-end
-
 function getEnvelopeStats(envelope)
     local _, envelopeChunk = reaper.GetEnvelopeStateChunk(envelope, "", false)
 
@@ -840,16 +824,26 @@ function update()
 
         if prevAccumAdjust < tickLowValue then
             local overflow = math.ceil((tickLowValue - prevAccumAdjust) / yZoomTick)
-            for i = 1, overflow do
-                zoomInVertically()
-                reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+            reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+
+            if windowType == "midi" then
+                for i = 1, overflow do
+                    reaperMIDICMD(40111) -- zoom in vertical
+                end
+            else
+                reaper.CSurf_OnZoom(0, overflow)
             end
 
         elseif prevAccumAdjust > tickHighValue then
             local overflow = math.ceil((prevAccumAdjust - tickHighValue) / yZoomTick)
-            for i = 1, overflow do
-                zoomOutVertically()
-                reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+            reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+
+            if windowType == "midi" then
+                for i = 1, overflow do
+                    reaperMIDICMD(40112) -- zoom out vertical
+                end
+            else
+                reaper.CSurf_OnZoom(0, -overflow)
             end
         end
     else
