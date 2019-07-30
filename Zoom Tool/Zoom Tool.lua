@@ -542,8 +542,8 @@ function setMainViewVerticalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
     if position then
-        local newPosition = math.min(math.max(position, scrollMax), 0)
-        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", round(position))
+        local newPosition = round(math.min(math.max(position, 0), scrollMax))
+        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
     end
 end
 
