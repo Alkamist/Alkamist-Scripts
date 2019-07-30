@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.6.1
+-- @version 1.6.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,8 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Split the sensitivities into arrange and MIDI editor parts, so you can set them
---     individually if you want. You will have to update your user settings file.
+--   + Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
+--     calling actions.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -242,9 +242,9 @@ function initializeMainViewVerticalZoom()
     local mousePixelYPosRecorded = false
     local currentLanePixelEnd = 0
     local currentZonePixelEnd = 0
-    local lastVisibleTrack = reaper.GetTrack(0, 0)
+    local lastVisibleTrack = nil
     local lastVisibleTrackNumber = 0
-    local lastVisibleEnvelope = reaper.GetTrackEnvelope(lastVisibleTrack, 0)
+    local lastVisibleEnvelope = nil
     local lastVisibleEnvelopeNumber = 0
 
     for i = 0, reaper.GetNumTracks() do
@@ -538,9 +538,8 @@ function setMainViewVerticalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
     if position then
-        if position >= 0 then
-            reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", round(position))
-        end
+        local newPosition = round(math.min(math.max(position, scrollMin), scrollMax))
+        reaper.JS_Window_SetScrollPos(arrangeWindow, "VERT", newPosition)
     end
 end
 

@@ -1,5 +1,5 @@
 -- @description Zoom Tool Default Settings
--- @version 1.6.1
+-- @version 1.6.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,8 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Split the sensitivities into arrange and MIDI editor parts, so you can set them
---     individually if you want. You will have to update your user settings file.
+--   + Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
+--     calling actions.
 
 
 
@@ -44,12 +44,6 @@ usePreciseMainViewHorizontalPositionTracking = true
 -- vs. setting the track height directly.
 useActionBasedVerticalZoom = false
 
--- These are the minimum heights of standard envelopes and the master track.
--- Change these if you need to, but I am not aware of any reason to do so.
--- Changing these to the wrong value will cause unintended scrolling while zooming.
-minimumEnvelopeHeight = 24
-minimumMasterHeight = 74
-
 -- If this is enabled, the script will try to pull the track/envelope that is under
 -- the mouse cursor to the center of the screen while zooming.
 shouldCenterVertically = false
@@ -57,3 +51,9 @@ shouldCenterVertically = false
 -- If this is enabled, the script will zoom the master track (if visible in the TCP)
 -- with the rest of the other tracks.
 zoomMasterWithOtherTracks = true
+
+-- These are the minimum heights of standard envelopes and the master track.
+-- Change these if you need to, but I am not aware of any reason to do so.
+-- Changing these to the wrong value will cause unintended scrolling while zooming.
+minimumEnvelopeHeight = 24
+minimumMasterHeight = 74
