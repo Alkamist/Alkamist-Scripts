@@ -1,5 +1,5 @@
 -- @description Clear Selected Region Items
--- @version 1.2.1
+-- @version 1.2.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -7,8 +7,8 @@
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
---     pool regardless of your Reaper preferences.
+--   + Fixed problem when fade-in and fade-out got applied to the same item.
+--   + Made auto-fade setting less likely to wrongly change.
 
 label = 'Alkamist: Clear Selected Region Items'
 

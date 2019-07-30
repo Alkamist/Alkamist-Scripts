@@ -1,5 +1,5 @@
 -- @description Update Region Items
--- @version 1.2.1
+-- @version 1.2.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -10,8 +10,8 @@
 --   Paired region items are determined by either MIDI pool or item name, depending on
 --   the value of the "selectRegionsByName" bool in the settings file.
 -- @changelog
---   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
---     pool regardless of your Reaper preferences.
+--   + Fixed problem when fade-in and fade-out got applied to the same item.
+--   + Made auto-fade setting less likely to wrongly change.
 
 label = 'Alkamist: Update Region Items'
 
@@ -19,8 +19,9 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. '?.lua;' .
 require "Scripts.Alkamist Scripts.Region Items.Region Item Functions"
 
 local envAttach = nil
-local splitAutoXFade = nil
 local projRipEdit = nil
+local xFadeOnSplit = false
+local autoFade = false
 local initialTrackSelection = {}
 local initalItemSelection = {}
 function saveSettings()
@@ -30,8 +31,11 @@ function saveSettings()
 
     -- Save the previous settings before we temporarily change them.
     envAttach = reaper.SNM_GetIntConfigVar("envattach", 0)
-    splitAutoXFade = reaper.SNM_GetIntConfigVar("splitautoxfade", 0)
+    local splitAutoXFade = reaper.SNM_GetIntConfigVar("splitautoxfade", 0)
     projRipEdit = reaper.SNM_GetIntConfigVar("projripedit", 0)
+
+    autoFade = not ((splitAutoXFade & 8) > 0)
+    xFadeOnSplit = splitAutoXFade & 1 > 0
 
     -- Save the initial track and item selection.
     initialTrackSelection = getSelectedTracks()
@@ -41,11 +45,18 @@ end
 function restoreSettings()
     -- Restore the settings we changed.
     reaper.SNM_SetIntConfigVar("envattach", envAttach)
-    reaper.SNM_SetIntConfigVar("splitautoxfade", splitAutoXFade)
     reaper.SNM_SetIntConfigVar("projripedit", projRipEdit)
     reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
     reaperCMD("_SWS_RESTOREVIEW")
     reaperCMD("_SWS_RESTTIME1")
+
+    if not autoFade then
+        reaperCMD(41196) -- disable auto fade-in/fade-out
+    end
+
+    if xFadeOnSplit then
+        reaperCMD(40927) -- enable auto crossfade on split
+    end
 
     -- Restore the initial track and item selection.
     restoreSelectedTracks(initialTrackSelection)
@@ -56,8 +67,8 @@ function updateRegionItems()
     saveSettings()
 
     reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
-    reaperCMD(40928) -- disable auto crossfade on split
     reaperCMD(41195) -- enable auto fade-in/fade-out
+    reaperCMD(40928) -- disable auto crossfade on split
     reaperCMD(40309) -- disable ripple editing
 
     -- Determine if we even have any region items selected.

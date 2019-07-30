@@ -1,13 +1,13 @@
 -- @description Region Item Functions
--- @version 1.2.1
+-- @version 1.2.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This file contains various functions that are used by the region item actions.
 --   The other region item scripts won't run without it.
 -- @changelog
---   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
---     pool regardless of your Reaper preferences.
+--   + Fixed problem when fade-in and fade-out got applied to the same item.
+--   + Made auto-fade setting less likely to wrongly change.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -1299,7 +1299,6 @@ function trimAndApplyFadesIfPresent(inputRegion, items)
     restoreSelectedItems(items)
 
     local itemsToDelete = {}
-    local itemsToAdd = {}
 
     if getRegionFadeIn(inputRegion) > 0 then
         for i = 1, #items do
@@ -1308,7 +1307,7 @@ function trimAndApplyFadesIfPresent(inputRegion, items)
 
                 if rightSplit ~= nil then
                     table.insert(itemsToDelete, items[i])
-                    table.insert(itemsToAdd, rightSplit)
+                    table.insert(items, rightSplit)
                 end
             end
         end
@@ -1329,7 +1328,6 @@ function trimAndApplyFadesIfPresent(inputRegion, items)
     restoreSelectedItems(itemsToDelete)
     reaperCMD(40006) -- remove items
 
-    table.insert(items, itemsToAdd)
     restoreSelectedItems(items)
 
     return getSelectedItems()

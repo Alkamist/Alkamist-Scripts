@@ -1,5 +1,5 @@
 -- @description Region Items Default Settings
--- @version 1.2.1
+-- @version 1.2.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,8 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
---     pool regardless of your Reaper preferences.
+--   + Fixed problem when fade-in and fade-out got applied to the same item.
+--   + Made auto-fade setting less likely to wrongly change.
 
 
 
