@@ -1,15 +1,13 @@
 -- @description Region Item Functions
--- @version 1.2
+-- @version 1.2.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
 --   This file contains various functions that are used by the region item actions.
 --   The other region item scripts won't run without it.
 -- @changelog
---   + Added the ability to process regions based on item name instead of pooling.
---     To enable this option, copy the Region Items Default Settings.lua file to
---     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
---     and change the "selectRegionsByName" bool to true.
+--   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+--     pool regardless of your Reaper preferences.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -1612,7 +1610,11 @@ function pasteChildItems(sourceRegion, inputRegion, itemPasteOffset, pasteTrackO
 
     reaper.SetEditCurPos(getRegionStart(inputRegion) + itemPasteOffset, false, false)
 
-    reaperCMD(40058) -- paste items
+    if poolPastedMIDIItems then
+        reaperCMD(41072) -- paste items creating pooled MIDI regardless of preferences
+    else
+        reaperCMD(40058) -- paste items
+    end
     local pastedItems = getSelectedItems()
 
     -- For some reason pasting like this via ReaScript is unreliable

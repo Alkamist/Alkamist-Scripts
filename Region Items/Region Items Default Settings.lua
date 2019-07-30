@@ -1,5 +1,5 @@
 -- @description Region Items Default Settings
--- @version 1.2
+-- @version 1.2.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @about
@@ -12,10 +12,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Added the ability to process regions based on item name instead of pooling.
---     To enable this option, copy the Region Items Default Settings.lua file to
---     the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
---     and change the "selectRegionsByName" bool to true.
+--   + Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+--     pool regardless of your Reaper preferences.
 
 
 
@@ -34,3 +32,9 @@ AND CHANGE THE SETTINGS THERE.
 -- Change this to true to enable regions to be processed based on identical item names
 -- instead of by MIDI pool.
 selectRegionsByName = false
+
+-- If set to true, this setting will cause the script to pool the pasted MIDI items
+-- regardless of your preferences. If it is false, the pasted items will pool depending
+-- on your setting of "Pool MIDI source data when pasting or duplicating media items"
+-- in Reaper's preferences page.
+poolPastedMIDIItems = true
