@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="e86f639a8581a4c752973f556f2f7eb8c5285b4a" name="Alkamist Scripts">
+<index version="1" commit="a7bde5fa107a1380c7b76f6ec19189bd76712f90" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -50,6 +50,11 @@
   and change the "selectRegionsByName" bool to true.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Region%20Item%20Functions.lua</source>
       </version>
+      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:55:26Z">
+        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+  pool regardless of your Reaper preferences.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Item%20Functions.lua</source>
+      </version>
     </reapack>
     <reapack name="Region Items Default Settings.lua" type="script" desc="Region Items Default Settings">
       <metadata>
@@ -70,6 +75,11 @@
   the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
   and change the "selectRegionsByName" bool to true.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
+      </version>
+      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:55:26Z">
+        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+  pool regardless of your Reaper preferences.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
       </version>
     </reapack>
     <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
@@ -95,6 +105,11 @@
   the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
   and change the "selectRegionsByName" bool to true.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Update%20Region%20Items.lua</source>
+      </version>
+      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:55:26Z">
+        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
+  pool regardless of your Reaper preferences.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Update%20Region%20Items.lua</source>
       </version>
     </reapack>
   </category>
