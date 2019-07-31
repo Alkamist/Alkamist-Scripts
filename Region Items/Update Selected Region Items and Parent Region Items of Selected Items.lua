@@ -1,4 +1,4 @@
--- @description Update Parent Region Items of Selected Items
+-- @description Update Selected Region Items and Parent Region Items of Selected Items
 -- @author Alkamist
 -- @noindex
 
