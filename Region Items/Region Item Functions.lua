@@ -1554,3 +1554,118 @@ function clearRegion(inputRegion)
     cleanAutomation(inputRegion)
     removeAutomationItems(inputRegion)
 end
+
+local settings_envAttach = nil
+local settings_projRipEdit = nil
+local settings_pooledEnvs = nil
+local settings_xFadeOnSplit = false
+local settings_autoFade = false
+local settings_initialTrackSelection = {}
+local settings_initalItemSelection = {}
+function saveSettings()
+    reaperCMD("_SWS_SAVETIME1")
+    reaperCMD("_SWS_SAVEVIEW")
+    reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
+
+    -- Save the previous settings before we temporarily change them.
+    settings_envAttach = reaper.SNM_GetIntConfigVar("envattach", 0)
+    local splitAutoXFade = reaper.SNM_GetIntConfigVar("splitautoxfade", 0)
+    settings_pooledEnvs = reaper.SNM_GetIntConfigVar("pooledenvs", 0)
+    settings_projRipEdit = reaper.SNM_GetIntConfigVar("projripedit", 0)
+
+    settings_autoFade = not ((splitAutoXFade & 8) > 0)
+    settings_xFadeOnSplit = splitAutoXFade & 1 > 0
+
+    -- Save the initial track and item selection.
+    settings_initialTrackSelection = getSelectedTracks()
+    settings_initalItemSelection = getSelectedItems()
+end
+
+function restoreSettings()
+    -- Restore the settings we changed.
+    reaper.SNM_SetIntConfigVar("envattach", settings_envAttach)
+    reaper.SNM_SetIntConfigVar("pooledenvs", settings_pooledEnvs)
+    reaper.SNM_SetIntConfigVar("projripedit", settings_projRipEdit)
+    reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
+    reaperCMD("_SWS_RESTOREVIEW")
+    reaperCMD("_SWS_RESTTIME1")
+
+    if not settings_autoFade then
+        reaperCMD(41196) -- disable auto fade-in/fade-out
+    end
+
+    if settings_xFadeOnSplit then
+        reaperCMD(40927) -- enable auto crossfade on split
+    end
+
+    -- Restore the initial track and item selection.
+    restoreSelectedTracks(settings_initialTrackSelection)
+    restoreSelectedItems(settings_initalItemSelection)
+end
+
+function updateRegionItems(sourceRegion)
+    -- Check to make sure the region track has children.
+    selectChildTracks(sourceRegion)
+
+    if reaper.CountSelectedTracks(0) > 0 then
+        reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
+        reaperCMD(41195) -- enable auto fade-in/fade-out
+        reaperCMD(40928) -- disable auto crossfade on split
+        reaperCMD(40309) -- disable ripple editing
+
+        -- Turn off "Trim content behind automation items when editing or writing automation"
+        -- because it causes automation items to not be copied correctly.
+        reaper.SNM_SetIntConfigVar("pooledenvs", settings_pooledEnvs & ~256)
+
+        reaperCMD(40289) -- unselect all items
+        setItemSelected(sourceRegion, true)
+
+        populateSourceEnvelopes(sourceRegion)
+        local regionItems = getRegionItems(sourceRegion)
+
+        -- The script doesn't work properly unless all of the tracks in the
+        -- region are visible during processing.
+        showAllTracksInRegion(sourceRegion)
+
+        -- We need to show all envelopes for the script to work properly.
+        reaperCMD(41149) -- show all envelopes for all tracks
+
+        -- Clean up the destination regions before transfer.
+        for i = 1, #regionItems do
+            clearRegion(regionItems[i])
+        end
+
+        -- We need to keep track of the garbage tracks that are made for spacing.
+        local garbageTracks = {}
+
+        -- Transfer over the automation with the help of automation items.
+        insertTransferItems(sourceRegion, sourceRegion)
+        for i = 1, #regionItems do
+            insertTransferItems(sourceRegion, regionItems[i])
+        end
+        removeSourceTransferItems(sourceRegion)
+
+        -- Transfer over and pool any extra automation items that are present in
+        -- the source region.
+        copySourceAutomationItems(sourceRegion)
+        for i = 1, #regionItems do
+            removeAutomationItems(regionItems[i])
+            pasteSourceAutomationItems(sourceRegion, regionItems[i])
+        end
+
+        -- Copy over the media items.
+        local itemsWereCopied, itemPasteOffset, pasteTrackOffset = copyChildItems(sourceRegion)
+        for i = 1, #regionItems do
+            -- Only paste items if there are items to paste.
+            if itemsWereCopied then
+                pasteChildItems(sourceRegion, regionItems[i], itemPasteOffset, pasteTrackOffset)
+            end
+        end
+
+        -- Remove the garbage tracks that were made for spacing.
+        for i = 1, #garbageTracks do
+            restoreSelectedTracks(garbageTracks[i])
+            reaperCMD(40005) -- remove tracks
+        end
+    end
+end

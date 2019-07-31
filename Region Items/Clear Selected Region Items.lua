@@ -40,8 +40,6 @@ function restoreSettings()
 end
 
 function clearSelectedRegionItems()
-    saveSettings()
-
     reaperCMD(40309) -- disable ripple editing
 
     -- Save the initial track and item selection.
@@ -56,18 +54,16 @@ function clearSelectedRegionItems()
     for i = 1, #selectedItems do
         clearRegion(selectedItems[i])
     end
-
-    restoreSettings()
-
-    return 0
 end
 
--- Check for errors and start the script.
-if(reaper.CountSelectedMediaItems(0) > 0) then
+-- Start the script if there are items selected.
+if reaper.CountSelectedMediaItems(0) > 0 then
     reaper.Undo_BeginBlock()
     reaper.PreventUIRefresh(1)
 
-    local errorResult = clearSelectedRegionItems()
+    saveSettings()
+    clearSelectedRegionItems()
+    restoreSettings()
 
     reaper.PreventUIRefresh(-1)
     reaper.Undo_EndBlock(label, -1)
