@@ -1,18 +1,29 @@
--- @description Update Region Items
+-- @description Region Items (2 actions)
 -- @version 1.2.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
 --   [main] .
+--   [main] Clear Selected Region Items.lua
 --   Region Item Functions.lua
 --   Region Items Default Settings.lua
 -- @about
+--   This installation will include 2 actions:
+--
+--   Update Region Items
+--
 --   This action will copy the items and automation of all child tracks underneath
 --   and within the bounds of a single selected region item. It will then paste those
 --   contents to the child tracks of all paired region items, removing their previous
 --   contents.
 --   Paired region items are determined by either MIDI pool or item name, depending on
 --   the value of the "selectRegionsByName" bool in the settings file.
+--
+--   Clear Selected Region Items
+--
+--   This action clears the contained contents of the child tracks of the selected
+--   region items. Used to clean up the contents of a region item if you want to change,
+--   move, or remove it.
 -- @changelog
 --   + Trying to make Reapack auto-include settings and functions files.
 

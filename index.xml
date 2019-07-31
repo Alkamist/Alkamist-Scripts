@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="f245592f1dfc9736619acf695edd58799ac93eff" name="Alkamist Scripts">
+<index version="1" commit="e05476f27313eb6e66a157d6df7b6862e2cfe18a" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -36,72 +36,6 @@
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
       </version>
     </reapack>
-    <reapack name="Region Item Functions.lua" type="script" desc="Region Item Functions">
-      <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
-\widowctrl\hyphauto
-
-{\pard \ql \f0 \sa180 \li0 \fi0 This file contains various functions that are used by the region item actions. The other region item scripts won't run without it.\par}
-}
-]]></description>
-        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
-      </metadata>
-      <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/8ec7d5a2d03c0197c82779327b11ff3bd9a20930/Region%20Items/Region%20Item%20Functions.lua</source>
-      </version>
-      <version name="1.1" author="Alkamist" time="2019-07-27T22:41:44Z">
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c27079d9f2ad225a636652da0f12bbf72afa6325/Region%20Items/Region%20Item%20Functions.lua</source>
-      </version>
-      <version name="1.2" author="Alkamist" time="2019-07-30T14:44:42Z">
-        <changelog><![CDATA[+ Added the ability to process regions based on item name instead of pooling.
-  To enable this option, copy the Region Items Default Settings.lua file to
-  the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
-  and change the "selectRegionsByName" bool to true.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Region%20Item%20Functions.lua</source>
-      </version>
-      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:55:26Z">
-        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
-  pool regardless of your Reaper preferences.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Item%20Functions.lua</source>
-      </version>
-      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
-        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
-+ Made auto-fade setting less likely to wrongly change.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Region%20Item%20Functions.lua</source>
-      </version>
-    </reapack>
-    <reapack name="Region Items Default Settings.lua" type="script" desc="Region Items Default Settings">
-      <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
-\widowctrl\hyphauto
-
-{\pard \ql \f0 \sa180 \li0 \fi0 This is the default settings file for the Region Items scripts. You need this file installed in the proper directory for script to work:\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 "Scripts\\Alkamist Scripts\\Region Items\\Region Items Default Settings.lua"\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 You can copy this file into the same folder and call it "Region Items User Settings.lua" and change the settings in there. That way, your settings are not overwritten when updating.\par}
-}
-]]></description>
-        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
-      </metadata>
-      <version name="1.2" author="Alkamist" time="2019-07-30T14:44:42Z">
-        <changelog><![CDATA[+ Added the ability to process regions based on item name instead of pooling.
-  To enable this option, copy the Region Items Default Settings.lua file to
-  the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
-  and change the "selectRegionsByName" bool to true.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:55:26Z">
-        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
-  pool regardless of your Reaper preferences.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/a7bde5fa107a1380c7b76f6ec19189bd76712f90/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
-        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
-+ Made auto-fade setting less likely to wrongly change.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
-      </version>
-    </reapack>
     <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
@@ -135,6 +69,12 @@
         <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
 + Made auto-fade setting less likely to wrongly change.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Update%20Region%20Items.lua</source>
+      </version>
+      <version name="1.2.3" author="Alkamist" time="2019-07-31T14:43:45Z">
+        <changelog><![CDATA[+ Trying to make Reapack auto-include settings and functions files.]]></changelog>
+        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/e05476f27313eb6e66a157d6df7b6862e2cfe18a/Region%20Items/Update%20Region%20Items.lua</source>
+        <source file="Region Item Functions.lua">https://github.com/Alkamist/Alkamist-Scripts/raw/e05476f27313eb6e66a157d6df7b6862e2cfe18a/Region%20Items/Region%20Item%20Functions.lua</source>
+        <source file="Region Items Default Settings.lua">https://github.com/Alkamist/Alkamist-Scripts/raw/e05476f27313eb6e66a157d6df7b6862e2cfe18a/Region%20Items/Region%20Items%20Default%20Settings.lua</source>
       </version>
     </reapack>
   </category>
