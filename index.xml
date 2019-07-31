@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="2e3374a25b62e35c7b4b485ca14ba72e7527c711" name="Alkamist Scripts">
+<index version="1" commit="f245592f1dfc9736619acf695edd58799ac93eff" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
       <metadata>
@@ -156,65 +156,6 @@
     </reapack>
   </category>
   <category name="Zoom Tool">
-    <reapack name="Zoom Tool Default Settings.lua" type="script" desc="Zoom Tool Default Settings">
-      <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
-\widowctrl\hyphauto
-
-{\pard \ql \f0 \sa180 \li0 \fi0 This is the default settings file for the Zoom Tool. You need this file installed in the proper directory for script to work:\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 "Scripts\\Alkamist Scripts\\Zoom Tool\\Zoom Tool Default Settings.lua"\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 You can copy this file into the same folder and call it "Zool Tool User Settings.lua" and change the settings in there. That way, your settings are not overwritten when updating.\par}
-}
-]]></description>
-        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
-      </metadata>
-      <version name="1.5.4" author="Alkamist" time="2019-07-28T21:41:32Z">
-        <changelog><![CDATA[+ Added the ability to import your own settings file, so your settings don't get overwritten when updating.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/998a32ad074c0e4cc4630bbac94e3d3a8d368f1d/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.5" author="Alkamist" time="2019-07-28T21:46:01Z">
-        <changelog><![CDATA[+ Fixed default settings file description.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/ad7d1a18a45d2fbeb22f62767a78c9c82a1c651c/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.6" author="Alkamist" time="2019-07-29T01:35:56Z">
-        <changelog><![CDATA[+ Fixed really bad bug with UI refresh.
-+ Added a system that creates a padding track for smoother zooming. (Needs work)]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/1f8555a1ba25fff89a4113620b42f514b75b5d74/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.7" author="Alkamist" time="2019-07-29T02:10:30Z">
-        <changelog><![CDATA[+ Changed zoom factors.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9c4cf6b1f60af62f4fa40e3f30a90862fa27ad48/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.8" author="Alkamist" time="2019-07-29T03:45:19Z">
-        <changelog><![CDATA[- Removed padding track because it caused jumpy behavior.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/f2988ac62e87256fc1bb3f044a2c8321e111f5e8/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.9" author="Alkamist" time="2019-07-29T13:52:42Z">
-        <changelog><![CDATA[+]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/427f123dca3fd2bf92b90d271291060be012b1dd/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.5.10" author="Alkamist" time="2019-07-29T21:54:37Z">
-        <changelog><![CDATA[+ Added an experimental vertical centering systems. It can be enabled in the settings.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c45efd075e64a8e670acb07e3fad42c30024b9e9/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.6" author="Alkamist" time="2019-07-30T16:30:42Z">
-        <changelog><![CDATA[+ Added a setting (zoomMasterWithOtherTracks) that when set to false, will allow
-  independent zooming of the master track TCP.
-+ Fixed some possible crashes.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/e86f639a8581a4c752973f556f2f7eb8c5285b4a/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.6.1" author="Alkamist" time="2019-07-30T17:58:18Z">
-        <changelog><![CDATA[+ Split the sensitivities into arrange and MIDI editor parts, so you can set them
-  individually if you want. You will have to update your user settings file.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/635272e779770a61d03c2c893b2a0ff40f71f2e7/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-      <version name="1.6.2" author="Alkamist" time="2019-07-30T22:46:17Z">
-        <changelog><![CDATA[+ Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
-  calling actions.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/25351ac494ed5f22f395f26ea225336602a7af04/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
-      </version>
-    </reapack>
     <reapack name="Zoom Tool.lua" type="script" desc="Zoom Tool">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
@@ -302,6 +243,11 @@
         <changelog><![CDATA[+ Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
   calling actions.]]></changelog>
         <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/25351ac494ed5f22f395f26ea225336602a7af04/Zoom%20Tool/Zoom%20Tool.lua</source>
+      </version>
+      <version name="1.6.3" author="Alkamist" time="2019-07-31T14:36:37Z">
+        <changelog><![CDATA[+ Testing trying to make Reapack auto-include settings file.]]></changelog>
+        <source main="main midi_editor">https://github.com/Alkamist/Alkamist-Scripts/raw/f245592f1dfc9736619acf695edd58799ac93eff/Zoom%20Tool/Zoom%20Tool.lua</source>
+        <source file="Zoom Tool Default Settings.lua">https://github.com/Alkamist/Alkamist-Scripts/raw/f245592f1dfc9736619acf695edd58799ac93eff/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
       </version>
     </reapack>
   </category>
