@@ -1,48 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="e05476f27313eb6e66a157d6df7b6862e2cfe18a" name="Alkamist Scripts">
+<index version="1" commit="8fa176438b4247a2a4768fa10ea5e34d1a60a9ff" name="Alkamist Scripts">
   <category name="Region Items">
-    <reapack name="Clear Selected Region Items.lua" type="script" desc="Clear Selected Region Items">
+    <reapack name="Update Region Items.lua" type="script" desc="Region Items (2 actions)">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
 \widowctrl\hyphauto
 
-{\pard \ql \f0 \sa180 \li0 \fi0 This action clears the contained contents of the child tracks of the selected region items. Used to clean up the contents of a region item if you want to change, move, or remove it.\par}
-}
-]]></description>
-        <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
-      </metadata>
-      <version name="1.0" author="Alkamist" time="2019-07-17T17:07:54Z">
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/dc035f2e8781b1b2ba1a0c1f7d6cea32c29abd6e/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
-      </version>
-      <version name="1.1" author="Alkamist" time="2019-07-27T22:41:44Z">
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/c27079d9f2ad225a636652da0f12bbf72afa6325/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
-      </version>
-      <version name="1.2" author="Alkamist" time="2019-07-30T14:44:42Z">
-        <changelog><![CDATA[+ Added the ability to process regions based on item name instead of pooling.
-  To enable this option, copy the Region Items Default Settings.lua file to
-  the location: "Scripts\Alkamist Scripts\Region Items\Region Items User Settings.lua"
-  and change the "selectRegionsByName" bool to true.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/9cae7e75df82dfc62043cc543ec1f767e6886efc/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
-      </version>
-      <version name="1.2.1" author="Alkamist" time="2019-07-30T16:59:38Z">
-        <changelog><![CDATA[+ Added the setting "poolPastedMIDIItems", which will cause the pasted midi items to
-  pool regardless of your Reaper preferences.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/6ffcf5baac414b3aecdea7f2fd35d98b941c3a27/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
-      </version>
-      <version name="1.2.2" author="Alkamist" time="2019-07-30T23:26:44Z">
-        <changelog><![CDATA[+ Fixed problem when fade-in and fade-out got applied to the same item.
-+ Made auto-fade setting less likely to wrongly change.]]></changelog>
-        <source main="main">https://github.com/Alkamist/Alkamist-Scripts/raw/2e3374a25b62e35c7b4b485ca14ba72e7527c711/Region%20Items/Clear%20Selected%20Region%20Items.lua</source>
-      </version>
-    </reapack>
-    <reapack name="Update Region Items.lua" type="script" desc="Update Region Items">
-      <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
-\widowctrl\hyphauto
-
+{\pard \ql \f0 \sa180 \li0 \fi0 This installation will include 2 actions:\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Update Region Items\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 This action will copy the items and automation of all child tracks underneath and within the bounds of a single selected region item. It will then paste those contents to the child tracks of all paired region items, removing their previous contents. Paired region items are determined by either MIDI pool or item name, depending on the value of the "selectRegionsByName" bool in the settings file.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Clear Selected Region Items\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 This action clears the contained contents of the child tracks of the selected region items. Used to clean up the contents of a region item if you want to change, move, or remove it.\par}
 }
 ]]></description>
         <link rel="donation">https://paypal.me/CoreyLehmanMusic</link>
