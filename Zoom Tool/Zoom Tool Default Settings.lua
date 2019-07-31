@@ -1,19 +1,6 @@
 -- @description Zoom Tool Default Settings
--- @version 1.6.2
 -- @author Alkamist
--- @donate https://paypal.me/CoreyLehmanMusic
--- @about
---   This is the default settings file for the Zoom Tool. You need this file
---   installed in the proper directory for script to work:
---
---   "Scripts\Alkamist Scripts\Zoom Tool\Zoom Tool Default Settings.lua"
---
---   You can copy this file into the same folder and call it "Zool Tool User Settings.lua"
---   and change the settings in there. That way, your settings are not overwritten
---   when updating.
--- @changelog
---   + Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
---     calling actions.
+-- @noindex
 
 
 

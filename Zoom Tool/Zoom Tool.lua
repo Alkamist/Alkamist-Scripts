@@ -1,7 +1,10 @@
 -- @description Zoom Tool
--- @version 1.6.2
+-- @version 1.6.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
+-- @provides
+--   [main=main,midi_editor] .
+--   Zoom Tool Default Settings.lua
 -- @about
 --   This script will activate a zoom tool similar to what is used in Melodyne.
 --   Be sure to install the default settings file into:
@@ -12,8 +15,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Made action based vertical zoom better by using CSurf_OnZoom instead of repeatedly
---     calling actions.
+--   + Testing trying to make Reapack auto-include settings file.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
