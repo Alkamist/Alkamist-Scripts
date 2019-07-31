@@ -42,10 +42,10 @@ function updateParentRegionItemsOfSelectedItems()
                 parentTrack = reaper.GetParentTrack(parentTrack)
             end
         end
+    end
 
-        for j = 1, #sourceItems do
-            updateRegionItems(sourceItems[j])
-        end
+    for i = 1, #sourceItems do
+        updateRegionItems(sourceItems[i])
     end
 
     restoreSelectedItems(selectedItems)
