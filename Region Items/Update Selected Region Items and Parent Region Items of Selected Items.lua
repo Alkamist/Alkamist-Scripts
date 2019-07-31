@@ -2,9 +2,8 @@
 -- @author Alkamist
 -- @noindex
 
---   This action will navigate through all of the parent tracks of the selected items
---   (including source tracks of receives) and update any parent region items they are
---   contained within.
+--   This action is identical to "Update Parent Region Items of Selected Items", except
+--   it will first update any region items you have selected.
 
 label = 'Alkamist: Update Parent Region Items of Selected Items'
 
@@ -89,6 +88,7 @@ if (reaper.CountSelectedMediaItems(0) > 0) then
     reaper.PreventUIRefresh(1)
 
     saveSettings()
+    updateRegionItemsOfSelectedSourceItems()
     updateParentRegionItemsOfSelectedItems()
     restoreSettings()
 

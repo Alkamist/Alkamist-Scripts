@@ -1669,3 +1669,13 @@ function updateRegionItems(sourceRegion)
         end
     end
 end
+
+function updateRegionItemsOfSelectedSourceItems()
+    local sourceItems = getSelectedItems()
+
+    for i = 1, #sourceItems do
+        updateRegionItems(sourceItems[i])
+    end
+
+    restoreSelectedItems(sourceItems)
+end
