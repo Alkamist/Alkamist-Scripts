@@ -1,5 +1,5 @@
 -- @description Region Items (2 actions)
--- @version 1.2.3
+-- @version 1.2.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -25,7 +25,8 @@
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Trying to make Reapack auto-include settings and functions files.
+--   + Turn off "Trim content behind automation items when editing or writing automation"
+--     while the script is running because it causes automation items to not be copied properly.
 
 label = 'Alkamist: Update Region Items'
 
@@ -34,6 +35,7 @@ require "Scripts.Alkamist Scripts.Region Items.Region Item Functions"
 
 local envAttach = nil
 local projRipEdit = nil
+local pooledEnvs = nil
 local xFadeOnSplit = false
 local autoFade = false
 local initialTrackSelection = {}
@@ -46,6 +48,7 @@ function saveSettings()
     -- Save the previous settings before we temporarily change them.
     envAttach = reaper.SNM_GetIntConfigVar("envattach", 0)
     local splitAutoXFade = reaper.SNM_GetIntConfigVar("splitautoxfade", 0)
+    pooledEnvs = reaper.SNM_GetIntConfigVar("pooledenvs", 0)
     projRipEdit = reaper.SNM_GetIntConfigVar("projripedit", 0)
 
     autoFade = not ((splitAutoXFade & 8) > 0)
@@ -59,6 +62,7 @@ end
 function restoreSettings()
     -- Restore the settings we changed.
     reaper.SNM_SetIntConfigVar("envattach", envAttach)
+    reaper.SNM_SetIntConfigVar("pooledenvs", pooledEnvs)
     reaper.SNM_SetIntConfigVar("projripedit", projRipEdit)
     reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
     reaperCMD("_SWS_RESTOREVIEW")
@@ -84,6 +88,10 @@ function updateRegionItems()
     reaperCMD(41195) -- enable auto fade-in/fade-out
     reaperCMD(40928) -- disable auto crossfade on split
     reaperCMD(40309) -- disable ripple editing
+
+    -- Turn off "Trim content behind automation items when editing or writing automation"
+    -- because it causes automation items to not be copied correctly.
+    reaper.SNM_SetIntConfigVar("pooledenvs", pooledEnvs & ~256)
 
     -- Determine if we even have any region items selected.
     local numSelectedStartingItems = reaper.CountSelectedMediaItems(0)
