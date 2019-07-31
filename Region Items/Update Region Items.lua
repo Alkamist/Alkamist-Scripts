@@ -1,5 +1,5 @@
 -- @description Region Items (2 actions)
--- @version 1.2.4
+-- @version 1.2.5
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -13,7 +13,7 @@
 --   Update Region Items
 --
 --   This action will copy the items and automation of all child tracks underneath
---   and within the bounds of a single selected region item. It will then paste those
+--   and within the bounds of the selected region items. It will then paste those
 --   contents to the child tracks of all paired region items, removing their previous
 --   contents.
 --   Paired region items are determined by either MIDI pool or item name, depending on
@@ -25,8 +25,10 @@
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Turn off "Trim content behind automation items when editing or writing automation"
---     while the script is running because it causes automation items to not be copied properly.
+--   + Made "Update Region Items" able to be called on multiple selected source regions.
+--     Be careful you don't have multiple of the same region item selected though,
+--     since there is no way for the script to discern which region item you intended
+--     to be the source of the update.
 
 label = 'Alkamist: Update Region Items'
 
@@ -81,98 +83,93 @@ function restoreSettings()
     restoreSelectedItems(initalItemSelection)
 end
 
-function updateRegionItems()
-    saveSettings()
-
-    reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
-    reaperCMD(41195) -- enable auto fade-in/fade-out
-    reaperCMD(40928) -- disable auto crossfade on split
-    reaperCMD(40309) -- disable ripple editing
-
-    -- Turn off "Trim content behind automation items when editing or writing automation"
-    -- because it causes automation items to not be copied correctly.
-    reaper.SNM_SetIntConfigVar("pooledenvs", pooledEnvs & ~256)
-
-    -- Determine if we even have any region items selected.
-    local numSelectedStartingItems = reaper.CountSelectedMediaItems(0)
-    if numSelectedStartingItems ~= 1 then
-        return "more_than_one_item"
-    end
-
-    local sourceRegion = reaper.GetSelectedMediaItem(0, 0)
-
+function updateRegionItems(sourceRegion)
     -- Check to make sure the region track has children.
     selectChildTracks(sourceRegion)
-    if reaper.CountSelectedTracks(0) <= 0 then
-        return "no_children"
-    end
 
-    populateSourceEnvelopes(sourceRegion)
-    local regionItems = getRegionItems(sourceRegion)
+    if reaper.CountSelectedTracks(0) > 0 then
+        saveSettings()
 
-    -- The script doesn't work properly unless all of the tracks in the
-    -- region are visible during processing.
-    showAllTracksInRegion(sourceRegion)
+        reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
+        reaperCMD(41195) -- enable auto fade-in/fade-out
+        reaperCMD(40928) -- disable auto crossfade on split
+        reaperCMD(40309) -- disable ripple editing
 
-    -- We need to show all envelopes for the script to work properly.
-    reaperCMD(41149) -- show all envelopes for all tracks
+        -- Turn off "Trim content behind automation items when editing or writing automation"
+        -- because it causes automation items to not be copied correctly.
+        reaper.SNM_SetIntConfigVar("pooledenvs", pooledEnvs & ~256)
 
-    -- Clean up the destination regions before transfer.
-    for i = 1, #regionItems do
-        clearRegion(regionItems[i])
-    end
+        reaperCMD(40289) -- unselect all items
+        setItemSelected(sourceRegion, true)
 
-    -- We need to keep track of the garbage tracks that are made for spacing.
-    local garbageTracks = {}
+        populateSourceEnvelopes(sourceRegion)
+        local regionItems = getRegionItems(sourceRegion)
 
-    -- Transfer over the automation with the help of automation items.
-    insertTransferItems(sourceRegion, sourceRegion)
-    for i = 1, #regionItems do
-        insertTransferItems(sourceRegion, regionItems[i])
-    end
-    removeSourceTransferItems(sourceRegion)
+        -- The script doesn't work properly unless all of the tracks in the
+        -- region are visible during processing.
+        showAllTracksInRegion(sourceRegion)
 
-    -- Transfer over and pool any extra automation items that are present in
-    -- the source region.
-    copySourceAutomationItems(sourceRegion)
-    for i = 1, #regionItems do
-        removeAutomationItems(regionItems[i])
-        pasteSourceAutomationItems(sourceRegion, regionItems[i])
-    end
+        -- We need to show all envelopes for the script to work properly.
+        reaperCMD(41149) -- show all envelopes for all tracks
 
-    -- Copy over the media items.
-    local itemsWereCopied, itemPasteOffset, pasteTrackOffset = copyChildItems(sourceRegion)
-    for i = 1, #regionItems do
-        -- Only paste items if there are items to paste.
-        if itemsWereCopied then
-            pasteChildItems(sourceRegion, regionItems[i], itemPasteOffset, pasteTrackOffset)
+        -- Clean up the destination regions before transfer.
+        for i = 1, #regionItems do
+            clearRegion(regionItems[i])
         end
+
+        -- We need to keep track of the garbage tracks that are made for spacing.
+        local garbageTracks = {}
+
+        -- Transfer over the automation with the help of automation items.
+        insertTransferItems(sourceRegion, sourceRegion)
+        for i = 1, #regionItems do
+            insertTransferItems(sourceRegion, regionItems[i])
+        end
+        removeSourceTransferItems(sourceRegion)
+
+        -- Transfer over and pool any extra automation items that are present in
+        -- the source region.
+        copySourceAutomationItems(sourceRegion)
+        for i = 1, #regionItems do
+            removeAutomationItems(regionItems[i])
+            pasteSourceAutomationItems(sourceRegion, regionItems[i])
+        end
+
+        -- Copy over the media items.
+        local itemsWereCopied, itemPasteOffset, pasteTrackOffset = copyChildItems(sourceRegion)
+        for i = 1, #regionItems do
+            -- Only paste items if there are items to paste.
+            if itemsWereCopied then
+                pasteChildItems(sourceRegion, regionItems[i], itemPasteOffset, pasteTrackOffset)
+            end
+        end
+
+        -- Remove the garbage tracks that were made for spacing.
+        for i = 1, #garbageTracks do
+            restoreSelectedTracks(garbageTracks[i])
+            reaperCMD(40005) -- remove tracks
+        end
+
+        restoreSettings()
     end
-
-    -- Remove the garbage tracks that were made for spacing.
-    for i = 1, #garbageTracks do
-        restoreSelectedTracks(garbageTracks[i])
-        reaperCMD(40005) -- remove tracks
-    end
-
-    restoreSettings()
-
-    return 0
 end
 
--- Check for errors and start the script.
-if(reaper.CountSelectedMediaItems(0) > 0) then
+function updateRegionItemsOfSelectedSourceItems()
+    local sourceItems = getSelectedItems()
+
+    for i = 1, #sourceItems do
+        updateRegionItems(sourceItems[i])
+    end
+
+    restoreSelectedItems(sourceItems)
+end
+
+-- Start the script if there are items selected.
+if (reaper.CountSelectedMediaItems(0) > 0) then
     reaper.Undo_BeginBlock()
     reaper.PreventUIRefresh(1)
 
-    local errorResult = updateRegionItems()
-    if errorResult == "more_than_one_item" then
-        reaper.ShowMessageBox("Please select only one region item.", "Error!", 0)
-        restoreSettings()
-    elseif errorResult == "no_children" then
-        reaper.ShowMessageBox("The track of the region item must have children.", "Error!", 0)
-        restoreSettings()
-    end
+    updateRegionItemsOfSelectedSourceItems()
 
     reaper.PreventUIRefresh(-1)
     reaper.Undo_EndBlock(label, -1)
