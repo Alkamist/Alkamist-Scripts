@@ -1,7 +1,11 @@
 -- @description Update Region Items
--- @version 1.2.2
+-- @version 1.2.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
+-- @provides
+--   [main] .
+--   Region Item Functions.lua
+--   Region Items Default Settings.lua
 -- @about
 --   This action will copy the items and automation of all child tracks underneath
 --   and within the bounds of a single selected region item. It will then paste those
@@ -10,8 +14,7 @@
 --   Paired region items are determined by either MIDI pool or item name, depending on
 --   the value of the "selectRegionsByName" bool in the settings file.
 -- @changelog
---   + Fixed problem when fade-in and fade-out got applied to the same item.
---   + Made auto-fade setting less likely to wrongly change.
+--   + Trying to make Reapack auto-include settings and functions files.
 
 label = 'Alkamist: Update Region Items'
 

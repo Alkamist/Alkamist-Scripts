@@ -1,13 +1,6 @@
 -- @description Region Item Functions
--- @version 1.2.2
 -- @author Alkamist
--- @donate https://paypal.me/CoreyLehmanMusic
--- @about
---   This file contains various functions that are used by the region item actions.
---   The other region item scripts won't run without it.
--- @changelog
---   + Fixed problem when fade-in and fade-out got applied to the same item.
---   + Made auto-fade setting less likely to wrongly change.
+-- @noindex
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 

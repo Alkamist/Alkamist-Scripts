@@ -1,14 +1,17 @@
 -- @description Clear Selected Region Items
--- @version 1.2.2
+-- @version 1.2.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
+-- @provides
+--   [main] .
+--   Region Item Functions.lua
+--   Region Items Default Settings.lua
 -- @about
 --   This action clears the contained contents of the child tracks of the selected
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Fixed problem when fade-in and fade-out got applied to the same item.
---   + Made auto-fade setting less likely to wrongly change.
+--   + Trying to make Reapack auto-include settings and functions files.
 
 label = 'Alkamist: Clear Selected Region Items'
 
