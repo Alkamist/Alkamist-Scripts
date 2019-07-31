@@ -128,8 +128,6 @@ function updateRegionItems()
     -- Transfer over the automation with the help of automation items.
     insertTransferItems(sourceRegion, sourceRegion)
     for i = 1, #regionItems do
-        garbageTracks[i] = {}
-        garbageTracks[i] = prepareDestinationForTransfer(sourceRegion, regionItems[i])
         insertTransferItems(sourceRegion, regionItems[i])
     end
     removeSourceTransferItems(sourceRegion)
