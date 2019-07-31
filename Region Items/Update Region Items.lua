@@ -88,8 +88,6 @@ function updateRegionItems(sourceRegion)
     selectChildTracks(sourceRegion)
 
     if reaper.CountSelectedTracks(0) > 0 then
-        saveSettings()
-
         reaperCMD("_SWS_MVPWIDOFF") -- turn moving envelopes with items off
         reaperCMD(41195) -- enable auto fade-in/fade-out
         reaperCMD(40928) -- disable auto crossfade on split
@@ -149,8 +147,6 @@ function updateRegionItems(sourceRegion)
             restoreSelectedTracks(garbageTracks[i])
             reaperCMD(40005) -- remove tracks
         end
-
-        restoreSettings()
     end
 end
 
@@ -169,7 +165,9 @@ if (reaper.CountSelectedMediaItems(0) > 0) then
     reaper.Undo_BeginBlock()
     reaper.PreventUIRefresh(1)
 
+    saveSettings()
     updateRegionItemsOfSelectedSourceItems()
+    restoreSettings()
 
     reaper.PreventUIRefresh(-1)
     reaper.Undo_EndBlock(label, -1)
