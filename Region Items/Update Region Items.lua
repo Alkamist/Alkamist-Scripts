@@ -4,7 +4,7 @@
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
 --   [main] .
---   [main] Clear Selected Region Items.lua
+--   [main] . > Clear Selected Region Items.lua
 --   Region Item Functions.lua
 --   Region Items Default Settings.lua
 -- @about
