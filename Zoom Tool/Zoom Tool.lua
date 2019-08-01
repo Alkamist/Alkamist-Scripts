@@ -600,9 +600,40 @@ function moveMouseYTowardTarget(target, speed)
     end
 end
 
+function adjustMouseXTargetTowardCenter()
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+
+    if shouldCenterHorizontally then
+        local halfWindowWidth = round(windowWidth * horizontalCenterPosition)
+        local moveToTargetSpeed = nil
+        if horizontalDragCenterSpeed == nil or horizontalAutoCenterSpeed == nil then
+        else
+            moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
+        end
+
+        moveMouseXTowardTarget(halfWindowWidth, moveToTargetSpeed)
+    end
+end
+
+function adjustMouseYTargetTowardCenter()
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+
+    if shouldCenterVertically then
+        local halfWindowHeight = round(windowHeight * verticalCenterPosition)
+        local moveToTargetSpeed = nil
+        if verticalDragCenterSpeed == nil or verticalAutoCenterSpeed == nil then
+        else
+            moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
+        end
+
+        moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
+    end
+end
+
 function correctMainViewVerticalScroll(zoom)
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
-        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+        adjustMouseYTargetTowardCenter()
+
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
         local correctScrollPosition = 0
@@ -674,6 +705,7 @@ function correctMainViewVerticalScroll(zoom)
         end
 
         if shouldCenterVertically then
+            local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
             local maximumTrackHeightZoomLevel = windowHeight / initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight
             local maximumEnvelopeHeightZoomLevel = windowHeight / (0.75 * initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight)
 
@@ -691,15 +723,6 @@ function correctMainViewVerticalScroll(zoom)
             local centeredOffset = round(mouseOverNormalizedZoomScale * centeredScrollMouseOffsetPixels)
             local normalOffset = round(correctScrollMouseOffsetPixels * (1.0 - mouseOverNormalizedZoomScale))
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
-
-            local halfWindowHeight = round(windowHeight * verticalCenterPosition)
-            local moveToTargetSpeed = nil
-            if verticalDragCenterSpeed == nil or verticalAutoCenterSpeed == nil then
-            else
-                moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
-            end
-
-            moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
         else
             correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels
         end
@@ -728,8 +751,6 @@ function setMainViewVerticalZoom(zoom)
     reaper.TrackList_AdjustWindows(false)
 
     pcall(correctMainViewVerticalScroll, zoom)
-
-    setUIRefresh(true)
 end
 
 function setMainViewHorizontalScroll(position)
@@ -743,19 +764,7 @@ function setMainViewHorizontalScroll(position)
 end
 
 function correctMainViewHorizontalScroll()
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
-
-    if shouldCenterHorizontally then
-        local halfWindowWidth = round(windowWidth * horizontalCenterPosition)
-        local moveToTargetSpeed = nil
-        if horizontalDragCenterSpeed == nil or horizontalAutoCenterSpeed == nil then
-        else
-            moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
-        end
-
-        moveMouseXTowardTarget(halfWindowWidth, moveToTargetSpeed)
-    end
 
     local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - targetMousePos.x
 
@@ -763,9 +772,12 @@ function correctMainViewHorizontalScroll()
 end
 
 function adjustMainViewHorizontalZoom(zoom)
+    setUIRefresh(false)
+
     reaper.adjustZoom(zoom, 0, true, -1)
 
     if usePreciseMainViewHorizontalPositionTracking then
+        adjustMouseXTargetTowardCenter()
         correctMainViewHorizontalScroll()
     end
 end
@@ -784,6 +796,8 @@ local previousXAccumAdjustMIDIEditor = 0
 local previousYAccumAdjustMIDIEditor = 0
 function update()
     if scriptShouldStop() then return 0 end
+
+    setUIRefresh(false)
 
     currentMousePos.x, currentMousePos.y = getMouseClientPosition()
 
@@ -885,6 +899,8 @@ function update()
     previousYAccumAdjustMIDIEditor = yAccumAdjustMIDIEditor
 
     setMouseClientPosition(targetMousePos.x, targetMousePos.y)
+
+    setUIRefresh(true)
 
     reaper.defer(update)
 end
