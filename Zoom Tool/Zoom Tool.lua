@@ -592,19 +592,6 @@ function correctMainViewVerticalScroll(zoom)
         local centeredScrollMouseOffsetPixels = 0
 
         local newMouseOverTrackHeight = getTrackHeight(mainViewOrigMouseLocation.track)
-        local maximumTrackHeightZoomLevel = windowHeight / initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight
-        local maximumEnvelopeHeightZoomLevel = windowHeight / (0.75 * initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight)
-
-        local mouseOverNormalizedZoomScale = 0.0
-
-        -- The mouse is over a track.
-        if mainViewOrigMouseLocation.envelopeNumber < 1 then
-            mouseOverNormalizedZoomScale = math.min(math.max(((zoom - 1.0) / (maximumTrackHeightZoomLevel - 1.0)), 0.0), 1.0)
-
-        -- The mouse is over an envelope.
-        else
-            mouseOverNormalizedZoomScale = math.min(math.max(((zoom - 1.0) / (maximumEnvelopeHeightZoomLevel - 1.0)), 0.0), 1.0)
-        end
 
         -- Go through all of the tracks before the current mouseover track and add their
         -- full lane heights.
@@ -669,39 +656,28 @@ function correctMainViewVerticalScroll(zoom)
         end
 
         if shouldCenterVertically then
+            local maximumTrackHeightZoomLevel = windowHeight / initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight
+            local maximumEnvelopeHeightZoomLevel = windowHeight / (0.75 * initallyVisibleTracks[mainViewOrigMouseLocation.trackNumber].initialTrackHeight)
+
+            local mouseOverNormalizedZoomScale = 0.0
+
+            -- The mouse is over a track.
+            if mainViewOrigMouseLocation.envelopeNumber < 1 then
+                mouseOverNormalizedZoomScale = math.min(math.max(((zoom - 1.0) / (maximumTrackHeightZoomLevel - 1.0)), 0.0), 1.0)
+
+            -- The mouse is over an envelope.
+            else
+                mouseOverNormalizedZoomScale = math.min(math.max(((zoom - 1.0) / (maximumEnvelopeHeightZoomLevel - 1.0)), 0.0), 1.0)
+            end
+
             local centeredOffset = round(mouseOverNormalizedZoomScale * centeredScrollMouseOffsetPixels)
             local normalOffset = round(correctScrollMouseOffsetPixels * (1.0 - mouseOverNormalizedZoomScale))
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
 
-            local initialMouseWindowY = initialMousePos.y
-            local mouseYSpeed = currentMousePos.y - targetMousePos.y
             local halfWindowHeight = round(windowHeight * 0.5)
-            local scrollBarCanMoveDown = scrollPos + scrollPageSize < scrollMax
-            local scrollBarCanMoveUp = scrollPos > scrollMin
-
-            local scrollIsFull = not scrollBarCanMoveDown and not scrollBarCanMoveUp
-            local chaseTargetUp = not scrollBarCanMoveUp and initialMouseWindowY < halfWindowHeight and mouseYSpeed < 0
-
-            local moveUpToCenter = scrollBarCanMoveDown and mouseYSpeed > 0 and initialMouseWindowY > halfWindowHeight
-            local moveDownToCenter = scrollBarCanMoveUp and mouseYSpeed > 0 and initialMouseWindowY < halfWindowHeight
-
-            local possibleScrollDownDistance = scrollMax - (scrollPos + scrollPageSize - 1)
             local moveToTargetSpeed = round(4.0 * math.abs(currentMousePos.y - targetMousePos.y))
 
-            -- Manipulate the mouse to stay with the target position.
-            if scrollIsFull or chaseTargetUp then
-                local mouseTarget = math.min(math.max(correctScrollPosition - scrollPos, 0), scrollMax)
-                moveMouseYTowardTarget(mouseTarget, targetMousePos.y, nil)
-
-            elseif moveUpToCenter then
-                moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, math.min(moveToTargetSpeed, possibleScrollDownDistance))
-
-            elseif moveDownToCenter then
-                moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, moveToTargetSpeed)
-
-            else
-                moveMouseYTowardTarget(initialMouseWindowY, targetMousePos.y, moveToTargetSpeed)
-            end
+            moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, moveToTargetSpeed)
         else
             correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels
         end
