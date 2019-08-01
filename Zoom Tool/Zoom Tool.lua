@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.6.4
+-- @version 1.6.5
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,7 +15,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Attempting to fix a crash on OSX by not using JS_WindowMessage_ReleaseAll
+--   + Switch to using completely window-based mouse coordinates to try to ensure
+--     multiple monitor stability and consistent behavior on all platforms.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -47,6 +48,7 @@ local thisCycleTime = 0
 local mouseState = nil
 local keyState = nil
 
+local initialRawMousePos = {}
 local initialMousePos = {}
 local targetMousePos = {}
 local currentMousePos = {}
@@ -227,20 +229,13 @@ function masterIsVisibleInTCP()
     return visibility == 1 or visibility == 3
 end
 
-function getMouseWindowLocation(window, xPosition, yPosition)
-    local xPos, yPos = reaper.JS_Window_ScreenToClient(window, xPosition, yPosition)
-
-    return xPos, yPos
-end
-
 local initallyVisibleTracks = {}
 local mainViewOrigMouseLocation = {}
 function initializeMainViewVerticalZoom()
     minTrackHeight = getMinimumTrackHeight()
 
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
-    local mousePixelYPos = scrollPos + mouseWindowY
+    local mousePixelYPos = scrollPos + targetMousePos.y
     local mousePixelYPosRecorded = false
     local currentLanePixelEnd = 0
     local currentZonePixelEnd = 0
@@ -363,11 +358,10 @@ local mainViewMouseXSeconds = 0
 function initializeMainViewHorizontalZoom()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
 
-    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
-
-    mainViewMouseXSeconds = (scrollPos + mouseWindowX) / reaper.GetHZoomLevel()
+    mainViewMouseXSeconds = (scrollPos + targetMousePos.x) / reaper.GetHZoomLevel()
 end
 
+local okToZoomWindow = false
 local windowUnderMouse = nil
 local windowType = nil
 local midiWindow = nil
@@ -379,9 +373,6 @@ function init()
 
     reaper.atexit(atExit)
 
-    -- Load REAPER's native "zoom" cursor
-    reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(1009))
-
     -- Intercept keyboard input.
     reaper.JS_VKeys_Intercept(-1, 1)
 
@@ -389,20 +380,22 @@ function init()
     mouseState = reaper.JS_Mouse_GetState(0xFF)
     keyState = reaper.JS_VKeys_GetState(-2):sub(VKLow, VKHi)
 
-    initialMousePos.x, initialMousePos.y = reaper.GetMousePosition()
-    targetMousePos.x = initialMousePos.x
-    targetMousePos.y = initialMousePos.y
+    initialRawMousePos.x, initialRawMousePos.y = reaper.GetMousePosition()
 
     -- Find out what kind of window is under the mouse and focus it.
-    windowUnderMouse = reaper.JS_Window_FromPoint(targetMousePos.x, targetMousePos.y)
+    windowUnderMouse = reaper.JS_Window_FromPoint(initialRawMousePos.x, initialRawMousePos.y)
     if windowUnderMouse then
-        -- Prevent REAPER from changing cursor back, by intercepting "SETCURSOR" messages
-        reaper.JS_WindowMessage_Intercept(windowUnderMouse, "WM_SETCURSOR", false)
 
         parentWindow = reaper.JS_Window_GetParent(windowUnderMouse)
         if parentWindow then
             -- Window under mouse is a MIDI editor.
             if windowUnderMouse == reaper.JS_Window_FindChildByID(parentWindow, 1001) then
+                okToZoomWindow = true
+
+                initialMousePos.x, initialMousePos.y = getMouseClientPosition()
+                targetMousePos.x = initialMousePos.x
+                targetMousePos.y = initialMousePos.y
+
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "midi"
 
@@ -419,9 +412,8 @@ function init()
                 end
 
                 -- Simulate the mouse click.
-                midiMouseX, midiMouseY = reaper.JS_Window_ScreenToClient(windowUnderMouse, targetMousePos.x, targetMousePos.y)
-                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONDOWN", 0, 0, midiMouseX, midiMouseY)
-                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONUP", 0, 0, midiMouseX, midiMouseY)
+                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONDOWN", 0, 0, targetMousePos.x, targetMousePos.y)
+                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONUP", 0, 0, targetMousePos.x, targetMousePos.y)
 
                 -- Check if any notes were accidentally created and delete them.
                 local _, newMIDINoteCount = reaper.MIDI_CountEvts(midiTake)
@@ -434,6 +426,12 @@ function init()
 
             -- Window under mouse is the main editor.
             elseif parentWindow == reaper.GetMainHwnd() then
+                okToZoomWindow = true
+
+                initialMousePos.x, initialMousePos.y = getMouseClientPosition()
+                targetMousePos.x = initialMousePos.x
+                targetMousePos.y = initialMousePos.y
+
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "main"
 
@@ -446,7 +444,27 @@ function init()
         end
     end
 
-    reaper.defer(update)
+    if okToZoomWindow then
+        -- Load REAPER's native "zoom" cursor
+        reaper.JS_Mouse_SetCursor(reaper.JS_Mouse_LoadCursor(1009))
+
+        -- Prevent REAPER from changing cursor back, by intercepting "SETCURSOR" messages
+        reaper.JS_WindowMessage_Intercept(windowUnderMouse, "WM_SETCURSOR", false)
+
+        reaper.defer(update)
+    end
+end
+
+function getMouseClientPosition()
+    local xPos, yPos = reaper.GetMousePosition()
+    local xOut, yOut = reaper.JS_Window_ScreenToClient(windowUnderMouse, xPos, yPos)
+
+    return xOut, yOut
+end
+
+function setMouseClientPosition(clientX, clientY)
+    local newX, newY = reaper.JS_Window_ClientToScreen(windowUnderMouse, clientX, clientY)
+    reaper.JS_Mouse_SetPosition(newX, newY)
 end
 
 local midiSelectionRestored = false
@@ -655,8 +673,7 @@ function correctMainViewVerticalScroll(zoom)
             local normalOffset = round(correctScrollMouseOffsetPixels * (1.0 - mouseOverNormalizedZoomScale))
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
 
-            local initialMouseWindowX, initialMouseWindowY = getMouseWindowLocation(arrangeWindow, initialMousePos.x, initialMousePos.y)
-            local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
+            local initialMouseWindowY = initialMousePos.y
             local mouseYSpeed = currentMousePos.y - targetMousePos.y
             local halfWindowHeight = round(windowHeight * 0.5)
             local scrollBarCanMoveDown = scrollPos + scrollPageSize < scrollMax
@@ -674,29 +691,27 @@ function correctMainViewVerticalScroll(zoom)
             -- Manipulate the mouse to stay with the target position.
             if scrollIsFull or chaseTargetUp then
                 local mouseTarget = math.min(math.max(correctScrollPosition - scrollPos, 0), scrollMax)
-                moveMouseYTowardTarget(mouseTarget, mouseWindowY, nil)
+                moveMouseYTowardTarget(mouseTarget, targetMousePos.y, nil)
 
             elseif moveUpToCenter then
-                moveMouseYTowardTarget(halfWindowHeight, mouseWindowY, math.min(moveToTargetSpeed, possibleScrollDownDistance))
+                moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, math.min(moveToTargetSpeed, possibleScrollDownDistance))
 
             elseif moveDownToCenter then
-                moveMouseYTowardTarget(halfWindowHeight, mouseWindowY, moveToTargetSpeed)
+                moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, moveToTargetSpeed)
 
             else
-                moveMouseYTowardTarget(initialMouseWindowY, mouseWindowY, moveToTargetSpeed)
+                moveMouseYTowardTarget(initialMouseWindowY, targetMousePos.y, moveToTargetSpeed)
             end
         else
             correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels
         end
-
-        mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
 
         -- Add on the 5 extra pixels after the master track if it is visible.
         if masterIsVisibleInTCP() and mainViewOrigMouseLocation.trackNumber > 0 then
             correctScrollPosition = correctScrollPosition + 5
         end
 
-        correctScrollPosition = correctScrollPosition - mouseWindowY
+        correctScrollPosition = correctScrollPosition - targetMousePos.y
 
         if correctScrollPosition + scrollPageSize > scrollMax then
             setUIRefresh(true)
@@ -731,9 +746,8 @@ end
 
 function correctMainViewHorizontalScroll()
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
-    local mouseWindowX, mouseWindowY = getMouseWindowLocation(arrangeWindow, targetMousePos.x, targetMousePos.y)
 
-    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - mouseWindowX
+    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - targetMousePos.x
 
     setMainViewHorizontalScroll(correctScrollPosition)
 end
@@ -761,7 +775,7 @@ local previousYAccumAdjustMIDIEditor = 0
 function update()
     if scriptShouldStop() then return 0 end
 
-    currentMousePos.x, currentMousePos.y = reaper.GetMousePosition()
+    currentMousePos.x, currentMousePos.y = getMouseClientPosition()
 
     -- ==================== HORIZONTAL ZOOM ====================
 
@@ -790,14 +804,14 @@ function update()
             local overflow = math.ceil((tickLowValue - previousXAccumAdjustMIDIEditor) / yZoomTick)
             for i = 1, overflow do
                 reaperMIDICMD(1012) -- zoom in horizontal
-                reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+                setMouseClientPosition(targetMousePos.x, targetMousePos.y)
             end
 
         elseif previousXAccumAdjustMIDIEditor > tickHighValue then
             local overflow = math.ceil((previousXAccumAdjustMIDIEditor - tickHighValue) / yZoomTick)
             for i = 1, overflow do
                 reaperMIDICMD(1011) -- zoom out horizontal
-                reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+                setMouseClientPosition(targetMousePos.x, targetMousePos.y)
             end
         end
     end
@@ -826,7 +840,7 @@ function update()
 
         if prevAccumAdjust < tickLowValue then
             local overflow = math.ceil((tickLowValue - prevAccumAdjust) / yZoomTick)
-            reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+            setMouseClientPosition(targetMousePos.x, targetMousePos.y)
 
             if windowType == "midi" then
                 for i = 1, overflow do
@@ -838,7 +852,7 @@ function update()
 
         elseif prevAccumAdjust > tickHighValue then
             local overflow = math.ceil((prevAccumAdjust - tickHighValue) / yZoomTick)
-            reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+            setMouseClientPosition(targetMousePos.x, targetMousePos.y)
 
             if windowType == "midi" then
                 for i = 1, overflow do
@@ -860,7 +874,7 @@ function update()
     previousXAccumAdjustMIDIEditor = xAccumAdjustMIDIEditor
     previousYAccumAdjustMIDIEditor = yAccumAdjustMIDIEditor
 
-    reaper.JS_Mouse_SetPosition(targetMousePos.x, targetMousePos.y)
+    setMouseClientPosition(targetMousePos.x, targetMousePos.y)
 
     reaper.defer(update)
 end
