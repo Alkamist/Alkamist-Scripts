@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.6.3
+-- @version 1.6.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,7 +15,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Testing trying to make Reapack auto-include settings file.
+--   + Attempting to fix a crash on OSX by not using JS_WindowMessage_ReleaseAll
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -368,6 +368,7 @@ function initializeMainViewHorizontalZoom()
     mainViewMouseXSeconds = (scrollPos + mouseWindowX) / reaper.GetHZoomLevel()
 end
 
+local windowUnderMouse = nil
 local windowType = nil
 local midiWindow = nil
 local midiTake = nil
@@ -866,7 +867,7 @@ end
 
 function atExit()
     -- Release any intercepts.
-    reaper.JS_WindowMessage_ReleaseAll()
+    reaper.JS_WindowMessage_ReleaseWindow(windowUnderMouse)
 
     -- Stop intercepting keyboard input.
     reaper.JS_VKeys_Intercept(-1, -1)
