@@ -4,9 +4,9 @@
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
 --   [main] .
---   [main] . > Clear Selected Region Items.lua
---   [main] . > Update Parent Region Items of Selected Items.lua
---   [main] . > Update Selected Region Items and Parent Region Items of Selected Items.lua
+--   [main] Clear Selected Region Items.lua
+--   [main] Update Parent Region Items of Selected Items.lua
+--   [main] Update Selected Region Items and Parent Region Items of Selected Items.lua
 --   Region Item Functions.lua
 --   Region Items Default Settings.lua
 -- @about
