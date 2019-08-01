@@ -564,20 +564,38 @@ function setMainViewVerticalScroll(position)
     end
 end
 
-function moveMouseYTowardTarget(target, mouseY, speed)
+function moveMouseXTowardTarget(target, speed)
     target = round(target)
 
-    if mouseY - target > 0 then
+    if targetMousePos.x - target > 0 then
         if speed then
-            targetMousePos.y = targetMousePos.y - math.min(speed, math.abs(mouseY - target))
+            targetMousePos.x = targetMousePos.x - math.min(speed, math.abs(targetMousePos.x - target))
         else
-            targetMousePos.y = targetMousePos.y - math.abs(mouseY - target)
+            targetMousePos.x = targetMousePos.x - math.abs(targetMousePos.x - target)
         end
-    elseif mouseY - target < 0 then
+    elseif targetMousePos.x - target < 0 then
         if speed then
-            targetMousePos.y = targetMousePos.y + math.min(speed, math.abs(mouseY - target))
+            targetMousePos.x = targetMousePos.x + math.min(speed, math.abs(targetMousePos.x - target))
         else
-            targetMousePos.y = targetMousePos.y + math.abs(mouseY - target)
+            targetMousePos.x = targetMousePos.x + math.abs(targetMousePos.x - target)
+        end
+    end
+end
+
+function moveMouseYTowardTarget(target, speed)
+    target = round(target)
+
+    if targetMousePos.y - target > 0 then
+        if speed then
+            targetMousePos.y = targetMousePos.y - math.min(speed, math.abs(targetMousePos.y - target))
+        else
+            targetMousePos.y = targetMousePos.y - math.abs(targetMousePos.y - target)
+        end
+    elseif targetMousePos.y - target < 0 then
+        if speed then
+            targetMousePos.y = targetMousePos.y + math.min(speed, math.abs(targetMousePos.y - target))
+        else
+            targetMousePos.y = targetMousePos.y + math.abs(targetMousePos.y - target)
         end
     end
 end
@@ -674,10 +692,10 @@ function correctMainViewVerticalScroll(zoom)
             local normalOffset = round(correctScrollMouseOffsetPixels * (1.0 - mouseOverNormalizedZoomScale))
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
 
-            local halfWindowHeight = round(windowHeight * 0.5)
-            local moveToTargetSpeed = round(4.0 * math.abs(currentMousePos.y - targetMousePos.y))
+            local halfWindowHeight = round(windowHeight * verticalCenterPosition)
+            local moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
 
-            moveMouseYTowardTarget(halfWindowHeight, targetMousePos.y, moveToTargetSpeed)
+            moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
         else
             correctScrollPosition = correctScrollPosition + correctScrollMouseOffsetPixels
         end
@@ -721,7 +739,14 @@ function setMainViewHorizontalScroll(position)
 end
 
 function correctMainViewHorizontalScroll()
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+
+    if shouldCenterHorizontally then
+        local halfWindowWidth = round(windowWidth * horizontalCenterPosition)
+        local moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
+        moveMouseXTowardTarget(halfWindowWidth, moveToTargetSpeed)
+    end
 
     local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - targetMousePos.x
 

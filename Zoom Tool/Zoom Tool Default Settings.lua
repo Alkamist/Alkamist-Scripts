@@ -31,9 +31,40 @@ usePreciseMainViewHorizontalPositionTracking = true
 -- vs. setting the track height directly.
 useActionBasedVerticalZoom = false
 
+-- If this is enabled, along with "usePreciseMainViewHorizontalPositionTracking",
+-- the script will try to pull the point in time the mouse is zooming to toward
+-- the center of the arrange view.
+shouldCenterHorizontally = false
+
+-- This setting will set the centerpoint that "shouldCenterHorizontally" pulls
+-- to. 0.5 means the center of the arrange view. Change this if the current centerpoint
+-- doesn't feel right. Set between 0 and 1.
+horizontalCenterPosition = 0.5
+
+-- Change this to determine how fast "shouldCenterHorizontally" will center the view
+-- as you zoom.
+horizontalDragCenterSpeed = 10.0
+
+-- Change this to determine how fast "shouldCenterHorizontally" will automatically center
+-- the view.
+horizontalAutoCenterSpeed = 8.0
+
 -- If this is enabled, the script will try to pull the track/envelope that is under
 -- the mouse cursor to the center of the screen while zooming.
 shouldCenterVertically = false
+
+-- This setting will set the centerpoint that "shouldCenterVertically" pulls
+-- to. 0.5 means the center of the arrange view. Change this if the current centerpoint
+-- doesn't feel right. Set between 0 and 1.
+verticalCenterPosition = 0.5
+
+-- Change this to determine how fast "shouldCenterHorizontally" will center the view
+-- as you zoom.
+verticalDragCenterSpeed = 10.0
+
+-- Change this to determine how fast "shouldCenterHorizontally" will automatically center
+-- the view.
+verticalAutoCenterSpeed = 8.0
 
 -- If this is enabled, the script will zoom the master track (if visible in the TCP)
 -- with the rest of the other tracks.
