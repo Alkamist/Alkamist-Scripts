@@ -693,7 +693,11 @@ function correctMainViewVerticalScroll(zoom)
             correctScrollPosition = correctScrollPosition + normalOffset + centeredOffset
 
             local halfWindowHeight = round(windowHeight * verticalCenterPosition)
-            local moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
+            local moveToTargetSpeed = nil
+            if verticalDragCenterSpeed == nil or verticalAutoCenterSpeed == nil then
+            else
+                moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
+            end
 
             moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
         else
@@ -744,7 +748,12 @@ function correctMainViewHorizontalScroll()
 
     if shouldCenterHorizontally then
         local halfWindowWidth = round(windowWidth * horizontalCenterPosition)
-        local moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
+        local moveToTargetSpeed = nil
+        if horizontalDragCenterSpeed == nil or horizontalAutoCenterSpeed == nil then
+        else
+            moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
+        end
+
         moveMouseXTowardTarget(halfWindowWidth, moveToTargetSpeed)
     end
 
