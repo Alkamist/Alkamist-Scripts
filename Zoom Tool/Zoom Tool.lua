@@ -658,9 +658,15 @@ function adjustMouseXTargetTowardCenter()
     end
 end
 
+local previousTargetPosition = nil
 function adjustMouseYTargetTowardCenter(correctScrollPosition)
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
+
+    local finalTrackEnd = getTrackEndScrollPixels(lastVisibleTrack)
+    local scrollOffset = correctScrollPosition + windowHeight + targetMousePos.y - finalTrackEnd - 64
+
     if shouldCenterVertically then
-        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
         local halfWindowHeight = round(windowHeight * verticalCenterPosition)
 
         local moveToTargetSpeed = nil
@@ -669,10 +675,6 @@ function adjustMouseYTargetTowardCenter(correctScrollPosition)
             moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
         end
 
-        local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
-        local finalTrackEnd = getTrackEndScrollPixels(lastVisibleTrack)
-        local scrollOffset = correctScrollPosition + windowHeight + targetMousePos.y - finalTrackEnd - 64
-
         -- Stop mouse from centering when you shouldn't scroll down.
         halfWindowHeight = math.max(halfWindowHeight, scrollOffset)
 
@@ -680,6 +682,23 @@ function adjustMouseYTargetTowardCenter(correctScrollPosition)
         halfWindowHeight = math.min(halfWindowHeight, correctScrollPosition + targetMousePos.y)
 
         moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
+    else
+        local targetPosition = correctScrollPosition + targetMousePos.y
+
+        if previousTargetPosition == nil then
+            previousTargetPosition = targetPosition
+        end
+
+        -- Adjust the scrolling of the tracklist so there aren't any jarring view
+        -- changes when there is a padding track
+        local mouseTarget = math.max(targetMousePos.y, scrollOffset)
+        mouseTarget = math.min(mouseTarget, targetPosition)
+
+        moveToTargetSpeed = round(math.abs(targetPosition - previousTargetPosition))
+
+        moveMouseYTowardTarget(mouseTarget, moveToTargetSpeed)
+
+        previousTargetPosition = targetPosition
     end
 end
 
