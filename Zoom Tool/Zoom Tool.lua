@@ -591,6 +591,7 @@ function setMainViewVerticalScroll(position)
 end
 
 function moveMouseXTowardTarget(target, speed)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
     target = round(target)
 
     if targetMousePos.x - target > 0 then
@@ -599,7 +600,7 @@ function moveMouseXTowardTarget(target, speed)
         else
             targetMousePos.x = targetMousePos.x - math.abs(targetMousePos.x - target)
         end
-    elseif targetMousePos.x - target < 0 then
+    elseif targetMousePos.x - target < 0 and scrollPos > 0 then
         if speed then
             targetMousePos.x = targetMousePos.x + math.min(speed, math.abs(targetMousePos.x - target))
         else
@@ -609,6 +610,7 @@ function moveMouseXTowardTarget(target, speed)
 end
 
 function moveMouseYTowardTarget(target, speed)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     target = round(target)
 
     if targetMousePos.y - target > 0 then
@@ -617,7 +619,7 @@ function moveMouseYTowardTarget(target, speed)
         else
             targetMousePos.y = targetMousePos.y - math.abs(targetMousePos.y - target)
         end
-    elseif targetMousePos.y - target < 0 then
+    elseif targetMousePos.y - target < 0 and scrollPos > 0 then
         if speed then
             targetMousePos.y = targetMousePos.y + math.min(speed, math.abs(targetMousePos.y - target))
         else
