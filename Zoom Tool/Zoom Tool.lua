@@ -613,7 +613,7 @@ function moveMouseYTowardTarget(target, speed)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     target = round(target)
 
-    if targetMousePos.y - target > 0 then
+    if targetMousePos.y - target > 0 and scrollPos + scrollPageSize < scrollMax then
         if speed then
             targetMousePos.y = targetMousePos.y - math.min(speed, math.abs(targetMousePos.y - target))
         else
