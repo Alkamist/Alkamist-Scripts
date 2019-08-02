@@ -673,7 +673,11 @@ function adjustMouseYTargetTowardCenter(correctScrollPosition)
         local finalTrackEnd = getTrackEndScrollPixels(lastVisibleTrack)
         local scrollOffset = correctScrollPosition + windowHeight + targetMousePos.y - finalTrackEnd - 64
 
+        -- Stop mouse from centering when you shouldn't scroll down.
         halfWindowHeight = math.max(halfWindowHeight, scrollOffset)
+
+        -- Stop mouse from centering when it isn't possible to scroll up.
+        halfWindowHeight = math.min(halfWindowHeight, correctScrollPosition + targetMousePos.y)
 
         moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
     end
