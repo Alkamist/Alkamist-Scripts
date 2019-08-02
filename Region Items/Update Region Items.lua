@@ -1,5 +1,5 @@
 -- @description Region Items (4 actions)
--- @version 1.3.1
+-- @version 1.3.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -38,12 +38,8 @@
 --   region items. Used to clean up the contents of a region item if you want to change,
 --   move, or remove it.
 -- @changelog
---   + Made "Update Region Items" able to be called on multiple selected source regions.
---     Be careful you don't have multiple of the same region item selected though,
---     since there is no way for the script to discern which region item you intended
---     to be the source of the update.
---   + Added the action "Update Parent Region Items of Selected Items".
---   + Added the action "Update Selected Region Items and Parent Region Items of Selected Items".
+--   + Made it so in order for a region item's track to be a parent track via send,
+--     the send has to be muted. This is to avoid unintentional parent tracks.
 
 label = 'Alkamist: Update Region Items'
 

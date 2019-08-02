@@ -1074,9 +1074,13 @@ function selectExtendedChildTracks(inputRegion)
     local sendCount = reaper.GetTrackNumSends(parentTrack, 0)
 
     for i = 1, sendCount do
-        local extendedChild = reaper.GetTrackSendInfo_Value(parentTrack, 0, i - 1, "P_DESTTRACK")
+        local sendIsMuted = reaper.GetTrackSendInfo_Value(parentTrack, 0, i - 1, "B_MUTE") > 0
 
-        setTrackSelected(extendedChild, true)
+        if sendIsMuted then
+            local extendedChild = reaper.GetTrackSendInfo_Value(parentTrack, 0, i - 1, "P_DESTTRACK")
+
+            setTrackSelected(extendedChild, true)
+        end
     end
 end
 
@@ -1678,4 +1682,81 @@ function updateRegionItemsOfSelectedSourceItems()
     end
 
     restoreSelectedItems(sourceItems)
+end
+
+-- In case I need to set up a region item check later.
+function itemIsRegionItem(item)
+    return true
+end
+
+function getParentTrack(track, receiveNumber)
+    local trackNumReceives = reaper.GetTrackNumSends(track, -1)
+    local parentTrack = nil
+    local receiveNumberIsInvalid = false
+
+    local receiveIsMuted = false
+    if trackNumReceives > 0 then
+        receiveIsMuted = reaper.GetTrackSendInfo_Value(track, -1, receiveNumber - 1, "B_MUTE") > 0
+    end
+
+    if receiveNumber <= trackNumReceives and trackNumReceives > 0 and receiveIsMuted then
+        parentTrack = reaper.GetTrackSendInfo_Value(track, -1, receiveNumber - 1, "P_SRCTRACK")
+
+    else
+        parentTrack = reaper.GetParentTrack(track)
+        receiveNumberIsInvalid = true
+    end
+
+    return parentTrack, receiveNumberIsInvalid
+end
+
+function updateParentRegionItemsOfSelectedItems()
+    local selectedItems = getSelectedItems()
+    local sourceItems = {}
+
+    local sourceItemIndex = 1
+    for i = 1, #selectedItems do
+        local item = selectedItems[i]
+        local itemPosition = getItemPosition(item)
+        local itemTrack = getItemTrack(item)
+
+        local receiveNumber = 1
+        local parentTrack, receiveNumberIsInvalid = getParentTrack(itemTrack, receiveNumber)
+        local currentTrack = itemTrack
+
+        while parentTrack do
+            for j = 1, reaper.GetTrackNumMediaItems(parentTrack) do
+                local possibleRegionItem = reaper.GetTrackMediaItem(parentTrack, j - 1)
+
+                if itemIsWithinRegion(possibleRegionItem, item) and itemIsRegionItem(possibleRegionItem) then
+                    local regionItemIsAlreadyInSourceList = false
+                    for k = 1, #sourceItems do
+                        if possibleRegionItem == sourceItems[k] then
+                            regionItemIsAlreadyInSourceList = true
+                        end
+                    end
+
+                    if not regionItemIsAlreadyInSourceList then
+                        sourceItems[sourceItemIndex] = possibleRegionItem
+                        sourceItemIndex = sourceItemIndex + 1
+                    end
+                end
+            end
+
+            receiveNumber = receiveNumber + 1
+            parentTrack, receiveNumberIsInvalid = getParentTrack(currentTrack, receiveNumber)
+
+            if receiveNumberIsInvalid then
+                parentTrack = getParentTrack(currentTrack, receiveNumber)
+                currentTrack = parentTrack
+                receiveNumber = 0
+            end
+        end
+    end
+
+    for i = 1, #sourceItems do
+        updateRegionItems(sourceItems[i])
+    end
+
+    restoreSelectedItems(selectedItems)
 end
