@@ -176,6 +176,11 @@ function trackIsValid(track)
     return track ~= nil and trackExists
 end
 
+function itemIsValid(item)
+    local itemExists = reaper.ValidatePtr(item, "MediaItem*")
+    return item ~= nil and itemExists
+end
+
 function getTrackNumber(track)
     local trackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
 
@@ -227,6 +232,21 @@ end
 function masterIsVisibleInTCP()
     local visibility = reaper.GetMasterTrackVisibility()
     return visibility == 1 or visibility == 3
+end
+
+local paddingTrack = nil
+local paddingTrackNumber = 0
+function createPaddingTrack()
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+
+    if paddingTrack == nil then
+        paddingTrackNumber = reaper.GetNumTracks()
+
+        reaper.InsertTrackAtIndex(paddingTrackNumber, false)
+
+        paddingTrack = reaper.GetTrack(0, paddingTrackNumber)
+        reaper.SetMediaTrackInfo_Value(paddingTrack, "I_HEIGHTOVERRIDE", 20000)
+    end
 end
 
 local initallyVisibleTracks = {}
@@ -352,13 +372,28 @@ function initializeMainViewVerticalZoom()
             end
         end
     end
+
+    createPaddingTrack()
+end
+
+local paddingItem = nil
+function createPaddingItem()
+    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
+    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+
+    if paddingItem == nil then
+        paddingItem = reaper.AddMediaItemToTrack(mainViewOrigMouseLocation.track)
+
+        reaper.SetMediaItemPosition(paddingItem, (scrollMax / reaper.GetHZoomLevel()) + 180, false)
+    end
 end
 
 local mainViewMouseXSeconds = 0
 function initializeMainViewHorizontalZoom()
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
+    local viewStart, viewEnd = reaper.GetSet_ArrangeView2(0, false, 0, 0)
+    mainViewMouseXSeconds = viewStart + targetMousePos.x / reaper.GetHZoomLevel()
 
-    mainViewMouseXSeconds = (scrollPos + targetMousePos.x) / reaper.GetHZoomLevel()
+    createPaddingItem()
 end
 
 local okToZoomWindow = false
@@ -435,11 +470,8 @@ function init()
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "main"
 
+                initializeMainViewVerticalZoom()
                 initializeMainViewHorizontalZoom()
-
-                if not useActionBasedVerticalZoom then
-                    initializeMainViewVerticalZoom()
-                end
             end
         end
     end
@@ -754,19 +786,13 @@ function setMainViewVerticalZoom(zoom)
 end
 
 function setMainViewHorizontalScroll(position)
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
-
-    if position then
-        if position >= 0 then
-            reaper.JS_Window_SetScrollPos(arrangeWindow, "HORZ", round(position))
-        end
-    end
+    local viewStart, viewEnd = reaper.GetSet_ArrangeView2(0, false, 0, 0)
+    local viewWidth = viewEnd - viewStart
+    reaper.BR_SetArrangeView(0, position, position + viewWidth)
 end
 
 function correctMainViewHorizontalScroll()
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
-
-    local correctScrollPosition = mainViewMouseXSeconds * reaper.GetHZoomLevel() - targetMousePos.x
+    local correctScrollPosition = mainViewMouseXSeconds - targetMousePos.x / reaper.GetHZoomLevel()
 
     setMainViewHorizontalScroll(correctScrollPosition)
 end
@@ -906,6 +932,16 @@ function update()
 end
 
 function atExit()
+    -- Clean up the padding track.
+    if trackIsValid(paddingTrack) then
+        reaper.DeleteTrack(paddingTrack)
+    end
+
+    -- Clean up the padding item.
+    if itemIsValid(paddingItem) then
+        reaper.DeleteTrackMediaItem(reaper.GetMediaItem_Track(paddingItem), paddingItem)
+    end
+
     -- Release any intercepts.
     reaper.JS_WindowMessage_ReleaseWindow(windowUnderMouse)
 
@@ -914,3 +950,4 @@ function atExit()
 end
 
 init()
+reaper.UpdateArrange()
