@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.7
+-- @version 1.7.1
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,11 +15,8 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Vast improvements all around.
---   + Made horizontal zoom more accurate with large projects.
---   + Added optional padding track to smooth out graphical glitches when zooming in.
---   + Added horzontal centering and vastly improved feel of vertical centering.
---     These are enabled by default now.
+--   + Fixed action based zoom that I had broken earlier.
+--   + Slightly rebalanced some sensitivities.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -33,13 +30,13 @@ pcall(require, 'Scripts.Alkamist Scripts.Zoom Tool.Zoom Tool User Settings')
 
 
 -- Rescale sensitivities to keep them sort of uniform feeling.
-xSensitivityArrange = xSensitivityArrange * 0.13
-ySensitivityArrange = ySensitivityArrange * 0.13
+xSensitivityArrange = xSensitivityArrange * 0.06
+ySensitivityArrange = ySensitivityArrange * 0.1
 xSensitivityMIDIEditor = xSensitivityMIDIEditor * 0.06
 ySensitivityMIDIEditor = ySensitivityMIDIEditor * 0.06
 
 if not useActionBasedVerticalZoom then
-    ySensitivityArrange = ySensitivityArrange * 0.3
+    ySensitivityArrange = ySensitivityArrange * 0.15
 end
 
 -- Make sure the user didn't set wacky values for these.
@@ -382,7 +379,7 @@ function initializeMainViewVerticalZoom()
         end
     end
 
-    if usePaddingTrack then
+    if usePaddingTrack and not useActionBasedVerticalZoom then
         createPaddingTrack()
     end
 end
@@ -846,15 +843,15 @@ function update()
         if previousXAccumAdjustMIDIEditor < tickLowValue then
             local overflow = math.ceil((tickLowValue - previousXAccumAdjustMIDIEditor) / yZoomTick)
             for i = 1, overflow do
-                reaperMIDICMD(1012) -- zoom in horizontal
                 setMouseClientPosition(targetMousePos.x, targetMousePos.y)
+                reaperMIDICMD(1012) -- zoom in horizontal
             end
 
         elseif previousXAccumAdjustMIDIEditor > tickHighValue then
             local overflow = math.ceil((previousXAccumAdjustMIDIEditor - tickHighValue) / yZoomTick)
             for i = 1, overflow do
-                reaperMIDICMD(1011) -- zoom out horizontal
                 setMouseClientPosition(targetMousePos.x, targetMousePos.y)
+                reaperMIDICMD(1011) -- zoom out horizontal
             end
         end
     end
@@ -881,6 +878,9 @@ function update()
         local tickLowValue = yZoomTick * math.floor(accumAdjust / yZoomTick)
         local tickHighValue = yZoomTick * math.ceil(accumAdjust / yZoomTick)
 
+        -- We need to sneak in a UI refresh to get action based zoom to work properly.
+        setUIRefresh(true)
+
         if prevAccumAdjust < tickLowValue then
             local overflow = math.ceil((tickLowValue - prevAccumAdjust) / yZoomTick)
             setMouseClientPosition(targetMousePos.x, targetMousePos.y)
@@ -889,7 +889,7 @@ function update()
                 for i = 1, overflow do
                     reaperMIDICMD(40111) -- zoom in vertical
                 end
-            else
+            elseif windowType == "main" then
                 reaper.CSurf_OnZoom(0, overflow)
             end
 
@@ -901,7 +901,7 @@ function update()
                 for i = 1, overflow do
                     reaperMIDICMD(40112) -- zoom out vertical
                 end
-            else
+            elseif windowType == "main" then
                 reaper.CSurf_OnZoom(0, -overflow)
             end
         end
