@@ -255,6 +255,8 @@ function createPaddingTrack()
     end
 end
 
+local lastVisibleTrack = nil
+local lastVisibleTrackNumber = 0
 local initallyVisibleTracks = {}
 local mainViewOrigMouseLocation = {}
 function initializeMainViewVerticalZoom()
@@ -265,8 +267,6 @@ function initializeMainViewVerticalZoom()
     local mousePixelYPosRecorded = false
     local currentLanePixelEnd = 0
     local currentZonePixelEnd = 0
-    local lastVisibleTrack = nil
-    local lastVisibleTrackNumber = 0
     local lastVisibleEnvelope = nil
     local lastVisibleEnvelopeNumber = 0
 
@@ -581,6 +581,18 @@ function setTrackZoom(track, zoom)
     end
 end
 
+function getTrackEndScrollPixels(track)
+    local trackEndPixels = 0
+
+    for trackNumber, value in pairs(initallyVisibleTracks) do
+        if trackNumber <= getTrackNumber(track) then
+            trackEndPixels = trackEndPixels + value.currentLaneHeight
+        end
+    end
+
+    return trackEndPixels
+end
+
 function setMainViewVerticalScroll(position)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
@@ -591,7 +603,6 @@ function setMainViewVerticalScroll(position)
 end
 
 function moveMouseXTowardTarget(target, speed)
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
     target = round(target)
 
     if targetMousePos.x - target > 0 then
@@ -600,7 +611,7 @@ function moveMouseXTowardTarget(target, speed)
         else
             targetMousePos.x = targetMousePos.x - math.abs(targetMousePos.x - target)
         end
-    elseif targetMousePos.x - target < 0 and scrollPos > 0 then
+    elseif targetMousePos.x - target < 0 then
         if speed then
             targetMousePos.x = targetMousePos.x + math.min(speed, math.abs(targetMousePos.x - target))
         else
@@ -613,13 +624,13 @@ function moveMouseYTowardTarget(target, speed)
     local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
     target = round(target)
 
-    if targetMousePos.y - target > 0 and scrollPos + scrollPageSize < scrollMax then
+    if targetMousePos.y - target > 0 then
         if speed then
             targetMousePos.y = targetMousePos.y - math.min(speed, math.abs(targetMousePos.y - target))
         else
             targetMousePos.y = targetMousePos.y - math.abs(targetMousePos.y - target)
         end
-    elseif targetMousePos.y - target < 0 and scrollPos > 0 then
+    elseif targetMousePos.y - target < 0 then
         if speed then
             targetMousePos.y = targetMousePos.y + math.min(speed, math.abs(targetMousePos.y - target))
         else
@@ -638,19 +649,34 @@ function adjustMouseXTargetTowardCenter()
             moveToTargetSpeed = round(math.max(horizontalDragCenterSpeed * math.abs(currentMousePos.x - targetMousePos.x), horizontalAutoCenterSpeed))
         end
 
+        -- Stop the mouse from going to the center if the view can't be scrolled far enough.
+        local viewStart, viewEnd = reaper.GetSet_ArrangeView2(0, false, 0, 0)
+        local viewStartPixels = viewStart * reaper.GetHZoomLevel()
+        halfWindowWidth = math.min(halfWindowWidth, viewStartPixels + mainViewMouseXSeconds * reaper.GetHZoomLevel())
+
         moveMouseXTowardTarget(halfWindowWidth, moveToTargetSpeed)
     end
 end
 
 function adjustMouseYTargetTowardCenter()
     if shouldCenterVertically then
+        --local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
         local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
         local halfWindowHeight = round(windowHeight * verticalCenterPosition)
+
         local moveToTargetSpeed = nil
         if verticalDragCenterSpeed == nil or verticalAutoCenterSpeed == nil then
         else
             moveToTargetSpeed = round(math.max(verticalDragCenterSpeed * math.abs(currentMousePos.y - targetMousePos.y), verticalAutoCenterSpeed))
         end
+
+        --local pageEnd = scrollPos + scrollPageSize
+        --local finalTrackEnd = getTrackEndScrollPixels(lastVisibleTrack)
+        --local maxSafeScrollDownDistance = finalTrackEnd - pageEnd
+        --local scrollDownIsNotSafe = maxSafeScrollDownDistance < 0
+        --if scrollDownIsNotSafe then
+        --    halfWindowHeight = halfWindowHeight - maxSafeScrollDownDistance
+        --end
 
         moveMouseYTowardTarget(halfWindowHeight, moveToTargetSpeed)
     end
@@ -658,8 +684,6 @@ end
 
 function correctMainViewVerticalScroll(zoom)
     if #initallyVisibleTracks > 0 or masterIsVisibleInTCP() then
-        adjustMouseYTargetTowardCenter()
-
         local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "VERT")
 
         local correctScrollPosition = 0
@@ -765,6 +789,7 @@ function correctMainViewVerticalScroll(zoom)
         end
 
         setMainViewVerticalScroll(correctScrollPosition)
+        adjustMouseYTargetTowardCenter()
     end
 end
 
@@ -796,8 +821,8 @@ function adjustMainViewHorizontalZoom(zoom)
 
     reaper.adjustZoom(zoom, 0, true, -1)
 
-    adjustMouseXTargetTowardCenter()
     correctMainViewHorizontalScroll()
+    adjustMouseXTargetTowardCenter()
 end
 
 local xZoomTick = 1
