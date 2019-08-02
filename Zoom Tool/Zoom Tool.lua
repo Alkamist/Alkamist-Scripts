@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.7.1
+-- @version 1.7.2
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,8 +15,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Fixed action based zoom that I had broken earlier.
---   + Slightly rebalanced some sensitivities.
+--   + Vastly improved view centering logic.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
