@@ -32,9 +32,8 @@ usePaddingTrack = true
 -- vs. setting the track height directly.
 useActionBasedVerticalZoom = false
 
--- If this is enabled, along with "usePreciseMainViewHorizontalPositionTracking",
--- the script will try to pull the point in time the mouse is zooming to toward
--- the center of the arrange view.
+-- If this is enabled, the script will try to pull the point in time the mouse is
+-- zooming to toward the center of the arrange view.
 shouldCenterHorizontally = true
 
 -- This setting will set the centerpoint that "shouldCenterHorizontally" pulls
