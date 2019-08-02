@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.6.5
+-- @version 1.7
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,8 +15,11 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Switch to using completely window-based mouse coordinates to try to ensure
---     multiple monitor stability and consistent behavior on all platforms.
+--   + Vast improvements all around.
+--   + Made horizontal zoom more accurate with large projects.
+--   + Added optional padding track to smooth out graphical glitches when zooming in.
+--   + Added horzontal centering and vastly improved feel of vertical centering.
+--     These are enabled by default now.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -38,6 +41,12 @@ ySensitivityMIDIEditor = ySensitivityMIDIEditor * 0.06
 if not useActionBasedVerticalZoom then
     ySensitivityArrange = ySensitivityArrange * 0.3
 end
+
+-- Make sure the user didn't set wacky values for these.
+horizontalCenterPosition = math.min(math.max(horizontalCenterPosition, 0.0), 1.0)
+verticalCenterPosition = math.min(math.max(verticalCenterPosition, 0.0), 1.0)
+
+
 
 local VKLow, VKHi = 8, 0xFE -- Range of virtual key codes to check for key presses.
 local VKState0 = string.rep("\0", VKHi - VKLow + 1)
@@ -373,18 +382,8 @@ function initializeMainViewVerticalZoom()
         end
     end
 
-    createPaddingTrack()
-end
-
-local paddingItem = nil
-function createPaddingItem()
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
-    local _, scrollPos, scrollPageSize, scrollMin, scrollMax, scrollTrackPos = reaper.JS_Window_GetScrollInfo(arrangeWindow, "HORZ")
-
-    if paddingItem == nil then
-        paddingItem = reaper.AddMediaItemToTrack(mainViewOrigMouseLocation.track)
-
-        reaper.SetMediaItemPosition(paddingItem, (scrollMax / reaper.GetHZoomLevel()) + 180, false)
+    if usePaddingTrack then
+        createPaddingTrack()
     end
 end
 
@@ -392,8 +391,6 @@ local mainViewMouseXSeconds = 0
 function initializeMainViewHorizontalZoom()
     local viewStart, viewEnd = reaper.GetSet_ArrangeView2(0, false, 0, 0)
     mainViewMouseXSeconds = viewStart + targetMousePos.x / reaper.GetHZoomLevel()
-
-    createPaddingItem()
 end
 
 local okToZoomWindow = false
@@ -633,9 +630,8 @@ function moveMouseYTowardTarget(target, speed)
 end
 
 function adjustMouseXTargetTowardCenter()
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
-
     if shouldCenterHorizontally then
+        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
         local halfWindowWidth = round(windowWidth * horizontalCenterPosition)
         local moveToTargetSpeed = nil
         if horizontalDragCenterSpeed == nil or horizontalAutoCenterSpeed == nil then
@@ -648,9 +644,8 @@ function adjustMouseXTargetTowardCenter()
 end
 
 function adjustMouseYTargetTowardCenter()
-    local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
-
     if shouldCenterVertically then
+        local _, windowWidth, windowHeight = reaper.JS_Window_GetClientSize(arrangeWindow)
         local halfWindowHeight = round(windowHeight * verticalCenterPosition)
         local moveToTargetSpeed = nil
         if verticalDragCenterSpeed == nil or verticalAutoCenterSpeed == nil then
@@ -802,10 +797,8 @@ function adjustMainViewHorizontalZoom(zoom)
 
     reaper.adjustZoom(zoom, 0, true, -1)
 
-    if usePreciseMainViewHorizontalPositionTracking then
-        adjustMouseXTargetTowardCenter()
-        correctMainViewHorizontalScroll()
-    end
+    adjustMouseXTargetTowardCenter()
+    correctMainViewHorizontalScroll()
 end
 
 local xZoomTick = 1
@@ -935,11 +928,6 @@ function atExit()
     -- Clean up the padding track.
     if trackIsValid(paddingTrack) then
         reaper.DeleteTrack(paddingTrack)
-    end
-
-    -- Clean up the padding item.
-    if itemIsValid(paddingItem) then
-        reaper.DeleteTrackMediaItem(reaper.GetMediaItem_Track(paddingItem), paddingItem)
     end
 
     -- Release any intercepts.
