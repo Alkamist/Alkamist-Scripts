@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" commit="702273133113e89e0b4d6b7f9d9cfb5c37879b45" name="Alkamist Scripts">
+<index version="1" commit="94d7ece11d7f5b523060ab8dabea261a2f3463b5" name="Alkamist Scripts">
   <category name="Region Items">
     <reapack name="Update Region Items.lua" type="script" desc="Region Items (4 actions)">
       <metadata>
@@ -253,6 +253,11 @@
   click in the MIDI editor. Change if you are having problems with unwanted notes.]]></changelog>
         <source main="main midi_editor">https://github.com/Alkamist/Alkamist-Scripts/raw/702273133113e89e0b4d6b7f9d9cfb5c37879b45/Zoom%20Tool/Zoom%20Tool.lua</source>
         <source file="Zoom Tool Default Settings.lua">https://github.com/Alkamist/Alkamist-Scripts/raw/702273133113e89e0b4d6b7f9d9cfb5c37879b45/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
+      </version>
+      <version name="1.7.4" author="Alkamist" time="2019-08-03T20:28:59Z">
+        <changelog><![CDATA[+ The zoom tool now works in the newest dev version (v5.981+dev0803).]]></changelog>
+        <source main="main midi_editor">https://github.com/Alkamist/Alkamist-Scripts/raw/94d7ece11d7f5b523060ab8dabea261a2f3463b5/Zoom%20Tool/Zoom%20Tool.lua</source>
+        <source file="Zoom Tool Default Settings.lua">https://github.com/Alkamist/Alkamist-Scripts/raw/94d7ece11d7f5b523060ab8dabea261a2f3463b5/Zoom%20Tool/Zoom%20Tool%20Default%20Settings.lua</source>
       </version>
     </reapack>
   </category>
