@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.7.3
+-- @version 1.7.4
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,10 +15,7 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Hopefully fixed the code not cleaning up unwanted MIDI notes created by the simulated
---     left click in the MIDI editor.
---   + Added the "simulateLeftClickInMIDIEditor" bool to stop the script from simulating a left
---     click in the MIDI editor. Change if you are having problems with unwanted notes.
+--   + The zoom tool now works in the newest dev version (v5.981+dev0803).
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -202,35 +199,47 @@ function getTrackNumber(track)
 end
 
 function getTrackHeight(track)
-    local trackViewWindow = nil
-
-    local _, _, arrangeTop = reaper.JS_Window_GetRect(arrangeWindow)
-    local window = reaper.JS_Window_GetRelated(arrangeWindow, "NEXT")
-    while window do
-        local _, _, top = reaper.JS_Window_GetRect(window)
-
-        if top == arrangeTop then
-            trackViewWindow = reaper.JS_Window_GetRelated(window, "CHILD")
-        end
-
-        window = reaper.JS_Window_GetRelated(window, "NEXT")
-    end
-
-    local specificTrackWindow = reaper.JS_Window_GetRelated(trackViewWindow, "CHILD")
-
     local outputHeight = 0
-    if specificTrackWindow then
-        local trackPointer = reaper.JS_Window_GetLongPtr(specificTrackWindow, "USERDATA")
+    local reaperVersion = reaper.GetAppVersion()
+    local reaperVersionNumber = tonumber(reaperVersion:match("%d+.%d+"))
+    local isDevVersion = reaperVersion:match("+dev") ~= nil
+    local isDevVersionWhenBroken = reaperVersionNumber == 5.981 and isDevVersion
 
-        while trackPointer ~= track and trackPointer ~= nil do
-            specificTrackWindow = reaper.JS_Window_GetRelated(specificTrackWindow, "NEXT")
-            trackPointer = reaper.JS_Window_GetLongPtr(specificTrackWindow, "USERDATA")
+    -- The new way of getting track height (requires v5.981+dev0803 or higher).
+    if reaperVersionNumber > 5.981 or isDevVersionWhenBroken then
+        outputHeight = reaper.GetMediaTrackInfo_Value(track, "I_TCPH")
+
+    -- The old way of getting track height that doesn't work in the newer versions.
+    else
+        local trackViewWindow = nil
+
+        local _, _, arrangeTop = reaper.JS_Window_GetRect(arrangeWindow)
+        local window = reaper.JS_Window_GetRelated(arrangeWindow, "NEXT")
+        while window do
+            local _, _, top = reaper.JS_Window_GetRect(window)
+
+            if top == arrangeTop then
+                trackViewWindow = reaper.JS_Window_GetRelated(window, "CHILD")
+            end
+
+            window = reaper.JS_Window_GetRelated(window, "NEXT")
         end
 
-        local _, _, top, _, bottom = reaper.JS_Window_GetRect(specificTrackWindow)
+        local specificTrackWindow = reaper.JS_Window_GetRelated(trackViewWindow, "CHILD")
 
-        if trackIsValid(trackPointer) then
-            outputHeight = bottom - top
+        if specificTrackWindow then
+            local trackPointer = reaper.JS_Window_GetLongPtr(specificTrackWindow, "USERDATA")
+
+            while trackPointer ~= track and trackPointer ~= nil do
+                specificTrackWindow = reaper.JS_Window_GetRelated(specificTrackWindow, "NEXT")
+                trackPointer = reaper.JS_Window_GetLongPtr(specificTrackWindow, "USERDATA")
+            end
+
+            local _, _, top, _, bottom = reaper.JS_Window_GetRect(specificTrackWindow)
+
+            if trackIsValid(trackPointer) then
+                outputHeight = bottom - top
+            end
         end
     end
 

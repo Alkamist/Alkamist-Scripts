@@ -1476,7 +1476,7 @@ function adjustItemParamsToMatchRegion(sourceRegion, inputRegion, items)
                         reaper.SetMediaItemInfo_Value(items[i], "D_FADEOUTLEN_AUTO", autoFadeOutTime)
                         reaper.SetMediaItemInfo_Value(items[i], "D_FADEOUTLEN", fadeOutTime)
 
-                        local tempoRatio = 1
+                        local tempoRatio = 1.0
                         if getItemType(items[i]) == "audio" then
                             local newItemAverageTempo = getAverageTempoOfItem(items[i])
                             tempoRatio = newItemAverageTempo / copiedItemStats[i].averageTempo
