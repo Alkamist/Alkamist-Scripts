@@ -70,6 +70,11 @@ verticalAutoCenterSpeed = 30.0
 -- with the rest of the other tracks.
 zoomMasterWithOtherTracks = true
 
+-- If this is enabled, the script will simulate a fast left click in the MIDI editor when
+-- run. This has the benefit of highlighting the note row under the mouse cursor, which acts
+-- as the center of vertical zooming. The downside is that it can create unwanted MIDI notes.
+simulateLeftClickInMIDIEditor = true
+
 -- These are the minimum heights of standard envelopes and the master track.
 -- Change these if you need to, but I am not aware of any reason to do so.
 -- Changing these to the wrong value will cause unintended scrolling while zooming.

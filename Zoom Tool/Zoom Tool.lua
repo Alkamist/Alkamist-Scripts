@@ -1,5 +1,5 @@
 -- @description Zoom Tool
--- @version 1.7.2
+-- @version 1.7.3
 -- @author Alkamist
 -- @donate https://paypal.me/CoreyLehmanMusic
 -- @provides
@@ -15,7 +15,10 @@
 --   and change the settings in there. That way, your settings are not overwritten
 --   when updating.
 -- @changelog
---   + Vastly improved view centering logic.
+--   + Hopefully fixed the code not cleaning up unwanted MIDI notes created by the simulated
+--     left click in the MIDI editor.
+--   + Added the "simulateLeftClickInMIDIEditor" bool to stop the script from simulating a left
+--     click in the MIDI editor. Change if you are having problems with unwanted notes.
 
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 
@@ -395,6 +398,8 @@ local windowType = nil
 local midiWindow = nil
 local midiTake = nil
 local noteIsSelected = {}
+local midiNoteCount = 0
+local newMIDINoteCount = 0
 function init()
     startTime = reaper.time_precise()
     thisCycleTime = startTime
@@ -427,30 +432,27 @@ function init()
                 reaper.JS_Window_SetFocus(windowUnderMouse)
                 windowType = "midi"
 
-                -- Simulate a mouse left click in the MIDI editor to set the pitch cursor, since
-                -- the vertical zoom seems to follow where the pitch cursor is. Restore the old note
-                -- selection in case any MIDI notes were selected.
-                midiWindow = parentWindow
-                midiTake = reaper.MIDIEditor_GetTake(midiWindow)
-                local _, numMIDINotes = reaper.MIDI_CountEvts(midiTake)
+                if simulateLeftClickInMIDIEditor then
+                    -- Simulate a mouse left click in the MIDI editor to set the pitch cursor, since
+                    -- the vertical zoom seems to follow where the pitch cursor is. Restore the old note
+                    -- selection in case any MIDI notes were selected.
+                    midiWindow = parentWindow
+                    midiTake = reaper.MIDIEditor_GetTake(midiWindow)
+                    local _
+                    _, midiNoteCount = reaper.MIDI_CountEvts(midiTake)
 
-                -- Save the current selection of MIDI notes.
-                for i = 1, numMIDINotes do
-                    _, noteIsSelected[i] = reaper.MIDI_GetNote(midiTake, i - 1)
+                    -- Save the current selection of MIDI notes.
+                    for i = 1, midiNoteCount do
+                        _, noteIsSelected[i] = reaper.MIDI_GetNote(midiTake, i - 1)
+                    end
+
+                    -- Simulate the mouse click.
+                    reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONDOWN", 0, 0, targetMousePos.x, targetMousePos.y)
+                    reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONUP", 0, 0, targetMousePos.x, targetMousePos.y)
+
+                    -- The mouse button clicks are asynchronously handled, so we need restore the MIDI
+                    -- selection later on in the code after the mouse up event happens.
                 end
-
-                -- Simulate the mouse click.
-                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONDOWN", 0, 0, targetMousePos.x, targetMousePos.y)
-                reaper.JS_WindowMessage_Post(windowUnderMouse, "WM_LBUTTONUP", 0, 0, targetMousePos.x, targetMousePos.y)
-
-                -- Check if any notes were accidentally created and delete them.
-                local _, newMIDINoteCount = reaper.MIDI_CountEvts(midiTake)
-                if newMIDINoteCount > numMIDINotes then
-                    reaperMIDICMD(40002) -- delete notes
-                end
-
-                -- The mouse button clicks are asynchronously handled, so we need restore the MIDI
-                -- selection later on in the code after the mouse up event happens.
 
             -- Window under mouse is the main editor.
             elseif parentWindow == reaper.GetMainHwnd() then
@@ -494,6 +496,12 @@ end
 
 local midiSelectionRestored = false
 function restoreMIDISelection()
+    -- Check if any notes were accidentally created and delete them.
+    _, newMIDINoteCount = reaper.MIDI_CountEvts(midiTake)
+    if newMIDINoteCount > midiNoteCount then
+        reaperMIDICMD(40002) -- delete notes
+    end
+
     -- Restore the previous selection of MIDI notes.
     for i = 1, #noteIsSelected do
         reaper.MIDI_SetNote(midiTake, i - 1, noteIsSelected[i], nil, nil, nil, nil, nil, nil, true)
@@ -879,7 +887,7 @@ function update()
     -- so I have to do it with Reaper actions.
     elseif windowType == "midi" then
         -- Keep checking if we need to restore the original MIDI note selection.
-        if not midiSelectionRestored then
+        if not midiSelectionRestored and simulateLeftClickInMIDIEditor then
             restoreMIDISelection()
         end
 
