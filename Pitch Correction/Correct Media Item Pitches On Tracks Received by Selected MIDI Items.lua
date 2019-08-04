@@ -129,9 +129,11 @@ function main()
     local midiItemStartOffset = reaper.GetMediaItemTakeInfo_Value(midiItemTake, "D_STARTOFFS")
     local _, numMIDINotes, _, _ = reaper.MIDI_CountEvts(midiItemTake)
 
+    -- Only proceed if you are selecting a MIDI item.
     if reaper.TakeIsMIDI(midiItemTake) then
         local midiItemTrackNumSends =  reaper.GetTrackNumSends(midiItemTrack, 0)
 
+        -- Go through all of the track sends and process any audio items on those tracks that should be processed.
         for i = 1, midiItemTrackNumSends do
             local currentTrack = reaper.GetTrackSendInfo_Value(midiItemTrack, 0, i - 1, "P_DESTTRACK")
 
@@ -148,15 +150,21 @@ function main()
                 local currentItemEndsAfterMIDIItem = currentItemEnd > midiItemEnd
                 local itemShouldBeProcessed = currentItemStartsInMIDIItem or currentItemEndsInMIDIItem or (currentItemStartsBeforeMIDIItem and currentItemEndsAfterMIDIItem)
 
+                -- An item has to be an audio item and also be within the bounds of the
+                -- MIDI item that is influencing the pitch.
                 if itemShouldBeProcessed and getItemType(currentItem) == "audio" then
                     reaperCMD(40289) -- Unselect all items.
                     reaper.SetMediaItemSelected(currentItem, true)
 
+                    -- Save the current GUID of the item take we are processing in the ext state.
+                    -- Since there is no way to pass arguments to the external EEL script, we need
+                    -- to do this so it knows which item to process.
                     local take = reaper.GetActiveTake(currentItem)
                     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-
                     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
 
+                    -- If a take pitch envelope already exists, then we need to clean the content in it
+                    -- that exists within the bounds of the MIDI item.
                     local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
                     if pitchEnvelope and reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
                         local clearStart = currentItemTakePlayrate * (midiItemPosition - currentItemPosition)
@@ -168,27 +176,35 @@ function main()
                         local _, leftEdgePointValue = reaper.Envelope_Evaluate(pitchEnvelope, leftEdgePointPosition, 44100, 0)
                         local _, rightEdgePointValue = reaper.Envelope_Evaluate(pitchEnvelope, rightEdgePointPosition, 44100, 0)
 
+                        -- Add some edgepoints so there aren't any slanted lines running into the processing area.
                         reaper.InsertEnvelopePoint(pitchEnvelope, leftEdgePointPosition, leftEdgePointValue, 0, 0, false, true)
                         reaper.InsertEnvelopePoint(pitchEnvelope, rightEdgePointPosition, rightEdgePointValue, 0, 0, false, true)
 
+                        -- Clean up the envelope within the bounds of the MIDI item.
                         reaper.DeleteEnvelopePointRange(pitchEnvelope, clearStart, clearStart + clearLength)
 
+                        -- Insert 0 value points at the start and end of where we are processing.
                         reaper.InsertEnvelopePoint(pitchEnvelope, clearStart, 0, 0, 0, false, true)
                         reaper.InsertEnvelopePoint(pitchEnvelope, clearEnd, 0, 0, 0, false, true)
                         reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
-
-                        reaperCMD(analyzerCommandID)
                     else
                         reaperCMD(41612) -- Take: Toggle take pitch envelope
-                        reaperCMD(analyzerCommandID)
                         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
                     end
+
+                    -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
+                    reaperCMD("_S&M_TAKEENV11")
+                    -- Analyze the audio to determine its pitches.
+                    reaperCMD(analyzerCommandID)
+                    -- Show and unbypass the take pitch envelope.
+                    reaperCMD("_S&M_TAKEENV10")
 
                     local inputNotes = {}
                     local noteIndex = 1
                     for k = 1, numMIDINotes do
                         local _, _, noteIsMuted, notePPQStart, notePPQEnd, noteChannel, notePitch, noteVelocity = reaper.MIDI_GetNote(midiItemTake, k - 1)
 
+                        -- Only use notes that are not muted for processing.
                         if not noteIsMuted then
                             inputNotes[noteIndex] = {}
                             inputNotes[noteIndex].position = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
@@ -196,6 +212,7 @@ function main()
                             inputNotes[noteIndex].length = inputNotes[noteIndex].rightBound - inputNotes[noteIndex].position
                             inputNotes[noteIndex].note = notePitch
 
+                            -- Document if the notes are overlapping other notes, or are overlapped by other notes themselves.
                             if noteIndex > 1 then
                                 inputNotes[noteIndex - 1].isOverlapped = inputNotes[noteIndex].position <= inputNotes[noteIndex - 1].rightBound + edgePointSpacing
                                 inputNotes[noteIndex].overlaps = inputNotes[noteIndex - 1].isOverlapped
@@ -206,7 +223,7 @@ function main()
                                 end
                             end
 
-                            -- Handle the edge cases at the end.
+                            -- Handle the edge cases.
                             if k == numMIDINotes then
                                 inputNotes[1].overlaps = false
                                 inputNotes[#inputNotes].isOverlapped = false
