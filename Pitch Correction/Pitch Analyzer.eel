@@ -1,0 +1,265 @@
+// based on http://recherche.ircam.fr/equipes/pcm/cheveign/pss/2002_JASA_YIN.pdf
+// used some modified code snippets from JSFX Pitch Follower by aparker127 http://stash.reaper.fm/v/30507/pitch-follower
+
+function msg(s)(ShowConsoleMsg(s); ShowConsoleMsg("\n"));
+function msg2(s)(ShowConsoleMsg(sprintf(#,"%f", s )); ShowConsoleMsg("\n"));
+
+function d(tau istart iwinend) //Difference Function (YIN eq. 6)
+local (sum i_d)
+(
+    sum = 0;
+    i_d = 0;
+
+    loop(iwinend + 1 - istart - tau,
+        sum += sqr(istart[i_d] - istart[i_d + tau]);
+        i_d += 1;
+    );
+
+    sum;
+);
+
+function avg(imin imax) //max non-inclusive
+local (num sum)
+(
+    num = 0;
+    sum = 0;
+
+    loop(imax - imin,
+        sum += imin[num];
+        num += 1;
+    );
+
+    sum / (imax - imin);
+);
+
+function parab(iclosest)
+local (x1 y1 x2 y2 x3 y3 denom a b c)
+(
+    x1 = iclosest - 1;
+    y1 = x1[0];
+    x2 = iclosest;
+    y2 = iclosest[0];
+    x3 = iclosest + 1;
+    y3 = x3[0];
+
+    denom = (x1 - x2) * (x1 - x3) * (x2 - x3);
+    a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom;
+    b = (x3 * x3 * (y1 - y2) + x2*x2 * (y3 - y1) + x1*x1 * (y2 - y3)) / denom;
+    //c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
+    -b / (2 * a);
+);
+
+function findMin(istart iend thresh srate minLook)
+local (i rmin return_ind return_ind) (
+    i = 1;
+    rmin = thresh; // "running min"
+    return_ind = -srate;
+
+    loop(iend - istart - 10,
+        istart[i] < rmin ? (
+            rmin = istart[i];
+            return_ind = istart + i;
+        );
+        istart[i] > thresh ? (
+            rmin < thresh ? (
+                rmin = -10;
+            );
+        );
+        i += 1;
+    );
+
+    minLook + parab(return_ind)-istart;
+);
+
+function lim(val, min0, max0)(
+    min0 ==0 & max0 ? (min0 =0; max0 = 1);
+    val = max(min0, min(val, max0)) ;
+    val
+);
+
+function round(num)
+local (mult ret)
+(
+    num >= 0 ? (
+        mult = 1;
+    ) : (
+        mult = -1;
+    );
+
+    abs(num) - floor(abs(num)) >= 0.5 ? (
+        ret = mult * ceil(abs(num));
+    ) : (
+        ret = mult * floor(abs(num));
+    );
+
+    ret;
+);
+
+function cmnd(tau istart iwinend) //Cumulative Mean Normalized Difference (YIN eq. 8)
+local (i return)
+(
+    dbufstart = 127127;
+
+    i = 0;
+    loop(tau + 1,
+        dbufstart[i] = d(i, istart, iwinend);
+        i += 1;
+    );
+
+    tau == 0 ? (
+        return = 1;
+    ):(
+        return = dbufstart[tau] / avg(dbufstart, dbufstart + tau + 1);
+    );
+
+    return;
+);
+
+function getPitch(spos, srate, winSamples, maxlen, windowStep, minF, maxF, YINthresh)
+local (maxLook minLook dpos cmndpos i freq) (
+    maxLook = floor(min(sourceSampleRate/minF,winSamples)); //from MinFreq
+    minLook = floor(sourceSampleRate/maxF); //from MaxFreq
+    dpos = winSamples + 100; //start of cmnd buffer, "difference position"
+    cmndpos = dpos + maxLook + 100;
+    cmndpos[0] = 1;
+
+    i = 0;
+    loop(maxLook - minLook + 1,
+        dpos[i] = d(minLook+i, spos, spos+winSamples);
+        i += 1;
+    );
+
+    i = 1;
+    loop(maxLook - minLook + 1,
+        cmndpos[i] = dpos[i]/(avg(dpos, dpos+i+1));
+        i += 1;
+    );
+
+    avg(dpos, dpos+maxLook-minLook) > 0.00001 ? (
+        freq = srate/findMin(cmndpos, cmndpos+1+maxLook-minLook, YINthresh, srate, minLook);
+    ) : (
+        freq = 0;
+    );
+
+    freq < 0 ? freq = 0;
+    freq
+);
+
+function collectItemData(extStateKey, maxLength, windowStep, minF, maxF, lowRMSlimit, overlap, YINthresh)
+local (item itemTrack itemPosition itemLength itemTake hasData itemSource accessor bufferSize seekPosition length rms trig_note i_com)
+(
+    #takeGUID = "";
+    GetProjExtState(0, extStateKey, "currentTakeGUID", #takeGUID);
+    itemTake = GetMediaItemTakeByGUID(0, #takeGUID);
+    item = GetMediaItemTakeInfo_Value(itemTake, "P_ITEM");
+    itemTrack =  GetMediaItem_Track(item);
+    itemPosition = GetMediaItemInfo_Value(item, "D_POSITION");
+    itemLength = GetMediaItemInfo_Value(item, "D_LENGTH");
+    hasData = 0;
+
+    TakeIsMIDI(itemTake) == 0 ? (
+        startOffset = GetMediaItemTakeInfo_Value(itemTake, "D_STARTOFFS");
+        itemSource = GetMediaItemTake_Source(itemTake);
+        sourceSampleRate = GetMediaSourceSampleRate(itemSource);
+        hasData = 1;
+
+        accessor = CreateTakeAudioAccessor(itemTake);
+        bufferSize = floor(sourceSampleRate * windowStep);
+        length = min(itemLength, maxLength);
+
+        #outputString = "";
+        str_insert(#outputString, "WINDOW ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", windowStep), strlen(#outputString));
+        str_insert(#outputString, "\nBUFSZ ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", bufferSize), strlen(#outputString));
+
+        str_insert(#outputString, "\nMINF ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", minF), strlen(#outputString));
+        str_insert(#outputString, "\nMAXF ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", maxF), strlen(#outputString));
+        str_insert(#outputString, "\nLOWRMSLIM ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", lowRMSlimit), strlen(#outputString));
+        str_insert(#outputString, "\nOVERLAP ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", overlap), strlen(#outputString));
+        str_insert(#outputString, "\nYINTHRESH ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", YINthresh), strlen(#outputString));
+        str_insert(#outputString,"\n<POINTDATA",strlen(#outputString));
+
+        seekPosition = 0;
+        spos = 0;
+        memset(0,0, bufferSize); // clear samplebuffer
+        i_com = 1;
+        pointIndex = 1;
+
+        while (
+            trig_note = 0;
+            GetAudioAccessorSamples(accessor, sourceSampleRate, 1, seekPosition, bufferSize, spos);
+
+            // Get RMS
+            rms = 0; i = 0; loop(bufferSize, rms = rms + abs(spos[i]); i +=1;); rms = rms / bufferSize;
+
+            // Seek transient
+            rmsdB = 20 * log10(rms * 2);
+            last_rmsdB = 20 * log10(last_rms * 2);
+
+            last_rms = rms;
+
+            // Perform Pitch detection
+            f_com = 0;
+            rms > lowRMSlimit ? (
+                frequency = getPitch(spos, sourceSampleRate, bufferSize, maxlen, windowStep, minF, maxF, YINthresh);
+                note = 69 + 12 * log(frequency / 440) / log(2);
+                note = min(max(note, 0), 127);
+
+                frequency > 0 && strlen(#outputString) < 64000 ? (
+                    str_insert(#outputString, "\n   PT ", strlen(#outputString));
+                    str_insert(#outputString, sprintf(#, "%f", pointIndex), strlen(#outputString));
+                    str_insert(#outputString, " ", strlen(#outputString));
+                    str_insert(#outputString, sprintf(#, "%f", seekPosition + startOffset), strlen(#outputString));
+                    str_insert(#outputString, " ", strlen(#outputString));
+                    str_insert(#outputString, sprintf(#, "%f", note), strlen(#outputString));
+                    str_insert(#outputString, " ", strlen(#outputString));
+                    str_insert(#outputString, sprintf(#, "%f", rms), strlen(#outputString));
+                    str_insert(#outputString, " ", strlen(#outputString));
+                    pointIndex += 1;
+                );
+            );
+
+            lastf_com = f_com;
+            i_com = i_com + 1;
+            seekPosition += windowStep / overlap;
+            seekPosition < length - windowStep;
+        );
+
+        DestroyAudioAccessor(accessor);
+        str_insert(#outputString, "\n>\n", strlen(#outputString));
+        extension_api("BR_GetMediaItemTakeGUID", itemTake, #takeGUID);
+        SetProjExtState(0, extStateKey, #takeGUID, #outputString);
+    );
+);
+
+function calculateMain(extStateKey)
+(
+    // get parameters
+    maxLength = 300;
+    windowStep = 0.04;
+    minFreq = 80;
+    maxFreq = 1000;
+    YINthresh = 0.2;
+    overlap = 2;
+    lowRMSLimitdB = -60;
+    lowRMSlimit = exp(lowRMSLimitdB * 0.11512925464970228420089957273422);
+
+    // get/write output
+    collectItemData(extStateKey,
+                    maxLength,
+                    windowStep,
+                    minFreq,
+                    maxFreq,
+                    lowRMSlimit,
+                    overlap,
+                    YINthresh);
+);
+
+#extStateKey = "Alkamist_PitchCorrection";
+calculateMain(#extStateKey);
