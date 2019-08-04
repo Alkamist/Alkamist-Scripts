@@ -1,5 +1,7 @@
 local label = "Pitch Test.lua"
 
+local edgePointSpacing = 0.01
+
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
 end
@@ -9,6 +11,19 @@ function reaperCMD(id)
         reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
     else
         reaper.Main_OnCommand(id, 0)
+    end
+end
+
+function getItemType(item)
+    local _, selectedChunk =  reaper.GetItemStateChunk(item, "", 0)
+    local itemType = string.match(selectedChunk, "<SOURCE%s(%P%P%P).*\n")
+
+    if itemType == nil then
+        return "empty"
+    elseif itemType == "MID" then
+        return "midi"
+    else
+        return "audio"
     end
 end
 
@@ -71,9 +86,16 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         local relativeMIDINotePosition = midiNotes[i].position - itemPosition
         local relativeMIDINoteEnd = relativeMIDINotePosition + midiNotes[i].length
 
-        local edgePointSpacing = 0.01
-        reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-        reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        local clearStart = takePlayrate * relativeMIDINotePosition
+        local clearEnd = takePlayrate * relativeMIDINoteEnd
+
+        if midiNotes[i].overlaps == false then
+            reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
+        end
+
+        if midiNotes[i].isOverlapped == false then
+            reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        end
 
         for j = 1, #pitchData do
             local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
@@ -126,7 +148,7 @@ function main()
                 local currentItemEndsAfterMIDIItem = currentItemEnd > midiItemEnd
                 local itemShouldBeProcessed = currentItemStartsInMIDIItem or currentItemEndsInMIDIItem or (currentItemStartsBeforeMIDIItem and currentItemEndsAfterMIDIItem)
 
-                if itemShouldBeProcessed then
+                if itemShouldBeProcessed and getItemType(currentItem) == "audio" then
                     reaperCMD(40289) -- Unselect all items.
                     reaper.SetMediaItemSelected(currentItem, true)
 
@@ -141,7 +163,6 @@ function main()
                         local clearLength = currentItemTakePlayrate * midiItemLength
                         local clearEnd = clearStart + clearLength
 
-                        local edgePointSpacing = 0.01
                         local leftEdgePointPosition = clearStart - edgePointSpacing * currentItemTakePlayrate
                         local rightEdgePointPosition = clearEnd + edgePointSpacing * currentItemTakePlayrate
                         local _, leftEdgePointValue = reaper.Envelope_Evaluate(pitchEnvelope, leftEdgePointPosition, 44100, 0)
@@ -156,10 +177,10 @@ function main()
                         reaper.InsertEnvelopePoint(pitchEnvelope, clearEnd, 0, 0, 0, false, true)
                         reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 
-                        --reaperCMD(analyzerCommandID)
+                        reaperCMD(analyzerCommandID)
                     else
                         reaperCMD(41612) -- Take: Toggle take pitch envelope
-                        --reaperCMD(analyzerCommandID)
+                        reaperCMD(analyzerCommandID)
                         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
                     end
 
@@ -174,6 +195,22 @@ function main()
                             inputNotes[noteIndex].rightBound = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
                             inputNotes[noteIndex].length = inputNotes[noteIndex].rightBound - inputNotes[noteIndex].position
                             inputNotes[noteIndex].note = notePitch
+
+                            if noteIndex > 1 then
+                                inputNotes[noteIndex - 1].isOverlapped = inputNotes[noteIndex].position <= inputNotes[noteIndex - 1].rightBound + edgePointSpacing
+                                inputNotes[noteIndex].overlaps = inputNotes[noteIndex - 1].isOverlapped
+
+                                if inputNotes[noteIndex - 1].isOverlapped then
+                                    inputNotes[noteIndex - 1].rightBound = inputNotes[noteIndex].position
+                                    inputNotes[noteIndex - 1].length = inputNotes[noteIndex - 1].rightBound - inputNotes[noteIndex - 1].position
+                                end
+                            end
+
+                            -- Handle the edge cases at the end.
+                            if k == numMIDINotes then
+                                inputNotes[1].overlaps = false
+                                inputNotes[#inputNotes].isOverlapped = false
+                            end
 
                             noteIndex = noteIndex + 1
                         end
