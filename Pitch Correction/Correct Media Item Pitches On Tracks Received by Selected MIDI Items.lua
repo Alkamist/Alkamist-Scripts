@@ -1,6 +1,8 @@
 local label = "Pitch Test.lua"
 
 local edgePointSpacing = 0.01
+local portamentoSpeed = 0.05
+local modCorrection = 1.0
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -24,6 +26,36 @@ function getItemType(item)
         return "midi"
     else
         return "audio"
+    end
+end
+
+function itemIsValid(item)
+    local itemExists = reaper.ValidatePtr(item, "MediaItem*")
+    return item ~= nil and itemExists
+end
+
+function setItemSelected(item, selected)
+    if itemIsValid(item) then
+        reaper.SetMediaItemSelected(item, selected)
+    end
+end
+
+function getSelectedItems()
+    local outputItems = {}
+    local numSelectedItems = reaper.CountSelectedMediaItems(0)
+    for i = 1, numSelectedItems do
+        local temporaryItem = reaper.GetSelectedMediaItem(0, i - 1)
+        outputItems[i] = temporaryItem
+    end
+    return outputItems
+end
+
+function restoreSelectedItems(items)
+    if items ~= nil then
+        reaperCMD(40289) -- unselect all items
+        for i = 1, #items do
+            setItemSelected(items[i], true)
+        end
     end
 end
 
@@ -102,7 +134,7 @@ function correctTakePitchToMIDINotes(take, midiNotes)
             local pitchPointIsInBoundsOfMIDINote = relativePitchPointPosition >= relativeMIDINotePosition and relativePitchPointPosition <= relativeMIDINoteEnd
 
             if pitchPointIsInBoundsOfMIDINote then
-                local noteOffset = midiNotes[i].note - pitchData[j].note
+                local noteOffset = modCorrection * (midiNotes[i].note - pitchData[j].note)
 
                 reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, noteOffset, 0, 0, false, true)
             end
@@ -242,7 +274,9 @@ end
 
 reaper.Undo_BeginBlock()
 reaper.PreventUIRefresh(1)
+local selectedItems = getSelectedItems()
 main()
+restoreSelectedItems(selectedItems)
 reaper.PreventUIRefresh(-1)
 reaper.Undo_EndBlock(label, -1)
 reaper.UpdateArrange()
