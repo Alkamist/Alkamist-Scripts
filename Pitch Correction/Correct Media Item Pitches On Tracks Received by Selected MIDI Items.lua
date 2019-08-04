@@ -36,7 +36,7 @@ function getPitchAnalyzerCommandID()
     end
 end
 
-function correctTakePitchToMIDINote(take, midiNote)
+function correctTakePitchToMIDINotes(take, midiNotes)
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
 
@@ -67,21 +67,23 @@ function correctTakePitchToMIDINote(take, midiNote)
         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
     end
 
-    local relativeMIDINotePosition = midiNote.position - itemPosition
-    local relativeMIDINoteEnd = relativeMIDINotePosition + midiNote.length
+    for i = 1, #midiNotes do
+        local relativeMIDINotePosition = midiNotes[i].position - itemPosition
+        local relativeMIDINoteEnd = relativeMIDINotePosition + midiNotes[i].length
 
-    local edgePointSpacing = 0.01
-    reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-    reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        local edgePointSpacing = 0.01
+        reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
+        reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
 
-    for i = 1, #pitchData do
-        local relativePitchPointPosition = pitchData[i].position - takeSourceOffset
-        local pitchPointIsInBoundsOfMIDINote = relativePitchPointPosition >= relativeMIDINotePosition and relativePitchPointPosition <= relativeMIDINoteEnd
+        for j = 1, #pitchData do
+            local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
+            local pitchPointIsInBoundsOfMIDINote = relativePitchPointPosition >= relativeMIDINotePosition and relativePitchPointPosition <= relativeMIDINoteEnd
 
-        if pitchPointIsInBoundsOfMIDINote then
-            local noteOffset = midiNote.note - pitchData[i].note
+            if pitchPointIsInBoundsOfMIDINote then
+                local noteOffset = midiNotes[i].note - pitchData[j].note
 
-            reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, noteOffset, 0, 0, false, true)
+                reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, noteOffset, 0, 0, false, true)
+            end
         end
     end
 
@@ -161,19 +163,23 @@ function main()
                         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
                     end
 
+                    local inputNotes = {}
+                    local noteIndex = 1
                     for k = 1, numMIDINotes do
                         local _, _, noteIsMuted, notePPQStart, notePPQEnd, noteChannel, notePitch, noteVelocity = reaper.MIDI_GetNote(midiItemTake, k - 1)
 
                         if not noteIsMuted then
-                            local inputNote = {}
-                            inputNote.position = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
-                            inputNote.rightBound = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
-                            inputNote.length = inputNote.rightBound - inputNote.position
-                            inputNote.note = notePitch
+                            inputNotes[noteIndex] = {}
+                            inputNotes[noteIndex].position = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
+                            inputNotes[noteIndex].rightBound = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
+                            inputNotes[noteIndex].length = inputNotes[noteIndex].rightBound - inputNotes[noteIndex].position
+                            inputNotes[noteIndex].note = notePitch
 
-                            correctTakePitchToMIDINote(take, inputNote)
+                            noteIndex = noteIndex + 1
                         end
                     end
+
+                    correctTakePitchToMIDINotes(take, inputNotes)
                 end
             end
         end
