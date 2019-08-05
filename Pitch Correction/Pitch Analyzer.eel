@@ -145,7 +145,7 @@ local (maxLook minLook dpos cmndpos i freq) (
     freq
 );
 
-function collectItemData(extStateKey, maxLength, windowStep, minF, maxF, lowRMSlimit, overlap, YINthresh)
+function collectItemData(extStateKey, maxLength, windowStep, minF, maxF, lowRMSlimit, lowRMSlimitdB, overlap, YINthresh)
 local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSource accessor bufferSize seekPosition length rms trig_note i_com)
 (
     #takeGUID = "";
@@ -206,7 +206,7 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
         str_insert(#outputString, "\nMAXF ", strlen(#outputString));
         str_insert(#outputString, sprintf(#,"%f", maxF), strlen(#outputString));
         str_insert(#outputString, "\nLOWRMSLIM ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", lowRMSlimit), strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", lowRMSlimitdB), strlen(#outputString));
         str_insert(#outputString, "\nOVERLAP ", strlen(#outputString));
         str_insert(#outputString, sprintf(#,"%f", overlap), strlen(#outputString));
         str_insert(#outputString, "\nYINTHRESH ", strlen(#outputString));
@@ -295,6 +295,7 @@ function calculateMain(extStateKey)
                     minFreq,
                     maxFreq,
                     lowRMSlimit,
+                    lowRMSLimitdB,
                     overlap,
                     YINthresh);
 );

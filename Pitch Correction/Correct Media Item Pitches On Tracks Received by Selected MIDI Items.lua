@@ -190,7 +190,7 @@ function correctTakePitchToMIDINotes(take, midiNotes)
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 end
 
-function itemPitchesNeedRecalculation(currentItem)
+function itemPitchesNeedRecalculation(currentItem, settings)
     local changeTolerance = 0.000001
 
     local currentItemPosition = reaper.GetMediaItemInfo_Value(currentItem, "D_POSITION")
@@ -209,6 +209,13 @@ function itemPitchesNeedRecalculation(currentItem)
     local previousStartOffset = extState:match("STARTOFFSET ([%.%-%d]+)")
     local previousPlayrate = extState:match("PLAYRATE ([%.%-%d]+)")
     local previousNumStretchMarkers = extState:match("NUMSTRETCHMARKERS ([%.%-%d]+)")
+
+    local previousWindow = extState:match("WINDOW ([%.%-%d]+)")
+    local previousMinF = extState:match("MINF ([%.%-%d]+)")
+    local previousMaxF = extState:match("MAXF ([%.%-%d]+)")
+    local previousLowRMSLim = extState:match("LOWRMSLIM ([%.%-%d]+)")
+    local previousOverlap = extState:match("OVERLAP ([%.%-%d]+)")
+    local previousYINThresh = extState:match("YINTHRESH ([%.%-%d]+)")
 
     local extStateIsProper = previousItemLength and previousStartOffset and previousPlayrate and previousNumStretchMarkers
     if not extStateIsProper then
@@ -233,6 +240,13 @@ function itemPitchesNeedRecalculation(currentItem)
     if math.abs(previousPlayrate - currentItemTakePlayrate) > changeTolerance  then itemNeedsRecalculation = true end
     if math.abs(previousNumStretchMarkers - currentNumStretchMarkers) > changeTolerance then itemNeedsRecalculation = true end
 
+    if math.abs(previousWindow - settings.windowStep) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousMinF - settings.minimumFrequency) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousMaxF - settings.maximumFrequency) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousLowRMSLim - settings.lowRMSLimitdB) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousOverlap - settings.overlap) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousYINThresh - settings.YINThresh) > changeTolerance then itemNeedsRecalculation = true end
+
     if not itemNeedsRecalculation then
         for i = 1, currentNumStretchMarkers do
             local _, stretchPos, stretchSourcePos = reaper.GetTakeStretchMarker(currentItemTake, i - 1)
@@ -255,7 +269,7 @@ function saveSettingsInExtState(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
-function main()
+function main(settings)
     local ret, analyzerCommandID = getPitchAnalyzerCommandID()
     if ret and analyzerCommandID and analyzerCommandID ~= 0 then
     else
@@ -339,7 +353,7 @@ function main()
                     end
 
                     -- Calculating the pitches of items takes a long time. Only do it if we need to.
-                    if itemPitchesNeedRecalculation(currentItem) then
+                    if itemPitchesNeedRecalculation(currentItem, settings) then
                         -- Document the previous pitch, and then change the pitch to 0.0 for processing.
                         local currentTakePitch = reaper.GetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH")
                         reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", 0.0)
@@ -400,7 +414,7 @@ reaper.PreventUIRefresh(1)
 saveSettingsInExtState(settings)
 local selectedItems = getSelectedItems()
 
-main()
+main(settings)
 
 restoreSelectedItems(selectedItems)
 
