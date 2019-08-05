@@ -1,14 +1,23 @@
 local label = "Pitch Test.lua"
 
+-- Pitch correction settings:
 local edgePointSpacing = 0.01
 local portamentoSpeed = 0.05
-local modCorrection = 0.5
+local modCorrection = 1.0
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.2
 
-local windowStep = 0.04
-local overlap = 2.0
-local driftCorrectionNumPoints = math.floor(driftCorrectionSpeed * overlap / windowStep)
+-- Pitch detection settings:
+local settings = {}
+settings.maximumLength = 300
+settings.windowStep = 0.04
+settings.overlap = 2.0
+settings.minimumFrequency = 80
+settings.maximumFrequency = 1000
+settings.YINThresh = 0.2
+settings.lowRMSLimitdB = -60
+
+local driftCorrectionNumPoints = math.max(math.floor(driftCorrectionSpeed * settings.overlap / settings.windowStep), 1)
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -236,6 +245,16 @@ function itemPitchesNeedRecalculation(currentItem)
     return itemNeedsRecalculation
 end
 
+function saveSettingsInExtState(settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
+end
+
 function main()
     local ret, analyzerCommandID = getPitchAnalyzerCommandID()
     if ret and analyzerCommandID and analyzerCommandID ~= 0 then
@@ -245,6 +264,10 @@ function main()
     end
 
     local midiItem = reaper.GetSelectedMediaItem(0, 0)
+    if midiItem == nil then
+        return
+    end
+
     local midiItemTake = reaper.GetActiveTake(midiItem)
     local midiItemTrack = reaper.GetMediaItemTrack(midiItem)
     local midiItemPosition = reaper.GetMediaItemInfo_Value(midiItem, "D_POSITION")
@@ -373,9 +396,14 @@ end
 
 reaper.Undo_BeginBlock()
 reaper.PreventUIRefresh(1)
+
+saveSettingsInExtState(settings)
 local selectedItems = getSelectedItems()
+
 main()
+
 restoreSelectedItems(selectedItems)
+
 reaper.PreventUIRefresh(-1)
 reaper.Undo_EndBlock(label, -1)
 reaper.UpdateArrange()

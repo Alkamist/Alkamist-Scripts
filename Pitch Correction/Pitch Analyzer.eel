@@ -268,17 +268,27 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
 
 function calculateMain(extStateKey)
 (
-    // get parameters
-    maxLength = 300;
-    windowStep = 0.04;
-    minFreq = 80;
-    maxFreq = 1000;
-    YINthresh = 0.2;
-    overlap = 2;
-    lowRMSLimitdB = -60;
+    // Get parameters from the ext state.
+    GetExtState(#maxLength, "Alkamist_PitchCorrection", "MAXLENGTH");
+    GetExtState(#windowStep, "Alkamist_PitchCorrection", "WINDOWSTEP");
+    GetExtState(#minFreq, "Alkamist_PitchCorrection", "MINFREQ");
+    GetExtState(#maxFreq, "Alkamist_PitchCorrection", "MAXFREQ");
+    GetExtState(#YINthresh, "Alkamist_PitchCorrection", "YINTHRESH");
+    GetExtState(#overlap, "Alkamist_PitchCorrection", "OVERLAP");
+    GetExtState(#lowRMSLimitdB, "Alkamist_PitchCorrection", "LOWRMSLIMDB");
+
+    // Convert the parameters from strings to numbers.
+    match("%f", #maxLength, maxLength);
+    match("%f", #windowStep, windowStep);
+    match("%f", #minFreq, minFreq);
+    match("%f", #maxFreq, maxFreq);
+    match("%f", #YINthresh, YINthresh);
+    match("%f", #overlap, overlap);
+    match("%f", #lowRMSLimitdB, lowRMSLimitdB);
+
     lowRMSlimit = exp(lowRMSLimitdB * 0.11512925464970228420089957273422);
 
-    // get/write output
+    // Process the audio item and write to the ext state.
     collectItemData(extStateKey,
                     maxLength,
                     windowStep,
