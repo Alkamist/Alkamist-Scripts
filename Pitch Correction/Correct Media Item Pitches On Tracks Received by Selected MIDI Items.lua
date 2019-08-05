@@ -3,8 +3,8 @@ local label = "Pitch Test.lua"
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
 local portamentoSpeed = 0.07
-local modCorrection = 0.0
-local driftCorrection = 0.0
+local modCorrection = 0.5
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.25
 
 -- Pitch detection settings:
@@ -143,7 +143,7 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         if midiNotes[i].overlaps then
             if i > 1 then
                 portamentoAdditive = midiNotes[i].note - midiNotes[i - 1].note
-                targetNote = midiNotes[i - 1].note
+                targetNote = midiNotes[i - 1].note + portamentoAdditive * (1.0 - modCorrection)
             end
         else
             reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
