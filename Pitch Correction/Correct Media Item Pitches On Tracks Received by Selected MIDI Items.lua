@@ -3,9 +3,9 @@ local label = "Pitch Test.lua"
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
 local portamentoSpeed = 0.07
-local modCorrection = 1.0
-local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.2
+local modCorrection = 0.0
+local driftCorrection = 0.0
+local driftCorrectionSpeed = 0.25
 
 -- Pitch detection settings:
 local settings = {}
@@ -18,7 +18,6 @@ settings.YINThresh = 0.2
 settings.lowRMSLimitdB = -60
 
 local timePerPoint = settings.windowStep / settings.overlap
-local pointsPerPortamento = math.floor(portamentoSpeed / timePerPoint)
 local driftCorrectionNumPoints = math.max(math.floor(driftCorrectionSpeed / timePerPoint), 1)
 
 function msg(m)
@@ -131,7 +130,6 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
     end
 
-    local previousTargetNote = midiNotes[1].note
     for i = 1, #midiNotes do
         local targetNote = midiNotes[i].note
         local portamentoAdditive = 0
@@ -144,7 +142,7 @@ function correctTakePitchToMIDINotes(take, midiNotes)
 
         if midiNotes[i].overlaps then
             if i > 1 then
-                portamentoAdditive = (midiNotes[i].note - midiNotes[i - 1].note) / pointsPerPortamento
+                portamentoAdditive = midiNotes[i].note - midiNotes[i - 1].note
                 targetNote = midiNotes[i - 1].note
             end
         else
@@ -171,7 +169,12 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         noteAverage = noteAverage / #notePitchData
 
         for j = 1, #notePitchData do
-            targetNote = targetNote + portamentoAdditive
+            local timePassedSinceLastPoint = 0
+            if j > 1 then
+                timePassedSinceLastPoint = notePitchData[j].position - notePitchData[j - 1].position
+            end
+            targetNote = targetNote + portamentoAdditive * timePassedSinceLastPoint / portamentoSpeed
+
             if portamentoAdditive > 0 then targetNote = math.min(targetNote, midiNotes[i].note) end
             if portamentoAdditive < 0 then targetNote = math.max(targetNote, midiNotes[i].note) end
 
