@@ -2,7 +2,7 @@ local label = "Pitch Test.lua"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local portamentoSpeed = 0.05
+local portamentoSpeed = 0.07
 local modCorrection = 1.0
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.2
@@ -17,7 +17,9 @@ settings.maximumFrequency = 1000
 settings.YINThresh = 0.2
 settings.lowRMSLimitdB = -60
 
-local driftCorrectionNumPoints = math.max(math.floor(driftCorrectionSpeed * settings.overlap / settings.windowStep), 1)
+local timePerPoint = settings.windowStep / settings.overlap
+local pointsPerPortamento = math.floor(portamentoSpeed / timePerPoint)
+local driftCorrectionNumPoints = math.max(math.floor(driftCorrectionSpeed / timePerPoint), 1)
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -129,18 +131,27 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
     end
 
+    local previousTargetNote = midiNotes[1].note
     for i = 1, #midiNotes do
+        local targetNote = midiNotes[i].note
+        local portamentoAdditive = 0
+
         local relativeMIDINotePosition = midiNotes[i].position - itemPosition
         local relativeMIDINoteEnd = relativeMIDINotePosition + midiNotes[i].length
 
         local clearStart = takePlayrate * relativeMIDINotePosition
         local clearEnd = takePlayrate * relativeMIDINoteEnd
 
-        if midiNotes[i].overlaps == false then
+        if midiNotes[i].overlaps then
+            if i > 1 then
+                portamentoAdditive = (midiNotes[i].note - midiNotes[i - 1].note) / pointsPerPortamento
+                targetNote = midiNotes[i - 1].note
+            end
+        else
             reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
         end
 
-        if midiNotes[i].isOverlapped == false then
+        if not midiNotes[i].isOverlapped then
             reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
         end
 
@@ -160,7 +171,10 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         noteAverage = noteAverage / #notePitchData
 
         for j = 1, #notePitchData do
-            local targetNote = midiNotes[i].note
+            targetNote = targetNote + portamentoAdditive
+            if portamentoAdditive > 0 then targetNote = math.min(targetNote, midiNotes[i].note) end
+            if portamentoAdditive < 0 then targetNote = math.max(targetNote, midiNotes[i].note) end
+
             local relativePitchPointPosition = notePitchData[j].position - takeSourceOffset
             local pitchCorrection = targetNote - noteAverage
 
@@ -179,8 +193,8 @@ function correctTakePitchToMIDINotes(take, midiNotes)
 
             local scaledPitchDrift = pitchDrift * driftCorrection
             pitchCorrection = pitchCorrection - scaledPitchDrift
-            local modDeviation = notePitchData[j].note - noteAverage - scaledPitchDrift
 
+            local modDeviation = notePitchData[j].note - noteAverage - scaledPitchDrift
             pitchCorrection = pitchCorrection - modDeviation * modCorrection
 
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, pitchCorrection, 0, 0, false, true)
