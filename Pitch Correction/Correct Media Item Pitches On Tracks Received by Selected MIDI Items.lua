@@ -2,10 +2,11 @@ local label = "Pitch Test.lua"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local portamentoSpeed = 0.5
-local modCorrection = 0.5
+local maxPortamentoSpeed = 0.5
+local averageCorrection = 1.0
+local modCorrection = 0.4
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.25
+local driftCorrectionSpeed = 0.2
 local zeroPointThreshold = 0.1
 
 -- Pitch detection settings:
@@ -13,7 +14,7 @@ local settings = {}
 settings.maximumLength = 300
 settings.windowStep = 0.04
 settings.overlap = 2.0
-settings.minimumFrequency = 80
+settings.minimumFrequency = 60
 settings.maximumFrequency = 1000
 settings.YINThresh = 0.2
 settings.lowRMSLimitdB = -60
@@ -150,7 +151,7 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         local clearStart = takePlayrate * relativeMIDINotePosition
         local clearEnd = takePlayrate * relativeMIDINoteEnd
 
-        if midiNotes[i].overlaps and portamentoSpeed and i > 1 then
+        if midiNotes[i].overlaps and maxPortamentoSpeed and i > 1 then
             portamentoAdditive = midiNotes[i].note - midiNotes[i - 1].note
         else
             reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
@@ -199,19 +200,21 @@ function correctTakePitchToMIDINotes(take, midiNotes)
                 end
             end
 
-            -- Process the target note with portamento if portamentoSpeed is not nil.
-            if portamentoSpeed then
-                local velocityScaledPortamentoSpeed = portamentoSpeed * (1.0 - midiNotes[i].velocity / 127.0)
+            -- Process the target note with portamento if maxPortamentoSpeed is not nil.
+            if maxPortamentoSpeed then
+                local velocityScaledPortamentoSpeed = maxPortamentoSpeed * (1.0 - midiNotes[i].velocity / 127.0)
 
                 if velocityScaledPortamentoSpeed > 0 then
                     targetNote = targetNote + portamentoAdditive * timePassedSinceLastPoint / velocityScaledPortamentoSpeed
-                    if portamentoAdditive > 0 and portamentoSpeed then targetNote = math.min(targetNote, midiNotes[i].note) end
-                    if portamentoAdditive < 0 and portamentoSpeed then targetNote = math.max(targetNote, midiNotes[i].note) end
+                    if portamentoAdditive > 0 and maxPortamentoSpeed then targetNote = math.min(targetNote, midiNotes[i].note) end
+                    if portamentoAdditive < 0 and maxPortamentoSpeed then targetNote = math.max(targetNote, midiNotes[i].note) end
+                else
+                    targetNote = midiNotes[i].note
                 end
             end
 
             local averageDeviation = noteAverage - targetNote
-            local pitchCorrection = -averageDeviation
+            local pitchCorrection = -averageDeviation * averageCorrection
 
             -- Process the pitch drift.
             local pitchDrift = 0
