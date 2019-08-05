@@ -330,7 +330,7 @@ function saveSettingsInExtState(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
-function main(settings)
+function correctPitchBasedOnMIDIItem(midiItem, settings)
     local ret, analyzerCommandID = getPitchAnalyzerCommandID()
     if ret and analyzerCommandID and analyzerCommandID ~= 0 then
     else
@@ -338,7 +338,6 @@ function main(settings)
         return
     end
 
-    local midiItem = reaper.GetSelectedMediaItem(0, 0)
     if midiItem == nil then
         return
     end
@@ -476,7 +475,10 @@ reaper.PreventUIRefresh(1)
 saveSettingsInExtState(settings)
 local selectedItems = getSelectedItems()
 
-main(settings)
+for i = 1, #selectedItems do
+    local item = selectedItems[i]
+    correctPitchBasedOnMIDIItem(item, settings)
+end
 
 restoreSelectedItems(selectedItems)
 
