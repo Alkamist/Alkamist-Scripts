@@ -3,6 +3,12 @@ local label = "Pitch Test.lua"
 local edgePointSpacing = 0.01
 local portamentoSpeed = 0.05
 local modCorrection = 0.5
+local driftCorrection = 1.0
+local driftCorrectionSpeed = 0.2
+
+local windowStep = 0.04
+local overlap = 2.0
+local driftCorrectionNumPoints = math.floor(driftCorrectionSpeed * overlap / windowStep)
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -147,10 +153,26 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         for j = 1, #notePitchData do
             local targetNote = midiNotes[i].note
             local relativePitchPointPosition = notePitchData[j].position - takeSourceOffset
-            --local pitchCorrection = midiNotes[i].note - notePitchData[j].note
             local pitchCorrection = targetNote - noteAverage
-            local deviationFromAverage = notePitchData[j].note - noteAverage
-            pitchCorrection = pitchCorrection - deviationFromAverage * modCorrection
+
+            local pitchDrift = 0
+            local driftEndIndex = 0
+            for k = 1, driftCorrectionNumPoints do
+                local driftIndex = j + k - math.floor(driftCorrectionNumPoints * 0.5)
+                if driftIndex > 0 and driftIndex < #notePitchData then
+                    pitchDrift = pitchDrift + (notePitchData[driftIndex].note - noteAverage)
+                    driftEndIndex = driftEndIndex + 1
+                end
+            end
+            if driftEndIndex > 0 then
+                pitchDrift = pitchDrift / driftEndIndex
+            end
+
+            local scaledPitchDrift = pitchDrift * driftCorrection
+            pitchCorrection = pitchCorrection - scaledPitchDrift
+            local modDeviation = notePitchData[j].note - noteAverage - scaledPitchDrift
+
+            pitchCorrection = pitchCorrection - modDeviation * modCorrection
 
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, pitchCorrection, 0, 0, false, true)
         end
