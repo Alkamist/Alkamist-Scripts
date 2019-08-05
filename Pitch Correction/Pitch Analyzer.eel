@@ -146,7 +146,7 @@ local (maxLook minLook dpos cmndpos i freq) (
 );
 
 function collectItemData(extStateKey, maxLength, windowStep, minF, maxF, lowRMSlimit, overlap, YINthresh)
-local (item itemTrack itemPosition itemLength itemTake hasData itemSource accessor bufferSize seekPosition length rms trig_note i_com)
+local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSource accessor bufferSize seekPosition length rms trig_note i_com)
 (
     #takeGUID = "";
     GetProjExtState(0, extStateKey, "currentTakeGUID", #takeGUID);
@@ -159,6 +159,8 @@ local (item itemTrack itemPosition itemLength itemTake hasData itemSource access
 
     TakeIsMIDI(itemTake) == 0 ? (
         startOffset = GetMediaItemTakeInfo_Value(itemTake, "D_STARTOFFS");
+        playrate = GetMediaItemTakeInfo_Value(itemTake, "D_PLAYRATE");
+        numStretchMarkers = GetTakeNumStretchMarkers(itemTake);
         itemSource = GetMediaItemTake_Source(itemTake);
         sourceSampleRate = GetMediaSourceSampleRate(itemSource);
         hasData = 1;
@@ -168,6 +170,32 @@ local (item itemTrack itemPosition itemLength itemTake hasData itemSource access
         length = min(itemLength, maxLength);
 
         #outputString = "";
+        str_insert(#outputString, "LENGTH ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", itemLength), strlen(#outputString));
+        str_insert(#outputString, "\nSTARTOFFSET ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", startOffset), strlen(#outputString));
+        str_insert(#outputString, "\nPLAYRATE ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", playrate), strlen(#outputString));
+        str_insert(#outputString, "\nNUMSTRETCHMARKERS ", strlen(#outputString));
+        str_insert(#outputString, sprintf(#,"%f", numStretchMarkers), strlen(#outputString));
+
+        str_insert(#outputString, "\n<STRETCHMARKERS ", strlen(#outputString));
+
+        stretchMarkerIndex = 1;
+        loop (numStretchMarkers,
+            GetTakeStretchMarker(itemTake, stretchMarkerIndex - 1, stretchMarkerPosition, stretchMarkerSourcePosition);
+
+            str_insert(#outputString, "\n   SM ", strlen(#outputString));
+            str_insert(#outputString, sprintf(#, "%f", stretchMarkerIndex), strlen(#outputString));
+            str_insert(#outputString, " ", strlen(#outputString));
+            str_insert(#outputString, sprintf(#, "%f", stretchMarkerPosition), strlen(#outputString));
+            str_insert(#outputString, " ", strlen(#outputString));
+            str_insert(#outputString, sprintf(#, "%f", stretchMarkerSourcePosition), strlen(#outputString));
+
+            stretchMarkerIndex += 1;
+        );
+        str_insert(#outputString, "\n>\n", strlen(#outputString));
+
         str_insert(#outputString, "WINDOW ", strlen(#outputString));
         str_insert(#outputString, sprintf(#,"%f", windowStep), strlen(#outputString));
         str_insert(#outputString, "\nBUFSZ ", strlen(#outputString));

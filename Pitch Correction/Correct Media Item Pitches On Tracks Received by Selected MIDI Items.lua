@@ -144,6 +144,61 @@ function correctTakePitchToMIDINotes(take, midiNotes)
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 end
 
+function itemPitchesNeedRecalculation(currentItem)
+    local changeTolerance = 0.000001
+
+    local currentItemPosition = reaper.GetMediaItemInfo_Value(currentItem, "D_POSITION")
+    local currentItemLength = reaper.GetMediaItemInfo_Value(currentItem, "D_LENGTH")
+    local currentItemTake = reaper.GetActiveTake(currentItem)
+    local currentItemTakePlayrate = reaper.GetMediaItemTakeInfo_Value(currentItemTake, "D_PLAYRATE")
+    local currentItemStartOffset = reaper.GetMediaItemTakeInfo_Value(currentItemTake, "D_STARTOFFS")
+    local currentItemEnd = currentItemPosition + currentItemLength
+    local currentNumStretchMarkers = reaper.GetTakeNumStretchMarkers(currentItemTake)
+    local takeGUID = reaper.BR_GetMediaItemTakeGUID(currentItemTake)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
+
+    local itemNeedsRecalculation = false
+
+    local previousItemLength = extState:match("LENGTH ([%.%-%d]+)")
+    local previousStartOffset = extState:match("STARTOFFSET ([%.%-%d]+)")
+    local previousPlayrate = extState:match("PLAYRATE ([%.%-%d]+)")
+    local previousNumStretchMarkers = extState:match("NUMSTRETCHMARKERS ([%.%-%d]+)")
+
+    local extStateIsProper = previousItemLength and previousStartOffset and previousPlayrate and previousNumStretchMarkers
+    if not extStateIsProper then
+        return true
+    end
+
+    local previousStretchMarkers = {}
+    for line in extState:gmatch("[^\r\n]+") do
+        if line:match("SM") then
+            local stat = {}
+            for value in line:gmatch("[%.%-%d]+") do
+                stat[#stat + 1] = tonumber(value)
+            end
+            previousStretchMarkers[stat[1]] = {}
+            previousStretchMarkers[stat[1]].position = stat[2]
+            previousStretchMarkers[stat[1]].sourcePosition = stat[3]
+        end
+    end
+
+    if math.abs(previousItemLength - currentItemLength) > changeTolerance then itemNeedsRecalculation = true end
+    if math.abs(previousStartOffset - currentItemStartOffset) > changeTolerance  then itemNeedsRecalculation = true end
+    if math.abs(previousPlayrate - currentItemTakePlayrate) > changeTolerance  then itemNeedsRecalculation = true end
+    if math.abs(previousNumStretchMarkers - currentNumStretchMarkers) > changeTolerance then itemNeedsRecalculation = true end
+
+    if not itemNeedsRecalculation then
+        for i = 1, currentNumStretchMarkers do
+            local _, stretchPos, stretchSourcePos = reaper.GetTakeStretchMarker(currentItemTake, i - 1)
+
+            if math.abs(previousStretchMarkers[i].position - stretchPos) > changeTolerance then itemNeedsRecalculation = true end
+            if math.abs(previousStretchMarkers[i].sourcePosition - stretchSourcePos) > changeTolerance then itemNeedsRecalculation = true end
+        end
+    end
+
+    return itemNeedsRecalculation
+end
+
 function main()
     local ret, analyzerCommandID = getPitchAnalyzerCommandID()
     if ret and analyzerCommandID and analyzerCommandID ~= 0 then
@@ -191,13 +246,12 @@ function main()
                     -- Save the current GUID of the item take we are processing in the ext state.
                     -- Since there is no way to pass arguments to the external EEL script, we need
                     -- to do this so it knows which item to process.
-                    local take = reaper.GetActiveTake(currentItem)
-                    local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
+                    local takeGUID = reaper.BR_GetMediaItemTakeGUID(currentItemTake)
                     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
 
                     -- If a take pitch envelope already exists, then we need to clean the content in it
                     -- that exists within the bounds of the MIDI item.
-                    local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
+                    local pitchEnvelope = reaper.GetTakeEnvelopeByName(currentItemTake, "Pitch")
                     if pitchEnvelope and reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
                         local clearStart = currentItemTakePlayrate * (midiItemPosition - currentItemPosition)
                         local clearLength = currentItemTakePlayrate * midiItemLength
@@ -221,15 +275,23 @@ function main()
                         reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
                     else
                         reaperCMD(41612) -- Take: Toggle take pitch envelope
-                        pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
+                        pitchEnvelope = reaper.GetTakeEnvelopeByName(currentItemTake, "Pitch")
                     end
 
-                    -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
-                    reaperCMD("_S&M_TAKEENV11")
-                    -- Analyze the audio to determine its pitches.
-                    reaperCMD(analyzerCommandID)
-                    -- Show and unbypass the take pitch envelope.
-                    reaperCMD("_S&M_TAKEENV10")
+                    -- Calculating the pitches of items takes a long time. Only do it if we need to.
+                    if itemPitchesNeedRecalculation(currentItem) then
+                        -- Document the previous pitch, and then change the pitch to 0.0 for processing.
+                        local currentTakePitch = reaper.GetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH")
+                        reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", 0.0)
+                        -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
+                        reaperCMD("_S&M_TAKEENV11")
+                        -- Analyze the audio to determine its pitches.
+                        reaperCMD(analyzerCommandID)
+                        -- Set the pitch back to what it once was after the processing.
+                        reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", currentTakePitch)
+                        -- Show and unbypass the take pitch envelope.
+                        reaperCMD("_S&M_TAKEENV10")
+                    end
 
                     local inputNotes = {}
                     local noteIndex = 1
@@ -265,7 +327,7 @@ function main()
                         end
                     end
 
-                    correctTakePitchToMIDINotes(take, inputNotes)
+                    correctTakePitchToMIDINotes(currentItemTake, inputNotes)
                 end
             end
         end
