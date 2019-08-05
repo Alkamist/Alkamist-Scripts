@@ -2,7 +2,7 @@ local label = "Pitch Test.lua"
 
 local edgePointSpacing = 0.01
 local portamentoSpeed = 0.05
-local modCorrection = 1.0
+local modCorrection = 0.5
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -129,15 +129,30 @@ function correctTakePitchToMIDINotes(take, midiNotes)
             reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
         end
 
+        local notePitchData = {}
+        local noteAverage = 0
+        local dataIndex = 1
         for j = 1, #pitchData do
             local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
             local pitchPointIsInBoundsOfMIDINote = relativePitchPointPosition >= relativeMIDINotePosition and relativePitchPointPosition <= relativeMIDINoteEnd
 
             if pitchPointIsInBoundsOfMIDINote then
-                local noteOffset = modCorrection * (midiNotes[i].note - pitchData[j].note)
-
-                reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, noteOffset, 0, 0, false, true)
+                notePitchData[dataIndex] = pitchData[j]
+                noteAverage = noteAverage + pitchData[j].note
+                dataIndex = dataIndex + 1
             end
+        end
+        noteAverage = noteAverage / #notePitchData
+
+        for j = 1, #notePitchData do
+            local targetNote = midiNotes[i].note
+            local relativePitchPointPosition = notePitchData[j].position - takeSourceOffset
+            --local pitchCorrection = midiNotes[i].note - notePitchData[j].note
+            local pitchCorrection = targetNote - noteAverage
+            local deviationFromAverage = notePitchData[j].note - noteAverage
+            pitchCorrection = pitchCorrection - deviationFromAverage * modCorrection
+
+            reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, pitchCorrection, 0, 0, false, true)
         end
     end
 
