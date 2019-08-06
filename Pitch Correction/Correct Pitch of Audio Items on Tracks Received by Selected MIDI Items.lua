@@ -6,9 +6,9 @@ local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI 
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local averageCorrection = 1.0
-local modCorrection = 0.4
-local driftCorrection = 1.0
+local averageCorrection = 0.0
+local modCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.2
 local zeroPointThreshold = 0.1
 
@@ -162,21 +162,20 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
 
     local previousPointIndex = 1
     for key, correction in pcPairs(pitchCorrections) do
-        local relativePitchLeftTime = correction.leftTime - itemPosition
-        local relativePitchRightTime = correction.rightTime - itemPosition
+        --msg(correction.leftTime)
+        --msg(correction.rightTime)
+        local clearStart = takePlayrate * correction.leftTime
+        local clearEnd = takePlayrate * correction.rightTime
 
-        local clearStart = takePlayrate * relativePitchLeftTime
-        local clearEnd = takePlayrate * relativePitchRightTime
-
-        --reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchLeftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-        --reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchRightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        --reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
+        --reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
 
         local pitchData = {}
         local noteAverage = 0
         local dataIndex = 1
         for j = 1, #takePitchData do
             local relativePitchPointPosition = takePitchData[j].position - takeSourceOffset
-            local pitchPointIsInPitchCorrection = relativePitchPointPosition >= relativePitchLeftTime and relativePitchPointPosition <= relativePitchRightTime
+            local pitchPointIsInPitchCorrection = relativePitchPointPosition >= correction.leftTime and relativePitchPointPosition <= correction.rightTime
 
             if pitchPointIsInPitchCorrection then
                 pitchData[dataIndex] = takePitchData[j]
@@ -209,7 +208,8 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
                 end
             end
 
-            local targetNote = correction:getPitch(pitchData[j].position + itemPosition)
+            --local targetNote = correction:getPitch(pitchData[j].position - takeSourceOffset)
+            local targetNote = correction.leftPitch
 
             local averageDeviation = noteAverage - targetNote
             local pitchCorrection = -averageDeviation * averageCorrection
@@ -425,8 +425,8 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         -- Only use notes that are not muted for processing.
                         if not noteIsMuted then
                             local pitchCorrection = PitchCorrection:new()
-                            pitchCorrection.leftTime = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
-                            pitchCorrection.rightTime = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
+                            pitchCorrection.leftTime = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition) - currentItemPosition
+                            pitchCorrection.rightTime = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd) - currentItemPosition
                             pitchCorrection.leftPitch = notePitch
                             pitchCorrection.rightPitch = notePitch
 
