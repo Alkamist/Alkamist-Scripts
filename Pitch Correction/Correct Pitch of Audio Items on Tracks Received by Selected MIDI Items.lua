@@ -162,8 +162,11 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
 
     local previousPointIndex = 1
     for key, correction in pcPairs(pitchCorrections) do
-        --msg(correction.leftTime)
-        --msg(correction.rightTime)
+        msg("-")
+        msg(correction.leftTime)
+        msg(correction.rightTime)
+        msg(correction.leftPitch)
+        msg(correction.rightPitch)
         local clearStart = takePlayrate * correction.leftTime
         local clearEnd = takePlayrate * correction.rightTime
 
@@ -208,8 +211,8 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
                 end
             end
 
-            --local targetNote = correction:getPitch(pitchData[j].position - takeSourceOffset)
-            local targetNote = correction.leftPitch
+            local targetNote = correction:getPitch(pitchData[j].position - takeSourceOffset)
+            --local targetNote = correction.rightPitch
 
             local averageDeviation = noteAverage - targetNote
             local pitchCorrection = -averageDeviation * averageCorrection

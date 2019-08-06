@@ -37,8 +37,7 @@ function PitchCorrection:getPitch(time)
     if length ~= 0 then
         local timeRatio = (time - self.leftTime) / self:getLength()
         local rawPitch = self.leftPitch + self:getInterval() * timeRatio
-        local clampedPitch = math.min(math.max(rawPitch, self.leftPitch), self.rightPitch)
-        return clampedPitch
+        return rawPitch
     else
         return self.leftPitch
     end
@@ -75,69 +74,37 @@ function pcPairs(pitchCorrections)
 end
 
 function getOverlapHandledPitchCorrections(pitchCorrections)
-    local newCorrections = {}
-    local overlapCorrections = {}
-    local finalOverlapCorrections = {}
-    local finalOverlapTime = 0
-    local firstWasNotOverlapped = true
+    local newCorrections = copyObject(pitchCorrections)
+    local previousCorrection = nil
+    local previousKey = nil
+    local overlapsInARow = 1
 
     local loopIndex = 1
-    local previousKey = nil
-
     for key, correction in pcPairs(pitchCorrections) do
-        if loopIndex == 1 then
-            overlapCorrections.left = correction
-            overlapCorrections.slide = correction
-            overlapCorrections.right = correction
-        else
-            local overlapTime = overlapCorrections.slide.rightTime - correction.leftTime
+        local newCorrection = newCorrections[key]
+
+        if loopIndex > 1 then
+            local overlapTime = previousCorrection.rightTime - newCorrection.leftTime
 
             if overlapTime > 0 then
-                finalOverlapTime = overlapTime
+                previousCorrection.rightPitch = previousCorrection:getPitch(previousCorrection.rightTime - overlapTime)
+                previousCorrection.rightTime = previousCorrection.rightTime - overlapTime
 
-                local leftCorrection = copyObject(overlapCorrections.slide)
-                leftCorrection.rightPitch = leftCorrection:getPitch(leftCorrection.rightTime - overlapTime)
-                leftCorrection.rightTime = leftCorrection.rightTime - overlapTime
+                newCorrection.leftPitch = newCorrection:getPitch(newCorrection.leftTime + overlapTime)
+                newCorrection.leftTime = newCorrection.leftTime + overlapTime
 
-                local slideCorrection = PitchCorrection:new(correction.leftTime,
-                                                            overlapCorrections.right.rightTime,
-                                                            overlapCorrections.slide:getPitch(correction.leftTime),
-                                                            correction:getPitch(overlapCorrections.right.rightTime))
+                local slideCorrection = PitchCorrection:new(previousCorrection.rightTime,
+                                                            newCorrection.leftTime,
+                                                            previousCorrection.rightPitch,
+                                                            newCorrection.leftPitch)
 
-                local rightCorrection = copyObject(correction)
-                rightCorrection.leftTime = overlapCorrections.right.rightTime
-
-                overlapCorrections.left = leftCorrection
-                overlapCorrections.slide = slideCorrection
-                overlapCorrections.right = rightCorrection
-
-                finalOverlapCorrections.left = leftCorrection
-                finalOverlapCorrections.slide = slideCorrection
-                finalOverlapCorrections.right = rightCorrection
-
-                if loopIndex == 2 then
-                    firstWasNotOverlapped = false
-                end
-            else
-                overlapCorrections.left = correction
-                overlapCorrections.slide = correction
-                overlapCorrections.right = correction
+                table.insert(newCorrections, slideCorrection)
             end
-
-            table.insert(newCorrections, overlapCorrections.left)
         end
 
         previousKey = key
+        previousCorrection = newCorrection
         loopIndex = loopIndex + 1
-    end
-
-    if finalOverlapTime > 0 then
-        table.insert(newCorrections, finalOverlapCorrections.slide)
-        table.insert(newCorrections, finalOverlapCorrections.right)
-    end
-
-    if firstWasNotOverlapped and loopIndex > 1 then
-        table.insert(newCorrections, pitchCorrections[1])
     end
 
     return newCorrections
