@@ -1,4 +1,4 @@
-local label = "Pitch Test.lua"
+local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI Items.lua"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
