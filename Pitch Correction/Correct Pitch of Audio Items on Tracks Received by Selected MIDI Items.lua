@@ -1,8 +1,11 @@
+package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. "?.lua;" .. package.path
+
+require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchCorrection"
+
 local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI Items.lua"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local maxPortamentoSpeed = 0.5
 local averageCorrection = 1.0
 local modCorrection = 0.4
 local driftCorrection = 1.0
@@ -123,27 +126,27 @@ end
 function getPitchData(takeGUID)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
 
-    local pitchData = {}
+    local takePitchData = {}
     for line in extState:gmatch("[^\r\n]+") do
         if line:match("PT") then
             local stat = {}
             for value in line:gmatch("[%.%-%d]+") do
                 stat[#stat + 1] = tonumber(value)
             end
-            pitchData[stat[1]] = {}
-            pitchData[stat[1]].index = stat[1]
-            pitchData[stat[1]].position = stat[2]
-            pitchData[stat[1]].note = stat[3]
-            pitchData[stat[1]].rms = stat[4]
+            takePitchData[stat[1]] = {}
+            takePitchData[stat[1]].index = stat[1]
+            takePitchData[stat[1]].position = stat[2]
+            takePitchData[stat[1]].note = stat[3]
+            takePitchData[stat[1]].rms = stat[4]
         end
     end
 
-    return pitchData
+    return takePitchData
 end
 
-function correctTakePitchToMIDINotes(take, midiNotes)
+function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-    local pitchData = getPitchData(takeGUID)
+    local takePitchData = getPitchData(takeGUID)
 
     local takeItem = reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
     local takeSourceOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
@@ -157,80 +160,56 @@ function correctTakePitchToMIDINotes(take, midiNotes)
         pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
     end
 
-    local targetNote = 0
-    if midiNotes then targetNote = midiNotes[1].note end
-
     local previousPointIndex = 1
-    for i = 1, #midiNotes do
-        local portamentoAdditive = 0
+    for key, correction in pcPairs(pitchCorrections) do
+        local relativePitchLeftTime = correction.leftTime - itemPosition
+        local relativePitchRightTime = correction.rightTime - itemPosition
 
-        local relativeMIDINotePosition = midiNotes[i].position - itemPosition
-        local relativeMIDINoteEnd = relativeMIDINotePosition + midiNotes[i].length
+        local clearStart = takePlayrate * relativePitchLeftTime
+        local clearEnd = takePlayrate * relativePitchRightTime
 
-        local clearStart = takePlayrate * relativeMIDINotePosition
-        local clearEnd = takePlayrate * relativeMIDINoteEnd
+        --reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchLeftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
+        --reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchRightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
 
-        if midiNotes[i].overlaps and maxPortamentoSpeed and i > 1 then
-            portamentoAdditive = midiNotes[i].note - midiNotes[i - 1].note
-        else
-            reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINotePosition * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-            targetNote = midiNotes[i].note
-        end
-
-        if not midiNotes[i].isOverlapped then
-            reaper.InsertEnvelopePoint(pitchEnvelope, relativeMIDINoteEnd * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
-        end
-
-        local notePitchData = {}
+        local pitchData = {}
         local noteAverage = 0
         local dataIndex = 1
-        for j = 1, #pitchData do
-            local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
-            local pitchPointIsInBoundsOfMIDINote = relativePitchPointPosition >= relativeMIDINotePosition and relativePitchPointPosition <= relativeMIDINoteEnd
+        for j = 1, #takePitchData do
+            local relativePitchPointPosition = takePitchData[j].position - takeSourceOffset
+            local pitchPointIsInPitchCorrection = relativePitchPointPosition >= relativePitchLeftTime and relativePitchPointPosition <= relativePitchRightTime
 
-            if pitchPointIsInBoundsOfMIDINote then
-                notePitchData[dataIndex] = pitchData[j]
-                noteAverage = noteAverage + pitchData[j].note
+            if pitchPointIsInPitchCorrection then
+                pitchData[dataIndex] = takePitchData[j]
+                noteAverage = noteAverage + takePitchData[j].note
                 dataIndex = dataIndex + 1
             end
         end
-        noteAverage = noteAverage / #notePitchData
+        noteAverage = noteAverage / #pitchData
 
         -- Add edge points just before and after the beginning and end of pitch content.
-        local firstEdgePointTime = (pitchData[1].position - takeSourceOffset) - edgePointSpacing
+        local firstEdgePointTime = (takePitchData[1].position - takeSourceOffset) - edgePointSpacing
         reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * takePlayrate, 0, 0, 0, false, true)
-        local lastEdgePointTime = (pitchData[#pitchData].position - takeSourceOffset) + edgePointSpacing
+        local lastEdgePointTime = (takePitchData[#takePitchData].position - takeSourceOffset) + edgePointSpacing
         reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * takePlayrate, 0, 0, 0, false, true)
 
-        for j = 1, #notePitchData do
+        for j = 1, #pitchData do
             -- Record the time passed since the last point.
-            local timePassedSinceLastPoint = notePitchData[j].position - pitchData[previousPointIndex].position
-            if j > 1 then timePassedSinceLastPoint = notePitchData[j].position - notePitchData[j - 1].position end
+            local timePassedSinceLastPoint = pitchData[j].position - takePitchData[previousPointIndex].position
+            if j > 1 then timePassedSinceLastPoint = pitchData[j].position - pitchData[j - 1].position end
 
-            local relativePitchPointPosition = notePitchData[j].position - takeSourceOffset
+            local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
 
             -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
             if j > 1 and zeroPointThreshold then
                 if timePassedSinceLastPoint >= zeroPointThreshold then
-                    local zeroPoint1Time = (notePitchData[j - 1].position - takeSourceOffset) + edgePointSpacing
+                    local zeroPoint1Time = (pitchData[j - 1].position - takeSourceOffset) + edgePointSpacing
                     reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * takePlayrate, 0, 0, 0, false, true)
                     local zeroPoint2Time = relativePitchPointPosition - edgePointSpacing
                     reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * takePlayrate, 0, 0, 0, false, true)
                 end
             end
 
-            -- Process the target note with portamento if maxPortamentoSpeed is not nil.
-            if maxPortamentoSpeed then
-                local velocityScaledPortamentoSpeed = maxPortamentoSpeed * (1.0 - midiNotes[i].velocity / 127.0)
-
-                if velocityScaledPortamentoSpeed > 0 then
-                    targetNote = targetNote + portamentoAdditive * timePassedSinceLastPoint / velocityScaledPortamentoSpeed
-                    if portamentoAdditive > 0 and maxPortamentoSpeed then targetNote = math.min(targetNote, midiNotes[i].note) end
-                    if portamentoAdditive < 0 and maxPortamentoSpeed then targetNote = math.max(targetNote, midiNotes[i].note) end
-                else
-                    targetNote = midiNotes[i].note
-                end
-            end
+            local targetNote = correction:getPitch(pitchData[j].position + itemPosition)
 
             local averageDeviation = noteAverage - targetNote
             local pitchCorrection = -averageDeviation * averageCorrection
@@ -240,10 +219,10 @@ function correctTakePitchToMIDINotes(take, midiNotes)
             local driftEndIndex = 0
             for k = 1, driftCorrectionNumPoints do
                 local driftIndex = j + k - math.floor(driftCorrectionNumPoints * 0.5)
-                if driftIndex > 0 and driftIndex < #notePitchData then
-                    local pointIsInDriftTime = math.abs(notePitchData[driftIndex].position - notePitchData[j].position) <= driftCorrectionSpeed / 2.0
+                if driftIndex > 0 and driftIndex < #pitchData then
+                    local pointIsInDriftTime = math.abs(pitchData[driftIndex].position - pitchData[j].position) <= driftCorrectionSpeed / 2.0
                     if pointIsInDriftTime then
-                        pitchDrift = pitchDrift + (notePitchData[driftIndex].note + pitchCorrection - targetNote)
+                        pitchDrift = pitchDrift + (pitchData[driftIndex].note + pitchCorrection - targetNote)
                         driftEndIndex = driftEndIndex + 1
                     end
                 end
@@ -257,13 +236,13 @@ function correctTakePitchToMIDINotes(take, midiNotes)
             pitchCorrection = pitchCorrection - scaledPitchDrift
 
             -- Apply mod correction to the pitch correction.
-            local modDeviation = notePitchData[j].note + pitchCorrection - targetNote
+            local modDeviation = pitchData[j].note + pitchCorrection - targetNote
             pitchCorrection = pitchCorrection - modDeviation * modCorrection
 
             -- Add envelope points with the correction value.
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, pitchCorrection, 0, 0, false, true)
 
-            previousPointIndex = notePitchData[j].index
+            previousPointIndex = pitchData[j].index
         end
     end
 
@@ -439,42 +418,25 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         reaperCMD("_S&M_TAKEENV10")
                     end
 
-                    local inputNotes = {}
-                    local noteIndex = 1
+                    local pitchCorrections = {}
                     for k = 1, numMIDINotes do
                         local _, _, noteIsMuted, notePPQStart, notePPQEnd, noteChannel, notePitch, noteVelocity = reaper.MIDI_GetNote(midiItemTake, k - 1)
 
                         -- Only use notes that are not muted for processing.
                         if not noteIsMuted then
-                            inputNotes[noteIndex] = {}
-                            inputNotes[noteIndex].position = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
-                            inputNotes[noteIndex].rightBound = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
-                            inputNotes[noteIndex].length = inputNotes[noteIndex].rightBound - inputNotes[noteIndex].position
-                            inputNotes[noteIndex].note = notePitch
-                            inputNotes[noteIndex].velocity = noteVelocity
+                            local pitchCorrection = PitchCorrection:new()
+                            pitchCorrection.leftTime = math.max(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQStart), midiItemPosition)
+                            pitchCorrection.rightTime = math.min(reaper.MIDI_GetProjTimeFromPPQPos(midiItemTake, notePPQEnd), midiItemEnd)
+                            pitchCorrection.leftPitch = notePitch
+                            pitchCorrection.rightPitch = notePitch
 
-                            -- Document if the notes are overlapping other notes, or are overlapped by other notes themselves.
-                            if noteIndex > 1 then
-                                inputNotes[noteIndex - 1].isOverlapped = inputNotes[noteIndex].position <= inputNotes[noteIndex - 1].rightBound + edgePointSpacing
-                                inputNotes[noteIndex].overlaps = inputNotes[noteIndex - 1].isOverlapped
-
-                                if inputNotes[noteIndex - 1].isOverlapped then
-                                    inputNotes[noteIndex - 1].rightBound = inputNotes[noteIndex].position
-                                    inputNotes[noteIndex - 1].length = inputNotes[noteIndex - 1].rightBound - inputNotes[noteIndex - 1].position
-                                end
-                            end
-
-                            -- Handle the edge cases.
-                            if k == numMIDINotes then
-                                inputNotes[1].overlaps = false
-                                inputNotes[#inputNotes].isOverlapped = false
-                            end
-
-                            noteIndex = noteIndex + 1
+                            table.insert(pitchCorrections, pitchCorrection)
                         end
                     end
 
-                    correctTakePitchToMIDINotes(currentItemTake, inputNotes)
+                    local overlapHandledCorrections = getOverlapHandledPitchCorrections(pitchCorrections)
+
+                    correctTakePitchToPitchCorrections(currentItemTake, overlapHandledCorrections)
                 end
             end
         end
