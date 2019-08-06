@@ -77,27 +77,46 @@ function restoreSelectedItems(items)
     end
 end
 
-function getPitchAnalyzerCommandID()
+function getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
     local file = io.open(kbini, 'r')
-    local cont = file:read('a')
 
-    if not file then
-        return
-    else
+    local content = nil
+    if file then
+        content = file:read('a')
         file:close()
     end
 
-    local nameString
+    if content then
+        local nameString = nil
+        for line in content:gmatch('[^\r\n]+') do
+            if line:match(name) then
+                nameString = line:match('SCR %d+ %d+ ([%a%_%d]+)')
+                break
+            end
+        end
 
-    for line in cont:gmatch('[^\r\n]+') do
-        if line:match('Pitch Analyzer') then nameString = line:match('SCR %d+ %d+ ([%a%_%d]+)') break end
+        local commandID = nil
+        if nameString then
+            commandID = reaper.NamedCommandLookup('_' .. nameString)
+        end
+
+        if commandID and commandID ~= 0 then
+            return commandID
+        end
     end
 
-    local commandID =  reaper.NamedCommandLookup('_' .. nameString)
+    return nil
+end
 
-    if commandID ~= 0 then
-        return true, commandID
+function analyzePitch()
+    local analyzerID = getEELCommandID("Pitch Analyzer")
+
+    if analyzerID then
+        reaperCMD(analyzerID)
+    else
+        reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
+        return 0
     end
 end
 
@@ -331,13 +350,6 @@ function saveSettingsInExtState(settings)
 end
 
 function correctPitchBasedOnMIDIItem(midiItem, settings)
-    local ret, analyzerCommandID = getPitchAnalyzerCommandID()
-    if ret and analyzerCommandID and analyzerCommandID ~= 0 then
-    else
-        msg("Pitch Analyzer.eel not found!")
-        return
-    end
-
     if midiItem == nil then
         return
     end
@@ -420,7 +432,7 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
                         reaperCMD("_S&M_TAKEENV11")
                         -- Analyze the audio to determine its pitches.
-                        reaperCMD(analyzerCommandID)
+                        if analyzePitch() == 0 then return 0 end
                         -- Set the pitch back to what it once was after the processing.
                         reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", currentTakePitch)
                         -- Show and unbypass the take pitch envelope.
