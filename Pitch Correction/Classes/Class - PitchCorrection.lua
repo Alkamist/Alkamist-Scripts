@@ -142,9 +142,40 @@ function correctPitchMod(point, targetPitch, correctionStrength)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function correctPitchDrift(point, targetPitch, correctionStrength, correctionSpeed)
+function correctPitchDrift(point, takePitchPoints, targetPitch, correctionStrength, correctionSpeed)
+    local numDriftPoints = 1
+    local driftIndex = 1
+    local driftAverage = point.pitch
 
-    -- Apply the pitch drift to the pitch correction.
-    local scaledPitchDrift = pitchDrift * driftCorrection
-    pitchCorrection = pitchCorrection - scaledPitchDrift
+    while point.index - driftIndex >= 1 do
+        local driftPoint = takePitchPoints[point.index - driftIndex]
+
+        if driftPoint.time >= point.time - correctionSpeed * 0.5 then
+            driftAverage = driftAverage + driftPoint.pitch
+            numDriftPoints = numDriftPoints + 1
+            driftIndex = driftIndex + 1
+        else
+            break
+        end
+    end
+
+    driftIndex = 1
+    while point.index + driftIndex <= #takePitchPoints do
+        local driftPoint = takePitchPoints[point.index + driftIndex]
+
+        if driftPoint.time <= point.time + correctionSpeed * 0.5 then
+            driftAverage = driftAverage + driftPoint.pitch
+            numDriftPoints = numDriftPoints + 1
+            driftIndex = driftIndex + 1
+        else
+            break
+        end
+    end
+
+    driftAverage = driftAverage / numDriftPoints
+
+    local pitchDrift = driftAverage - targetPitch
+    local pitchCorrection = -pitchDrift * correctionStrength
+
+    point.correctedPitch = point.correctedPitch + pitchCorrection
 end

@@ -9,7 +9,7 @@ local edgePointSpacing = 0.01
 local averageCorrection = 1.0
 local modCorrection = 0.4
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.17
+local driftCorrectionSpeed = 1
 local zeroPointThreshold = 0.1
 
 -- Pitch detection settings:
@@ -21,9 +21,6 @@ settings.minimumFrequency = 60
 settings.maximumFrequency = 1000
 settings.YINThresh = 0.2
 settings.lowRMSLimitdB = -60
-
-local timePerPoint = settings.windowStep / settings.overlap
-local driftCorrectionNumPoints = math.max(math.floor(driftCorrectionSpeed / timePerPoint), 1)
 
 function msg(m)
   reaper.ShowConsoleMsg(tostring(m).."\n")
@@ -130,7 +127,7 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
-    local startTime = reaper.time_precise()
+    --local startTime = reaper.time_precise()
     for correctionKey, correction in pcPairs(pitchCorrections) do
         local correctionPitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
         local averagePitch = getAveragePitch(correctionPitchPoints)
@@ -138,11 +135,12 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
         for pointKey, point in ppPairs(correctionPitchPoints) do
             local targetPitch = correction:getPitch(point.time)
 
-            correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
-            correctPitchMod(point, targetPitch, modCorrection)
+            correctPitchDrift(point, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
+            --correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
+            --correctPitchMod(point, targetPitch, modCorrection)
         end
     end
-    msg(reaper.time_precise() - startTime)
+    --msg(reaper.time_precise() - startTime)
 
 
 
