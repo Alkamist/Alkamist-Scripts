@@ -1,6 +1,7 @@
 package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. "?.lua;" .. package.path
 
 require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchCorrection"
+require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchPoint"
 
 local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI Items.lua"
 
@@ -123,44 +124,14 @@ function analyzePitch()
     end
 end
 
-function getPitchData(takeGUID)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
-
-    local takePitchData = {}
-    for line in extState:gmatch("[^\r\n]+") do
-        if line:match("PT") then
-            local stat = {}
-            for value in line:gmatch("[%.%-%d]+") do
-                stat[#stat + 1] = tonumber(value)
-            end
-            takePitchData[stat[1]] = {}
-            takePitchData[stat[1]].index = stat[1]
-            takePitchData[stat[1]].position = stat[2]
-            takePitchData[stat[1]].note = stat[3]
-            takePitchData[stat[1]].rms = stat[4]
-        end
-    end
-
-    return takePitchData
-end
-
 function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-    local takePitchData = getPitchData(takeGUID)
+    local takePitchPoints = getPitchPoints(takeGUID)
 
-    local takeItem = reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
-    local takeSourceOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
-    local takePlayrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
-    local itemPosition = reaper.GetMediaItemInfo_Value(takeItem, "D_POSITION")
-    local itemLength = reaper.GetMediaItemInfo_Value(takeItem, "D_LENGTH")
+    local takePlayrate = takePitchPoints[1]:getPlayrate()
+    local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
-    local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
-    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        reaperCMD(41612) -- Take: Toggle take pitch envelope
-        pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
-    end
-
-    local previousPointIndex = 1
+    local previousPoint = takePitchPoints[1]
     for key, correction in pcPairs(pitchCorrections) do
         local clearStart = takePlayrate * correction.leftTime
         local clearEnd = takePlayrate * correction.rightTime
@@ -172,59 +143,44 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
             reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
         end
 
-        local pitchData = {}
-        local noteAverage = 0
-        local dataIndex = 1
-        for j = 1, #takePitchData do
-            local relativePitchPointPosition = takePitchData[j].position - takeSourceOffset
-            local pitchPointIsInPitchCorrection = relativePitchPointPosition >= correction.leftTime and relativePitchPointPosition <= correction.rightTime
-
-            if pitchPointIsInPitchCorrection then
-                pitchData[dataIndex] = takePitchData[j]
-                noteAverage = noteAverage + takePitchData[j].note
-                dataIndex = dataIndex + 1
-            end
-        end
-        noteAverage = noteAverage / #pitchData
+        local pitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        local averagePitch = getAveragePitch(pitchPoints)
 
         -- Add edge points just before and after the beginning and end of pitch content.
-        local firstEdgePointTime = (takePitchData[1].position - takeSourceOffset) - edgePointSpacing
+        local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
         reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * takePlayrate, 0, 0, 0, false, true)
-        local lastEdgePointTime = (takePitchData[#takePitchData].position - takeSourceOffset) + edgePointSpacing
+        local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
         reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * takePlayrate, 0, 0, 0, false, true)
 
-        for j = 1, #pitchData do
+        for key, point in ppPairs(pitchPoints) do
             -- Record the time passed since the last point.
-            local timePassedSinceLastPoint = pitchData[j].position - takePitchData[previousPointIndex].position
-            if j > 1 then timePassedSinceLastPoint = pitchData[j].position - pitchData[j - 1].position end
-
-            local relativePitchPointPosition = pitchData[j].position - takeSourceOffset
+            local timePassedSinceLastPoint = point.time - previousPoint.time
 
             -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
-            if j > 1 and zeroPointThreshold then
+            if point.index > 1 and zeroPointThreshold then
                 if timePassedSinceLastPoint >= zeroPointThreshold then
-                    local zeroPoint1Time = (pitchData[j - 1].position - takeSourceOffset) + edgePointSpacing
+                    local zeroPoint1Time = previousPoint.time + edgePointSpacing
                     reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * takePlayrate, 0, 0, 0, false, true)
-                    local zeroPoint2Time = relativePitchPointPosition - edgePointSpacing
+                    local zeroPoint2Time = point.time - edgePointSpacing
                     reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * takePlayrate, 0, 0, 0, false, true)
                 end
             end
 
-            local targetNote = correction:getPitch(pitchData[j].position - takeSourceOffset)
-            --local targetNote = correction.rightPitch
+            local targetNote = correction:getPitch(point.time)
 
-            local averageDeviation = noteAverage - targetNote
-            local pitchCorrection = -averageDeviation * averageCorrection
+            --local averageDeviation = averagePitch - targetNote
+            --local pitchCorrection = -averageDeviation * averageCorrection
+            local pitchCorrection = 0
 
             -- Process the pitch drift.
             local pitchDrift = 0
             local driftEndIndex = 0
-            for k = 1, driftCorrectionNumPoints do
-                local driftIndex = j + k - math.floor(driftCorrectionNumPoints * 0.5)
-                if driftIndex > 0 and driftIndex < #pitchData then
-                    local pointIsInDriftTime = math.abs(pitchData[driftIndex].position - pitchData[j].position) <= driftCorrectionSpeed / 2.0
+            for i = 1, driftCorrectionNumPoints do
+                local driftIndex = point.index + i - math.floor(driftCorrectionNumPoints * 0.5)
+                if driftIndex > 0 and driftIndex < #pitchPoints then
+                    local pointIsInDriftTime = math.abs(pitchPoints[driftIndex].time - point.time) <= driftCorrectionSpeed / 2.0
                     if pointIsInDriftTime then
-                        pitchDrift = pitchDrift + (pitchData[driftIndex].note + pitchCorrection - targetNote)
+                        pitchDrift = pitchDrift + (pitchPoints[driftIndex].pitch + pitchCorrection - targetNote)
                         driftEndIndex = driftEndIndex + 1
                     end
                 end
@@ -238,13 +194,13 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
             pitchCorrection = pitchCorrection - scaledPitchDrift
 
             -- Apply mod correction to the pitch correction.
-            local modDeviation = pitchData[j].note + pitchCorrection - targetNote
-            pitchCorrection = pitchCorrection - modDeviation * modCorrection
+            --local modDeviation = point.pitch + pitchCorrection - targetNote
+            --pitchCorrection = pitchCorrection - modDeviation * modCorrection
 
             -- Add envelope points with the correction value.
-            reaper.InsertEnvelopePoint(pitchEnvelope, relativePitchPointPosition * takePlayrate, pitchCorrection, 0, 0, false, true)
+            reaper.InsertEnvelopePoint(pitchEnvelope, point.time * takePlayrate, pitchCorrection, 0, 0, false, true)
 
-            previousPointIndex = pitchData[j].index
+            previousPoint = point
         end
     end
 

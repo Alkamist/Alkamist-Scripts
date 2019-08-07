@@ -37,6 +37,7 @@ function PitchCorrection:getPitch(time)
 end
 
 
+
 ------------------- Sorting -------------------
 function pcPairs(pitchCorrections)
     local temp = {}
