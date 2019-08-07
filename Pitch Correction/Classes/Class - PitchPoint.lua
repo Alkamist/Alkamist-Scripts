@@ -12,6 +12,8 @@ function PitchPoint:new(takeGUID, index, time, pitch, rms)
     object.pitch = pitch or 0
     object.rms = rms or 0
 
+    object.correctedPitch = pitch or 0
+
     setmetatable(object, self)
     self.__index = self
     return object
@@ -71,7 +73,7 @@ function getAveragePitch(pitchPoints)
     local pitchAverage = 0
 
     for key, point in ppPairs(pitchPoints) do
-        pitchAverage = pitchAverage + point.pitch
+        pitchAverage = pitchAverage + point.correctedPitch
     end
 
     return pitchAverage / #pitchPoints

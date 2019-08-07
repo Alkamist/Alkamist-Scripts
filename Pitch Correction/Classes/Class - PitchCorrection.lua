@@ -1,3 +1,5 @@
+require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchPoint"
+
 ------------------- Class -------------------
 PitchCorrection = {}
 
@@ -122,3 +124,74 @@ function getOverlapHandledPitchCorrections(pitchCorrections)
 
     return newCorrections
 end
+
+
+
+------------------- Helpful Functions -------------------
+function correctPitchAverage(takePitchPoints, pitchCorrections, correctionStrength)
+    for correctionKey, correction in pcPairs(pitchCorrections) do
+        local previousPoint = takePitchPoints[1]
+
+        local pitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        local averagePitch = getAveragePitch(pitchPoints)
+        for pointKey, point in ppPairs(pitchPoints) do
+            local timePassedSinceLastPoint = point.time - previousPoint.time
+
+            local targetNote = correction:getPitch(point.time)
+
+            local averageDeviation = averagePitch - targetNote
+            local pitchCorrection = -averageDeviation * correctionStrength
+
+            point.correctedPitch = point.correctedPitch + pitchCorrection
+
+            previousPoint = point
+        end
+    end
+end
+
+function correctPitchMod(takePitchPoints, pitchCorrections, correctionStrength)
+    for correctionKey, correction in pcPairs(pitchCorrections) do
+        local previousPoint = takePitchPoints[1]
+
+        local pitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        for pointKey, point in ppPairs(pitchPoints) do
+            local timePassedSinceLastPoint = point.time - previousPoint.time
+
+            local targetNote = correction:getPitch(point.time)
+
+            local modDeviation = point.correctedPitch - targetNote
+            local pitchCorrection = -modDeviation * correctionStrength
+
+            point.correctedPitch = point.correctedPitch + pitchCorrection
+
+            previousPoint = point
+        end
+    end
+end
+
+--[[function correctPitchDrift(takePitchPoints, pitchCorrections, correctionStrength, correctionSpeed)
+    for correctionKey, correction in pcPairs(pitchCorrections) do
+        local previousPoint = takePitchPoints[1]
+
+        local pitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        for pointKey, point in ppPairs(pitchPoints) do
+            local timePassedSinceLastPoint = point.time - previousPoint.time
+
+            local targetNote = correction:getPitch(point.time)
+
+
+
+            -- Apply the pitch drift to the pitch correction.
+            local scaledPitchDrift = pitchDrift * driftCorrection
+            pitchCorrection = pitchCorrection - scaledPitchDrift
+
+
+
+
+
+
+
+            previousPoint = point
+        end
+    end
+end]]--
