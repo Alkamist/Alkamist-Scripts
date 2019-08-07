@@ -162,16 +162,15 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
 
     local previousPointIndex = 1
     for key, correction in pcPairs(pitchCorrections) do
-        msg("-")
-        msg(correction.leftTime)
-        msg(correction.rightTime)
-        msg(correction.leftPitch)
-        msg(correction.rightPitch)
         local clearStart = takePlayrate * correction.leftTime
         local clearEnd = takePlayrate * correction.rightTime
 
-        --reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-        --reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        if not correction.overlaps then
+            reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
+        end
+        if not correction.isOverlapped then
+            reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
+        end
 
         local pitchData = {}
         local noteAverage = 0

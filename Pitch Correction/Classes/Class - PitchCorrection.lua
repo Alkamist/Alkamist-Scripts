@@ -19,6 +19,9 @@ function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
     object.leftPitch = leftPitch or 0
     object.rightPitch = rightPitch or 0
 
+    object.overlaps = false
+    object.isOverlapped = false
+
     setmetatable(object, self)
     self.__index = self
     return object
@@ -75,11 +78,23 @@ end
 
 function getOverlapHandledPitchCorrections(pitchCorrections)
     local newCorrections = copyObject(pitchCorrections)
-    local previousCorrection = nil
-    local previousKey = nil
-    local overlapsInARow = 1
 
     local loopIndex = 1
+    local oldKeys = {}
+
+    -- Force overlap lengths to not be long enough to overlap multiple corrections.
+    for key, correction in pcPairs(newCorrections) do
+        if loopIndex > 2 then
+            newCorrections[loopIndex - 2].rightTime = math.min(newCorrections[loopIndex - 2].rightTime, correction.leftTime)
+        end
+        oldKeys[loopIndex] = key
+        loopIndex = loopIndex + 1
+    end
+
+    local previousCorrection = nil
+
+    loopIndex = 1
+    local previousKey = nil
     for key, correction in pcPairs(pitchCorrections) do
         local newCorrection = newCorrections[key]
 
@@ -97,8 +112,15 @@ function getOverlapHandledPitchCorrections(pitchCorrections)
                                                             newCorrection.leftTime,
                                                             previousCorrection.rightPitch,
                                                             newCorrection.leftPitch)
+                slideCorrection.overlaps = true
+                slideCorrection.isOverlapped = true
+                newCorrections["slide_" .. previousKey] = slideCorrection
 
-                table.insert(newCorrections, slideCorrection)
+                newCorrections[key].overlaps = true
+                newCorrections[previousKey].isOverlapped = true
+            else
+                newCorrections[key].overlaps = false
+                newCorrections[previousKey].isOverlapped = false
             end
         end
 
