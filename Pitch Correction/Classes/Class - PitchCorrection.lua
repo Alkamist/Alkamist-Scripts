@@ -1,13 +1,3 @@
-function copyObject(object, seen)
-    if type(object) ~= "table" then return object end
-    if seen and seen[object] then return seen[object] end
-    local s = seen or {}
-    local res = setmetatable({}, getmetatable(object))
-    s[object] = res
-    for k, v in pairs(object) do res[copyObject(k, s)] = copyObject(v, s) end
-    return res
-end
-
 ------------------- Class -------------------
 PitchCorrection = {}
 
@@ -77,7 +67,7 @@ function pcPairs(pitchCorrections)
 end
 
 function getOverlapHandledPitchCorrections(pitchCorrections)
-    local newCorrections = copyObject(pitchCorrections)
+    local newCorrections = {table.unpack(pitchCorrections)}
 
     local loopIndex = 1
     local oldKeys = {}
