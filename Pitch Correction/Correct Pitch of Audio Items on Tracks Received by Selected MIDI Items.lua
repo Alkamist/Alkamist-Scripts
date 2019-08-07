@@ -6,10 +6,10 @@ local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI 
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local averageCorrection = 0.0
-local modCorrection = 1.0
-local driftCorrection = 0.0
-local driftCorrectionSpeed = 0.2
+local averageCorrection = 1.0
+local modCorrection = 0.4
+local driftCorrection = 1.0
+local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.1
 
 -- Pitch detection settings:
