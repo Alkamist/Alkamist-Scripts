@@ -192,6 +192,48 @@ function correctPitchDrift(correctionPitchPoints, correction, correctionStrength
     end
 end
 
+function addEdgePoints(pitchEnvelope, playrate, takePitchPoints, pitchCorrections)
+    for key, correction in pcPairs(pitchCorrections) do
+        local clearStart = playrate * correction.leftTime
+        local clearEnd = playrate * correction.rightTime
+
+        if not correction.overlaps then
+            reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * playrate - edgePointSpacing, 0, 0, 0, false, true)
+        end
+        if not correction.isOverlapped then
+            reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * playrate + edgePointSpacing, 0, 0, 0, false, true)
+        end
+
+        -- Add edge points just before and after the beginning and end of pitch content.
+        local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
+        reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
+        local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
+        reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
+    end
+end
+
+function addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
+    local previousPoint = takePitchPoints[1]
+    for key, point in ppPairs(takePitchPoints) do
+        local timePassedSinceLastPoint = point.time - previousPoint.time
+
+        -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
+        if point.index > 1 and zeroPointThreshold then
+            if timePassedSinceLastPoint >= zeroPointThreshold then
+                local zeroPoint1Time = previousPoint.time + edgePointSpacing
+                reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * playrate, 0, 0, 0, false, true)
+                local zeroPoint2Time = point.time - edgePointSpacing
+                reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * playrate, 0, 0, 0, false, true)
+            end
+        end
+
+        -- Add envelope points with the correction value.
+        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
+
+        previousPoint = point
+    end
+end
+
 function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     local takePitchPoints = getPitchPoints(takeGUID)
@@ -199,7 +241,6 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
-    --local startTime = reaper.time_precise()
     for correctionKey, correction in pcPairs(pitchCorrections) do
         local correctionPitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
         local averagePitch = getAveragePitch(correctionPitchPoints)
@@ -213,47 +254,9 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
 
         correctPitchDrift(correctionPitchPoints, correction, driftCorrection, driftCorrectionSpeed)
     end
-    --msg(reaper.time_precise() - startTime)
 
-
-
-    local previousPoint = takePitchPoints[1]
-    for key, point in ppPairs(takePitchPoints) do
-        local timePassedSinceLastPoint = point.time - previousPoint.time
-
-        -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
-        if point.index > 1 and zeroPointThreshold then
-            if timePassedSinceLastPoint >= zeroPointThreshold then
-                local zeroPoint1Time = previousPoint.time + edgePointSpacing
-                reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * takePlayrate, 0, 0, 0, false, true)
-                local zeroPoint2Time = point.time - edgePointSpacing
-                reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * takePlayrate, 0, 0, 0, false, true)
-            end
-        end
-
-        -- Add envelope points with the correction value.
-        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * takePlayrate, point.correctedPitch - point.pitch, 0, 0, false, true)
-
-        previousPoint = point
-    end
-
-    for key, correction in pcPairs(pitchCorrections) do
-        local clearStart = takePlayrate * correction.leftTime
-        local clearEnd = takePlayrate * correction.rightTime
-
-        if not correction.overlaps then
-            reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * takePlayrate - edgePointSpacing, 0, 0, 0, false, true)
-        end
-        if not correction.isOverlapped then
-            reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * takePlayrate + edgePointSpacing, 0, 0, 0, false, true)
-        end
-
-        -- Add edge points just before and after the beginning and end of pitch content.
-        local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
-        reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * takePlayrate, 0, 0, 0, false, true)
-        local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
-        reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * takePlayrate, 0, 0, 0, false, true)
-    end
+    addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
+    addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 end
