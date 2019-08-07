@@ -142,40 +142,44 @@ function correctPitchMod(point, targetPitch, correctionStrength)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function correctPitchDrift(point, takePitchPoints, targetPitch, correctionStrength, correctionSpeed)
-    local numDriftPoints = 1
-    local driftIndex = 1
-    local driftAverage = point.pitch
+function correctPitchDrift(correctionPitchPoints, correction, correctionStrength, correctionSpeed)
+    for pointKey, point in ppPairs(correctionPitchPoints) do
+        local targetPitch = correction:getPitch(point.time)
 
-    while point.index - driftIndex >= 1 do
-        local driftPoint = takePitchPoints[point.index - driftIndex]
+        local numDriftPoints = 1
+        local driftIndex = 1
+        local driftAverage = point.correctedPitch
 
-        if driftPoint.time >= point.time - correctionSpeed * 0.5 then
-            driftAverage = driftAverage + driftPoint.pitch
-            numDriftPoints = numDriftPoints + 1
-            driftIndex = driftIndex + 1
-        else
-            break
+        while pointKey - driftIndex >= 1 do
+            local driftPoint = correctionPitchPoints[pointKey - driftIndex]
+
+            if driftPoint.time >= point.time - correctionSpeed * 0.5 then
+                driftAverage = driftAverage + driftPoint.correctedPitch
+                numDriftPoints = numDriftPoints + 1
+                driftIndex = driftIndex + 1
+            else
+                break
+            end
         end
-    end
 
-    driftIndex = 1
-    while point.index + driftIndex <= #takePitchPoints do
-        local driftPoint = takePitchPoints[point.index + driftIndex]
+        driftIndex = 1
+        while pointKey + driftIndex <= #correctionPitchPoints do
+            local driftPoint = correctionPitchPoints[pointKey + driftIndex]
 
-        if driftPoint.time <= point.time + correctionSpeed * 0.5 then
-            driftAverage = driftAverage + driftPoint.pitch
-            numDriftPoints = numDriftPoints + 1
-            driftIndex = driftIndex + 1
-        else
-            break
+            if driftPoint.time <= point.time + correctionSpeed * 0.5 then
+                driftAverage = driftAverage + driftPoint.correctedPitch
+                numDriftPoints = numDriftPoints + 1
+                driftIndex = driftIndex + 1
+            else
+                break
+            end
         end
+
+        driftAverage = driftAverage / numDriftPoints
+
+        local pitchDrift = driftAverage - targetPitch
+        local pitchCorrection = -pitchDrift * correctionStrength
+
+        point.correctedPitch = point.correctedPitch + pitchCorrection
     end
-
-    driftAverage = driftAverage / numDriftPoints
-
-    local pitchDrift = driftAverage - targetPitch
-    local pitchCorrection = -pitchDrift * correctionStrength
-
-    point.correctedPitch = point.correctedPitch + pitchCorrection
 end

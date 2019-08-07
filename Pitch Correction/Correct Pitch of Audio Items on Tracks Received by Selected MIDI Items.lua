@@ -9,7 +9,7 @@ local edgePointSpacing = 0.01
 local averageCorrection = 1.0
 local modCorrection = 0.4
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 1
+local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.1
 
 -- Pitch detection settings:
@@ -135,10 +135,11 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
         for pointKey, point in ppPairs(correctionPitchPoints) do
             local targetPitch = correction:getPitch(point.time)
 
-            correctPitchDrift(point, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
-            --correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
-            --correctPitchMod(point, targetPitch, modCorrection)
+            correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
+            correctPitchMod(point, targetPitch, modCorrection)
         end
+
+        correctPitchDrift(correctionPitchPoints, correction, driftCorrection, driftCorrectionSpeed)
     end
     --msg(reaper.time_precise() - startTime)
 
