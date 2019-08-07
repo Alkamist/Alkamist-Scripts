@@ -131,9 +131,23 @@ function correctTakePitchToPitchCorrections(take, pitchCorrections)
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
     local startTime = reaper.time_precise()
-    correctPitchAverage(takePitchPoints, pitchCorrections, averageCorrection)
+    for correctionKey, correction in pcPairs(pitchCorrections) do
+        local correctionPitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        local averagePitch = getAveragePitch(correctionPitchPoints)
+
+        for pointKey, point in ppPairs(correctionPitchPoints) do
+            local targetPitch = correction:getPitch(point.time)
+
+            correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
+            correctPitchMod(point, targetPitch, modCorrection)
+        end
+    end
     msg(reaper.time_precise() - startTime)
-    --correctPitchMod(takePitchPoints, pitchCorrections, modCorrection)
+
+
+
+
+
 
     local previousPoint = takePitchPoints[1]
     for key, point in ppPairs(takePitchPoints) do
