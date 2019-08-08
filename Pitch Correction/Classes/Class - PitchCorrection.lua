@@ -1,4 +1,4 @@
-require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchPoint"
+local PitchPoint = require "Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
@@ -9,7 +9,7 @@ local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.1
 
 ------------------- Class -------------------
-PitchCorrection = {}
+local PitchCorrection = {}
 
 function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
     local object = {}
@@ -49,7 +49,7 @@ end
 
 
 ------------------- Sorting -------------------
-function pcPairs(pitchCorrections)
+function PitchCorrection.pairs(pitchCorrections)
     local temp = {}
     for key, correction in pairs(pitchCorrections) do
         table.insert(temp, {key, correction})
@@ -77,14 +77,14 @@ function pcPairs(pitchCorrections)
     return iterator
 end
 
-function getOverlapHandledPitchCorrections(pitchCorrections)
+function PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
     local newCorrections = {table.unpack(pitchCorrections)}
 
     local loopIndex = 1
     local oldKeys = {}
 
     -- Force overlap lengths to not be long enough to overlap multiple corrections.
-    for key, correction in pcPairs(newCorrections) do
+    for key, correction in PitchCorrection.pairs(newCorrections) do
         if loopIndex > 2 then
             newCorrections[loopIndex - 2].rightTime = math.min(newCorrections[loopIndex - 2].rightTime, correction.leftTime)
         end
@@ -96,7 +96,7 @@ function getOverlapHandledPitchCorrections(pitchCorrections)
 
     loopIndex = 1
     local previousKey = nil
-    for key, correction in pcPairs(pitchCorrections) do
+    for key, correction in PitchCorrection.pairs(pitchCorrections) do
         local newCorrection = newCorrections[key]
 
         if loopIndex > 1 then
@@ -136,22 +136,22 @@ end
 
 
 ------------------- Helpful Functions -------------------
-function correctPitchAverage(point, averagePitch, targetPitch, correctionStrength)
+function PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, correctionStrength)
     local averageDeviation = averagePitch - targetPitch
     local pitchCorrection = -averageDeviation * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function correctPitchMod(point, targetPitch, correctionStrength)
+function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
     local modDeviation = point.correctedPitch - targetPitch
     local pitchCorrection = -modDeviation * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function correctPitchDrift(correctionPitchPoints, correction, correctionStrength, correctionSpeed)
-    for pointKey, point in ppPairs(correctionPitchPoints) do
+function PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, correctionStrength, correctionSpeed)
+    for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
         local targetPitch = correction:getPitch(point.time)
 
         local numDriftPoints = 1
@@ -192,8 +192,8 @@ function correctPitchDrift(correctionPitchPoints, correction, correctionStrength
     end
 end
 
-function addEdgePoints(pitchEnvelope, playrate, takePitchPoints, pitchCorrections)
-    for key, correction in pcPairs(pitchCorrections) do
+function PitchCorrection.addEdgePoints(pitchEnvelope, playrate, takePitchPoints, pitchCorrections)
+    for key, correction in PitchCorrection.pairs(pitchCorrections) do
         local clearStart = playrate * correction.leftTime
         local clearEnd = playrate * correction.rightTime
 
@@ -212,9 +212,9 @@ function addEdgePoints(pitchEnvelope, playrate, takePitchPoints, pitchCorrection
     end
 end
 
-function addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
+function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
     local previousPoint = takePitchPoints[1]
-    for key, point in ppPairs(takePitchPoints) do
+    for key, point in PitchPoint.pairs(takePitchPoints) do
         local timePassedSinceLastPoint = point.time - previousPoint.time
 
         -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
@@ -234,29 +234,31 @@ function addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
     end
 end
 
-function correctTakePitchToPitchCorrections(take, pitchCorrections)
+function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections)
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-    local takePitchPoints = getPitchPoints(takeGUID)
+    local takePitchPoints = PitchPoint.getPitchPoints(takeGUID)
 
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
-    for correctionKey, correction in pcPairs(pitchCorrections) do
-        local correctionPitchPoints = getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
-        local averagePitch = getAveragePitch(correctionPitchPoints)
+    for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
+        local correctionPitchPoints = PitchPoint.getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
+        local averagePitch = PitchPoint.getAveragePitch(correctionPitchPoints)
 
-        for pointKey, point in ppPairs(correctionPitchPoints) do
+        for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
             local targetPitch = correction:getPitch(point.time)
 
-            correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
-            correctPitchMod(point, targetPitch, modCorrection)
+            PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
+            PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
         end
 
-        correctPitchDrift(correctionPitchPoints, correction, driftCorrection, driftCorrectionSpeed)
+        PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, driftCorrection, driftCorrectionSpeed)
     end
 
-    addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
-    addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
+    PitchCorrection.addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
+    PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 end
+
+return PitchCorrection

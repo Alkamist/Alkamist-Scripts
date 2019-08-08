@@ -1,5 +1,5 @@
 ------------------- Class -------------------
-PitchPoint = {}
+local PitchPoint = {}
 
 function PitchPoint:new(takeGUID, index, time, pitch, rms)
     local object = {}
@@ -42,7 +42,7 @@ end
 
 
 ------------------- Sorting -------------------
-function ppPairs(pitchPoints)
+function PitchPoint.pairs(pitchPoints)
     local temp = {}
     for key, correction in pairs(pitchPoints) do
         table.insert(temp, {key, correction})
@@ -69,20 +69,20 @@ end
 
 
 ------------------- Helpful Functions -------------------
-function getAveragePitch(pitchPoints)
+function PitchPoint.getAveragePitch(pitchPoints)
     local pitchAverage = 0
 
-    for key, point in ppPairs(pitchPoints) do
+    for key, point in PitchPoint.pairs(pitchPoints) do
         pitchAverage = pitchAverage + point.correctedPitch
     end
 
     return pitchAverage / #pitchPoints
 end
 
-function getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
+function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     local newPoints = {}
     local dataIndex = 1
-    for key, point in ppPairs(pitchPoints) do
+    for key, point in PitchPoint.pairs(pitchPoints) do
         if point.time >= leftTime and point.time <= rightTime then
             newPoints[dataIndex] = point
             dataIndex = dataIndex + 1
@@ -92,7 +92,7 @@ function getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function getPitchPoints(takeGUID)
+function PitchPoint.getPitchPoints(takeGUID)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
 
     local takePitchPoints = {}
@@ -108,3 +108,5 @@ function getPitchPoints(takeGUID)
 
     return takePitchPoints
 end
+
+return PitchPoint

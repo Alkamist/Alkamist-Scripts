@@ -1,8 +1,11 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. "?.lua;" .. package.path
-
-require "Scripts.Alkamist Scripts.Pitch Correction.Classes.Class - PitchCorrection"
-
 local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI Items.lua"
+
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
+local PitchCorrection = require "Classes.Class - PitchCorrection"
+
+require "GUI.Pitch Editor GUI"
+
+
 
 local edgePointSpacing = 0.01
 
@@ -296,9 +299,9 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         end
                     end
 
-                    local overlapHandledCorrections = getOverlapHandledPitchCorrections(pitchCorrections)
+                    local overlapHandledCorrections = PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
 
-                    correctTakePitchToPitchCorrections(currentItemTake, overlapHandledCorrections)
+                    PitchCorrection.correctTakePitchToPitchCorrections(currentItemTake, overlapHandledCorrections)
                 end
             end
         end
