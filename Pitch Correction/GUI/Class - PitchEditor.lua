@@ -90,15 +90,17 @@ function GUI.PitchEditor:handleDragScroll()
 
     -- Middle mouse down:
     if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
-        self.shouldDragScroll = true
+        if GUI.IsInside(self) then
+            self.shouldDragScroll = true
 
-        self.mouseXPreDrag = GUI.mouse.x
-        self.scrollXPreDrag = self.scrollX
-        self.zoomXPreDrag = self.zoomX
+            self.mouseXPreDrag = GUI.mouse.x
+            self.scrollXPreDrag = self.scrollX
+            self.zoomXPreDrag = self.zoomX
 
-        self.mouseYPreDrag = GUI.mouse.y
-        self.scrollYPreDrag = self.scrollY
-        self.zoomYPreDrag = self.zoomY
+            self.mouseYPreDrag = GUI.mouse.y
+            self.scrollYPreDrag = self.scrollY
+            self.zoomYPreDrag = self.zoomY
+        end
     end
 
     -- Middle mouse up:
@@ -133,15 +135,17 @@ function GUI.PitchEditor:handleZoom()
     -- Middle mouse down:
     --if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
     if gfx.mouse_cap & 2 == 2 and self.mouse_cap_prev & 2 ~= 2 then
-        self.shouldZoom = true
+        if GUI.IsInside(self) then
+            self.shouldZoom = true
 
-        self.mouseXPreDrag = GUI.mouse.x
-        self.scrollXPreDrag = self.scrollX
-        self.zoomXPreDrag = self.zoomX
+            self.mouseXPreDrag = GUI.mouse.x
+            self.scrollXPreDrag = self.scrollX
+            self.zoomXPreDrag = self.zoomX
 
-        self.mouseYPreDrag = GUI.mouse.y
-        self.scrollYPreDrag = self.scrollY
-        self.zoomYPreDrag = self.zoomY
+            self.mouseYPreDrag = GUI.mouse.y
+            self.scrollYPreDrag = self.scrollY
+            self.zoomYPreDrag = self.zoomY
+        end
     end
 
     -- Middle mouse up:
