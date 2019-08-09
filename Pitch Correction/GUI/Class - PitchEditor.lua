@@ -118,6 +118,18 @@ function GUI.PitchEditor:onmousedown()
     self:redraw()
 end
 
+function GUI.PitchEditor:onmouseup()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+
+    local playTime = itemLeftBound + itemLength * GUI.mouse.x / w
+    reaper.SetEditCurPos(playTime, true, true)
+
+    self:redraw()
+end
+
 function GUI.PitchEditor:handleDragScroll()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
