@@ -15,7 +15,13 @@ GUI.colors["white_key_bg"] = {59, 59, 59, 255}
 GUI.colors["black_key_bg"] = {50, 50, 50, 255}
 
 GUI.colors["white_key_lines"] = {65, 65, 65, 255}
-GUI.colors["key_lines"] = {255, 255, 255, 255}
+GUI.colors["key_lines"] = {255, 255, 255, 80}
+
+GUI.colors["pitch_lines"] = {40, 80, 40, 255}
+GUI.colors["pitch_preview_lines"] = {0, 210, 32, 255}
+
+GUI.colors["edit_cursor"] = {255, 255, 255, 180}
+GUI.colors["play_cursor"] = {255, 255, 255, 120}
 
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
 local whiteKeys = {}
@@ -85,6 +91,7 @@ function GUI.PitchEditor:init()
     self:drawBackground()
     self:drawKeyLines()
     self:drawPitchLines()
+    self:drawPreviewPitchLines()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -108,6 +115,10 @@ function GUI.PitchEditor:draw()
 
     if self.pitchLinesBuff then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+    end
+
+    if self.previewLinesBuff then
+        gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
     if self.editCursorBuff then
@@ -178,6 +189,7 @@ function GUI.PitchEditor:handleDragScroll()
         self:drawKeyBackgrounds()
         self:drawKeyLines()
         self:drawPitchLines()
+        self:drawPreviewPitchLines()
         self:drawEditCursor()
         self:drawKeys()
 
@@ -236,6 +248,7 @@ function GUI.PitchEditor:handleZoom()
         self:drawKeyBackgrounds()
         self:drawKeyLines()
         self:drawPitchLines()
+        self:drawPreviewPitchLines()
         self:drawEditCursor()
         self:drawKeys()
 
@@ -243,7 +256,7 @@ function GUI.PitchEditor:handleZoom()
     end
 end
 
-local editCursorCleared = false
+local playCursorCleared = false
 function GUI.PitchEditor:onupdate()
     self:handleDragScroll()
     self:handleZoom()
@@ -253,10 +266,10 @@ function GUI.PitchEditor:onupdate()
 
     if projectIsPlaying then
         self:drawEditCursor()
-        editCursorCleared = false
-    elseif not editCursorCleared then
+        playCursorCleared = false
+    elseif not playCursorCleared then
         self:drawEditCursor()
-        editCursorCleared = true
+        playCursorCleared = true
     end
 
     self.mousePrev.x = GUI.mouse.x
@@ -276,6 +289,7 @@ function GUI.PitchEditor:onresize()
     self:drawKeyBackgrounds()
     self:drawKeyLines()
     self:drawPitchLines()
+    self:drawPreviewPitchLines()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -303,6 +317,7 @@ end
 
 function GUI.PitchEditor:drawPitchLines()
     if self.take == nil then return end
+    if #self.pitchPoints < 1 then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -318,7 +333,7 @@ function GUI.PitchEditor:drawPitchLines()
     gfx.setimgdim(self.pitchLinesBuff, -1, -1)
     gfx.setimgdim(self.pitchLinesBuff, w, h)
 
-    GUI.color("green")
+    GUI.color("pitch_lines")
 
     local previousPoint = nil
     local previousPointX = 0
@@ -328,7 +343,65 @@ function GUI.PitchEditor:drawPitchLines()
         local pointXRatio = point.time / itemLength
         local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
 
-        local pointYRatio = 1.0 - point.pitch / 127
+        local pointYRatio = 1.0 - (0.5 + point.pitch) / 127.0
+        local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
+
+        if pointKey == 1 then
+            previousPoint = point
+            previousPointX = pointX
+            previousPointY = pointY
+        end
+
+        if point.time - previousPoint.time > drawThreshold then
+            previousPointX = pointX
+            previousPointY = pointY
+        end
+
+        gfx.line(previousPointX, previousPointY, pointX, pointY, false)
+
+        previousPoint = point
+        previousPointX = pointX
+        previousPointY = pointY
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:drawPreviewPitchLines()
+    if self.take == nil then return end
+    if #self.pitchPoints < 1 then return end
+
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local windowStep = 0.04
+    local overlap = 2
+    local drawThreshold = 2.5 * windowStep / overlap
+
+    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+
+    self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
+
+    gfx.dest = self.previewLinesBuff
+    gfx.setimgdim(self.previewLinesBuff, -1, -1)
+    gfx.setimgdim(self.previewLinesBuff, w, h)
+
+    GUI.color("pitch_preview_lines")
+
+    local previousPoint = nil
+    local previousPointX = 0
+    local previousPointY = 0
+
+    local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+
+    for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
+        local pointXRatio = point.time / itemLength
+        local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
+
+        local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
+
+        local pitchValue = point.pitch + envelopeValue
+        local pointYRatio = 1.0 - (0.5 + pitchValue) / 127.0
         local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
 
         if pointKey == 1 then
@@ -404,9 +477,7 @@ function GUI.PitchEditor:drawKeyLines()
 
             local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5 - 1
 
-            gfx.a = 0.3
             gfx.line(0, keyLineHeight, w, keyLineHeight, false)
-            gfx.a = 1
         end
     end
 
@@ -466,19 +537,16 @@ function GUI.PitchEditor:drawEditCursor()
     gfx.setimgdim(self.editCursorBuff, -1, -1)
     gfx.setimgdim(self.editCursorBuff, w, h)
 
-    GUI.color("key_lines")
+    GUI.color("edit_cursor")
 
-    gfx.a = 0.7
     gfx.line(editCursorPixels - scrollOffset, 0, editCursorPixels - scrollOffset, h, false)
 
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
     if projectIsPlaying then
-        gfx.a = 0.4
+        GUI.color("play_cursor")
         gfx.line(playPositionPixels - scrollOffset, 0, playPositionPixels - scrollOffset, h, false)
     end
-
-    gfx.a = 1
 
     self:redraw()
 end
