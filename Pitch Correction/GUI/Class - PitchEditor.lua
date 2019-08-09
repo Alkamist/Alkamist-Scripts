@@ -11,6 +11,12 @@ local PitchPoint = require "Classes.Class - PitchPoint"
 GUI.colors["white_keys"] = {112, 112, 112, 255}
 GUI.colors["black_keys"] = {81, 81, 81, 255}
 
+GUI.colors["white_key_bg"] = {59, 59, 59, 255}
+GUI.colors["black_key_bg"] = {50, 50, 50, 255}
+
+GUI.colors["white_key_lines"] = {65, 65, 65, 255}
+GUI.colors["key_lines"] = {255, 255, 255, 255}
+
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
 local whiteKeys = {}
 for i = 1, 11 do
@@ -75,9 +81,11 @@ end
 function GUI.PitchEditor:init()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    self:drawKeys()
+    self:drawKeyBackgrounds()
     self:drawBackground()
+    self:drawKeyLines()
     self:drawPitchLines()
+    self:drawKeys()
 
     self:redraw()
 end
@@ -87,6 +95,14 @@ function GUI.PitchEditor:draw()
 
     if self.backgroundBuff then
         gfx.blit(self.backgroundBuff, 1, 0, 0, 0, self.orig_w, self.orig_h, x, y, w, h)
+    end
+
+    if self.keyBackgroundBuff then
+        gfx.blit(self.keyBackgroundBuff, 1, 0, 0, 0, w, h, x, y)
+    end
+
+    if self.keyLinesBuff then
+        gfx.blit(self.keyLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
     if self.pitchLinesBuff then
@@ -140,8 +156,10 @@ function GUI.PitchEditor:handleDragScroll()
         self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
         self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
 
-        self:drawKeys()
+        self:drawKeyBackgrounds()
+        self:drawKeyLines()
         self:drawPitchLines()
+        self:drawKeys()
 
         self:redraw()
     end
@@ -188,8 +206,10 @@ function GUI.PitchEditor:handleZoom()
         local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
         self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
 
-        self:drawKeys()
+        self:drawKeyBackgrounds()
+        self:drawKeyLines()
         self:drawPitchLines()
+        self:drawKeys()
 
         self:redraw()
     end
@@ -213,6 +233,8 @@ function GUI.PitchEditor:onresize()
     self.w = GUI.cur_w - 4
     self.h = GUI.cur_h - self.y - 2
 
+    self:drawKeyBackgrounds()
+    self:drawKeyLines()
     self:drawPitchLines()
     self:drawKeys()
 
@@ -284,6 +306,67 @@ function GUI.PitchEditor:drawPitchLines()
         previousPoint = point
         previousPointX = pointX
         previousPointY = pointY
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:drawKeyBackgrounds()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local keyWidth = w * 0.05
+    local keyHeight = self.zoomY * h * 1.0 / 127.0
+
+    local scrollOffset = self.scrollY * h * self.zoomY
+
+    self.keyBackgroundBuff = self.keyBackgroundBuff or GUI.GetBuffer()
+
+    gfx.dest = self.keyBackgroundBuff
+    gfx.setimgdim(self.keyBackgroundBuff, -1, -1)
+    gfx.setimgdim(self.keyBackgroundBuff, w, h)
+
+    for i = 1, 127 do
+        GUI.color("black_key_bg")
+
+        for _, value in ipairs(whiteKeys) do
+            if i == value then
+                GUI.color("white_key_bg")
+            end
+        end
+
+        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, w, keyHeight + 1, 1)
+
+        GUI.color("black_key_bg")
+
+        gfx.line(0, i * keyHeight - scrollOffset - 1, w, i * keyHeight - scrollOffset - 1, false)
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:drawKeyLines()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local keyHeight = self.zoomY * h * 1.0 / 127.0
+
+    local scrollOffset = self.scrollY * h * self.zoomY
+
+    self.keyLinesBuff = self.keyLinesBuff or GUI.GetBuffer()
+
+    gfx.dest = self.keyLinesBuff
+    gfx.setimgdim(self.keyLinesBuff, -1, -1)
+    gfx.setimgdim(self.keyLinesBuff, w, h)
+
+    if keyHeight > 16 then
+        for i = 1, 127 do
+            GUI.color("key_lines")
+
+            local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5 - 1
+
+            gfx.a = 0.3
+            gfx.line(0, keyLineHeight, w, keyLineHeight, false)
+            gfx.a = 1
+        end
     end
 
     self:redraw()
