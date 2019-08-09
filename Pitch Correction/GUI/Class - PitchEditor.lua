@@ -42,6 +42,11 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.mousePrev.x = 0
     object.mousePrev.y = 0
 
+    object.shouldZoom = false
+    object.shouldDragScroll = false
+
+    object.mouse_cap_prev = gfx.mouse_cap
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -71,44 +76,110 @@ function GUI.PitchEditor:draw()
     if self.pitchLinesBuff then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
-
-    self.mousePrev.x = GUI.mouse.x
-    self.mousePrev.y = GUI.mouse.y
 end
 
 function GUI.PitchEditor:onmousedown()
-    self.scrollXPreDrag = self.scrollX
-    self.zoomXPreDrag = self.zoomX
-
-    self.scrollYPreDrag = self.scrollY
-    self.zoomYPreDrag = self.zoomY
-
     self:redraw()
 end
 
-function GUI.PitchEditor:ondrag()
+function GUI.PitchEditor:handleDragScroll()
     local x, y, w, h = self.x, self.y, self.w, self.h
+
     local zoomXSens = 4.0
     local zoomYSens = 4.0
 
+    -- Middle mouse down:
+    if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
+        self.shouldDragScroll = true
 
-    -- Horizontal zoom:
-    self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
+        self.mouseXPreDrag = GUI.mouse.x
+        self.scrollXPreDrag = self.scrollX
+        self.zoomXPreDrag = self.zoomX
 
-    local targetMouseXRatio = self.scrollXPreDrag + GUI.mouse.ox / (w * self.zoomXPreDrag)
-    self.scrollX = targetMouseXRatio - GUI.mouse.ox / (w * self.zoomX)
+        self.mouseYPreDrag = GUI.mouse.y
+        self.scrollYPreDrag = self.scrollY
+        self.zoomYPreDrag = self.zoomY
+    end
 
+    -- Middle mouse up:
+    if gfx.mouse_cap & 64 ~= 64 and self.mouse_cap_prev & 64 == 64 then
+        self.shouldDragScroll = false
+    end
 
-    -- Vertical zoom:
-    self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
+    if self.shouldDragScroll then
+        local scrollXMax = 1.0 - w / (w * self.zoomX)
+        local scrollYMax = 1.0 - h / (h * self.zoomY)
 
-    local targetMouseYRatio = self.scrollYPreDrag + GUI.mouse.oy / (h * self.zoomYPreDrag)
-    self.scrollY = targetMouseYRatio - GUI.mouse.oy / (h * self.zoomY)
+        -- Horizontal scroll:
+        self.scrollX = self.scrollX - (GUI.mouse.x - self.mousePrev.x) / (w * self.zoomX)
+        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollYMax)
 
+        -- Vertical scroll:
+        self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
+        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
 
+        self:drawPitchLines()
 
-    self:drawPitchLines()
+        self:redraw()
+    end
+end
 
+function GUI.PitchEditor:handleZoom()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local zoomXSens = 4.0
+    local zoomYSens = 4.0
+
+    -- Middle mouse down:
+    --if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
+    if gfx.mouse_cap & 2 == 2 and self.mouse_cap_prev & 2 ~= 2 then
+        self.shouldZoom = true
+
+        self.mouseXPreDrag = GUI.mouse.x
+        self.scrollXPreDrag = self.scrollX
+        self.zoomXPreDrag = self.zoomX
+
+        self.mouseYPreDrag = GUI.mouse.y
+        self.scrollYPreDrag = self.scrollY
+        self.zoomYPreDrag = self.zoomY
+    end
+
+    -- Middle mouse up:
+    --if gfx.mouse_cap & 64 ~= 64 and self.mouse_cap_prev & 64 == 64 then
+    if gfx.mouse_cap & 2 ~= 2 and self.mouse_cap_prev & 2 == 2 then
+        self.shouldZoom = false
+    end
+
+    if self.shouldZoom then
+        -- Horizontal zoom:
+        self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
+
+        local targetMouseXRatio = self.scrollXPreDrag + self.mouseXPreDrag / (w * self.zoomXPreDrag)
+        self.scrollX = targetMouseXRatio - self.mouseXPreDrag / (w * self.zoomX)
+
+        -- Vertical zoom:
+        self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
+
+        local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
+        self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
+
+        self:drawPitchLines()
+
+        self:redraw()
+    end
+end
+
+function GUI.PitchEditor:onupdate()
+    self:handleDragScroll()
+    self:handleZoom()
+
+    self.mousePrev.x = GUI.mouse.x
+    self.mousePrev.y = GUI.mouse.y
+
+    self.mouse_cap_prev = gfx.mouse_cap
+end
+
+function GUI.PitchEditor:ondrag()
     self:redraw()
 end
 
