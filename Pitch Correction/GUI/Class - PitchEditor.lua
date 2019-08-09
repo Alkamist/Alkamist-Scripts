@@ -4,10 +4,21 @@ if not GUI then
     return 0
 end
 
+
+
 local PitchPoint = require "Classes.Class - PitchPoint"
 
-GUI.colors["white_keys"] = {125, 125, 125, 255}
-GUI.colors["black_keys"] = {72, 72, 72, 255}
+GUI.colors["white_keys"] = {112, 112, 112, 255}
+GUI.colors["black_keys"] = {81, 81, 81, 255}
+
+local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
+local whiteKeys = {}
+for i = 1, 11 do
+    for _, value in ipairs(whiteKeysMultiples) do
+        table.insert(whiteKeys, (i - 1) * 12 + value)
+    end
+end
+
 
 
 GUI.PitchEditor = GUI.Element:new()
@@ -293,8 +304,19 @@ function GUI.PitchEditor:drawKeys()
     gfx.setimgdim(self.keysBuff, w, h)
 
     for i = 1, 127 do
-        GUI.color("white_keys")
-        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, keyWidth, keyHeight + 1, 0)
+        GUI.color("black_keys")
+
+        for _, value in ipairs(whiteKeys) do
+            if i == value then
+                GUI.color("white_keys")
+            end
+        end
+
+        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, keyWidth, keyHeight + 1, 1)
+
+        GUI.color("black_keys")
+
+        gfx.line(0, i * keyHeight - scrollOffset - 1, keyWidth - 1, i * keyHeight - scrollOffset - 1, false)
     end
 
     self:redraw()
