@@ -85,6 +85,7 @@ function GUI.PitchEditor:init()
     self:drawBackground()
     self:drawKeyLines()
     self:drawPitchLines()
+    self:drawEditCursor()
     self:drawKeys()
 
     self:redraw()
@@ -109,6 +110,10 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
+    if self.editCursorBuff then
+        gfx.blit(self.editCursorBuff, 1, 0, 0, 0, w, h, x, y)
+    end
+
     if self.keysBuff then
         gfx.blit(self.keysBuff, 1, 0, 0, 0, w, h, x, y)
     end
@@ -124,8 +129,10 @@ function GUI.PitchEditor:onmouseup()
     local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
     local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
 
-    local playTime = itemLeftBound + itemLength * GUI.mouse.x / w
-    reaper.SetEditCurPos(playTime, true, true)
+    local playTime = itemLeftBound + itemLength * (self.scrollX + GUI.mouse.x / (w * self.zoomX))
+    reaper.SetEditCurPos(playTime, false, true)
+
+    self:drawEditCursor()
 
     self:redraw()
 end
@@ -171,6 +178,7 @@ function GUI.PitchEditor:handleDragScroll()
         self:drawKeyBackgrounds()
         self:drawKeyLines()
         self:drawPitchLines()
+        self:drawEditCursor()
         self:drawKeys()
 
         self:redraw()
@@ -228,15 +236,28 @@ function GUI.PitchEditor:handleZoom()
         self:drawKeyBackgrounds()
         self:drawKeyLines()
         self:drawPitchLines()
+        self:drawEditCursor()
         self:drawKeys()
 
         self:redraw()
     end
 end
 
+local editCursorCleared = false
 function GUI.PitchEditor:onupdate()
     self:handleDragScroll()
     self:handleZoom()
+
+    local projectPlaystate = reaper.GetPlayStateEx(0)
+    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
+
+    if projectIsPlaying then
+        self:drawEditCursor()
+        editCursorCleared = false
+    elseif not editCursorCleared then
+        self:drawEditCursor()
+        editCursorCleared = true
+    end
 
     self.mousePrev.x = GUI.mouse.x
     self.mousePrev.y = GUI.mouse.y
@@ -255,6 +276,7 @@ function GUI.PitchEditor:onresize()
     self:drawKeyBackgrounds()
     self:drawKeyLines()
     self:drawPitchLines()
+    self:drawEditCursor()
     self:drawKeys()
 
     self:redraw()
@@ -420,6 +442,43 @@ function GUI.PitchEditor:drawKeys()
 
         gfx.line(0, i * keyHeight - scrollOffset - 1, keyWidth - 1, i * keyHeight - scrollOffset - 1, false)
     end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:drawEditCursor()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+
+    local scrollOffset = self.scrollX * w * self.zoomX
+
+    local editCursorPosition = reaper.GetCursorPositionEx(0)
+    local editCursorPixels = self.zoomX * w * (editCursorPosition - itemLeftBound) / itemLength
+
+    local playPosition = reaper.GetPlayPositionEx(0)
+    local playPositionPixels = self.zoomX * w * (playPosition - itemLeftBound) / itemLength
+
+    self.editCursorBuff = self.editCursorBuff or GUI.GetBuffer()
+
+    gfx.dest = self.editCursorBuff
+    gfx.setimgdim(self.editCursorBuff, -1, -1)
+    gfx.setimgdim(self.editCursorBuff, w, h)
+
+    GUI.color("key_lines")
+
+    gfx.a = 0.7
+    gfx.line(editCursorPixels - scrollOffset, 0, editCursorPixels - scrollOffset, h, false)
+
+    local projectPlaystate = reaper.GetPlayStateEx(0)
+    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
+    if projectIsPlaying then
+        gfx.a = 0.4
+        gfx.line(playPositionPixels - scrollOffset, 0, playPositionPixels - scrollOffset, h, false)
+    end
+
+    gfx.a = 1
 
     self:redraw()
 end
