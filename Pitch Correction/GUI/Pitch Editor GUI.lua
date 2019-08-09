@@ -145,6 +145,11 @@ GUI.CreateElms(elms)
 
 local previousSelectedItem = nil
 local function mainLoop()
+    -- Allow space to play the project.
+    if GUI.char == 32 then
+        reaper.Main_OnCommandEx(40044, 0, 0)
+    end
+
     local selectedItem = reaper.GetSelectedMediaItem(0, 0)
 
     if selectedItem ~= previousSelectedItem then
