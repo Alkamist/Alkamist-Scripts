@@ -24,6 +24,14 @@ GUI.w, GUI.h = guiWidth, guiHeight
 
 local fonts = GUI.get_OS_fonts()
 
+
+
+local function analyze_button_click()
+    GUI.Msg("Clicked!")
+end
+
+
+
 local elms = {}
 
 elms.tabs = {
@@ -37,11 +45,25 @@ elms.tabs = {
     pad = 16
 }
 
+GUI.colors["analyze_button"] = {155, 32, 32, 255}
+elms.analyze_button = {
+    type = "Button",
+    z = 3,
+    x = 2,
+    y = 22,
+    w = 64,
+    h = 24,
+    col_fill = "analyze_button",
+    caption = "Analyze",
+    func = analyze_button_click,
+    tooltip = "Analyzes the selected audio to get pitch info."
+}
+
 elms.pitch_editor = {
     type = "PitchEditor",
     z = 3,
     x = 2,
-    y = 22,
+    y = 52,
     w = 0,
     h = 0,
     take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
