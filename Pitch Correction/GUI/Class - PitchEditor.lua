@@ -278,8 +278,8 @@ end
 function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyWidth = GUI.round(w * 0.05)
-    local keyHeight = math.floor(h * 1.0 / 127.0)
+    local keyWidth = w * 0.05
+    local keyHeight = h * 1.0 / 127.0
 
     self.keysBuff = self.keysBuff or GUI.GetBuffer()
 
