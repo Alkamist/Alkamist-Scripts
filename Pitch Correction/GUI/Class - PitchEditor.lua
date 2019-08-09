@@ -45,21 +45,7 @@ end
 function GUI.PitchEditor:init()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    -- Pretty much any class will benefit from doing as much drawing as possible
-    -- to a buffer, so the GUI can just copy/paste it when the screen updates rather
-    -- than getting each element to redraw itself every single time.
-
-    -- Seriously, redrawing can eat up a TON of CPU.
-
-    self.buff = self.buff or GUI.GetBuffer()
-
-    gfx.dest = self.buff
-    gfx.setimgdim(self.buff, -1, -1)
-    gfx.setimgdim(self.buff, w, h)
-
-    GUI.color("elm_bg")
-    gfx.rect(0, 0, w, h, 1)
-
+    self:drawBackground()
     self:drawPitchLines()
 
     self:redraw()
@@ -68,14 +54,13 @@ end
 function GUI.PitchEditor:draw()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    -- Copy the pre-drawn bits
-    gfx.blit(self.buff, 1, 0, 0, 0, self.orig_w, self.orig_h, x, y, w, h)
-
-    if self.take then
-        gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+    if self.backgroundBuff then
+        gfx.blit(self.backgroundBuff, 1, 0, 0, 0, self.orig_w, self.orig_h, x, y, w, h)
     end
 
-    -- Draw text, or whatever you want, here
+    if self.pitchLinesBuff then
+        gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+    end
 end
 
 function GUI.PitchEditor:onmousedown()
@@ -103,7 +88,20 @@ function GUI.PitchEditor:onresize()
 end
 
 function GUI.PitchEditor:ondelete()
-    GUI.FreeBuffer(self.buff)
+    GUI.FreeBuffer(self.backgroundBuff)
+end
+
+function GUI.PitchEditor:drawBackground()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    self.backgroundBuff = self.backgroundBuff or GUI.GetBuffer()
+
+    gfx.dest = self.backgroundBuff
+    gfx.setimgdim(self.backgroundBuff, -1, -1)
+    gfx.setimgdim(self.backgroundBuff, w, h)
+
+    GUI.color("elm_bg")
+    gfx.rect(0, 0, w, h, 1)
 end
 
 function GUI.PitchEditor:drawPitchLines()
