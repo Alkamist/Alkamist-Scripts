@@ -6,6 +6,9 @@ end
 
 local PitchPoint = require "Classes.Class - PitchPoint"
 
+GUI.colors["white_keys"] = {125, 125, 125, 255}
+
+
 GUI.PitchEditor = GUI.Element:new()
 function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     -- This provides support for creating elms with a keyed table
@@ -60,7 +63,8 @@ end
 function GUI.PitchEditor:init()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    self:drawBackground()
+    self:drawKeys()
+    --self:drawBackground()
     self:drawPitchLines()
 
     self:redraw()
@@ -75,6 +79,10 @@ function GUI.PitchEditor:draw()
 
     if self.pitchLinesBuff then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+    end
+
+    if self.keysBuff then
+        gfx.blit(self.keysBuff, 1, 0, 0, 0, w, h, x, y)
     end
 end
 
@@ -192,6 +200,7 @@ function GUI.PitchEditor:onresize()
     self.h = GUI.cur_h - self.y - 2
 
     self:drawPitchLines()
+    self:drawKeys()
 
     self:redraw()
 end
@@ -211,6 +220,8 @@ function GUI.PitchEditor:drawBackground()
 
     GUI.color("elm_bg")
     gfx.rect(0, 0, w, h, 1)
+
+    self:redraw()
 end
 
 function GUI.PitchEditor:drawPitchLines()
@@ -259,6 +270,26 @@ function GUI.PitchEditor:drawPitchLines()
         previousPoint = point
         previousPointX = pointX
         previousPointY = pointY
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:drawKeys()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local keyWidth = GUI.round(w * 0.05)
+    local keyHeight = math.floor(h * 1.0 / 127.0)
+
+    self.keysBuff = self.keysBuff or GUI.GetBuffer()
+
+    gfx.dest = self.keysBuff
+    gfx.setimgdim(self.keysBuff, -1, -1)
+    gfx.setimgdim(self.keysBuff, w, h)
+
+    for i = 1, 127 do
+        GUI.color("white_keys")
+        gfx.rect(0, (i - 1) * keyHeight, keyWidth, keyHeight + 1, 0)
     end
 
     self:redraw()
