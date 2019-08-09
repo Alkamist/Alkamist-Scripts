@@ -152,7 +152,7 @@ local function mainLoop()
 
     local selectedItem = reaper.GetSelectedMediaItem(0, 0)
 
-    if selectedItem ~= previousSelectedItem then
+    if selectedItem and selectedItem ~= previousSelectedItem then
         local selectedTake = reaper.GetActiveTake(selectedItem)
         elms.pitch_editor:setTake(selectedTake)
     end
