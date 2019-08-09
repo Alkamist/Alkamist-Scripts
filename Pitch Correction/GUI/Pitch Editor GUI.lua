@@ -1,3 +1,5 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
+
 local lib_path = reaper.GetExtState("Lokasenna_GUI", "lib_path_v2")
 if not lib_path or lib_path == "" then
     reaper.MB("Couldn't load the Lokasenna_GUI library. Please run 'Script: Set Lokasenna_GUI v2 library path.lua' in your Action List.", "Whoops!", 0)
@@ -5,6 +7,7 @@ if not lib_path or lib_path == "" then
 end
 loadfile(lib_path .. "Core.lua")()
 
+require "Helper Functions.Pitch Correction Functions"
 require "GUI.Class - PitchEditor"
 GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
@@ -12,6 +15,18 @@ GUI.req("Classes/Class - Textbox.lua")()
 
 -- If any of the requested libraries weren't found, abort the script.
 if missing_lib then return 0 end
+
+
+
+-- Pitch detection settings:
+local settings = {}
+settings.maximumLength = 300
+settings.windowStep = 0.04
+settings.overlap = 2.0
+settings.minimumFrequency = 60
+settings.maximumFrequency = 1000
+settings.YINThresh = 0.2
+settings.lowRMSLimitdB = -60
 
 
 
@@ -24,15 +39,18 @@ GUI.w, GUI.h = guiWidth, guiHeight
 
 local fonts = GUI.get_OS_fonts()
 
-
+local elms = {}
 
 local function analyze_button_click()
-    GUI.Msg("Clicked!")
+    local selectedTake = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
+
+    saveSettingsInExtState(settings)
+    analyzePitch(selectedTake)
+
+    elms.pitch_editor:setTake(selectedTake)
 end
 
 
-
-local elms = {}
 
 elms.tabs = {
     type = "Tabs",
@@ -125,6 +143,18 @@ settingNumber = settingNumber + 1;
 
 GUI.CreateElms(elms)
 
+local previousSelectedItem = nil
+local function mainLoop()
+    local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+
+    if selectedItem ~= previousSelectedItem then
+        local selectedTake = reaper.GetActiveTake(selectedItem)
+        elms.pitch_editor:setTake(selectedTake)
+    end
+
+    previousSelectedItem = selectedItem
+end
+
 GUI.elms.tabs:update_sets(
     --  Tab     Layers
     {   [1] =   {3},
@@ -135,5 +165,6 @@ GUI.elms.tabs:update_sets(
 GUI.Init()
 
 GUI.freq = 0
+GUI.func = mainLoop
 
 GUI.Main()

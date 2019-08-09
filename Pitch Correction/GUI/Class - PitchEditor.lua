@@ -417,4 +417,8 @@ function GUI.PitchEditor:setTake(take)
     self.item = reaper.GetMediaItemTake_Item(take)
     self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
+
+    self:drawPitchLines()
+
+    self:redraw()
 end

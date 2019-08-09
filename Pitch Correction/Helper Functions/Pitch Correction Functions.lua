@@ -86,10 +86,16 @@ function getEELCommandID(name)
     return nil
 end
 
-function analyzePitch()
+function analyzePitch(take)
     local analyzerID = getEELCommandID("Pitch Analyzer")
 
     if analyzerID then
+        -- Save the current GUID of the item take we are processing in the ext state.
+        -- Since there is no way to pass arguments to the external EEL script, we need
+        -- to do this so it knows which item to process.
+        local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
+        reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
+
         reaperCMD(analyzerID)
     else
         reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
@@ -213,12 +219,6 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                     reaperCMD(40289) -- Unselect all items.
                     reaper.SetMediaItemSelected(currentItem, true)
 
-                    -- Save the current GUID of the item take we are processing in the ext state.
-                    -- Since there is no way to pass arguments to the external EEL script, we need
-                    -- to do this so it knows which item to process.
-                    local takeGUID = reaper.BR_GetMediaItemTakeGUID(currentItemTake)
-                    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
-
                     -- If a take pitch envelope already exists, then we need to clean the content in it
                     -- that exists within the bounds of the MIDI item.
                     local pitchEnvelope = reaper.GetTakeEnvelopeByName(currentItemTake, "Pitch")
@@ -256,7 +256,7 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
                         reaperCMD("_S&M_TAKEENV11")
                         -- Analyze the audio to determine its pitches.
-                        if analyzePitch() == 0 then return 0 end
+                        if analyzePitch(currentItemTake) == 0 then return 0 end
                         -- Set the pitch back to what it once was after the processing.
                         reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", currentTakePitch)
                         -- Show and unbypass the take pitch envelope.
