@@ -150,7 +150,7 @@ function GUI.PitchEditor:handleDragScroll()
 
         -- Horizontal scroll:
         self.scrollX = self.scrollX - (GUI.mouse.x - self.mousePrev.x) / (w * self.zoomX)
-        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollYMax)
+        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
 
         -- Vertical scroll:
         self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
@@ -194,17 +194,24 @@ function GUI.PitchEditor:handleZoom()
     end
 
     if self.shouldZoom then
+        local scrollXMax = 1.0 - w / (w * self.zoomX)
+        local scrollYMax = 1.0 - h / (h * self.zoomY)
+
         -- Horizontal zoom:
         self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
+        self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
 
         local targetMouseXRatio = self.scrollXPreDrag + self.mouseXPreDrag / (w * self.zoomXPreDrag)
         self.scrollX = targetMouseXRatio - self.mouseXPreDrag / (w * self.zoomX)
+        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
 
         -- Vertical zoom:
         self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
+        self.zoomY = GUI.clamp(self.zoomY, 1.0, 100.0)
 
         local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
         self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
+        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
 
         self:drawKeyBackgrounds()
         self:drawKeyLines()
