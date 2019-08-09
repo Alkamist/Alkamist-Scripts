@@ -32,6 +32,16 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.scrollX = 0.0
     object.scrollY = 0.0
 
+    object.zoomXPreDrag = 1.0
+    object.scrollXPreDrag = 0.0
+
+    object.zoomYPreDrag = 1.0
+    object.scrollXPreDrag = 1.0
+
+    object.mousePrev = {}
+    object.mousePrev.x = 0
+    object.mousePrev.y = 0
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -61,19 +71,43 @@ function GUI.PitchEditor:draw()
     if self.pitchLinesBuff then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
+
+    self.mousePrev.x = GUI.mouse.x
+    self.mousePrev.y = GUI.mouse.y
 end
 
 function GUI.PitchEditor:onmousedown()
-    -- Odds are, any input method will want to make the element redraw itself so
-    -- whatever the user did is actually shown on the screen.
+    self.scrollXPreDrag = self.scrollX
+    self.zoomXPreDrag = self.zoomX
+
+    self.scrollYPreDrag = self.scrollY
+    self.zoomYPreDrag = self.zoomY
+
     self:redraw()
 end
 
 function GUI.PitchEditor:ondrag()
-    -- GUI.mouse.ox and .oy are available to compare where the drag started from
-    -- with the current position
-    --GUI.color("red")
-    --gfx.line(GUI.mouse.ox, GUI.mouse.oy, GUI.mouse.x, GUI.mouse.y, true)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    local zoomXSens = 4.0
+    local zoomYSens = 4.0
+
+
+    -- Horizontal zoom:
+    self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
+
+    local targetMouseXRatio = self.scrollXPreDrag + GUI.mouse.ox / (w * self.zoomXPreDrag)
+    self.scrollX = targetMouseXRatio - GUI.mouse.ox / (w * self.zoomX)
+
+
+    -- Vertical zoom:
+    self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
+
+    local targetMouseYRatio = self.scrollYPreDrag + GUI.mouse.oy / (h * self.zoomYPreDrag)
+    self.scrollY = targetMouseYRatio - GUI.mouse.oy / (h * self.zoomY)
+
+
+
+    self:drawPitchLines()
 
     self:redraw()
 end
@@ -126,14 +160,13 @@ function GUI.PitchEditor:drawPitchLines()
     local previousPoint = nil
     local previousPointX = 0
     local previousPointY = 0
-    for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
-        local pointX = w * point.time / itemLength
-              pointX = self.zoomX * (pointX - w * self.scrollX)
-              pointX = GUI.round(pointX)
 
-        local pointY = h * (1.0 - point.pitch / 127)
-              pointY = self.zoomY * (pointY - h * self.scrollY)
-              pointY = GUI.round(pointY)
+    for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
+        local pointXRatio = point.time / itemLength
+        local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
+
+        local pointYRatio = 1.0 - point.pitch / 127
+        local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
 
         if pointKey == 1 then
             previousPoint = point
