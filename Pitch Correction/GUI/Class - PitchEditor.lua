@@ -7,6 +7,7 @@ end
 local PitchPoint = require "Classes.Class - PitchPoint"
 
 GUI.colors["white_keys"] = {125, 125, 125, 255}
+GUI.colors["black_keys"] = {72, 72, 72, 255}
 
 
 GUI.PitchEditor = GUI.Element:new()
@@ -64,7 +65,7 @@ function GUI.PitchEditor:init()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     self:drawKeys()
-    --self:drawBackground()
+    self:drawBackground()
     self:drawPitchLines()
 
     self:redraw()
@@ -128,6 +129,7 @@ function GUI.PitchEditor:handleDragScroll()
         self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
         self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
 
+        self:drawKeys()
         self:drawPitchLines()
 
         self:redraw()
@@ -175,6 +177,7 @@ function GUI.PitchEditor:handleZoom()
         local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
         self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
 
+        self:drawKeys()
         self:drawPitchLines()
 
         self:redraw()
@@ -279,7 +282,9 @@ function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local keyWidth = w * 0.05
-    local keyHeight = h * 1.0 / 127.0
+    local keyHeight = self.zoomY * h * 1.0 / 127.0
+
+    local scrollOffset = self.scrollY * h * self.zoomY
 
     self.keysBuff = self.keysBuff or GUI.GetBuffer()
 
@@ -289,7 +294,7 @@ function GUI.PitchEditor:drawKeys()
 
     for i = 1, 127 do
         GUI.color("white_keys")
-        gfx.rect(0, (i - 1) * keyHeight, keyWidth, keyHeight + 1, 0)
+        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, keyWidth, keyHeight + 1, 0)
     end
 
     self:redraw()
