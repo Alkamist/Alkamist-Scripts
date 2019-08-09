@@ -15,14 +15,14 @@ if missing_lib then return 0 end
 
 
 
-local guiWidth = 600
-local guiHeight = 400
+local guiWidth = 1000
+local guiHeight = 800
 
 GUI.name = "Alkamist Pitch Correction"
-GUI.x, GUI.y = 500, 500
+GUI.x, GUI.y = 500, 100
 GUI.w, GUI.h = guiWidth, guiHeight
 
-
+local fonts = GUI.get_OS_fonts()
 
 local elms = {}
 
@@ -49,7 +49,9 @@ elms.pitch_editor = {
 
 -------------- Settings: --------------
 
-local function createTextboxSetting(title, caption, settingNumber)
+local function createTextboxSetting(title, caption, startingValue, settingNumber)
+    local settingsFont = {fonts.mono, 12}
+
     local settingsZLayer = 4
     local settingsXPos = 170
     local settingsStartingHeight = 25
@@ -68,18 +70,33 @@ local function createTextboxSetting(title, caption, settingNumber)
         w = settingsWidth,
         h = settingsHeight,
         caption = caption,
-        pad = settingsCaptionPadding
+        pad = settingsCaptionPadding,
+        retval = startingValue,
+        font_b = settingsFont
     }
 end
 
 local settingNumber = 1
-createTextboxSetting("maxLength", "Max item length (seconds):", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("windowStep", "Window step (seconds):", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("overlap", "Overlap:", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("minFreq", "Minimum frequency (Hz):", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("maxFreq", "Maximum frequency (Hz):", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("YINThresh", "YIN threshold:", settingNumber); settingNumber = settingNumber + 1;
-createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB):", settingNumber); settingNumber = settingNumber + 1;
+createTextboxSetting("maxLength", "Max item length (seconds):", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("windowStep", "Window step (seconds):", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("overlap", "Overlap:", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("minFreq", "Minimum frequency (Hz):", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("maxFreq", "Maximum frequency (Hz):", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("YINThresh", "YIN threshold:", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB):", 59, settingNumber);
+settingNumber = settingNumber + 1;
 
 
 
