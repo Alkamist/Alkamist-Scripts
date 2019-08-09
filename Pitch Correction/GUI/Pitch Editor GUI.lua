@@ -43,7 +43,8 @@ elms.pitch_editor = {
     x = 2,
     y = 22,
     w = 0,
-    h = 0
+    h = 0,
+    take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
 }
 
 

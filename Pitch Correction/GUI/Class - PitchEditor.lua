@@ -7,7 +7,7 @@ end
 local PitchPoint = require "Classes.Class - PitchPoint"
 
 GUI.PitchEditor = GUI.Element:new()
-function GUI.PitchEditor:new(name, z, x, y, w, h)
+function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     -- This provides support for creating elms with a keyed table
     local object = (not x and type(z) == "table") and z or {}
 
@@ -26,11 +26,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     object.orig_w = object.w
     object.orig_h = object.h
 
-    object.take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
-    object.item = reaper.GetMediaItemTake_Item(object.take)
-    object.takeGUID = reaper.BR_GetMediaItemTakeGUID(object.take)
-    object.pitchPoints = PitchPoint.getPitchPoints(object.takeGUID)
-
     object.zoomX = 1.0
     object.zoomY = 1.0
 
@@ -41,6 +36,9 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
 
     setmetatable(object, self)
     self.__index = self
+
+    object:setTake(object.take or take)
+
     return object
 end
 
@@ -62,7 +60,7 @@ function GUI.PitchEditor:init()
     GUI.color("elm_bg")
     gfx.rect(0, 0, w, h, 1)
 
-    self:drawpitchlines()
+    self:drawPitchLines()
 
     self:redraw()
 end
@@ -72,7 +70,10 @@ function GUI.PitchEditor:draw()
 
     -- Copy the pre-drawn bits
     gfx.blit(self.buff, 1, 0, 0, 0, self.orig_w, self.orig_h, x, y, w, h)
-    gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+
+    if self.take then
+        gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
+    end
 
     -- Draw text, or whatever you want, here
 end
@@ -96,7 +97,7 @@ function GUI.PitchEditor:onresize()
     self.w = GUI.cur_w - 4
     self.h = GUI.cur_h - self.y - 2
 
-    self:drawpitchlines()
+    self:drawPitchLines()
 
     self:redraw()
 end
@@ -105,7 +106,9 @@ function GUI.PitchEditor:ondelete()
     GUI.FreeBuffer(self.buff)
 end
 
-function GUI.PitchEditor:drawpitchlines()
+function GUI.PitchEditor:drawPitchLines()
+    if self.take == nil then return end
+
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local windowStep = 0.04
@@ -153,4 +156,11 @@ function GUI.PitchEditor:drawpitchlines()
     end
 
     self:redraw()
+end
+
+function GUI.PitchEditor:setTake(take)
+    self.take = take
+    self.item = reaper.GetMediaItemTake_Item(take)
+    self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
+    self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
 end
