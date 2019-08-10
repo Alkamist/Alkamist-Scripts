@@ -207,6 +207,10 @@ function GUI.PitchEditor:onmousedown()
     local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
 
     if correctionUnderMouse then
+        if gfx.mouse_cap & 8 == 0 and not correctionUnderMouse.isSelected then
+            self:unselectAllPitchCorrections()
+        end
+
         correctionUnderMouse.isSelected = true
         self.editCorrection = correctionUnderMouse
         self.editHandle = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderMouse)
@@ -228,15 +232,6 @@ function GUI.PitchEditor:onmouseup()
         reaper.SetEditCurPos(playTime, false, true)
 
         self:drawEditCursor()
-
-
-        self:unselectAllPitchCorrections()
-
-        local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
-
-        if correctionUnderMouse then
-            correctionUnderMouse.isSelected = true
-        end
     end
 
     self.lWasDragged = false
