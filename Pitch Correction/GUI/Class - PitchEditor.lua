@@ -131,19 +131,26 @@ function GUI.PitchEditor:draw()
 end
 
 function GUI.PitchEditor:onmousedown()
+    self:drawPreviewPitchLines()
+
     self:redraw()
 end
 
+local lWasDragged = false
 function GUI.PitchEditor:onmouseup()
-    local x, y, w, h = self.x, self.y, self.w, self.h
+    if not lWasDragged then
+        local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+        local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+        local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
 
-    local playTime = itemLeftBound + itemLength * (self.scrollX + GUI.mouse.x / (w * self.zoomX))
-    reaper.SetEditCurPos(playTime, false, true)
+        local playTime = itemLeftBound + itemLength * (self.scrollX + GUI.mouse.x / (w * self.zoomX))
+        reaper.SetEditCurPos(playTime, false, true)
 
-    self:drawEditCursor()
+        self:drawEditCursor()
+    end
+
+    lWasDragged = false
 
     self:redraw()
 end
@@ -279,6 +286,8 @@ function GUI.PitchEditor:onupdate()
 end
 
 function GUI.PitchEditor:ondrag()
+    lWasDragged = true
+
     self:redraw()
 end
 
