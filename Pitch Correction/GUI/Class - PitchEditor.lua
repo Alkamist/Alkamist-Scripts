@@ -804,7 +804,7 @@ function GUI.PitchEditor:setTake(take)
 end
 
 function GUI.PitchEditor:getSnappedPitch(pitch)
-    return math.floor(pitch)
+    return GUI.round(pitch)
 end
 
 function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
