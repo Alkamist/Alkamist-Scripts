@@ -358,7 +358,7 @@ function GUI.PitchEditor:drawPitchLines()
         local pointXRatio = point.time / itemLength
         local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
 
-        local pointYRatio = 1.0 - (0.5 + point.pitch) / 127.0
+        local pointYRatio = 1.0 - (0.5 + point.pitch) / 128.0
         local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
 
         if pointKey == 1 then
@@ -416,7 +416,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
 
         local pitchValue = point.pitch + envelopeValue
-        local pointYRatio = 1.0 - (0.5 + pitchValue) / 127.0
+        local pointYRatio = 1.0 - (0.5 + pitchValue) / 128.0
         local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
 
         if pointKey == 1 then
@@ -444,7 +444,7 @@ function GUI.PitchEditor:drawKeyBackgrounds()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local keyWidth = w * 0.05
-    local keyHeight = self.zoomY * h * 1.0 / 127.0
+    local keyHeight = self.zoomY * h * 1.0 / 128.0
 
     local scrollOffset = self.scrollY * h * self.zoomY
 
@@ -454,7 +454,7 @@ function GUI.PitchEditor:drawKeyBackgrounds()
     gfx.setimgdim(self.keyBackgroundBuff, -1, -1)
     gfx.setimgdim(self.keyBackgroundBuff, w, h)
 
-    for i = 1, 127 do
+    for i = 1, 128 do
         GUI.color("black_key_bg")
 
         for _, value in ipairs(whiteKeys) do
@@ -476,7 +476,7 @@ end
 function GUI.PitchEditor:drawKeyLines()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyHeight = self.zoomY * h * 1.0 / 127.0
+    local keyHeight = self.zoomY * h * 1.0 / 128.0
 
     local scrollOffset = self.scrollY * h * self.zoomY
 
@@ -487,7 +487,7 @@ function GUI.PitchEditor:drawKeyLines()
     gfx.setimgdim(self.keyLinesBuff, w, h)
 
     if keyHeight > 16 then
-        for i = 1, 127 do
+        for i = 1, 128 do
             GUI.color("key_lines")
 
             local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5 - 1
@@ -503,7 +503,7 @@ function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local keyWidth = w * 0.05
-    local keyHeight = self.zoomY * h * 1.0 / 127.0
+    local keyHeight = self.zoomY * h * 1.0 / 128.0
 
     local scrollOffset = self.scrollY * h * self.zoomY
 
@@ -513,7 +513,7 @@ function GUI.PitchEditor:drawKeys()
     gfx.setimgdim(self.keysBuff, -1, -1)
     gfx.setimgdim(self.keysBuff, w, h)
 
-    for i = 1, 127 do
+    for i = 1, 128 do
         GUI.color("black_keys")
 
         for _, value in ipairs(whiteKeys) do
