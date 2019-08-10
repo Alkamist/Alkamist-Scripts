@@ -26,8 +26,8 @@ GUI.colors["pitch_preview_lines"] = {0, 210, 32, 255}
 GUI.colors["edit_cursor"] = {255, 255, 255, 180}
 GUI.colors["play_cursor"] = {255, 255, 255, 120}
 
-GUI.colors["pitch_correction"] = {17, 32, 180, 255}
-GUI.colors["pitch_correction_selected"] = {80, 20, 255, 255}
+GUI.colors["pitch_correction"] = {32, 118, 167, 255}
+GUI.colors["pitch_correction_selected"] = {65, 210, 240, 255}
 
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
 local whiteKeys = {}
@@ -184,6 +184,10 @@ function GUI.PitchEditor:ondrag()
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy, self.zoomYPreDrag, self.scrollYPreDrag)
 
+        for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
+            correction.isSelected = false
+        end
+
         local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
         newCorrection.isSelected = true
         table.insert(self.pitchCorrections, newCorrection)
@@ -192,6 +196,7 @@ function GUI.PitchEditor:ondrag()
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         if correction.isSelected == true then
             correction.rightTime = mouseTime
+            correction.rightPitch = mousePitch
         end
     end
 
@@ -552,12 +557,20 @@ function GUI.PitchEditor:drawPitchCorrections()
         local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch, self.zoomY, self.scrollY)
         local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch, self.zoomY, self.scrollY)
 
+        local circleRadii = 3
+
         if correction.isSelected == true then
             GUI.color("pitch_correction_selected")
             gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+
+            gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
         else
             GUI.color("pitch_correction")
             gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+
+            gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
         end
     end
 
