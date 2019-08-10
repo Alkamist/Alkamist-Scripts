@@ -236,8 +236,10 @@ function GUI.PitchEditor:onmousem_down()
 
         if gfx.mouse_cap & 8 == 8 then
             self.shouldZoom = true
+            self.shouldDragScroll = false
         else
             self.shouldDragScroll = true
+            self.shouldZoom = false
         end
     end
 end
@@ -256,6 +258,34 @@ function GUI.PitchEditor:onm_drag()
     local scrollXMax = 1.0 - w / (w * self.zoomX)
     local scrollYMax = 1.0 - h / (h * self.zoomY)
 
+    -- Allow toggling shift on and off while middle dragging to switch between zooming
+    -- and drag scrolling.
+    if gfx.mouse_cap & 8 == 8 and self.mouse_cap_prev & 8 == 0 then
+        self.shouldZoom = true
+        self.shouldDragScroll = false
+
+        self.mouseXPreDrag = GUI.mouse.x
+        self.scrollXPreDrag = self.scrollX
+        self.zoomXPreDrag = self.zoomX
+
+        self.mouseYPreDrag = GUI.mouse.y
+        self.scrollYPreDrag = self.scrollY
+        self.zoomYPreDrag = self.zoomY
+
+    elseif gfx.mouse_cap & 8 == 0 and self.mouse_cap_prev & 8 == 8 then
+        self.shouldDragScroll = true
+        self.shouldZoom = false
+
+        self.mouseXPreDrag = GUI.mouse.x
+        self.scrollXPreDrag = self.scrollX
+        self.zoomXPreDrag = self.zoomX
+
+        self.mouseYPreDrag = GUI.mouse.y
+        self.scrollYPreDrag = self.scrollY
+        self.zoomYPreDrag = self.zoomY
+    end
+
+    -- Handle drag scrolling.
     if self.shouldDragScroll then
         -- Horizontal scroll:
         self.scrollX = self.scrollX - (GUI.mouse.x - self.mousePrev.x) / (w * self.zoomX)
@@ -266,6 +296,7 @@ function GUI.PitchEditor:onm_drag()
         self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
     end
 
+    -- Handle zooming.
     if self.shouldZoom then
         -- Horizontal zoom:
         self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
@@ -286,6 +317,7 @@ function GUI.PitchEditor:onm_drag()
 
     self.mousePrev.x = GUI.mouse.x
     self.mousePrev.y = GUI.mouse.y
+    self.mouse_cap_prev = gfx.mouse_cap
 
     self:drawKeyBackgrounds()
     self:drawKeyLines()
