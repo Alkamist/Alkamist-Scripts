@@ -228,19 +228,20 @@ function GUI.PitchEditor:onmouseup()
     if not self.lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
-        local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-
-        local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x)
-        reaper.SetEditCurPos(playTime, false, true)
-
-        self:drawEditCursor()
-
-
-
         local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
 
-        if gfx.mouse_cap & 8 == 0 and correctionUnderMouse == nil then
+        if correctionUnderMouse == nil then
+            local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+
+            local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x)
+            reaper.SetEditCurPos(playTime, false, true)
+
+            self:drawEditCursor()
+
+        -- Not holding shift:
+        elseif gfx.mouse_cap & 8 == 0 then
             self:unselectAllPitchCorrections()
+            correctionUnderMouse.isSelected = true
         end
     end
 
