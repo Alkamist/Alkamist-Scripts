@@ -93,8 +93,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.type = "PitchEditor"
 
     object.z = object.z or z
-
-
     object.x = object.x or x
     object.y = object.y or y
 
@@ -133,6 +131,11 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.lWasDragged = false
     object.previousMouseTime = 0
     object.previousMousePitch = 0
+
+    object.justCreatedNewPitchCorrection = false
+
+    object.editCorrection = nil
+    object.editHandle = nil
 
     GUI.redraw_z[z] = true
 
@@ -205,6 +208,8 @@ function GUI.PitchEditor:onmousedown()
 
     if correctionUnderMouse then
         correctionUnderMouse.isSelected = true
+        self.editCorrection = correctionUnderMouse
+        self.editHandle = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderMouse)
     end
 
     self:drawPreviewPitchLines()
@@ -235,6 +240,9 @@ function GUI.PitchEditor:onmouseup()
     end
 
     self.lWasDragged = false
+    self.justCreatedNewPitchCorrection = false
+    self.editCorrection = nil
+    self.editHandle = nil
 
     self:drawPitchCorrections()
 
@@ -247,9 +255,6 @@ function GUI.PitchEditor:ondrag()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
-    local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
-    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
-
     -- The drag just started.
     if not self.lWasDragged then
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
@@ -258,12 +263,14 @@ function GUI.PitchEditor:ondrag()
         self.previousMouseTime = mouseOriginalTime
         self.previousMousePitch = mouseOriginalPitch
 
-        if correctionUnderCursor == nil then
+        if self.editCorrection == nil then
             self:unselectAllPitchCorrections()
 
             local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
             newCorrection.isSelected = true
             table.insert(self.pitchCorrections, newCorrection)
+
+            self.justCreatedNewPitchCorrection = true
         end
     end
 
@@ -272,15 +279,27 @@ function GUI.PitchEditor:ondrag()
             local mouseTimeChange = mouseTime - self.previousMouseTime
             local mousePitchChange = mousePitch - self.previousMousePitch
 
-            if mouseTime > correction.leftTime then
-                --correction.rightTime = correction.rightTime + mouseTimeChange
-                --correction.rightPitch = correction.rightPitch + mousePitchChange
-
-                correction.rightTime = mouseTime
-                correction.rightPitch = mousePitch
+            if self.justCreatedNewPitchCorrection then
+                if mouseTime > correction.leftTime then
+                    correction.rightTime = mouseTime
+                    correction.rightPitch = mousePitch
+                end
             else
-                --correction.leftTime = correction.leftTime + mouseTimeChange
-                --correction.leftPitch = correction.leftPitch + mousePitchChange
+                if self.editHandle == "left" then
+                    correction.leftTime = correction.leftTime + mouseTimeChange
+                    correction.leftPitch = correction.leftPitch + mousePitchChange
+
+                elseif self.editHandle == "right" then
+                    correction.rightTime = correction.rightTime + mouseTimeChange
+                    correction.rightPitch = correction.rightPitch + mousePitchChange
+
+                elseif self.editHandle == "middle" then
+                    correction.leftTime = correction.leftTime + mouseTimeChange
+                    correction.leftPitch = correction.leftPitch + mousePitchChange
+
+                    correction.rightTime = correction.rightTime + mouseTimeChange
+                    correction.rightPitch = correction.rightPitch + mousePitchChange
+                end
             end
         end
     end
@@ -879,20 +898,16 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
 
     local mouseDistanceFromPitchCorrectionLine = minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
-    if mouseDistanceFromLeftHandle <= mousePitchCorrectionPixelTolerance and mouseDistanceFromRightHandle <= mousePitchCorrectionPixelTolerance then
-        return "middle"
+    local isLeft = mouseDistanceFromLeftHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
+    local isRight = mouseDistanceFromRightHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
+    local isMiddle = isLeft and isRight
 
-    elseif mouseDistanceFromLeftHandle <= mousePitchCorrectionPixelTolerance then
-        return "left"
+    if isMiddle then return "middle"
+    elseif isLeft then return "left"
+    elseif isRight then return "right"
+    else return "middle"end
 
-    elseif mouseDistanceFromRightHandle <= mousePitchCorrectionPixelTolerance then
-        return "right"
-
-    elseif mouseDistanceFromPitchCorrectionLine <= mousePitchCorrectionPixelTolerance then
-        return "middle"
-    end
-
-    return nil
+    return "middle"
 end
 
 function GUI.PitchEditor:unselectAllPitchCorrections()
