@@ -9,6 +9,12 @@ end
 local PitchPoint = require "Classes.Class - PitchPoint"
 local PitchCorrection = require "Classes.Class - PitchCorrection"
 
+local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt(dx * dx + dy * dy)
+end
+
 
 
 GUI.colors["white_keys"] = {112, 112, 112, 255}
@@ -203,8 +209,8 @@ function GUI.PitchEditor:ondrag()
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
-    --local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
-    --GUI.Msg(handleUnderCursor)
+    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
+    GUI.Msg(handleUnderCursor)
 
     -- The drag just started.
     if not self.lWasDragged then
@@ -633,11 +639,11 @@ function GUI.PitchEditor:drawPitchCorrections()
     gfx.setimgdim(self.pitchCorrectionsBuff, w, h)
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        local leftTimePixels = self:getPixelsFromTime(correction.leftTime)
-        local rightTimePixels = self:getPixelsFromTime(correction.rightTime)
+        local leftTimePixels = self:getPixelsFromTime(correction.leftTime) - x
+        local rightTimePixels = self:getPixelsFromTime(correction.rightTime) - x
 
-        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch)
-        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch)
+        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch) - y
+        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch) - y
 
         local circleRadii = 3
 
@@ -739,7 +745,7 @@ function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    return zoom * w * (time / self:getTimeLength() - scroll)
+    return x + zoom * w * (time / self:getTimeLength() - scroll)
 end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
@@ -757,7 +763,7 @@ function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
     local scroll = scroll or self.scrollY
 
     local pitchRatio = 1.0 - (0.5 + pitch) / 128.0
-    return zoom * h * (pitchRatio - scroll)
+    return y + zoom * h * (pitchRatio - scroll)
 end
 
 function GUI.PitchEditor:getTimeLeftBound()
@@ -788,7 +794,7 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
         -- Allows for the case of reversed corrections.
         if self:timeIsInsidePitchCorrection(mouseTime, correction) then
             local pitchAtMouse = correction:getPitch(mouseTime)
-            local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse)
+            local mouseDistance = GUI.mouse.y - self:getPixelsFromPitch(pitchAtMouse)
 
             correctionDistances[key] = math.abs(mouseDistance)
         end
@@ -814,32 +820,42 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     return nil
 end
 
+local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt(dx * dx + dy * dy)
+end
+
 function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     if correction == nil then return nil end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    --local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    --local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
-    local leftHandleX = getPixelsFromTime(correction.leftTime)
+    local leftHandleX = self:getPixelsFromTime(correction.leftTime)
+    local leftHandleY = self:getPixelsFromPitch(correction.leftPitch)
+    local rightHandleX = self:getPixelsFromTime(correction.rightTime)
+    local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
 
+    local mouseDistanceFromLeftHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY)
+    local mouseDistanceFromRightHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
 
+    local angle = math.atan(GUI.mouse.y, GUI.mouse.x) - math.atan(rightHandleY, rightHandleX)
+    local mouseDistanceFromMiddleHandle = math.sin(angle) * mouseDistanceFromLeftHandle
 
-    if self:timeIsInsidePitchCorrection(mouseTime, correction) then
-        local pitchAtMouseTime = correction:getPitch(mouseTime)
-        local mousePitchDistancePixels = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouseTime)
-
-        if mousePitchDistancePixels <= 4 then
-        end
-
+    if mouseDistanceFromLeftHandle <= 4 and mouseDistanceFromRightHandle <= 4 then
         return "middle"
 
-    elseif mouseTime < correction.leftTime and mouseTime < correction.rightTime then
+    elseif mouseDistanceFromLeftHandle <= 4 then
         return "left"
 
-    elseif mouseTime > correction.leftTime and mouseTime > correction.rightTime then
+    elseif mouseDistanceFromRightHandle <= 4 then
         return "right"
+
+    elseif mouseDistanceFromMiddleHandle <= 4 then
+        return "middle"
     end
 
     return nil
