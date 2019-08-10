@@ -12,8 +12,46 @@ local PitchCorrection = require "Classes.Class - PitchCorrection"
 local function distanceBetweenTwoPoints(x1, y1, x2, y2)
     local dx = x1 - x2
     local dy = y1 - y2
+
     return math.sqrt(dx * dx + dy * dy)
 end
+
+local function minDistanceBetweenPointAndLineSegment(x, y, x1, y1, x2, y2)
+    local A = x - x1
+    local B = y - y1
+    local C = x2 - x1
+    local D = y2 - y1
+
+    local dot = A * C + B * D
+    local len_sq = C * C + D * D
+    local param = -1
+
+    local xx
+    local yy
+
+    if len_sq ~= 0 then
+        param = dot / len_sq
+    end
+
+    if param < 0 then
+        xx = x1
+        yy = y1
+
+    elseif param > 1 then
+        xx = x2
+        yy = y2
+
+    else
+        xx = x1 + param * C
+        yy = y1 + param * D
+    end
+
+    local dx = x - xx
+    local dy = y - yy
+
+    return math.sqrt(dx * dx + dy * dy)
+end
+
 
 
 
@@ -209,8 +247,7 @@ function GUI.PitchEditor:ondrag()
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
-    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
-    GUI.Msg(handleUnderCursor)
+    --local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
 
     -- The drag just started.
     if not self.lWasDragged then
@@ -779,25 +816,33 @@ function GUI.PitchEditor:timeIsInsidePitchCorrection(time, correction)
         or time <= correction.leftTime and time >= correction.rightTime
 end
 
+function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
+    if correction == nil then return nil end
+
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local leftHandleX = self:getPixelsFromTime(correction.leftTime)
+    local leftHandleY = self:getPixelsFromPitch(correction.leftPitch)
+    local rightHandleX = self:getPixelsFromTime(correction.rightTime)
+    local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
+
+    local mouseDistanceFromPitchCorrectionLine = minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
+
+    return mouseDistanceFromPitchCorrectionLine
+end
+
 function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
-    local mousePitchPixelTolerance = 8
+    local mousePitchPixelTolerance = 5
 
     local correctionDistances = {}
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        -- The mouse is inside the time contained by the pitch correction.
-        -- Allows for the case of reversed corrections.
-        if self:timeIsInsidePitchCorrection(mouseTime, correction) then
-            local pitchAtMouse = correction:getPitch(mouseTime)
-            local mouseDistance = GUI.mouse.y - self:getPixelsFromPitch(pitchAtMouse)
-
-            correctionDistances[key] = math.abs(mouseDistance)
-        end
+        correctionDistances[key] = self:getMouseDistanceToPitchCorrection(correction)
     end
 
     local smallestDistanceKey = nil
@@ -820,19 +865,10 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     return nil
 end
 
-local function distanceBetweenTwoPoints(x1, y1, x2, y2)
-    local dx = x1 - x2
-    local dy = y1 - y2
-    return math.sqrt(dx * dx + dy * dy)
-end
-
 function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     if correction == nil then return nil end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
-
-    --local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-    --local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local leftHandleX = self:getPixelsFromTime(correction.leftTime)
     local leftHandleY = self:getPixelsFromPitch(correction.leftPitch)
@@ -843,7 +879,7 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     local mouseDistanceFromRightHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
 
     local angle = math.atan(GUI.mouse.y, GUI.mouse.x) - math.atan(rightHandleY, rightHandleX)
-    local mouseDistanceFromMiddleHandle = math.sin(angle) * mouseDistanceFromLeftHandle
+    local mouseDistanceFromMiddleHandle = math.abs(math.sin(angle) * mouseDistanceFromLeftHandle)
 
     if mouseDistanceFromLeftHandle <= 4 and mouseDistanceFromRightHandle <= 4 then
         return "middle"
