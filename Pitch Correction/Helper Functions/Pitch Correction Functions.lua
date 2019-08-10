@@ -3,6 +3,10 @@ local PitchCorrection = require "Classes.Class - PitchCorrection"
 
 local edgePointSpacing = 0.01
 
+function msg(m)
+  reaper.ShowConsoleMsg(tostring(m).."\n")
+end
+
 function reaperCMD(id)
     if type(id) == "string" then
         reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
@@ -169,6 +173,21 @@ function itemPitchesNeedRecalculation(currentItem, settings)
     return false
 end
 
+function savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
+    --local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections")
+
+    local pitchCorrectionsString = ""
+    for key, correction in PitchCorrection.pairs(pitchCorrections) do
+        pitchCorrectionsString = pitchCorrectionsString .. "LEFTTIME " .. tostring(correction.leftTime) .. "\n" ..
+                                                           "RIGHTTIME " .. tostring(correction.rightTime) .. "\n" ..
+                                                           "LEFTPITCH " .. tostring(correction.leftPitch) .. "\n" ..
+                                                           "RIGHTPITCH " .. tostring(correction.rightPitch) .. "\n" ..
+                                                           "OVERLAPS " .. tostring(correction.overlaps) .. "\n" ..
+                                                           "ISOVERLAPPED " .. tostring(correction.isOverlapped) .. "\n"
+    end
+    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections", pitchCorrectionsString)
+end
+
 function saveSettingsInExtState(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
@@ -280,7 +299,7 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                     end
 
                     local overlapHandledCorrections = PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
-
+                    --savePitchCorrectionsInExtState(reaper.BR_GetMediaItemTakeGUID(currentItemTake), overlapHandledCorrections)
                     PitchCorrection.correctTakePitchToPitchCorrections(currentItemTake, overlapHandledCorrections)
                 end
             end
