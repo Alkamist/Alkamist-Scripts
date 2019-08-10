@@ -239,6 +239,8 @@ function GUI.PitchEditor:onmouseup()
 
             self:drawEditCursor()
 
+            self:unselectAllPitchCorrections()
+
         -- Not holding shift:
         elseif gfx.mouse_cap & 8 == 0 then
             self:unselectAllPitchCorrections()
@@ -659,7 +661,7 @@ function GUI.PitchEditor:drawKeyLines()
         for i = 1, 128 do
             GUI.color("key_lines")
 
-            local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5 - 1
+            local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5
 
             gfx.line(0, keyLineHeight, w, keyLineHeight, false)
         end
