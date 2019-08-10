@@ -139,6 +139,9 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
 
     object.minimumCorrectionTime = 0.001
 
+    object.keyWidthMult = 0.05
+    object.keyWidth = object.w * object.keyWidthMult
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -320,6 +323,8 @@ function GUI.PitchEditor:ondrag()
                     correction.rightPitch = correction.rightPitch + mousePitchChange
                 end
             end
+
+            --correction.leftTime = math.max(correction.leftTime, 0.0)
         end
     end
 
@@ -459,6 +464,8 @@ function GUI.PitchEditor:onresize()
     self.w = GUI.cur_w - 4
     self.h = GUI.cur_h - self.y - 2
 
+    self.keyWidth = self.w * self.keyWidthMult
+
     self:drawKeyBackgrounds()
     self:drawKeyLines()
     self:drawPitchLines()
@@ -514,8 +521,6 @@ function GUI.PitchEditor:drawPitchLines()
     local overlap = 2
     local drawThreshold = 2.5 * windowStep / overlap
 
-    local itemLength = self:getTimeLength()
-
     self.pitchLinesBuff = self.pitchLinesBuff or GUI.GetBuffer()
 
     gfx.dest = self.pitchLinesBuff
@@ -529,11 +534,8 @@ function GUI.PitchEditor:drawPitchLines()
     local previousPointY = 0
 
     for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
-        local pointXRatio = point.time / itemLength
-        local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
-
-        local pointYRatio = 1.0 - (0.5 + point.pitch) / 128.0
-        local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
+        local pointX = self:getPixelsFromTime(point.time) - x
+        local pointY = self:getPixelsFromPitch(point.pitch) - y
 
         if pointKey == 1 then
             previousPoint = point
@@ -566,9 +568,6 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local overlap = 2
     local drawThreshold = 2.5 * windowStep / overlap
 
-    local itemLeftBound = self:getTimeLeftBound()
-    local itemLength = self:getTimeLength()
-
     self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
 
     gfx.dest = self.previewLinesBuff
@@ -584,14 +583,12 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
 
     for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
-        local pointXRatio = point.time / itemLength
-        local pointX = GUI.round( self.zoomX * w * (pointXRatio - self.scrollX) )
-
         local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
 
         local pitchValue = point.pitch + envelopeValue
-        local pointYRatio = 1.0 - (0.5 + pitchValue) / 128.0
-        local pointY = GUI.round( self.zoomY * h * (pointYRatio - self.scrollY) )
+
+        local pointX = self:getPixelsFromTime(point.time) - x
+        local pointY = self:getPixelsFromPitch(pitchValue) - y
 
         if pointKey == 1 then
             previousPoint = point
@@ -617,7 +614,6 @@ end
 function GUI.PitchEditor:drawKeyBackgrounds()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyWidth = w * 0.05
     local keyHeight = self.zoomY * h * 1.0 / 128.0
 
     local scrollOffset = self.scrollY * h * self.zoomY
@@ -676,7 +672,6 @@ end
 function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyWidth = w * 0.05
     local keyHeight = self.zoomY * h * 1.0 / 128.0
 
     local scrollOffset = self.scrollY * h * self.zoomY
@@ -696,11 +691,11 @@ function GUI.PitchEditor:drawKeys()
             end
         end
 
-        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, keyWidth, keyHeight + 1, 1)
+        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, self.keyWidth, keyHeight + 1, 1)
 
         GUI.color("black_keys")
 
-        gfx.line(0, i * keyHeight - scrollOffset - 1, keyWidth - 1, i * keyHeight - scrollOffset - 1, false)
+        gfx.line(0, i * keyHeight - scrollOffset - 1, self.keyWidth - 1, i * keyHeight - scrollOffset - 1, false)
     end
 
     self:redraw()
@@ -747,16 +742,11 @@ function GUI.PitchEditor:drawEditCursor()
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local itemLength = self:getTimeLength()
-    local itemLeftBound = self:getTimeLeftBound()
-
-    local scrollOffset = self.scrollX * w * self.zoomX
-
     local editCursorPosition = reaper.GetCursorPositionEx(0)
-    local editCursorPixels = self.zoomX * w * (editCursorPosition - itemLeftBound) / itemLength
+    local editCursorPixels = self:getPixelsFromTime(editCursorPosition - self:getTimeLeftBound()) - x
 
     local playPosition = reaper.GetPlayPositionEx(0)
-    local playPositionPixels = self.zoomX * w * (playPosition - itemLeftBound) / itemLength
+    local playPositionPixels = self:getPixelsFromTime(playPosition - self:getTimeLeftBound()) - x
 
     self.editCursorBuff = self.editCursorBuff or GUI.GetBuffer()
 
@@ -766,13 +756,13 @@ function GUI.PitchEditor:drawEditCursor()
 
     GUI.color("edit_cursor")
 
-    gfx.line(editCursorPixels - scrollOffset, 0, editCursorPixels - scrollOffset, h, false)
+    gfx.line(editCursorPixels, 0, editCursorPixels, h, false)
 
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
     if projectIsPlaying then
         GUI.color("play_cursor")
-        gfx.line(playPositionPixels - scrollOffset, 0, playPositionPixels - scrollOffset, h, false)
+        gfx.line(playPositionPixels, 0, playPositionPixels, h, false)
     end
 
     self:redraw()
@@ -824,8 +814,8 @@ function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    local relativeX = xPixels - x
-    return self:getTimeLength() * (scroll + relativeX / (w * zoom))
+    local relativeX = xPixels - x - self.keyWidth
+    return self:getTimeLength() * (scroll + relativeX / ((w - self.keyWidth) * zoom))
 end
 
 function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
@@ -833,7 +823,7 @@ function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    return x + zoom * w * (time / self:getTimeLength() - scroll)
+    return self.keyWidth + x + zoom * (w - self.keyWidth) * (time / self:getTimeLength() - scroll)
 end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
@@ -967,6 +957,34 @@ function GUI.PitchEditor:deleteSelectedPitchCorrections()
 
     self:drawPitchCorrections()
     self:redraw()
+end
+
+function GUI.PitchEditor:getClosestValidTimeToPosition(time)
+    local closestTime = nil
+    local insideCorrection = nil
+
+    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
+        if correction ~= self.editCorrection then
+            if self:timeIsInsidePitchCorrection(time, correction) then
+                insideCorrection = correction
+            end
+        end
+    end
+
+    if insideCorrection then
+        local timeToLeft = math.abs(time - insideCorrection.leftTime)
+        local timeToRight = math.abs(time - insideCorrection.rightTime)
+
+        if timeToLeft < timeToRight then
+            closestTime = insideCorrection.leftTime
+        else
+            closestTime = insideCorrection.rightTime
+        end
+    else
+        closestTime = time
+    end
+
+    return closestTime
 end
 
 GUI.PitchEditor.keys = {
