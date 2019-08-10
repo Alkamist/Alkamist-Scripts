@@ -735,7 +735,9 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         -- The mouse is inside the time contained by the pitch correction.
-        if mouseTime >= correction.leftTime and mouseTime <= correction.rightTime then
+        -- Allows for the case of reversed corrections.
+        if mouseTime >= correction.leftTime and mouseTime <= correction.rightTime
+           or mouseTime <= correction.leftTime and mouseTime >= correction.rightTime then
             local pitchAtMouse = correction:getPitch(mouseTime)
             local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse, self.zoomY, self.scrollY)
 

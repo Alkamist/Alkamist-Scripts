@@ -37,9 +37,13 @@ end
 
 function PitchCorrection:getPitch(time)
     local length = self:getLength()
-    if length ~= 0 then
+    if length > 0 then
         local timeRatio = (time - self.leftTime) / self:getLength()
         local rawPitch = self.leftPitch + self:getInterval() * timeRatio
+        return rawPitch
+    elseif length < 0 then
+        local timeRatio = (time - self.rightTime) / self:getLength()
+        local rawPitch = self.rightPitch + self:getInterval() * timeRatio
         return rawPitch
     else
         return self.leftPitch
