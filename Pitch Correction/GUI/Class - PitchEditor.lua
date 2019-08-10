@@ -83,6 +83,12 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.pitchCorrections = {}
     object.selectedCorrections = {}
 
+    object.playCursorCleared = false
+
+    object.lWasDragged = false
+    object.previousMouseTime = 0
+    object.previousMousePitch = 0
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -150,14 +156,20 @@ function GUI.PitchEditor:onmousedown()
     self.scrollXPreDrag = self.scrollX
     self.scrollYPreDrag = self.scrollY
 
+    local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
+
+    if correctionUnderMouse then
+        correctionUnderMouse.isSelected = true
+    end
+
     self:drawPreviewPitchLines()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
 
-local lWasDragged = false
 function GUI.PitchEditor:onmouseup()
-    if not lWasDragged then
+    if not self.lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
         local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
@@ -177,7 +189,7 @@ function GUI.PitchEditor:onmouseup()
         end
     end
 
-    lWasDragged = false
+    self.lWasDragged = false
 
     self:drawPitchCorrections()
 
@@ -190,43 +202,60 @@ function GUI.PitchEditor:ondrag()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
 
+    local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
+    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
+
     -- The drag just started.
-    if not lWasDragged then
+    if not self.lWasDragged then
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy, self.zoomYPreDrag, self.scrollYPreDrag)
 
-        self:unselectAllPitchCorrections()
+        self.previousMouseTime = mouseOriginalTime
+        self.previousMousePitch = mouseOriginalPitch
 
-        local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
-        newCorrection.isSelected = true
-        table.insert(self.pitchCorrections, newCorrection)
+        if correctionUnderCursor == nil then
+            self:unselectAllPitchCorrections()
+
+            local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
+            newCorrection.isSelected = true
+            table.insert(self.pitchCorrections, newCorrection)
+        end
     end
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         if correction.isSelected == true then
-            correction.rightTime = mouseTime
-            correction.rightPitch = mousePitch
+            local mouseTimeChange = mouseTime - self.previousMouseTime
+            local mousePitchChange = mousePitch - self.previousMousePitch
+
+            if mouseTime < correction.leftTime then
+                correction.leftTime = correction.leftTime + mouseTimeChange
+                correction.leftPitch = correction.leftPitch + mousePitchChange
+            else
+                correction.rightTime = correction.rightTime + mouseTimeChange
+                correction.rightPitch = correction.rightPitch + mousePitchChange
+            end
         end
     end
 
-    lWasDragged = true
+    self.lWasDragged = true
+    self.previousMouseTime = mouseTime
+    self.previousMousePitch = mousePitch
 
     self:drawPitchCorrections()
 
     self:redraw()
 end
 
-local playCursorCleared = false
 function GUI.PitchEditor:onupdate()
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
 
     if projectIsPlaying then
         self:drawEditCursor()
-        playCursorCleared = false
-    elseif not playCursorCleared then
+        self.playCursorCleared = false
+    elseif not self.playCursorCleared then
         self:drawEditCursor()
-        playCursorCleared = true
+        self.playCursorCleared = true
     end
 end
 
@@ -723,6 +752,11 @@ function GUI.PitchEditor:getTimeLength()
     return reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
 end
 
+function GUI.PitchEditor:timeIsInsidePitchCorrection(time, correction)
+    return time >= correction.leftTime and time <= correction.rightTime
+        or time <= correction.leftTime and time >= correction.rightTime
+end
+
 function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -736,8 +770,7 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         -- The mouse is inside the time contained by the pitch correction.
         -- Allows for the case of reversed corrections.
-        if mouseTime >= correction.leftTime and mouseTime <= correction.rightTime
-           or mouseTime <= correction.leftTime and mouseTime >= correction.rightTime then
+        if self:timeIsInsidePitchCorrection(mouseTime, correction) then
             local pitchAtMouse = correction:getPitch(mouseTime)
             local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse, self.zoomY, self.scrollY)
 
@@ -760,6 +793,29 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
 
     if correctionDistances[smallestDistanceKey] <= mousePitchPixelTolerance then
         return self.pitchCorrections[smallestDistanceKey]
+    end
+
+    return nil
+end
+
+function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
+    if correction == nil then return nil end
+
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
+
+    if self:timeIsInsidePitchCorrection(mouseTime, correction) then
+        --local pitchAtMouseTime = correction:getPitch(mouseTime)
+        --local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse, self.zoomY, self.scrollY)
+        return "middle"
+
+    elseif mouseTime < correction.leftTime and mouseTime < correction.rightTime then
+        return "left"
+
+    elseif mouseTime > correction.leftTime and mouseTime > correction.rightTime then
+        return "right"
     end
 
     return nil
