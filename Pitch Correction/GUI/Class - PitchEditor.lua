@@ -113,15 +113,15 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.keyLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.pitchLinesBuff then
+    if self.pitchLinesBuff and self.take then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.previewLinesBuff then
+    if self.previewLinesBuff and self.take then
         gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.editCursorBuff then
+    if self.editCursorBuff and self.take then
         gfx.blit(self.editCursorBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
@@ -298,6 +298,12 @@ end
 
 function GUI.PitchEditor:ondelete()
     GUI.FreeBuffer(self.backgroundBuff)
+    GUI.FreeBuffer(self.keyBackgroundBuff)
+    GUI.FreeBuffer(self.keyLinesBuff)
+    GUI.FreeBuffer(self.pitchLinesBuff)
+    GUI.FreeBuffer(self.previewLinesBuff)
+    GUI.FreeBuffer(self.editCursorBuff)
+    GUI.FreeBuffer(self.keysBuff)
 end
 
 function GUI.PitchEditor:drawBackground()
@@ -316,8 +322,8 @@ function GUI.PitchEditor:drawBackground()
 end
 
 function GUI.PitchEditor:drawPitchLines()
-    if self.take == nil then return end
     if #self.pitchPoints < 1 then return end
+    if self.take == nil then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -368,8 +374,8 @@ function GUI.PitchEditor:drawPitchLines()
 end
 
 function GUI.PitchEditor:drawPreviewPitchLines()
-    if self.take == nil then return end
     if #self.pitchPoints < 1 then return end
+    if self.take == nil then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -518,6 +524,8 @@ function GUI.PitchEditor:drawKeys()
 end
 
 function GUI.PitchEditor:drawEditCursor()
+    if self.item == nil then return end
+
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
@@ -552,12 +560,31 @@ function GUI.PitchEditor:drawEditCursor()
 end
 
 function GUI.PitchEditor:setTake(take)
-    self.take = take
-    self.item = reaper.GetMediaItemTake_Item(take)
-    self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-    self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
+    local isTake = reaper.ValidatePtr(take, "MediaItem_Take*")
+
+    if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
+    if self.previewLinesBuff then GUI.FreeBuffer(self.previewLinesBuff) end
+
+    self.pitchLinesBuff = nil
+    self.previewLinesBuff = nil
+
+    if take and isTake then
+        self.take = take
+        self.item = reaper.GetMediaItemTake_Item(take)
+        self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
+        self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
+    else
+        self.take = nil
+        self.item = nil
+        self.takeGUID = nil
+
+        for key in pairs(self.pitchPoints) do
+            self.pitchPoints[key] = nil
+        end
+    end
 
     self:drawPitchLines()
+    self:drawPreviewPitchLines()
 
     self:redraw()
 end

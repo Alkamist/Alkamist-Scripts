@@ -88,6 +88,7 @@ elms.pitch_editor = {
 }
 
 
+
 -------------- Settings: --------------
 
 local function createTextboxSetting(title, caption, startingValue, settingNumber)
@@ -152,8 +153,11 @@ local function mainLoop()
 
     local selectedItem = reaper.GetSelectedMediaItem(0, 0)
 
-    if selectedItem and selectedItem ~= previousSelectedItem then
-        local selectedTake = reaper.GetActiveTake(selectedItem)
+    if selectedItem ~= previousSelectedItem then
+        local selectedTake = nil
+
+        if selectedItem then selectedTake = reaper.GetActiveTake(selectedItem) end
+
         elms.pitch_editor:setTake(selectedTake)
     end
 
