@@ -124,7 +124,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.mouse_cap_prev = gfx.mouse_cap
 
     object.pitchCorrections = {}
-    object.selectedCorrections = {}
 
     object.playCursorCleared = false
 
@@ -202,6 +201,8 @@ function GUI.PitchEditor:draw()
 end
 
 function GUI.PitchEditor:onmousedown()
+    if self.item == nil then return end
+
     self.zoomXPreDrag = self.zoomX
     self.zoomYPreDrag = self.zoomY
     self.scrollXPreDrag = self.scrollX
@@ -226,15 +227,15 @@ function GUI.PitchEditor:onmousedown()
 end
 
 function GUI.PitchEditor:onmouseup()
+    if self.item == nil then return end
+
     if not self.lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
         local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
 
         if correctionUnderMouse == nil then
-            local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-
-            local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x)
+            local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
             reaper.SetEditCurPos(playTime, false, true)
 
             self:drawEditCursor()
@@ -259,6 +260,8 @@ function GUI.PitchEditor:onmouseup()
 end
 
 function GUI.PitchEditor:ondrag()
+    if self.item == nil then return end
+
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
@@ -780,9 +783,11 @@ function GUI.PitchEditor:setTake(take)
 
     if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
     if self.previewLinesBuff then GUI.FreeBuffer(self.previewLinesBuff) end
+    if self.pitchCorrectionsBuff then GUI.FreeBuffer(self.pitchCorrectionsBuff) end
 
     self.pitchLinesBuff = nil
     self.previewLinesBuff = nil
+    self.pitchCorrectionsBuff = nil
 
     if take and isTake then
         self.take = take
@@ -797,10 +802,15 @@ function GUI.PitchEditor:setTake(take)
         for key in pairs(self.pitchPoints) do
             self.pitchPoints[key] = nil
         end
+
+        for key in pairs(self.pitchCorrections) do
+            self.pitchCorrections[key] = nil
+        end
     end
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
@@ -845,11 +855,19 @@ function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
 end
 
 function GUI.PitchEditor:getTimeLeftBound()
-    return reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    if reaper.ValidatePtr(self.item, "MediaItem*") then
+        return reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    end
+
+    return 0
 end
 
 function GUI.PitchEditor:getTimeLength()
-    return reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    if reaper.ValidatePtr(self.item, "MediaItem*") then
+        return reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    end
+
+    return 0
 end
 
 function GUI.PitchEditor:timeIsInsidePitchCorrection(time, correction)
@@ -875,8 +893,8 @@ end
 function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x) or 0
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y) or 0
 
     local correctionDistances = {}
 
