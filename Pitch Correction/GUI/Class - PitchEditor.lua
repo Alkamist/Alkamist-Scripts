@@ -174,7 +174,7 @@ function GUI.PitchEditor:onmouseup()
 
         local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
 
-        local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
+        local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x)
         reaper.SetEditCurPos(playTime, false, true)
 
         self:drawEditCursor()
@@ -199,11 +199,12 @@ end
 function GUI.PitchEditor:ondrag()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
-    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
+    --local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
+    --GUI.Msg(handleUnderCursor)
 
     -- The drag just started.
     if not self.lWasDragged then
@@ -227,12 +228,15 @@ function GUI.PitchEditor:ondrag()
             local mouseTimeChange = mouseTime - self.previousMouseTime
             local mousePitchChange = mousePitch - self.previousMousePitch
 
-            if mouseTime < correction.leftTime then
-                correction.leftTime = correction.leftTime + mouseTimeChange
-                correction.leftPitch = correction.leftPitch + mousePitchChange
+            if mouseTime > correction.leftTime then
+                --correction.rightTime = correction.rightTime + mouseTimeChange
+                --correction.rightPitch = correction.rightPitch + mousePitchChange
+
+                correction.rightTime = mouseTime
+                correction.rightPitch = mousePitch
             else
-                correction.rightTime = correction.rightTime + mouseTimeChange
-                correction.rightPitch = correction.rightPitch + mousePitchChange
+                --correction.leftTime = correction.leftTime + mouseTimeChange
+                --correction.leftPitch = correction.leftPitch + mousePitchChange
             end
         end
     end
@@ -629,11 +633,11 @@ function GUI.PitchEditor:drawPitchCorrections()
     gfx.setimgdim(self.pitchCorrectionsBuff, w, h)
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        local leftTimePixels = self:getPixelsFromTime(correction.leftTime, self.zoomX, self.scrollX)
-        local rightTimePixels = self:getPixelsFromTime(correction.rightTime, self.zoomX, self.scrollX)
+        local leftTimePixels = self:getPixelsFromTime(correction.leftTime)
+        local rightTimePixels = self:getPixelsFromTime(correction.rightTime)
 
-        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch, self.zoomY, self.scrollY)
-        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch, self.zoomY, self.scrollY)
+        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch)
+        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch)
 
         local circleRadii = 3
 
@@ -723,23 +727,35 @@ end
 
 function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
+    local zoom = zoom or self.zoomX
+    local scroll = scroll or self.scrollX
+
     local relativeX = xPixels - x
     return self:getTimeLength() * (scroll + relativeX / (w * zoom))
 end
 
 function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
+    local zoom = zoom or self.zoomX
+    local scroll = scroll or self.scrollX
+
     return zoom * w * (time / self:getTimeLength() - scroll)
 end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
+    local zoom = zoom or self.zoomY
+    local scroll = scroll or self.scrollY
+
     local relativeY = yPixels - y
     return 128.0 * (1.0 - (scroll + relativeY / (h * zoom))) - 0.5
 end
 
 function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
+    local zoom = zoom or self.zoomY
+    local scroll = scroll or self.scrollY
+
     local pitchRatio = 1.0 - (0.5 + pitch) / 128.0
     return zoom * h * (pitchRatio - scroll)
 end
@@ -760,8 +776,8 @@ end
 function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local mousePitchPixelTolerance = 8
 
@@ -772,7 +788,7 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
         -- Allows for the case of reversed corrections.
         if self:timeIsInsidePitchCorrection(mouseTime, correction) then
             local pitchAtMouse = correction:getPitch(mouseTime)
-            local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse, self.zoomY, self.scrollY)
+            local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse)
 
             correctionDistances[key] = math.abs(mouseDistance)
         end
@@ -803,12 +819,20 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+
+    local leftHandleX = getPixelsFromTime(correction.leftTime)
+
+
 
     if self:timeIsInsidePitchCorrection(mouseTime, correction) then
-        --local pitchAtMouseTime = correction:getPitch(mouseTime)
-        --local mouseDistance = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouse, self.zoomY, self.scrollY)
+        local pitchAtMouseTime = correction:getPitch(mouseTime)
+        local mousePitchDistancePixels = GUI.mouse.y - y - self:getPixelsFromPitch(pitchAtMouseTime)
+
+        if mousePitchDistancePixels <= 4 then
+        end
+
         return "middle"
 
     elseif mouseTime < correction.leftTime and mouseTime < correction.rightTime then
