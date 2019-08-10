@@ -137,6 +137,8 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.editCorrection = nil
     object.editHandle = nil
 
+    object.minimumCorrectionTime = 0.001
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -232,6 +234,14 @@ function GUI.PitchEditor:onmouseup()
         reaper.SetEditCurPos(playTime, false, true)
 
         self:drawEditCursor()
+
+
+
+        local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
+
+        if gfx.mouse_cap & 8 == 0 and correctionUnderMouse == nil then
+            self:unselectAllPitchCorrections()
+        end
     end
 
     self.lWasDragged = false
@@ -275,24 +285,22 @@ function GUI.PitchEditor:ondrag()
             local mousePitchChange = mousePitch - self.previousMousePitch
 
             if self.justCreatedNewPitchCorrection then
-                if mouseTime > correction.leftTime then
-                    correction.rightTime = mouseTime
-                    correction.rightPitch = mousePitch
-                end
+                correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
+                correction.rightPitch = correction.rightPitch + mousePitchChange
             else
                 if self.editHandle == "left" then
-                    correction.leftTime = correction.leftTime + mouseTimeChange
+                    correction.leftTime = math.min(correction.leftTime + mouseTimeChange, correction.rightTime - self.minimumCorrectionTime)
                     correction.leftPitch = correction.leftPitch + mousePitchChange
 
                 elseif self.editHandle == "right" then
-                    correction.rightTime = correction.rightTime + mouseTimeChange
+                    correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
                     correction.rightPitch = correction.rightPitch + mousePitchChange
 
                 elseif self.editHandle == "middle" then
-                    correction.leftTime = correction.leftTime + mouseTimeChange
+                    correction.leftTime = math.min(correction.leftTime + mouseTimeChange, correction.rightTime - self.minimumCorrectionTime)
                     correction.leftPitch = correction.leftPitch + mousePitchChange
 
-                    correction.rightTime = correction.rightTime + mouseTimeChange
+                    correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
                     correction.rightPitch = correction.rightPitch + mousePitchChange
                 end
             end
