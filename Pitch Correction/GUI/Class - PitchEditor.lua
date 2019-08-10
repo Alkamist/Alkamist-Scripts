@@ -131,6 +131,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.lWasDragged = false
     object.previousMouseTime = 0
     object.previousMousePitch = 0
+    object.previousSnappedMousePitch = 0
 
     object.justCreatedNewPitchCorrection = false
 
@@ -260,19 +261,22 @@ function GUI.PitchEditor:ondrag()
 
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    local snappedMousePitch = self:getSnappedPitch(mousePitch)
 
     -- The drag just started.
     if not self.lWasDragged then
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy, self.zoomYPreDrag, self.scrollYPreDrag)
+        local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
 
         self.previousMouseTime = mouseOriginalTime
         self.previousMousePitch = mouseOriginalPitch
+        self.previousSnappedMousePitch = self:getSnappedPitch(mouseOriginalPitch)
 
         if self.editCorrection == nil then
             self:unselectAllPitchCorrections()
 
-            local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
+            local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalSnappedPitch, mouseOriginalSnappedPitch)
             newCorrection.isSelected = true
             table.insert(self.pitchCorrections, newCorrection)
 
@@ -283,25 +287,31 @@ function GUI.PitchEditor:ondrag()
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         if correction.isSelected == true then
             local mouseTimeChange = mouseTime - self.previousMouseTime
-            local mousePitchChange = mousePitch - self.previousMousePitch
+            local maxRightTimeChange = mouseTime - correction.leftTime
+            local maxLeftTimeChange = mouseTime - correction.rightTime
+
+            local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
             if self.justCreatedNewPitchCorrection then
-                correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
+                local change = math.min(mouseTimeChange, maxRightTimeChange)
+                correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
                 correction.rightPitch = correction.rightPitch + mousePitchChange
             else
                 if self.editHandle == "left" then
-                    correction.leftTime = math.min(correction.leftTime + mouseTimeChange, correction.rightTime - self.minimumCorrectionTime)
+                    local change = math.max(mouseTimeChange, maxLeftTimeChange)
+                    correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
                     correction.leftPitch = correction.leftPitch + mousePitchChange
 
                 elseif self.editHandle == "right" then
-                    correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
+                    local change = math.min(mouseTimeChange, maxRightTimeChange)
+                    correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
                     correction.rightPitch = correction.rightPitch + mousePitchChange
 
                 elseif self.editHandle == "middle" then
-                    correction.leftTime = math.min(correction.leftTime + mouseTimeChange, correction.rightTime - self.minimumCorrectionTime)
+                    correction.leftTime = correction.leftTime + mouseTimeChange
                     correction.leftPitch = correction.leftPitch + mousePitchChange
 
-                    correction.rightTime = math.max(correction.rightTime + mouseTimeChange, correction.leftTime + self.minimumCorrectionTime)
+                    correction.rightTime = correction.rightTime + mouseTimeChange
                     correction.rightPitch = correction.rightPitch + mousePitchChange
                 end
             end
@@ -311,6 +321,7 @@ function GUI.PitchEditor:ondrag()
     self.lWasDragged = true
     self.previousMouseTime = mouseTime
     self.previousMousePitch = mousePitch
+    self.previousSnappedMousePitch = snappedMousePitch
 
     self:drawPitchCorrections()
 
@@ -790,6 +801,10 @@ function GUI.PitchEditor:setTake(take)
     self:drawPreviewPitchLines()
 
     self:redraw()
+end
+
+function GUI.PitchEditor:getSnappedPitch(pitch)
+    return math.floor(pitch)
 end
 
 function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
