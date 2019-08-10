@@ -52,6 +52,7 @@ local function minDistanceBetweenPointAndLineSegment(x, y, x1, y1, x2, y2)
     return math.sqrt(dx * dx + dy * dy)
 end
 
+local mousePitchCorrectionPixelTolerance = 5
 
 
 
@@ -247,7 +248,7 @@ function GUI.PitchEditor:ondrag()
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
     local correctionUnderCursor = self:getPitchCorrectionUnderMouse()
-    --local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
+    local handleUnderCursor = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderCursor)
 
     -- The drag just started.
     if not self.lWasDragged then
@@ -837,8 +838,6 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
-    local mousePitchPixelTolerance = 5
-
     local correctionDistances = {}
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
@@ -858,7 +857,7 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
 
     if smallestDistanceKey == nil then return nil end
 
-    if correctionDistances[smallestDistanceKey] <= mousePitchPixelTolerance then
+    if correctionDistances[smallestDistanceKey] <= mousePitchCorrectionPixelTolerance then
         return self.pitchCorrections[smallestDistanceKey]
     end
 
@@ -878,19 +877,18 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     local mouseDistanceFromLeftHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY)
     local mouseDistanceFromRightHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
 
-    local angle = math.atan(GUI.mouse.y, GUI.mouse.x) - math.atan(rightHandleY, rightHandleX)
-    local mouseDistanceFromMiddleHandle = math.abs(math.sin(angle) * mouseDistanceFromLeftHandle)
+    local mouseDistanceFromPitchCorrectionLine = minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
-    if mouseDistanceFromLeftHandle <= 4 and mouseDistanceFromRightHandle <= 4 then
+    if mouseDistanceFromLeftHandle <= mousePitchCorrectionPixelTolerance and mouseDistanceFromRightHandle <= mousePitchCorrectionPixelTolerance then
         return "middle"
 
-    elseif mouseDistanceFromLeftHandle <= 4 then
+    elseif mouseDistanceFromLeftHandle <= mousePitchCorrectionPixelTolerance then
         return "left"
 
-    elseif mouseDistanceFromRightHandle <= 4 then
+    elseif mouseDistanceFromRightHandle <= mousePitchCorrectionPixelTolerance then
         return "right"
 
-    elseif mouseDistanceFromMiddleHandle <= 4 then
+    elseif mouseDistanceFromPitchCorrectionLine <= mousePitchCorrectionPixelTolerance then
         return "middle"
     end
 
