@@ -160,7 +160,6 @@ function GUI.PitchEditor:onmouseup()
     if not lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
-        --local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
         local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
 
         local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
@@ -633,7 +632,8 @@ end
 
 function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
-    return self:getTimeLength() * (scroll + xPixels / (w * zoom))
+    local relativeX = xPixels - x
+    return self:getTimeLength() * (scroll + relativeX / (w * zoom))
 end
 
 function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
@@ -643,12 +643,13 @@ end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
-    return 0.5 + 128.0 * (scroll + yPixels / (h * zoom))
+    local relativeY = yPixels - y
+    return 128.0 * (1.0 - (scroll + relativeY / (h * zoom))) - 0.5
 end
 
 function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
     local x, y, w, h = self.x, self.y, self.w, self.h
-    local pitchRatio = (0.5 + pitch) / 128.0
+    local pitchRatio = 1.0 - (0.5 + pitch) / 128.0
     return zoom * h * (pitchRatio - scroll)
 end
 
