@@ -614,16 +614,13 @@ end
 function GUI.PitchEditor:drawKeyBackgrounds()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyHeight = self.zoomY * h * 1.0 / 128.0
-
-    local scrollOffset = self.scrollY * h * self.zoomY
-
     self.keyBackgroundBuff = self.keyBackgroundBuff or GUI.GetBuffer()
 
     gfx.dest = self.keyBackgroundBuff
     gfx.setimgdim(self.keyBackgroundBuff, -1, -1)
     gfx.setimgdim(self.keyBackgroundBuff, w, h)
 
+    local lastKeyEnd = self:getPixelsFromPitch(128.5) - y
     for i = 1, 128 do
         GUI.color("black_key_bg")
 
@@ -633,11 +630,14 @@ function GUI.PitchEditor:drawKeyBackgrounds()
             end
         end
 
-        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, w, keyHeight + 1, 1)
+        local keyEnd = self:getPixelsFromPitch(128 - i + 0.5) - y
+        gfx.rect(0, keyEnd, w, keyEnd - lastKeyEnd + 1, 1)
 
         GUI.color("black_key_bg")
 
-        gfx.line(0, i * keyHeight - scrollOffset - 1, w, i * keyHeight - scrollOffset - 1, false)
+        gfx.line(0, keyEnd, w, keyEnd, false)
+
+        lastKeyEnd = keyEnd
     end
 
     self:redraw()
@@ -647,8 +647,6 @@ function GUI.PitchEditor:drawKeyLines()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local keyHeight = self.zoomY * h * 1.0 / 128.0
-
-    local scrollOffset = self.scrollY * h * self.zoomY
 
     self.keyLinesBuff = self.keyLinesBuff or GUI.GetBuffer()
 
@@ -660,7 +658,7 @@ function GUI.PitchEditor:drawKeyLines()
         for i = 1, 128 do
             GUI.color("key_lines")
 
-            local keyLineHeight = i * keyHeight - scrollOffset - keyHeight * 0.5
+            local keyLineHeight = self:getPixelsFromPitch(128 - i) - y
 
             gfx.line(0, keyLineHeight, w, keyLineHeight, false)
         end
@@ -672,16 +670,13 @@ end
 function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyHeight = self.zoomY * h * 1.0 / 128.0
-
-    local scrollOffset = self.scrollY * h * self.zoomY
-
     self.keysBuff = self.keysBuff or GUI.GetBuffer()
 
     gfx.dest = self.keysBuff
     gfx.setimgdim(self.keysBuff, -1, -1)
     gfx.setimgdim(self.keysBuff, w, h)
 
+    local lastKeyEnd = self:getPixelsFromPitch(128.5) - y
     for i = 1, 128 do
         GUI.color("black_keys")
 
@@ -691,11 +686,14 @@ function GUI.PitchEditor:drawKeys()
             end
         end
 
-        gfx.rect(0, (i - 1) * keyHeight - scrollOffset, self.keyWidth, keyHeight + 1, 1)
+        local keyEnd = self:getPixelsFromPitch(128 - i + 0.5) - y
+        gfx.rect(0, keyEnd, self.keyWidth, keyEnd - lastKeyEnd + 1, 1)
 
         GUI.color("black_keys")
 
-        gfx.line(0, i * keyHeight - scrollOffset - 1, self.keyWidth - 1, i * keyHeight - scrollOffset - 1, false)
+        gfx.line(0, keyEnd, self.keyWidth - 1, keyEnd, false)
+
+        lastKeyEnd = keyEnd
     end
 
     self:redraw()
