@@ -7,6 +7,9 @@ end
 
 
 local PitchPoint = require "Classes.Class - PitchPoint"
+local PitchCorrection = require "Classes.Class - PitchCorrection"
+
+
 
 GUI.colors["white_keys"] = {112, 112, 112, 255}
 GUI.colors["black_keys"] = {81, 81, 81, 255}
@@ -22,6 +25,9 @@ GUI.colors["pitch_preview_lines"] = {0, 210, 32, 255}
 
 GUI.colors["edit_cursor"] = {255, 255, 255, 180}
 GUI.colors["play_cursor"] = {255, 255, 255, 120}
+
+GUI.colors["pitch_correction"] = {17, 32, 180, 255}
+GUI.colors["pitch_correction_selected"] = {80, 20, 255, 255}
 
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
 local whiteKeys = {}
@@ -63,7 +69,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.scrollXPreDrag = 0.0
 
     object.zoomYPreDrag = 1.0
-    object.scrollXPreDrag = 1.0
+    object.scrollYPreDrag = 1.0
 
     object.mousePrev = {}
     object.mousePrev.x = 0
@@ -73,6 +79,9 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     object.shouldDragScroll = false
 
     object.mouse_cap_prev = gfx.mouse_cap
+
+    object.pitchCorrections = {}
+    object.selectedCorrections = {}
 
     GUI.redraw_z[z] = true
 
@@ -92,6 +101,7 @@ function GUI.PitchEditor:init()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
+    self:drawPitchCorrections()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -121,6 +131,10 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
+    if self.pitchCorrectionsBuff then
+        gfx.blit(self.pitchCorrectionsBuff, 1, 0, 0, 0, w, h, x, y)
+    end
+
     if self.editCursorBuff and self.take then
         gfx.blit(self.editCursorBuff, 1, 0, 0, 0, w, h, x, y)
     end
@@ -131,6 +145,11 @@ function GUI.PitchEditor:draw()
 end
 
 function GUI.PitchEditor:onmousedown()
+    self.zoomXPreDrag = self.zoomX
+    self.zoomYPreDrag = self.zoomY
+    self.scrollXPreDrag = self.scrollX
+    self.scrollYPreDrag = self.scrollY
+
     self:drawPreviewPitchLines()
 
     self:redraw()
@@ -141,10 +160,10 @@ function GUI.PitchEditor:onmouseup()
     if not lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
-        local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+        --local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
         local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
 
-        local playTime = itemLeftBound + itemLength * (self.scrollX + GUI.mouse.x / (w * self.zoomX))
+        local playTime = itemLeftBound + self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
         reaper.SetEditCurPos(playTime, false, true)
 
         self:drawEditCursor()
@@ -155,36 +174,85 @@ function GUI.PitchEditor:onmouseup()
     self:redraw()
 end
 
-function GUI.PitchEditor:handleDragScroll()
+function GUI.PitchEditor:ondrag()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x, self.zoomX, self.scrollX)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y, self.zoomY, self.scrollY)
+
+    -- The drag just started.
+    if not lWasDragged then
+        local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
+        local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy, self.zoomYPreDrag, self.scrollYPreDrag)
+
+        local newCorrection = PitchCorrection:new(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
+        newCorrection.isSelected = true
+        table.insert(self.pitchCorrections, newCorrection)
+    end
+
+    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
+        if correction.isSelected == true then
+            correction.rightTime = mouseTime
+        end
+    end
+
+    lWasDragged = true
+
+    self:drawPitchCorrections()
+
+    self:redraw()
+end
+
+local playCursorCleared = false
+function GUI.PitchEditor:onupdate()
+    local projectPlaystate = reaper.GetPlayStateEx(0)
+    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
+
+    if projectIsPlaying then
+        self:drawEditCursor()
+        playCursorCleared = false
+    elseif not playCursorCleared then
+        self:drawEditCursor()
+        playCursorCleared = true
+    end
+end
+
+function GUI.PitchEditor:onmousem_down()
+    if GUI.IsInside(self) then
+        self.mouseXPreDrag = GUI.mouse.x
+        self.scrollXPreDrag = self.scrollX
+        self.zoomXPreDrag = self.zoomX
+
+        self.mouseYPreDrag = GUI.mouse.y
+        self.scrollYPreDrag = self.scrollY
+        self.zoomYPreDrag = self.zoomY
+
+        self.mousePrev.x = GUI.mouse.x
+        self.mousePrev.y = GUI.mouse.y
+
+        if gfx.mouse_cap & 8 == 8 then
+            self.shouldZoom = true
+        else
+            self.shouldDragScroll = true
+        end
+    end
+end
+
+function GUI.PitchEditor:onmousem_up()
+    self.shouldZoom = false
+    self.shouldDragScroll = false
+end
+
+function GUI.PitchEditor:onm_drag()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local zoomXSens = 4.0
     local zoomYSens = 4.0
 
-    -- Middle mouse down:
-    if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
-        if GUI.IsInside(self) then
-            self.shouldDragScroll = true
-
-            self.mouseXPreDrag = GUI.mouse.x
-            self.scrollXPreDrag = self.scrollX
-            self.zoomXPreDrag = self.zoomX
-
-            self.mouseYPreDrag = GUI.mouse.y
-            self.scrollYPreDrag = self.scrollY
-            self.zoomYPreDrag = self.zoomY
-        end
-    end
-
-    -- Middle mouse up:
-    if gfx.mouse_cap & 64 ~= 64 and self.mouse_cap_prev & 64 == 64 then
-        self.shouldDragScroll = false
-    end
+    local scrollXMax = 1.0 - w / (w * self.zoomX)
+    local scrollYMax = 1.0 - h / (h * self.zoomY)
 
     if self.shouldDragScroll then
-        local scrollXMax = 1.0 - w / (w * self.zoomX)
-        local scrollYMax = 1.0 - h / (h * self.zoomY)
-
         -- Horizontal scroll:
         self.scrollX = self.scrollX - (GUI.mouse.x - self.mousePrev.x) / (w * self.zoomX)
         self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
@@ -192,50 +260,9 @@ function GUI.PitchEditor:handleDragScroll()
         -- Vertical scroll:
         self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
         self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
-
-        self:drawKeyBackgrounds()
-        self:drawKeyLines()
-        self:drawPitchLines()
-        self:drawPreviewPitchLines()
-        self:drawEditCursor()
-        self:drawKeys()
-
-        self:redraw()
-    end
-end
-
-function GUI.PitchEditor:handleZoom()
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local zoomXSens = 4.0
-    local zoomYSens = 4.0
-
-    -- Middle mouse down:
-    --if gfx.mouse_cap & 64 == 64 and self.mouse_cap_prev & 64 ~= 64 then
-    if gfx.mouse_cap & 2 == 2 and self.mouse_cap_prev & 2 ~= 2 then
-        if GUI.IsInside(self) then
-            self.shouldZoom = true
-
-            self.mouseXPreDrag = GUI.mouse.x
-            self.scrollXPreDrag = self.scrollX
-            self.zoomXPreDrag = self.zoomX
-
-            self.mouseYPreDrag = GUI.mouse.y
-            self.scrollYPreDrag = self.scrollY
-            self.zoomYPreDrag = self.zoomY
-        end
-    end
-
-    -- Middle mouse up:
-    --if gfx.mouse_cap & 64 ~= 64 and self.mouse_cap_prev & 64 == 64 then
-    if gfx.mouse_cap & 2 ~= 2 and self.mouse_cap_prev & 2 == 2 then
-        self.shouldZoom = false
     end
 
     if self.shouldZoom then
-        local scrollXMax = 1.0 - w / (w * self.zoomX)
-        local scrollYMax = 1.0 - h / (h * self.zoomY)
-
         -- Horizontal zoom:
         self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
         self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
@@ -251,42 +278,18 @@ function GUI.PitchEditor:handleZoom()
         local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
         self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
         self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
-
-        self:drawKeyBackgrounds()
-        self:drawKeyLines()
-        self:drawPitchLines()
-        self:drawPreviewPitchLines()
-        self:drawEditCursor()
-        self:drawKeys()
-
-        self:redraw()
-    end
-end
-
-local playCursorCleared = false
-function GUI.PitchEditor:onupdate()
-    self:handleDragScroll()
-    self:handleZoom()
-
-    local projectPlaystate = reaper.GetPlayStateEx(0)
-    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
-
-    if projectIsPlaying then
-        self:drawEditCursor()
-        playCursorCleared = false
-    elseif not playCursorCleared then
-        self:drawEditCursor()
-        playCursorCleared = true
     end
 
     self.mousePrev.x = GUI.mouse.x
     self.mousePrev.y = GUI.mouse.y
 
-    self.mouse_cap_prev = gfx.mouse_cap
-end
-
-function GUI.PitchEditor:ondrag()
-    lWasDragged = true
+    self:drawKeyBackgrounds()
+    self:drawKeyLines()
+    self:drawPitchLines()
+    self:drawPreviewPitchLines()
+    self:drawPitchCorrections()
+    self:drawEditCursor()
+    self:drawKeys()
 
     self:redraw()
 end
@@ -299,6 +302,7 @@ function GUI.PitchEditor:onresize()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
+    self:drawPitchCorrections()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -311,6 +315,7 @@ function GUI.PitchEditor:ondelete()
     GUI.FreeBuffer(self.keyLinesBuff)
     GUI.FreeBuffer(self.pitchLinesBuff)
     GUI.FreeBuffer(self.previewLinesBuff)
+    GUI.FreeBuffer(self.pitchCorrectionsBuff)
     GUI.FreeBuffer(self.editCursorBuff)
     GUI.FreeBuffer(self.keysBuff)
 end
@@ -340,7 +345,7 @@ function GUI.PitchEditor:drawPitchLines()
     local overlap = 2
     local drawThreshold = 2.5 * windowStep / overlap
 
-    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    local itemLength = self:getTimeLength()
 
     self.pitchLinesBuff = self.pitchLinesBuff or GUI.GetBuffer()
 
@@ -392,8 +397,8 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local overlap = 2
     local drawThreshold = 2.5 * windowStep / overlap
 
-    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    local itemLeftBound = self:getTimeLeftBound()
+    local itemLength = self:getTimeLength()
 
     self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
 
@@ -532,13 +537,41 @@ function GUI.PitchEditor:drawKeys()
     self:redraw()
 end
 
+function GUI.PitchEditor:drawPitchCorrections()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    self.pitchCorrectionsBuff = self.pitchCorrectionsBuff or GUI.GetBuffer()
+
+    gfx.dest = self.pitchCorrectionsBuff
+    gfx.setimgdim(self.pitchCorrectionsBuff, -1, -1)
+    gfx.setimgdim(self.pitchCorrectionsBuff, w, h)
+
+    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
+        local leftTimePixels = self:getPixelsFromTime(correction.leftTime, self.zoomX, self.scrollX)
+        local rightTimePixels = self:getPixelsFromTime(correction.rightTime, self.zoomX, self.scrollX)
+
+        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch, self.zoomY, self.scrollY)
+        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch, self.zoomY, self.scrollY)
+
+        if correction.isSelected == true then
+            GUI.color("pitch_correction_selected")
+            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+        else
+            GUI.color("pitch_correction")
+            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+        end
+    end
+
+    self:redraw()
+end
+
 function GUI.PitchEditor:drawEditCursor()
     if self.item == nil then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local itemLength = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    local itemLeftBound = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    local itemLength = self:getTimeLength()
+    local itemLeftBound = self:getTimeLeftBound()
 
     local scrollOffset = self.scrollX * w * self.zoomX
 
@@ -596,4 +629,33 @@ function GUI.PitchEditor:setTake(take)
     self:drawPreviewPitchLines()
 
     self:redraw()
+end
+
+function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    return self:getTimeLength() * (scroll + xPixels / (w * zoom))
+end
+
+function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    return zoom * w * (time / self:getTimeLength() - scroll)
+end
+
+function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    return 0.5 + 128.0 * (scroll + yPixels / (h * zoom))
+end
+
+function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
+    local x, y, w, h = self.x, self.y, self.w, self.h
+    local pitchRatio = (0.5 + pitch) / 128.0
+    return zoom * h * (pitchRatio - scroll)
+end
+
+function GUI.PitchEditor:getTimeLeftBound()
+    return reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+end
+
+function GUI.PitchEditor:getTimeLength()
+    return reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
 end

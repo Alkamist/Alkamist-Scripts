@@ -31,7 +31,7 @@ settings.lowRMSLimitdB = -60
 
 
 local guiWidth = 1200
-local guiHeight = 600
+local guiHeight = 700
 
 GUI.name = "Alkamist Pitch Correction"
 GUI.x, GUI.y = 500, 100

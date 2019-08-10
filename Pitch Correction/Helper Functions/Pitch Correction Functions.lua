@@ -185,7 +185,7 @@ function savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
                                                            "OVERLAPS " .. tostring(correction.overlaps) .. "\n" ..
                                                            "ISOVERLAPPED " .. tostring(correction.isOverlapped) .. "\n"
     end
-    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections", pitchCorrectionsString)
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections", pitchCorrectionsString)
 end
 
 function saveSettingsInExtState(settings)
