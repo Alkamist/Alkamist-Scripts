@@ -248,6 +248,7 @@ function GUI.PitchEditor:ondrag()
             table.insert(self.pitchCorrections, newCorrection)
 
             self.justCreatedNewPitchCorrection = true
+            self.editCorrection = self.pitchCorrections[#self.pitchCorrections]
         end
     end
 
@@ -290,9 +291,11 @@ function GUI.PitchEditor:ondrag()
     self.previousMousePitch = mousePitch
     self.previousSnappedMousePitch = snappedMousePitch
 
-    self:applyPitchCorrections()
+    if self.editCorrection then
+        self:applyPitchCorrections()
+        self:drawPreviewPitchLines()
+    end
 
-    self:drawPreviewPitchLines()
     self:drawPitchCorrections()
 
     self:redraw()

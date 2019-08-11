@@ -154,6 +154,7 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
             end
         end
 
+        --reaper.GetEnvelopePointByTimeEx(pitchEnvelope, -1, point.time * playrate)
         -- Add envelope points with the correction value.
         reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
 
