@@ -1,39 +1,17 @@
-local PitchPoint = require "Classes.Class - PitchPoint"
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
+local Lua = require "Various Functions.Lua Functions"
+local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
+
+
 
 -- Pitch correction settings:
 local zeroPointSpacing = 0.01
 local averageCorrection = 0.0
 local modCorrection = 1.0
-local driftCorrection = 0.0
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.2
 local zeroPointThreshold = 0.1
-
-
-
-local function copyTable(source, base)
-    if type(source) ~= "table" then return source end
-
-    local meta = getmetatable(source)
-    local new = base or {}
-    for k, v in pairs(source) do
-        if type(v) == "table" then
-            if base then
-                new[k] = GUI.table_copy(v, base[k])
-            else
-                new[k] = GUI.table_copy(v, nil)
-            end
-
-        else
-            if not base or (base and new[k] == nil) then
-
-                new[k] = v
-            end
-        end
-    end
-    setmetatable(new, meta)
-
-    return new
-end
 
 
 
@@ -129,46 +107,35 @@ function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, correctionStrength, correctionSpeed)
-    for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
-        local targetPitch = correction:getPitch(point.time)
+function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targetPitch, correctionStrength, correctionSpeed)
+    local minTimePerPoint = 0.02
+    local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
 
-        local numDriftPoints = 1
-        local driftIndex = 1
-        local driftAverage = point.correctedPitch
+    local driftAverage = 0
+    local numDriftPoints = 0
+    for i = 1, maxDriftPoints do
+        local accessIndex = pointIndex + i - math.floor(maxDriftPoints * 0.5)
 
-        while pointKey - driftIndex >= 1 do
-            local driftPoint = correctionPitchPoints[pointKey - driftIndex]
+        if accessIndex >= 1 and accessIndex <= #pitchPoints then
+            local driftPoint = pitchPoints[accessIndex]
+            local correctionRadius = correctionSpeed * 0.5
 
-            if driftPoint.time >= point.time - correctionSpeed * 0.5 then
-                driftAverage = driftAverage + driftPoint.correctedPitch
+            if driftPoint.time >= point.time - correctionRadius
+            and driftPoint.time <= point.time + correctionRadius then
+                driftAverage = driftAverage + driftPoint.pitch
                 numDriftPoints = numDriftPoints + 1
-                driftIndex = driftIndex + 1
-            else
-                break
             end
         end
-
-        driftIndex = 1
-        while pointKey + driftIndex <= #correctionPitchPoints do
-            local driftPoint = correctionPitchPoints[pointKey + driftIndex]
-
-            if driftPoint.time <= point.time + correctionSpeed * 0.5 then
-                driftAverage = driftAverage + driftPoint.correctedPitch
-                numDriftPoints = numDriftPoints + 1
-                driftIndex = driftIndex + 1
-            else
-                break
-            end
-        end
-
-        driftAverage = driftAverage / numDriftPoints
-
-        local pitchDrift = driftAverage - targetPitch
-        local pitchCorrection = -pitchDrift * correctionStrength
-
-        point.finalPitch = point.correctedPitch + pitchCorrection
     end
+
+    if numDriftPoints > 0 then
+        driftAverage = driftAverage / numDriftPoints
+    end
+
+    local pitchDrift = driftAverage - targetPitch
+    local pitchCorrection = -pitchDrift * correctionStrength
+
+    point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
 function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
@@ -194,7 +161,7 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
 end
 
 function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections)
-    if #pitchCorrections < 1 then return end
+    if Lua.getTableLength(pitchCorrections) < 1 then return end
 
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     local takePitchPoints = PitchPoint.getPitchPoints(takeGUID)
@@ -206,9 +173,11 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
         local targetPitch = point.pitch
         local insideKeys = {}
 
+        local numInsideKeys = 0
         for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
             if correction:timeIsInside(point.time) then
-                table.insert(insideKeys, correctionKey)
+                numInsideKeys = numInsideKeys + 1
+                insideKeys[numInsideKeys] = correctionKey
             end
         end
 
@@ -228,12 +197,20 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
             end
         end
 
+        --PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
+        if numInsideKeys > 0 then
+            --PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
+        end
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
     PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
+
+    --for correctionKey, correction in pairs(pitchCorrections) do
+    --    msg(correctionKey)
+    --end
 end
 
 return PitchCorrection

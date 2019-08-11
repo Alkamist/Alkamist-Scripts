@@ -1,11 +1,11 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
+local PCFunc = require "Pitch Correction.Helper Functions.Pitch Correction Functions"
+local Reaper = require "Various Functions.Reaper Functions"
+
+
+
 local label = "Correct Pitch of Audio Items on Tracks Received by Selected MIDI Items.lua"
-
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
-require "Helper Functions.Pitch Correction Functions"
-
-
-
-local edgePointSpacing = 0.01
 
 -- Pitch detection settings:
 local settings = {}
@@ -22,15 +22,15 @@ settings.lowRMSLimitdB = -60
 reaper.Undo_BeginBlock()
 reaper.PreventUIRefresh(1)
 
-saveSettingsInExtState(settings)
-local selectedItems = getSelectedItems()
+PCFunc.saveSettingsInExtState(settings)
+local selectedItems = Reaper.getSelectedItems()
 
 for i = 1, #selectedItems do
     local item = selectedItems[i]
-    correctPitchBasedOnMIDIItem(item, settings)
+    PCFunc.correctPitchBasedOnMIDIItem(item, settings)
 end
 
-restoreSelectedItems(selectedItems)
+Reaper.restoreSelectedItems(selectedItems)
 
 reaper.PreventUIRefresh(-1)
 reaper.Undo_EndBlock(label, -1)

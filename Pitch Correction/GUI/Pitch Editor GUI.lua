@@ -1,4 +1,4 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local lib_path = reaper.GetExtState("Lokasenna_GUI", "lib_path_v2")
 if not lib_path or lib_path == "" then
@@ -7,8 +7,9 @@ if not lib_path or lib_path == "" then
 end
 loadfile(lib_path .. "Core.lua")()
 
-require "Helper Functions.Pitch Correction Functions"
-require "GUI.Class - PitchEditor"
+local PCFunc = require "Pitch Correction.Helper Functions.Pitch Correction Functions"
+
+require "Pitch Correction.GUI.Class - PitchEditor"
 GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
 GUI.req("Classes/Class - Textbox.lua")()
@@ -44,8 +45,8 @@ local elms = {}
 local function analyze_button_click()
     local selectedTake = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
 
-    saveSettingsInExtState(settings)
-    analyzePitch(selectedTake)
+    PCFunc.saveSettingsInExtState(settings)
+    PCFunc.analyzePitch(selectedTake)
 
     elms.pitch_editor:setTake(selectedTake)
 end

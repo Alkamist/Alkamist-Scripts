@@ -1,64 +1,14 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
-local PitchCorrection = require "Classes.Class - PitchCorrection"
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
+local PCFunc = {}
+
+local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+
+
 
 local edgePointSpacing = 0.01
 
-function msg(m)
-  reaper.ShowConsoleMsg(tostring(m).."\n")
-end
-
-function reaperCMD(id)
-    if type(id) == "string" then
-        reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
-    else
-        reaper.Main_OnCommand(id, 0)
-    end
-end
-
-function getItemType(item)
-    local _, selectedChunk =  reaper.GetItemStateChunk(item, "", 0)
-    local itemType = string.match(selectedChunk, "<SOURCE%s(%P%P%P).*\n")
-
-    if itemType == nil then
-        return "empty"
-    elseif itemType == "MID" then
-        return "midi"
-    else
-        return "audio"
-    end
-end
-
-function itemIsValid(item)
-    local itemExists = reaper.ValidatePtr(item, "MediaItem*")
-    return item ~= nil and itemExists
-end
-
-function setItemSelected(item, selected)
-    if itemIsValid(item) then
-        reaper.SetMediaItemSelected(item, selected)
-    end
-end
-
-function getSelectedItems()
-    local outputItems = {}
-    local numSelectedItems = reaper.CountSelectedMediaItems(0)
-    for i = 1, numSelectedItems do
-        local temporaryItem = reaper.GetSelectedMediaItem(0, i - 1)
-        outputItems[i] = temporaryItem
-    end
-    return outputItems
-end
-
-function restoreSelectedItems(items)
-    if items ~= nil then
-        reaperCMD(40289) -- unselect all items
-        for i = 1, #items do
-            setItemSelected(items[i], true)
-        end
-    end
-end
-
-function getEELCommandID(name)
+function PCFunc.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
     local file = io.open(kbini, 'r')
 
@@ -90,7 +40,7 @@ function getEELCommandID(name)
     return nil
 end
 
-function analyzePitch(take)
+function PCFunc.analyzePitch(take)
     local analyzerID = getEELCommandID("Pitch Analyzer")
 
     if analyzerID then
@@ -107,7 +57,7 @@ function analyzePitch(take)
     end
 end
 
-function itemPitchesNeedRecalculation(currentItem, settings)
+function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)
     local changeTolerance = 0.000001
 
     local currentItemPosition = reaper.GetMediaItemInfo_Value(currentItem, "D_POSITION")
@@ -173,7 +123,7 @@ function itemPitchesNeedRecalculation(currentItem, settings)
     return false
 end
 
-function savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
+function PCFunc.savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
     --local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections")
 
     local pitchCorrectionsString = ""
@@ -188,7 +138,7 @@ function savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections", pitchCorrectionsString)
 end
 
-function saveSettingsInExtState(settings)
+function PCFunc.saveSettingsInExtState(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
@@ -198,7 +148,7 @@ function saveSettingsInExtState(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
-function correctPitchBasedOnMIDIItem(midiItem, settings)
+function PCFunc.correctPitchBasedOnMIDIItem(midiItem, settings)
     if midiItem == nil then
         return
     end
@@ -305,3 +255,5 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
         end
     end
 end
+
+return PCFunc

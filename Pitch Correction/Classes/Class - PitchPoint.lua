@@ -1,4 +1,11 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
+local Lua = require "Various Functions.Lua Functions"
+
+
+
 ------------------- Class -------------------
+
 local PitchPoint = {}
 
 function PitchPoint:new(takeGUID, index, time, pitch, rms)
@@ -13,7 +20,6 @@ function PitchPoint:new(takeGUID, index, time, pitch, rms)
     object.rms = rms or 0
 
     object.correctedPitch = pitch or 0
-    object.finalPitch = pitch or 0
 
     setmetatable(object, self)
     self.__index = self
@@ -77,7 +83,7 @@ function PitchPoint.getAveragePitch(pitchPoints)
         pitchAverage = pitchAverage + point.correctedPitch
     end
 
-    return pitchAverage / #pitchPoints
+    return pitchAverage / Lua.getTableLength(pitchPoints)
 end
 
 function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)

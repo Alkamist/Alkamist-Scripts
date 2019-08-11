@@ -1,4 +1,5 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
-local PitchCorrection = require "Classes.Class - PitchCorrection"
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
-require "GUI.Pitch Editor GUI"
+local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+
+require "Pitch Correction.GUI.Pitch Editor GUI"

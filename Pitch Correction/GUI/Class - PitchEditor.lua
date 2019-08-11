@@ -1,3 +1,5 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
 if not GUI then
     reaper.ShowMessageBox("Couldn't access GUI functions.\n\nLokasenna_GUI - Core.lua must be loaded prior to any classes.", "Library Error", 0)
     missing_lib = true
@@ -5,52 +7,9 @@ if not GUI then
 end
 
 
-
-local PitchPoint = require "Classes.Class - PitchPoint"
-local PitchCorrection = require "Classes.Class - PitchCorrection"
-
-local function distanceBetweenTwoPoints(x1, y1, x2, y2)
-    local dx = x1 - x2
-    local dy = y1 - y2
-
-    return math.sqrt(dx * dx + dy * dy)
-end
-
-local function minDistanceBetweenPointAndLineSegment(x, y, x1, y1, x2, y2)
-    local A = x - x1
-    local B = y - y1
-    local C = x2 - x1
-    local D = y2 - y1
-
-    local dot = A * C + B * D
-    local len_sq = C * C + D * D
-    local param = -1
-
-    local xx
-    local yy
-
-    if len_sq ~= 0 then
-        param = dot / len_sq
-    end
-
-    if param < 0 then
-        xx = x1
-        yy = y1
-
-    elseif param > 1 then
-        xx = x2
-        yy = y2
-
-    else
-        xx = x1 + param * C
-        yy = y1 + param * D
-    end
-
-    local dx = x - xx
-    local dy = y - yy
-
-    return math.sqrt(dx * dx + dy * dy)
-end
+local Lua = require "Various Functions.Lua Functions"
+local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
+local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
 
 local mousePitchCorrectionPixelTolerance = 5
 
@@ -887,7 +846,7 @@ function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
     local rightHandleX = self:getPixelsFromTime(correction.rightTime)
     local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
 
-    local mouseDistanceFromPitchCorrectionLine = minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
+    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
     return mouseDistanceFromPitchCorrectionLine
 end
@@ -934,10 +893,10 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     local rightHandleX = self:getPixelsFromTime(correction.rightTime)
     local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
 
-    local mouseDistanceFromLeftHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY)
-    local mouseDistanceFromRightHandle = distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
+    local mouseDistanceFromLeftHandle = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY)
+    local mouseDistanceFromRightHandle = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
 
-    local mouseDistanceFromPitchCorrectionLine = minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
+    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
     local isLeft = mouseDistanceFromLeftHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
     local isRight = mouseDistanceFromRightHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
@@ -961,7 +920,7 @@ function GUI.PitchEditor:unselectAllPitchCorrections()
 end
 
 function GUI.PitchEditor:deleteSelectedPitchCorrections()
-    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
+    for key, correction in pairs(self.pitchCorrections) do
         if correction.isSelected then
             self.pitchCorrections[key] = nil
         end
@@ -1000,15 +959,13 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
 end
 
 function GUI.PitchEditor:applyPitchCorrections()
-    if self.take and self.pitchPoints then
+    if self.take and Lua.getTableLength(self.pitchPoints) > 0 then
         local takePlayrate = self.pitchPoints[1]:getPlayrate()
         local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
 
         reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
 
-        if self.pitchCorrections then
-            PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
-        end
+        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
 
         reaper.UpdateArrange()
     end
