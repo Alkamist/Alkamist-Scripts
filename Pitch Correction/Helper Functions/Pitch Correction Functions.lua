@@ -298,9 +298,8 @@ function correctPitchBasedOnMIDIItem(midiItem, settings)
                         end
                     end
 
-                    local overlapHandledCorrections = PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
                     --savePitchCorrectionsInExtState(reaper.BR_GetMediaItemTakeGUID(currentItemTake), overlapHandledCorrections)
-                    PitchCorrection.correctTakePitchToPitchCorrections(currentItemTake, overlapHandledCorrections)
+                    PitchCorrection.correctTakePitchToPitchCorrections(currentItemTake, pitchCorrections)
                 end
             end
         end

@@ -1,7 +1,7 @@
 local PitchPoint = require "Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
-local edgePointSpacing = 0.01
+local zeroPointSpacing = 0.01
 local averageCorrection = 0.0
 local modCorrection = 1.0
 local driftCorrection = 0.0
@@ -48,9 +48,6 @@ function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
     object.leftPitch = leftPitch or 0
     object.rightPitch = rightPitch or 0
 
-    object.overlaps = false
-    object.isOverlapped = false
-
     setmetatable(object, self)
     self.__index = self
     return object
@@ -77,6 +74,11 @@ function PitchCorrection:getPitch(time)
     else
         return self.leftPitch
     end
+end
+
+function PitchCorrection:timeIsInside(time)
+    return time >= self.leftTime and time <= self.rightTime
+        or time <= self.leftTime and time >= self.rightTime
 end
 
 
@@ -113,11 +115,6 @@ end
 
 
 ------------------- Helpful Functions -------------------
-function PitchCorrection:timeIsInside(time)
-    return time >= self.leftTime and time <= self.rightTime
-        or time <= self.leftTime and time >= self.rightTime
-end
-
 function PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, correctionStrength)
     local averageDeviation = averagePitch - targetPitch
     local pitchCorrection = -averageDeviation * correctionStrength
@@ -174,26 +171,6 @@ function PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, co
     end
 end
 
-function PitchCorrection.addEdgePoints(pitchEnvelope, playrate, takePitchPoints, pitchCorrections)
-    for key, correction in PitchCorrection.pairs(pitchCorrections) do
-        local clearStart = playrate * correction.leftTime
-        local clearEnd = playrate * correction.rightTime
-
-        if not correction.overlaps then
-            reaper.InsertEnvelopePoint(pitchEnvelope, correction.leftTime * playrate - edgePointSpacing, 0, 0, 0, false, true)
-        end
-        if not correction.isOverlapped then
-            reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * playrate + edgePointSpacing, 0, 0, 0, false, true)
-        end
-    end
-
-    -- Add edge points just before and after the beginning and end of pitch content.
-    local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
-    reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
-    local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
-    reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
-end
-
 function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
     local previousPoint = takePitchPoints[1]
     for key, point in PitchPoint.pairs(takePitchPoints) do
@@ -202,9 +179,9 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
         -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
         if point.index > 1 and zeroPointThreshold then
             if timePassedSinceLastPoint >= zeroPointThreshold then
-                local zeroPoint1Time = previousPoint.time + edgePointSpacing
+                local zeroPoint1Time = previousPoint.time + zeroPointSpacing
                 reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * playrate, 0, 0, 0, false, true)
-                local zeroPoint2Time = point.time - edgePointSpacing
+                local zeroPoint2Time = point.time - zeroPointSpacing
                 reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * playrate, 0, 0, 0, false, true)
             end
         end
@@ -230,7 +207,9 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
         local insideKeys = {}
 
         for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-            if correction:timeIsInside(point.time) then table.insert(insideKeys, correctionKey) end
+            if correction:timeIsInside(point.time) then
+                table.insert(insideKeys, correctionKey)
+            end
         end
 
         for index, key in ipairs(insideKeys) do
@@ -252,7 +231,6 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
-    --PitchCorrection.addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
     PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)

@@ -150,20 +150,6 @@ local function mainLoop()
     if GUI.char == 32 then
         reaper.Main_OnCommandEx(40044, 0, 0)
     end
-
-    local selectedItem = reaper.GetSelectedMediaItem(0, 0)
-
-    if selectedItem ~= previousSelectedItem then
-        local selectedTake = nil
-
-        if selectedItem then selectedTake = reaper.GetActiveTake(selectedItem) end
-
-        elms.pitch_editor:setTake(selectedTake)
-    end
-
-    --elms.pitch_editor:applyPitchCorrections()
-
-    previousSelectedItem = selectedItem
 end
 
 GUI.elms.tabs:update_sets(

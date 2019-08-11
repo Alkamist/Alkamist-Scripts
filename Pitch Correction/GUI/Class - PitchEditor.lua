@@ -340,6 +340,18 @@ function GUI.PitchEditor:ondrag()
 end
 
 function GUI.PitchEditor:onupdate()
+    local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+
+    if selectedItem ~= previousSelectedItem then
+        local selectedTake = nil
+
+        if selectedItem then selectedTake = reaper.GetActiveTake(selectedItem) end
+
+        self:setTake(selectedTake)
+    end
+
+
+
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
 
@@ -350,6 +362,8 @@ function GUI.PitchEditor:onupdate()
         self:drawEditCursor()
         self.playCursorCleared = true
     end
+
+    previousSelectedItem = selectedItem
 end
 
 function GUI.PitchEditor:onmousem_down()
