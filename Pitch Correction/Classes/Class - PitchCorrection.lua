@@ -7,10 +7,9 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 1.0
-local driftCorrection = 0.0
+local modCorrection = 0.0
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.1
-local driftMax = 0.5
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
 local edgePointSpacing = 0.01
@@ -95,13 +94,6 @@ end
 
 
 ------------------- Helpful Functions -------------------
-function PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, correctionStrength)
-    local averageDeviation = averagePitch - targetPitch
-    local pitchCorrection = -averageDeviation * correctionStrength
-
-    point.correctedPitch = point.correctedPitch + pitchCorrection
-end
-
 function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
     local modDeviation = point.correctedPitch - targetPitch
     local pitchCorrection = -modDeviation * correctionStrength
@@ -136,7 +128,6 @@ function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targe
     end
 
     local pitchDrift = driftAverage - targetPitch
-    --local pitchDrift = point.pitch - driftAverage
     local pitchCorrection = -pitchDrift * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
@@ -218,7 +209,6 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
             end
         end
 
-        --PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
         if numInsideKeys > 0 then
             PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
