@@ -185,45 +185,18 @@ function PitchCorrection.correctPitchPointsToPitchCorrections(pitchPoints, pitch
     local takePlayrate = pitchPoints[1]:getPlayrate()
     local pitchEnvelope = pitchPoints[1]:getEnvelope()
 
-    local selectedPitchCorrections = {}
-    for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-        if correction.isSelected then
-            selectedPitchCorrections[correctionKey] = correction
-        end
-    end
-    local numSelectedCorrections = Lua.getTableLength(selectedPitchCorrections)
-
     for pointKey, point in PitchPoint.pairs(pitchPoints) do
         local targetPitch = point.pitch
         local insideKeys = {}
 
         local numInsideKeys = 0
-        if numSelectedCorrections > 0 then
+        for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
+            reaper.DeleteEnvelopePointRange(pitchEnvelope, takePlayrate * correction.leftTime, takePlayrate * correction.rightTime)
 
-            for selectedKey, selectedCorrection in PitchCorrection.pairs(selectedPitchCorrections) do
-                reaper.DeleteEnvelopePointRange(pitchEnvelope, takePlayrate * selectedCorrection.leftTime, takePlayrate * selectedCorrection.rightTime)
-
-                if selectedCorrection:timeIsInside(point.time) then
-                    for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-                        if correction:timeIsInside(point.time) then
-                            numInsideKeys = numInsideKeys + 1
-                            insideKeys[numInsideKeys] = correctionKey
-                        end
-                    end
-                end
+            if correction:timeIsInside(point.time) then
+                numInsideKeys = numInsideKeys + 1
+                insideKeys[numInsideKeys] = correctionKey
             end
-
-        else
-
-            for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-                reaper.DeleteEnvelopePointRange(pitchEnvelope, takePlayrate * correction.leftTime, takePlayrate * correction.rightTime)
-
-                if correction:timeIsInside(point.time) then
-                    numInsideKeys = numInsideKeys + 1
-                    insideKeys[numInsideKeys] = correctionKey
-                end
-            end
-
         end
 
         for index, key in ipairs(insideKeys) do
