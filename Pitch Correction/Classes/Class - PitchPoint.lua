@@ -13,6 +13,7 @@ function PitchPoint:new(takeGUID, index, time, pitch, rms)
     object.rms = rms or 0
 
     object.correctedPitch = pitch or 0
+    object.finalPitch = pitch or 0
 
     setmetatable(object, self)
     self.__index = self

@@ -5,7 +5,7 @@ local edgePointSpacing = 0.01
 local averageCorrection = 0.0
 local modCorrection = 0.0
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.04
+local driftCorrectionSpeed = 0.2
 local zeroPointThreshold = 0.1
 
 
@@ -221,7 +221,7 @@ function PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, co
         local pitchDrift = driftAverage - targetPitch
         local pitchCorrection = -pitchDrift * correctionStrength
 
-        point.correctedPitch = point.correctedPitch + pitchCorrection
+        point.finalPitch = point.correctedPitch + pitchCorrection
     end
 end
 
@@ -261,7 +261,7 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
         end
 
         -- Add envelope points with the correction value.
-        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
+        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.finalPitch - point.pitch, 0, 0, false, true)
 
         previousPoint = point
     end
