@@ -3,8 +3,8 @@ local PitchPoint = require "Classes.Class - PitchPoint"
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
 local averageCorrection = 0.0
-local modCorrection = 0.0
-local driftCorrection = 1.0
+local modCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.2
 local zeroPointThreshold = 0.1
 
@@ -110,63 +110,6 @@ function PitchCorrection.pairs(pitchCorrections)
     return iterator
 end
 
-function PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
-    local newCorrections = copyTable(pitchCorrections)
-
-    local loopIndex = 1
-    local oldKeys = {}
-
-    -- Force overlap lengths to not be long enough to overlap multiple corrections.
-    for key, correction in PitchCorrection.pairs(newCorrections) do
-        if loopIndex > 2 then
-            local correctionToClip = newCorrections[oldKeys[loopIndex - 2]]
-            correctionToClip.rightTime = math.min(correctionToClip.rightTime, correction.leftTime - 0.1)
-        end
-        oldKeys[loopIndex] = key
-        loopIndex = loopIndex + 1
-    end
-
-    local previousCorrection = nil
-
-    loopIndex = 1
-    local previousKey = nil
-    for key in PitchCorrection.pairs(pitchCorrections) do
-        local newCorrection = newCorrections[key]
-
-        if loopIndex > 1 then
-            local overlapTime = previousCorrection.rightTime - newCorrection.leftTime
-
-            if overlapTime > 0 then
-                previousCorrection.rightPitch = previousCorrection:getPitch(previousCorrection.rightTime - overlapTime)
-                previousCorrection.rightTime = previousCorrection.rightTime - overlapTime
-
-                newCorrection.leftPitch = newCorrection:getPitch(newCorrection.leftTime + overlapTime)
-                newCorrection.leftTime = newCorrection.leftTime + overlapTime
-
-                local slideCorrection = PitchCorrection:new(previousCorrection.rightTime,
-                                                            newCorrection.leftTime,
-                                                            previousCorrection.rightPitch,
-                                                            newCorrection.leftPitch)
-                slideCorrection.overlaps = true
-                slideCorrection.isOverlapped = true
-                newCorrections["slide_" .. previousKey] = slideCorrection
-
-                newCorrections[key].overlaps = true
-                newCorrections[previousKey].isOverlapped = true
-            else
-                newCorrections[key].overlaps = false
-                newCorrections[previousKey].isOverlapped = false
-            end
-        end
-
-        previousKey = key
-        previousCorrection = newCorrection
-        loopIndex = loopIndex + 1
-    end
-
-    return newCorrections
-end
-
 
 
 ------------------- Helpful Functions -------------------
@@ -267,7 +210,7 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
         end
 
         -- Add envelope points with the correction value.
-        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.finalPitch - point.pitch, 0, 0, false, true)
+        reaper.InsertEnvelopePoint(pitchEnvelope, point.time * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
 
         previousPoint = point
     end
@@ -282,27 +225,34 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
 
---    for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
---
---    end
+    for pointKey, point in PitchPoint.pairs(takePitchPoints) do
+        local targetPitch = point.pitch
+        local insideKeys = {}
 
-    for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-        local correctionPitchPoints = PitchPoint.getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
-        local averagePitch = PitchPoint.getAveragePitch(correctionPitchPoints)
-
-        --reaper.DeleteEnvelopePointRange(pitchEnvelope, correction.leftTime / takePlayrate, correction.rightTime / takePlayrate)
-
-        for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
-            local targetPitch = correction:getPitch(point.time)
-
-            PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
-            PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
+        for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
+            if correction:timeIsInside(point.time) then table.insert(insideKeys, correctionKey) end
         end
 
-        PitchCorrection.correctPitchDrift(correctionPitchPoints, correction, driftCorrection, driftCorrectionSpeed)
+        for index, key in ipairs(insideKeys) do
+            local correction = pitchCorrections[key]
+
+            if index == 1 then
+                targetPitch = correction:getPitch(point.time)
+            else
+                local previousCorrection = pitchCorrections[insideKeys[index - 1]]
+                local slideLength = previousCorrection.rightTime - correction.leftTime
+                local pointTimeInCorrection = point.time - correction.leftTime
+                local correctionWeight = pointTimeInCorrection / slideLength
+                local correctionPitchDifference = correction:getPitch(point.time) - targetPitch
+
+                targetPitch = targetPitch + correctionPitchDifference * correctionWeight
+            end
+        end
+
+        PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
-    PitchCorrection.addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
+    --PitchCorrection.addEdgePoints(pitchEnvelope, takePlayrate, takePitchPoints, pitchCorrections)
     PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
