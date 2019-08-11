@@ -20,14 +20,14 @@ if missing_lib then return 0 end
 
 
 -- Pitch detection settings:
-local settings = {}
-settings.maximumLength = 300
-settings.windowStep = 0.04
-settings.overlap = 2.0
-settings.minimumFrequency = 60
-settings.maximumFrequency = 1000
-settings.YINThresh = 0.2
-settings.lowRMSLimitdB = -60
+local pdSettings = {}
+pdSettings.maximumLength = 300
+pdSettings.windowStep = 0.04
+pdSettings.overlap = 2.0
+pdSettings.minimumFrequency = 60
+pdSettings.maximumFrequency = 500
+pdSettings.YINThresh = 0.2
+pdSettings.lowRMSLimitdB = -60
 
 
 
@@ -45,10 +45,10 @@ local elms = {}
 local function analyze_button_click()
     local selectedTake = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
 
-    PCFunc.saveSettingsInExtState(settings)
+    PCFunc.saveSettingsInExtState(pdSettings)
     PCFunc.analyzePitch(selectedTake)
 
-    elms.pitch_editor:setTake(selectedTake)
+    elms.pitch_editor:setTake(selectedTake, pdSettings)
 end
 
 
@@ -85,7 +85,8 @@ elms.pitch_editor = {
     y = 52,
     w = 0,
     h = 0,
-    take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
+    take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0)),
+    pdSettings = pdSettings
 }
 
 
@@ -93,29 +94,29 @@ elms.pitch_editor = {
 -------------- Settings: --------------
 
 local function createTextboxSetting(title, caption, startingValue, settingNumber)
-    local settingsFont = {fonts.mono, 12}
+    local pdSettingsFont = {fonts.mono, 12}
 
-    local settingsZLayer = 4
-    local settingsXPos = 170
-    local settingsStartingHeight = 25
-    local settingsWidth = 60
-    local settingsHeight = 17
-    local settingsCaptionPadding = 4
-    local settingsVerticalPadding = 1
+    local pdSettingsZLayer = 4
+    local pdSettingsXPos = 170
+    local pdSettingsStartingHeight = 25
+    local pdSettingsWidth = 60
+    local pdSettingsHeight = 17
+    local pdSettingsCaptionPadding = 4
+    local pdSettingsVerticalPadding = 1
 
-    local settingsYPos = settingsStartingHeight + (settingNumber - 1) * (settingsVerticalPadding + settingsHeight)
+    local pdSettingsYPos = pdSettingsStartingHeight + (settingNumber - 1) * (pdSettingsVerticalPadding + pdSettingsHeight)
 
     elms[title] = {
         type = "Textbox",
-        z = settingsZLayer,
-        x = settingsXPos,
-        y = settingsYPos,
-        w = settingsWidth,
-        h = settingsHeight,
+        z = pdSettingsZLayer,
+        x = pdSettingsXPos,
+        y = pdSettingsYPos,
+        w = pdSettingsWidth,
+        h = pdSettingsHeight,
         caption = caption,
-        pad = settingsCaptionPadding,
+        pad = pdSettingsCaptionPadding,
         retval = startingValue,
-        font_b = settingsFont
+        font_b = pdSettingsFont
     }
 end
 

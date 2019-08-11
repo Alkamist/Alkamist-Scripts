@@ -44,7 +44,7 @@ end
 
 
 GUI.PitchEditor = GUI.Element:new()
-function GUI.PitchEditor:new(name, z, x, y, w, h, take)
+function GUI.PitchEditor:new(name, z, x, y, w, h, take, pdSettings)
     -- This provides support for creating elms with a keyed table
     local object = (not x and type(z) == "table") and z or {}
 
@@ -106,7 +106,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take)
     setmetatable(object, self)
     self.__index = self
 
-    object:setTake(object.take or take)
+    object:setTake(object.take or take, object.pdSettings or pdSettings)
 
     return object
 end
@@ -306,7 +306,7 @@ function GUI.PitchEditor:onupdate()
 
         if selectedItem then selectedTake = reaper.GetActiveTake(selectedItem) end
 
-        self:setTake(selectedTake)
+        self:setTake(selectedTake, self.pdSettings)
     end
 
 
@@ -744,7 +744,7 @@ function GUI.PitchEditor:drawEditCursor()
     self:redraw()
 end
 
-function GUI.PitchEditor:setTake(take)
+function GUI.PitchEditor:setTake(take, pdSettings)
     local isTake = reaper.ValidatePtr(take, "MediaItem_Take*")
 
     if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
@@ -760,6 +760,7 @@ function GUI.PitchEditor:setTake(take)
         self.item = reaper.GetMediaItemTake_Item(take)
         self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
         self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
+        self.pdSettings = pdSettings
     else
         self.take = nil
         self.item = nil
@@ -771,6 +772,10 @@ function GUI.PitchEditor:setTake(take)
 
         for key in pairs(self.pitchCorrections) do
             self.pitchCorrections[key] = nil
+        end
+
+        for key in pairs(self.pitchCorrections) do
+            self.pdSettings[key] = nil
         end
     end
 
@@ -965,7 +970,7 @@ function GUI.PitchEditor:applyPitchCorrections()
 
         reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
 
-        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
+        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections, self.pdSettings)
 
         reaper.UpdateArrange()
     end

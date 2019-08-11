@@ -1,8 +1,11 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
-local PCFunc = {}
-
+local Reaper = require "Various Functions.Reaper Functions"
 local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+
+
+
+local PCFunc = {}
 
 
 
@@ -41,7 +44,7 @@ function PCFunc.getEELCommandID(name)
 end
 
 function PCFunc.analyzePitch(take)
-    local analyzerID = getEELCommandID("Pitch Analyzer")
+    local analyzerID = PCFunc.getEELCommandID("Pitch Analyzer")
 
     if analyzerID then
         -- Save the current GUID of the item take we are processing in the ext state.
@@ -50,7 +53,7 @@ function PCFunc.analyzePitch(take)
         local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
         reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
 
-        reaperCMD(analyzerID)
+        Reaper.reaperCMD(analyzerID)
     else
         reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
         return 0
@@ -185,7 +188,7 @@ function PCFunc.correctPitchBasedOnMIDIItem(midiItem, settings)
                 -- An item has to be an audio item and also be within the bounds of the
                 -- MIDI item that is influencing the pitch.
                 if itemShouldBeProcessed and getItemType(currentItem) == "audio" then
-                    reaperCMD(40289) -- Unselect all items.
+                    Reaper.reaperCMD(40289) -- Unselect all items.
                     reaper.SetMediaItemSelected(currentItem, true)
 
                     -- If a take pitch envelope already exists, then we need to clean the content in it
@@ -213,7 +216,7 @@ function PCFunc.correctPitchBasedOnMIDIItem(midiItem, settings)
                         reaper.InsertEnvelopePoint(pitchEnvelope, clearEnd, 0, 0, 0, false, true)
                         reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
                     else
-                        reaperCMD(41612) -- Take: Toggle take pitch envelope
+                        Reaper.reaperCMD(41612) -- Take: Toggle take pitch envelope
                         pitchEnvelope = reaper.GetTakeEnvelopeByName(currentItemTake, "Pitch")
                     end
 
@@ -223,13 +226,13 @@ function PCFunc.correctPitchBasedOnMIDIItem(midiItem, settings)
                         local currentTakePitch = reaper.GetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH")
                         reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", 0.0)
                         -- Hide and bypass the take pitch envelope, so the EEL script process the pure audio.
-                        reaperCMD("_S&M_TAKEENV11")
+                        Reaper.reaperCMD("_S&M_TAKEENV11")
                         -- Analyze the audio to determine its pitches.
-                        if analyzePitch(currentItemTake) == 0 then return 0 end
+                        if PCFunc.analyzePitch(currentItemTake) == 0 then return 0 end
                         -- Set the pitch back to what it once was after the processing.
                         reaper.SetMediaItemTakeInfo_Value(currentItemTake, "D_PITCH", currentTakePitch)
                         -- Show and unbypass the take pitch envelope.
-                        reaperCMD("_S&M_TAKEENV10")
+                        Reaper.reaperCMD("_S&M_TAKEENV10")
                     end
 
                     local pitchCorrections = {}

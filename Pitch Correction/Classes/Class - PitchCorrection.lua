@@ -7,16 +7,13 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 0.3
-local driftCorrection = 1.0
+local modCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.1
 local driftMax = 0.5
-local zeroPointThreshold = 0.1
+local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
 local edgePointSpacing = 0.01
-
--- GET THIS FROM SETTINGS LATER
-local minTimePerPoint = 0.02
 
 
 
@@ -112,7 +109,8 @@ function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targetPitch, correctionStrength, correctionSpeed)
+function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targetPitch, correctionStrength, correctionSpeed, pdSettings)
+    local minTimePerPoint = pdSettings.windowStep / pdSettings.overlap
     local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
 
     local driftAverage = 0
@@ -180,7 +178,7 @@ function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
 end
 
-function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections)
+function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections, pdSettings)
     if Lua.getTableLength(pitchCorrections) < 1 then return end
 
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
@@ -222,7 +220,7 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
 
         --PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
         if numInsideKeys > 0 then
-            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
+            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
 
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
