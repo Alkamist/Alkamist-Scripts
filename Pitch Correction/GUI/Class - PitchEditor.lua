@@ -254,6 +254,14 @@ function GUI.PitchEditor:ondrag()
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         if correction.isSelected == true then
+            -- Clear the pitch envelope under the correction before moving it.
+            if Lua.getTableLength(self.pitchPoints) > 0 then
+                local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+                local playrate = self.pitchPoints[1]:getPlayrate()
+
+                reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+            end
+
             local mouseTimeChange = mouseTime - self.previousMouseTime
             local maxRightTimeChange = mouseTime - correction.leftTime
             local maxLeftTimeChange = mouseTime - correction.rightTime
@@ -971,7 +979,7 @@ function GUI.PitchEditor:applyPitchCorrections()
         local takePlayrate = self.pitchPoints[1]:getPlayrate()
         local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
 
-        reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
+        --reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
 
         PitchCorrection.correctPitchPointsToPitchCorrections(Lua.copyTable(self.pitchPoints), self.pitchCorrections, self.pdSettings)
 

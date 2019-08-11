@@ -191,6 +191,8 @@ function PitchCorrection.correctPitchPointsToPitchCorrections(pitchPoints, pitch
 
         local numInsideKeys = 0
         for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
+            reaper.DeleteEnvelopePointRange(pitchEnvelope, takePlayrate * correction.leftTime, takePlayrate * correction.rightTime)
+
             if correction:timeIsInside(point.time) then
                 numInsideKeys = numInsideKeys + 1
                 insideKeys[numInsideKeys] = correctionKey
