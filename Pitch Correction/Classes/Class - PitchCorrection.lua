@@ -119,7 +119,8 @@ function PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
     -- Force overlap lengths to not be long enough to overlap multiple corrections.
     for key, correction in PitchCorrection.pairs(newCorrections) do
         if loopIndex > 2 then
-            newCorrections[loopIndex - 2].rightTime = math.min(newCorrections[loopIndex - 2].rightTime, correction.leftTime)
+            local correctionToClip = newCorrections[oldKeys[loopIndex - 2]]
+            correctionToClip.rightTime = math.min(correctionToClip.rightTime, correction.leftTime - 0.1)
         end
         oldKeys[loopIndex] = key
         loopIndex = loopIndex + 1
@@ -129,7 +130,7 @@ function PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
 
     loopIndex = 1
     local previousKey = nil
-    for key, correction in PitchCorrection.pairs(pitchCorrections) do
+    for key in PitchCorrection.pairs(pitchCorrections) do
         local newCorrection = newCorrections[key]
 
         if loopIndex > 1 then
@@ -169,6 +170,11 @@ end
 
 
 ------------------- Helpful Functions -------------------
+function PitchCorrection:timeIsInside(time)
+    return time >= self.leftTime and time <= self.rightTime
+        or time <= self.leftTime and time >= self.rightTime
+end
+
 function PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, correctionStrength)
     local averageDeviation = averagePitch - targetPitch
     local pitchCorrection = -averageDeviation * correctionStrength
@@ -275,6 +281,10 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
 
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
+
+--    for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
+--
+--    end
 
     for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
         local correctionPitchPoints = PitchPoint.getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)

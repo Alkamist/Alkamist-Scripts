@@ -863,11 +863,6 @@ function GUI.PitchEditor:getTimeLength()
     return 0
 end
 
-function GUI.PitchEditor:timeIsInsidePitchCorrection(time, correction)
-    return time >= correction.leftTime and time <= correction.rightTime
-        or time <= correction.leftTime and time >= correction.rightTime
-end
-
 function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
     if correction == nil then return nil end
 
@@ -968,7 +963,7 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
         if correction ~= self.editCorrection then
-            if self:timeIsInsidePitchCorrection(time, correction) then
+            if correction:timeIsInside(time) then
                 insideCorrection = correction
             end
         end
