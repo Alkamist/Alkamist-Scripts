@@ -2,11 +2,40 @@ local PitchPoint = require "Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local edgePointSpacing = 0.01
-local averageCorrection = 1.0
-local modCorrection = 0.4
+local averageCorrection = 0.0
+local modCorrection = 0.0
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.17
+local driftCorrectionSpeed = 0.04
 local zeroPointThreshold = 0.1
+
+
+
+local function copyTable(source, base)
+    if type(source) ~= "table" then return source end
+
+    local meta = getmetatable(source)
+    local new = base or {}
+    for k, v in pairs(source) do
+        if type(v) == "table" then
+            if base then
+                new[k] = GUI.table_copy(v, base[k])
+            else
+                new[k] = GUI.table_copy(v, nil)
+            end
+
+        else
+            if not base or (base and new[k] == nil) then
+
+                new[k] = v
+            end
+        end
+    end
+    setmetatable(new, meta)
+
+    return new
+end
+
+
 
 ------------------- Class -------------------
 local PitchCorrection = {}
@@ -82,7 +111,7 @@ function PitchCorrection.pairs(pitchCorrections)
 end
 
 function PitchCorrection.getOverlapHandledPitchCorrections(pitchCorrections)
-    local newCorrections = {table.unpack(pitchCorrections)}
+    local newCorrections = copyTable(pitchCorrections)
 
     local loopIndex = 1
     local oldKeys = {}
@@ -207,13 +236,13 @@ function PitchCorrection.addEdgePoints(pitchEnvelope, playrate, takePitchPoints,
         if not correction.isOverlapped then
             reaper.InsertEnvelopePoint(pitchEnvelope, correction.rightTime * playrate + edgePointSpacing, 0, 0, 0, false, true)
         end
-
-        -- Add edge points just before and after the beginning and end of pitch content.
-        local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
-        reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
-        local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
-        reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
     end
+
+    -- Add edge points just before and after the beginning and end of pitch content.
+    local firstEdgePointTime = takePitchPoints[1].time - edgePointSpacing
+    reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
+    local lastEdgePointTime = takePitchPoints[#takePitchPoints].time + edgePointSpacing
+    reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
 end
 
 function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, takePitchPoints)
@@ -239,6 +268,8 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
 end
 
 function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections)
+    if #pitchCorrections < 1 then return end
+
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     local takePitchPoints = PitchPoint.getPitchPoints(takeGUID)
 
@@ -248,6 +279,8 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
     for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
         local correctionPitchPoints = PitchPoint.getPitchPointsInTimeRange(takePitchPoints, correction.leftTime, correction.rightTime)
         local averagePitch = PitchPoint.getAveragePitch(correctionPitchPoints)
+
+        --reaper.DeleteEnvelopePointRange(pitchEnvelope, correction.leftTime / takePlayrate, correction.rightTime / takePlayrate)
 
         for pointKey, point in PitchPoint.pairs(correctionPitchPoints) do
             local targetPitch = correction:getPitch(point.time)

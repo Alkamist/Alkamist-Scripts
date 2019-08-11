@@ -323,8 +323,6 @@ function GUI.PitchEditor:ondrag()
                     correction.rightPitch = correction.rightPitch + mousePitchChange
                 end
             end
-
-            --correction.leftTime = math.max(correction.leftTime, 0.0)
         end
     end
 
@@ -333,6 +331,9 @@ function GUI.PitchEditor:ondrag()
     self.previousMousePitch = mousePitch
     self.previousSnappedMousePitch = snappedMousePitch
 
+    self:applyPitchCorrections()
+
+    self:drawPreviewPitchLines()
     self:drawPitchCorrections()
 
     self:redraw()
@@ -493,7 +494,11 @@ function GUI.PitchEditor:ontype()
 
     if self.keys[char] then
         self.keys[char](self)
+        self:applyPitchCorrections()
+        self:drawPreviewPitchLines()
     end
+
+    self:redraw()
 end
 
 function GUI.PitchEditor:drawBackground()
@@ -983,6 +988,19 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
     end
 
     return closestTime
+end
+
+function GUI.PitchEditor:applyPitchCorrections()
+    if self.take and self.pitchCorrections then
+        local takePlayrate = self.pitchPoints[1]:getPlayrate()
+        local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+
+        reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
+
+        --local overlapHandledCorrections = PitchCorrection.getOverlapHandledPitchCorrections(self.pitchCorrections)
+        --PitchCorrection.correctTakePitchToPitchCorrections(self.take, overlapHandledCorrections)
+        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
+    end
 end
 
 GUI.PitchEditor.keys = {

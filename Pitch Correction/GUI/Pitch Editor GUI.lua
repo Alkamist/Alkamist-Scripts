@@ -161,6 +161,8 @@ local function mainLoop()
         elms.pitch_editor:setTake(selectedTake)
     end
 
+    --elms.pitch_editor:applyPitchCorrections()
+
     previousSelectedItem = selectedItem
 end
 
