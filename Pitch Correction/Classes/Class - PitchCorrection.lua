@@ -7,7 +7,7 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 0.0
+local modCorrection = 0.2
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.1
 local zeroPointThreshold = 0.05
@@ -101,21 +101,27 @@ function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targetPitch, correctionStrength, correctionSpeed, pdSettings)
+function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, correctionLeftTime, correctionRightTime, targetPitch, correctionStrength, correctionSpeed, pdSettings)
     local minTimePerPoint = pdSettings.windowStep / pdSettings.overlap
     local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
+    local numPitchPoints = Lua.getTableLength(pitchPoints)
 
     local driftAverage = 0
     local numDriftPoints = 0
     for i = 1, maxDriftPoints do
         local accessIndex = pointIndex + i - math.floor(maxDriftPoints * 0.5)
 
-        if accessIndex >= 1 and accessIndex <= #pitchPoints then
+        if accessIndex >= 1 and accessIndex <= numPitchPoints then
             local driftPoint = pitchPoints[accessIndex]
             local correctionRadius = correctionSpeed * 0.5
 
-            if driftPoint.time >= point.time - correctionRadius
-            and driftPoint.time <= point.time + correctionRadius then
+            local driftPointIsInCorrectionRadius = driftPoint.time >= point.time - correctionRadius
+                                               and driftPoint.time <= point.time + correctionRadius
+
+            local driftPointIsInCorrectionTime = driftPoint.time >= correctionLeftTime
+                                             and driftPoint.time <= correctionRightTime
+
+            if driftPointIsInCorrectionRadius and driftPointIsInCorrectionTime then
                 driftAverage = driftAverage + driftPoint.pitch
 
                 numDriftPoints = numDriftPoints + 1
@@ -210,7 +216,10 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
         end
 
         if numInsideKeys > 0 then
-            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+            local insideCorrectionLeft = pitchCorrections[insideKeys[1]].leftTime
+            local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]].rightTime
+
+            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
 
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
