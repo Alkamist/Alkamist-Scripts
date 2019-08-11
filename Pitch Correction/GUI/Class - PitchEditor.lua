@@ -986,15 +986,17 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
 end
 
 function GUI.PitchEditor:applyPitchCorrections()
-    if self.take and self.pitchCorrections then
+    if self.take and self.pitchPoints then
         local takePlayrate = self.pitchPoints[1]:getPlayrate()
         local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
 
         reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
 
-        --local overlapHandledCorrections = PitchCorrection.getOverlapHandledPitchCorrections(self.pitchCorrections)
-        --PitchCorrection.correctTakePitchToPitchCorrections(self.take, overlapHandledCorrections)
-        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
+        if self.pitchCorrections then
+            PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections)
+        end
+
+        reaper.UpdateArrange()
     end
 end
 
