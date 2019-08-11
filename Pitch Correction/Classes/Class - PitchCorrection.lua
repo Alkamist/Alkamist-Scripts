@@ -6,13 +6,14 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 
 -- Pitch correction settings:
-local zeroPointSpacing = 0.01
 local averageCorrection = 0.0
-local modCorrection = 1.0
+local modCorrection = 0.3
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.2
+local driftCorrectionSpeed = 0.1
 local driftMax = 0.5
 local zeroPointThreshold = 0.1
+local zeroPointSpacing = 0.01
+local edgePointSpacing = 0.01
 
 -- GET THIS FROM SETTINGS LATER
 local minTimePerPoint = 0.02
@@ -166,8 +167,6 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
 end
 
 function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
-    local edgePointSpacing = 0.01
-
     local numPitchPoints = Lua.getTableLength(pitchPoints)
 
     if numPitchPoints < 1 then return end
@@ -225,7 +224,8 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
         if numInsideKeys > 0 then
             PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
         end
-        --PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
+
+        PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
     PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
