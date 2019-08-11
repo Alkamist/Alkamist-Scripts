@@ -11,7 +11,11 @@ local averageCorrection = 0.0
 local modCorrection = 1.0
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.2
+local driftMax = 0.5
 local zeroPointThreshold = 0.1
+
+-- GET THIS FROM SETTINGS LATER
+local minTimePerPoint = 0.02
 
 
 
@@ -108,7 +112,6 @@ function PitchCorrection.correctPitchMod(point, targetPitch, correctionStrength)
 end
 
 function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targetPitch, correctionStrength, correctionSpeed)
-    local minTimePerPoint = 0.02
     local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
 
     local driftAverage = 0
@@ -123,6 +126,7 @@ function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targe
             if driftPoint.time >= point.time - correctionRadius
             and driftPoint.time <= point.time + correctionRadius then
                 driftAverage = driftAverage + driftPoint.pitch
+
                 numDriftPoints = numDriftPoints + 1
             end
         end
@@ -133,6 +137,7 @@ function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, targe
     end
 
     local pitchDrift = driftAverage - targetPitch
+    --local pitchDrift = point.pitch - driftAverage
     local pitchCorrection = -pitchDrift * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
@@ -160,11 +165,30 @@ function PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, playrate, 
     end
 end
 
+function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
+    local edgePointSpacing = 0.01
+
+    local numPitchPoints = Lua.getTableLength(pitchPoints)
+
+    if numPitchPoints < 1 then return end
+
+    local pitchEnvelope = pitchPoints[1]:getEnvelope()
+    local playrate = pitchPoints[1]:getPlayrate()
+
+    local firstEdgePointTime = pitchPoints[1].time - edgePointSpacing
+    reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
+    local lastEdgePointTime = pitchPoints[numPitchPoints].time + edgePointSpacing
+    reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
+end
+
 function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections)
     if Lua.getTableLength(pitchCorrections) < 1 then return end
 
     local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
     local takePitchPoints = PitchPoint.getPitchPoints(takeGUID)
+    local numTakePitchPoints = Lua.getTableLength(takePitchPoints)
+
+    if numTakePitchPoints < 1 then return end
 
     local takePlayrate = takePitchPoints[1]:getPlayrate()
     local pitchEnvelope = takePitchPoints[1]:getEnvelope()
@@ -199,18 +223,15 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
 
         --PitchCorrection.correctPitchAverage(point, averagePitch, targetPitch, averageCorrection)
         if numInsideKeys > 0 then
-            --PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
+            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, targetPitch, driftCorrection, driftCorrectionSpeed)
         end
-        PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
+        --PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
     PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
+    PitchCorrection.addEdgePointsToPitchContent(takePitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
-
-    --for correctionKey, correction in pairs(pitchCorrections) do
-    --    msg(correctionKey)
-    --end
 end
 
 return PitchCorrection

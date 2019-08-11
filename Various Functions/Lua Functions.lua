@@ -2,6 +2,10 @@
 
 local Lua = {}
 
+function Lua.clamp(number, low, high)
+    return math.min(math.max(number, low), high)
+end
+
 function Lua.copyTable(source, base)
     if type(source) ~= "table" then return source end
 
