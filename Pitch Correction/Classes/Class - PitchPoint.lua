@@ -19,7 +19,7 @@ function PitchPoint:new(takeGUID, index, time, pitch, rms)
     object.pitch = pitch or 0
     object.rms = rms or 0
 
-    object.correctedPitch = pitch or 0
+    object.correctedPitch = object.correctedPitch or pitch or 0
 
     setmetatable(object, self)
     self.__index = self
@@ -80,7 +80,7 @@ function PitchPoint.getAveragePitch(pitchPoints)
     local pitchAverage = 0
 
     for key, point in PitchPoint.pairs(pitchPoints) do
-        pitchAverage = pitchAverage + point.correctedPitch
+        pitchAverage = pitchAverage + point.pitch
     end
 
     return pitchAverage / Lua.getTableLength(pitchPoints)

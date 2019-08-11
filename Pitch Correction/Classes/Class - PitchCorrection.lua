@@ -175,19 +175,16 @@ function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
 end
 
-function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrections, pdSettings)
+function PitchCorrection.correctPitchPointsToPitchCorrections(pitchPoints, pitchCorrections, pdSettings)
     if Lua.getTableLength(pitchCorrections) < 1 then return end
 
-    local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-    local takePitchPoints = PitchPoint.getPitchPoints(takeGUID)
-    local numTakePitchPoints = Lua.getTableLength(takePitchPoints)
-
+    local numTakePitchPoints = Lua.getTableLength(pitchPoints)
     if numTakePitchPoints < 1 then return end
 
-    local takePlayrate = takePitchPoints[1]:getPlayrate()
-    local pitchEnvelope = takePitchPoints[1]:getEnvelope()
+    local takePlayrate = pitchPoints[1]:getPlayrate()
+    local pitchEnvelope = pitchPoints[1]:getEnvelope()
 
-    for pointKey, point in PitchPoint.pairs(takePitchPoints) do
+    for pointKey, point in PitchPoint.pairs(pitchPoints) do
         local targetPitch = point.pitch
         local insideKeys = {}
 
@@ -219,14 +216,14 @@ function PitchCorrection.correctTakePitchToPitchCorrections(take, pitchCorrectio
             local insideCorrectionLeft = pitchCorrections[insideKeys[1]].leftTime
             local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]].rightTime
 
-            PitchCorrection.correctPitchDrift(point, point.index, takePitchPoints, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+            PitchCorrection.correctPitchDrift(point, point.index, pitchPoints, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
 
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
     end
 
-    PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, takePitchPoints)
-    PitchCorrection.addEdgePointsToPitchContent(takePitchPoints)
+    PitchCorrection.addPitchCorrectionsToEnvelope(pitchEnvelope, takePlayrate, pitchPoints)
+    PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
 
     reaper.Envelope_SortPointsEx(pitchEnvelope, -1)
 end

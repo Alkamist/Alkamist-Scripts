@@ -970,7 +970,7 @@ function GUI.PitchEditor:applyPitchCorrections()
 
         reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
 
-        PitchCorrection.correctTakePitchToPitchCorrections(self.take, self.pitchCorrections, self.pdSettings)
+        PitchCorrection.correctPitchPointsToPitchCorrections(Lua.copyTable(self.pitchPoints), self.pitchCorrections, self.pdSettings)
 
         reaper.UpdateArrange()
     end
