@@ -242,42 +242,44 @@ function GUI.PitchEditor:handleCorrectionEditing()
         end
     end
 
-    for key, correction in PitchCorrection.pairs(self.selectedPitchCorrections) do
-        -- Clear the pitch envelope under the correction before moving it.
-        if #self.pitchPoints > 0 then
-            local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
-            local playrate = self.pitchPoints[1]:getPlayrate()
+    if self.editCorrection then
+        for key, correction in PitchCorrection.pairs(self.selectedPitchCorrections) do
+            -- Clear the pitch envelope under the correction before moving it.
+            if #self.pitchPoints > 0 then
+                local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+                local playrate = self.pitchPoints[1]:getPlayrate()
 
-            reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
-        end
+                reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+            end
 
-        local mouseTimeChange = mouseTime - self.previousMouseTime
-        local maxRightTimeChange = mouseTime - correction.leftTime
-        local maxLeftTimeChange = mouseTime - correction.rightTime
+            local mouseTimeChange = mouseTime - self.previousMouseTime
+            local maxRightTimeChange = mouseTime - correction.leftTime
+            local maxLeftTimeChange = mouseTime - correction.rightTime
 
-        local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
+            local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
-        if self.justCreatedNewPitchCorrection then
-            local change = math.min(mouseTimeChange, maxRightTimeChange)
-            correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
-            correction.rightPitch = correction.rightPitch + mousePitchChange
-        else
-            if self.editHandle == "left" then
-                local change = math.max(mouseTimeChange, maxLeftTimeChange)
-                correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
-                correction.leftPitch = correction.leftPitch + mousePitchChange
-
-            elseif self.editHandle == "right" then
+            if self.justCreatedNewPitchCorrection then
                 local change = math.min(mouseTimeChange, maxRightTimeChange)
                 correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
                 correction.rightPitch = correction.rightPitch + mousePitchChange
+            else
+                if self.editHandle == "left" then
+                    local change = math.max(mouseTimeChange, maxLeftTimeChange)
+                    correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
+                    correction.leftPitch = correction.leftPitch + mousePitchChange
 
-            elseif self.editHandle == "middle" then
-                correction.leftTime = correction.leftTime + mouseTimeChange
-                correction.leftPitch = correction.leftPitch + mousePitchChange
+                elseif self.editHandle == "right" then
+                    local change = math.min(mouseTimeChange, maxRightTimeChange)
+                    correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
+                    correction.rightPitch = correction.rightPitch + mousePitchChange
 
-                correction.rightTime = correction.rightTime + mouseTimeChange
-                correction.rightPitch = correction.rightPitch + mousePitchChange
+                elseif self.editHandle == "middle" then
+                    correction.leftTime = correction.leftTime + mouseTimeChange
+                    correction.leftPitch = correction.leftPitch + mousePitchChange
+
+                    correction.rightTime = correction.rightTime + mouseTimeChange
+                    correction.rightPitch = correction.rightPitch + mousePitchChange
+                end
             end
         end
     end
@@ -955,9 +957,6 @@ function GUI.PitchEditor:deleteSelectedPitchCorrections()
     end)
 
     self:unselectAllPitchCorrections()
-
-    self:drawPitchCorrections()
-    self:redraw()
 end
 
 function GUI.PitchEditor:getClosestValidTimeToPosition(time)
@@ -1006,6 +1005,8 @@ GUI.PitchEditor.keys = {
     [GUI.chars.DELETE] = function(self)
 
         self:deleteSelectedPitchCorrections()
+        self:drawPitchCorrections()
+    self:redraw()
 
     end
 
