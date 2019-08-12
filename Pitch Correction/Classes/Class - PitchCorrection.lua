@@ -60,7 +60,6 @@ end
 
 function PitchCorrection:timeIsInside(time)
     return time >= self.leftTime and time <= self.rightTime
-        or time <= self.leftTime and time >= self.rightTime
 end
 
 
@@ -215,7 +214,7 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
 
     local lowestIndex = #pitchPoints
     local highestIndex = 1
-    for key, value in ipairs(pointIndexes) do
+    for key, value in pairs(pointIndexes) do
         if value < lowestIndex then lowestIndex = value end
         if value > highestIndex then highestIndex = value end
     end
@@ -283,7 +282,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         previousPoint = point
     end
 
-    PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
+    --PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     reaper.Envelope_SortPoints(pitchEnvelope)
 end
 

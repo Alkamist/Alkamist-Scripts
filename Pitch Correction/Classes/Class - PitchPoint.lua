@@ -98,9 +98,9 @@ function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
         local guessIsLeftOfTime = guessPoint.time <= time
 
         if guessIsLeftOfTime then
-            -- You are going left and the target is still to the left.
+            -- You are going right and the target is still to the right.
             if prevGuessIsLeftOfTime then
-                bestGuessIndex = bestGuessIndex - 1
+                bestGuessIndex = bestGuessIndex + 1
 
             -- You were going left and passed the target.
             else
@@ -112,11 +112,11 @@ function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
             end
 
         else
-            -- You are going right and the target is still to the right.
+            -- You are going left and the target is still to the left.
             if not prevGuessIsLeftOfTime then
                 bestGuessIndex = bestGuessIndex - 1
 
-            -- You were going left and passed the target.
+            -- You were going right and passed the target.
             else
                 if guessError < prevGuessError then
                     return guessPoint, bestGuessIndex
@@ -132,7 +132,14 @@ function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
 
     until bestGuessIndex < 1 or bestGuessIndex > numPitchPoints
 
-    return lastPoint, numPitchPoints
+    if bestGuessIndex < 1 then
+        return firstPoint, 1
+
+    elseif bestGuessIndex > numPitchPoints then
+        return lastPoint, numPitchPoints
+    end
+
+    return firstPoint, 1
 end
 
 
