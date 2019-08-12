@@ -220,9 +220,6 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
         if value > highestIndex then highestIndex = value end
     end
 
-    msg(lowestIndex)
-    msg(highestIndex)
-
     for i = lowestIndex, highestIndex do
         table.insert(pointsInCorrections, pitchPoints[i])
     end

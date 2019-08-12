@@ -85,51 +85,54 @@ function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
     local totalTime = lastPoint.time - firstPoint.time
 
     local bestGuessIndex = math.floor(numPitchPoints * time / totalTime)
+    bestGuessIndex = Lua.clamp(bestGuessIndex, 1, numPitchPoints)
 
-    if bestGuessIndex > 1 and bestGuessIndex < numPitchPoints then
-        repeat
-            local lowerGuess = pitchPoints[bestGuessIndex - 1]
-            local guessPoint = pitchPoints[bestGuessIndex]
-            local higherGuess = pitchPoints[bestGuessIndex + 1]
+    local guessPoint = pitchPoints[bestGuessIndex]
+    local prevGuessError = math.abs(guessPoint.time - time)
+    local prevGuessIsLeftOfTime = guessPoint.time <= time
 
-            local lowerGuessDist = math.abs(time - lowerGuess.time)
-            local guessPointDist = math.abs(time - guessPoint.time)
-            local higherGuessDist = math.abs(time - higherGuess.time)
+    repeat
+        guessPoint = pitchPoints[bestGuessIndex]
 
-            local guessPointIsClosest = guessPointDist <= lowerGuessDist and guessPointDist <= higherGuessDist
+        local guessError = math.abs(guessPoint.time - time)
+        local guessIsLeftOfTime = guessPoint.time <= time
 
-            if guessPointIsClosest or bestGuessIndex == 2 or bestGuessIndex == numPitchPoints - 1 then
-                break
-            end
-
-            if lowerGuessDist < guessPointDist then
+        if guessIsLeftOfTime then
+            -- You are going left and the target is still to the left.
+            if prevGuessIsLeftOfTime then
                 bestGuessIndex = bestGuessIndex - 1
 
-            elseif higherGuessDist < guessPointDist then
-                bestGuessIndex = bestGuessIndex + 1
-
+            -- You were going left and passed the target.
+            else
+                if guessError < prevGuessError then
+                    return guessPoint, bestGuessIndex
+                else
+                    return pitchPoints[bestGuessIndex + 1], bestGuessIndex + 1
+                end
             end
-        until guessPointIsClosest
 
-        local guessPoint = pitchPoints[bestGuessIndex]
+        else
+            -- You are going right and the target is still to the right.
+            if not prevGuessIsLeftOfTime then
+                bestGuessIndex = bestGuessIndex - 1
 
-        if findLeft and guessPoint.time > time then
-            return pitchPoints[bestGuessIndex - 1], bestGuessIndex - 1
+            -- You were going left and passed the target.
+            else
+                if guessError < prevGuessError then
+                    return guessPoint, bestGuessIndex
+                else
+                    return pitchPoints[bestGuessIndex - 1], bestGuessIndex - 1
+                end
+            end
 
-        elseif not findLeft and guessPoint.time < time then
-            return pitchPoints[bestGuessIndex + 1], bestGuessIndex + 1
         end
 
-        return guessPoint, bestGuessIndex
+        prevGuessError = guessError
+        prevGuessIsLeftOfTime = guessIsLeftOfTime
 
-    elseif bestGuessIndex <= 1 and not findLeft then
-        return pitchPoints[1], 1
+    until bestGuessIndex < 1 or bestGuessIndex > numPitchPoints
 
-    elseif bestGuessIndex >= numPitchPoints and findLeft then
-        return pitchPoints[numPitchPoints], numPitchPoints
-    end
-
-    return pitchPoints[numPitchPoints], numPitchPoints
+    return lastPoint, numPitchPoints
 end
 
 
