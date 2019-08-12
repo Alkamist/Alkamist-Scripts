@@ -265,6 +265,19 @@ function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, 
     end
 end
 
+function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, leftPitch, rightPitch)
+    self:unselectAllPitchCorrections()
+
+    local newCorrection = PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
+    self:selectPitchCorrection(newCorrection)
+    table.insert(self.pitchCorrections, newCorrection)
+
+    self.justCreatedNewPitchCorrection = true
+    self.editCorrection = newCorrection
+
+    return newCorrection
+end
+
 function GUI.PitchEditor:handleCorrectionEditing()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
@@ -930,19 +943,6 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     return "middle"
 end
 
-function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, leftPitch, rightPitch)
-    self:unselectAllPitchCorrections()
-
-    local newCorrection = PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
-    self:selectPitchCorrection(newCorrection)
-    table.insert(self.pitchCorrections, newCorrection)
-
-    self.justCreatedNewPitchCorrection = true
-    self.editCorrection = newCorrection
-
-    return newCorrection
-end
-
 function GUI.PitchEditor:selectPitchCorrection(correction)
     if not correction.isSelected then
         correction.isSelected = true
@@ -960,6 +960,11 @@ end
 function GUI.PitchEditor:deleteSelectedPitchCorrections()
     Lua.arrayRemove(self.pitchCorrections, function(t, i)
         local value = t[i]
+
+        if value.isSelected then
+            self:clearEnvelopesUnderPitchCorrection(value)
+        end
+
         return value.isSelected
     end)
 

@@ -214,7 +214,7 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
 
     local lowestIndex = #pitchPoints
     local highestIndex = 1
-    for key, value in pairs(pointIndexes) do
+    for key, value in ipairs(pointIndexes) do
         if value < lowestIndex then lowestIndex = value end
         if value > highestIndex then highestIndex = value end
     end
@@ -229,9 +229,14 @@ end
 function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrections, pdSettings)
     if #pitchPoints < 1 then return end
 
-    local pitchEnvelope = pitchPoints[1]:getEnvelope()
-
     local pointsInCorrections = PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
+
+    local pitchEnvelope = pitchPoints[1]:getEnvelope()
+    local playrate = pitchPoints[1]:getPlayrate()
+
+    for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
+        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+    end
 
     local previousPoint = pointsInCorrections[1]
     for pointKey, point in PitchPoint.pairs(pointsInCorrections) do
@@ -243,8 +248,6 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         local pitchEnvelope = point:getEnvelope()
 
         for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-            reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
-
             if correction:timeIsInside(point.time) then
                 numInsideKeys = numInsideKeys + 1
                 insideKeys[numInsideKeys] = correctionKey
@@ -277,7 +280,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
 
         PitchCorrection.addCorrectedPointToEnvelope(point)
-        PitchCorrection.addZeroPointToEnvelope(point, previousPoint)
+        --PitchCorrection.addZeroPointToEnvelope(point, previousPoint)
 
         previousPoint = point
     end
