@@ -7,8 +7,8 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 0.2
-local driftCorrection = 1.0
+local modCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.1
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
@@ -189,7 +189,7 @@ function PitchCorrection.addCorrectedPointToEnvelope(point)
 end
 
 function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
-    local numPitchPoints = Lua.getTableLength(pitchPoints)
+    local numPitchPoints = #pitchPoints
 
     if numPitchPoints < 1 then return end
     local pitchEnvelope = pitchPoints[1]:getEnvelope()
@@ -220,6 +220,9 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
         if value > highestIndex then highestIndex = value end
     end
 
+    msg(lowestIndex)
+    msg(highestIndex)
+
     for i = lowestIndex, highestIndex do
         table.insert(pointsInCorrections, pitchPoints[i])
     end
@@ -228,8 +231,13 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
 end
 
 function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrections, pdSettings)
+    if #pitchPoints < 1 then return end
+
+    local pitchEnvelope = pitchPoints[1]:getEnvelope()
+
     local pointsInCorrections = PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
 
+    local previousPoint = pointsInCorrections[1]
     for pointKey, point in PitchPoint.pairs(pointsInCorrections) do
         local targetPitch = point.pitch
         local insideKeys = {}
@@ -267,11 +275,19 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
             local insideCorrectionLeft = pitchCorrections[insideKeys[1]].leftTime
             local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]].rightTime
 
-            PitchCorrection.correctPitchDrift(point, point.index, pitchPoints, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+            --PitchCorrection.correctPitchDrift(point, point.index, pointsInCorrections, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
 
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
+
+        PitchCorrection.addCorrectedPointToEnvelope(point)
+        PitchCorrection.addZeroPointToEnvelope(point, previousPoint)
+
+        previousPoint = point
     end
+
+    PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
+    reaper.Envelope_SortPoints(pitchEnvelope)
 end
 
 function PitchCorrection.getOverlappingCorrections(correction)
@@ -314,7 +330,7 @@ function PitchCorrection.correctPitchPoints(pitchPoints, correction, pdSettings)
 
     local overlappingCorrections = PitchCorrection.getOverlappingCorrections(correction)
 
-    --PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, overlappingCorrections, pdSettings)
+    PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, overlappingCorrections, pdSettings)
 end
 
 return PitchCorrection

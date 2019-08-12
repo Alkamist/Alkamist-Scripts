@@ -75,7 +75,10 @@ end
 
 function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
     local numPitchPoints = #pitchPoints
-    if numPitchPoints < 1 then return end
+
+    if numPitchPoints < 1 then
+        return nil, 0
+    end
 
     local firstPoint = pitchPoints[1]
     local lastPoint = pitchPoints[numPitchPoints]
@@ -119,14 +122,14 @@ function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
 
         return guessPoint, bestGuessIndex
 
-    elseif bestGuessIndex < 1 and not findLeft then
+    elseif bestGuessIndex <= 1 and not findLeft then
         return pitchPoints[1], 1
 
-    elseif bestGuessIndex > numPitchPoints and findLeft then
+    elseif bestGuessIndex >= numPitchPoints and findLeft then
         return pitchPoints[numPitchPoints], numPitchPoints
     end
 
-    return nil, 0
+    return pitchPoints[numPitchPoints], numPitchPoints
 end
 
 
