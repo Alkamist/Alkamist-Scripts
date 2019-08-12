@@ -73,7 +73,51 @@ function PitchPoint.pairs(pitchPoints)
     return iterator
 end
 
+function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
+    local numPitchPoints = Lua.getTableLength(pitchPoints)
+    if numPitchPoints < 1 then return end
 
+    local firstPoint = pitchPoints[1]
+    local lastPoint = pitchPoints[numPitchPoints]
+    local totalTime = lastPoint.time - firstPoint.time
+
+    local bestGuessIndex = numPitchPoints * time / totalTime
+
+    repeat
+        local lowerGuess = pitchPoints[bestGuessIndex - 1]
+        local guessPoint = pitchPoints[bestGuessIndex]
+        local higherGuess = pitchPoints[bestGuessIndex + 1]
+
+        local lowerGuessDist = math.abs(time - lowerGuess.time)
+        local guessPointDist = math.abs(time - guessPoint.time)
+        local higherGuessDist = math.abs(time - higherGuess.time)
+
+        local guessPointIsClosest = guessPointDist <= lowerGuessDist and guessPointDist <= higherGuessDist
+
+        if guessPointIsClosest then
+            break
+        end
+
+        if lowerGuessDist < guessPointDist then
+            bestGuessIndex = bestGuessIndex - 1
+
+        elseif higherGuessDist < guessPointDist then
+            bestGuessIndex = bestGuessIndex + 1
+
+        end
+    until guessPointIsClosest
+
+    local guessPoint = pitchPoints[bestGuessIndex]
+
+    if findLeft and guessPoint.time > time then
+        return pitchPoints[bestGuessIndex - 1]
+
+    elseif not findLeft and guessPoint.time < time then
+        return pitchPoints[bestGuessIndex + 1]
+    end
+
+    return guessPoint
+end
 
 ------------------- Helpful Functions -------------------
 function PitchPoint.getAveragePitch(pitchPoints)
