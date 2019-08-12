@@ -942,13 +942,10 @@ function GUI.PitchEditor:selectPitchCorrection(correction)
 end
 
 function GUI.PitchEditor:unselectAllPitchCorrections()
-    for key, correction in pairs(self.selectedPitchCorrections) do
-        correction.isSelected = false
-        correction = nil
-    end
-
-    self:drawPitchCorrections()
-    self:redraw()
+    Lua.arrayRemove(self.selectedPitchCorrections, function(t, i)
+        t[i].isSelected = false
+        return true
+    end)
 end
 
 function GUI.PitchEditor:deleteSelectedPitchCorrections()
@@ -957,9 +954,7 @@ function GUI.PitchEditor:deleteSelectedPitchCorrections()
         return value.isSelected
     end)
 
-    for key, correction in pairs(self.selectedPitchCorrections) do
-        correction = nil
-    end
+    self:unselectAllPitchCorrections()
 
     self:drawPitchCorrections()
     self:redraw()
