@@ -3,7 +3,7 @@
 local Reaper = {}
 
 function Reaper.msg(m)
-  reaper.ShowConsoleMsg(tostring(m).."\n")
+    reaper.ShowConsoleMsg(tostring(m).."\n")
 end
 
 function Reaper.reaperCMD(id)

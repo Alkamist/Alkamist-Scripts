@@ -74,50 +74,62 @@ function PitchPoint.pairs(pitchPoints)
 end
 
 function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
-    local numPitchPoints = Lua.getTableLength(pitchPoints)
+    local numPitchPoints = #pitchPoints
     if numPitchPoints < 1 then return end
 
     local firstPoint = pitchPoints[1]
     local lastPoint = pitchPoints[numPitchPoints]
     local totalTime = lastPoint.time - firstPoint.time
 
-    local bestGuessIndex = numPitchPoints * time / totalTime
+    local bestGuessIndex = math.floor(numPitchPoints * time / totalTime)
 
-    repeat
-        local lowerGuess = pitchPoints[bestGuessIndex - 1]
+    if bestGuessIndex > 1 and bestGuessIndex < numPitchPoints then
+        repeat
+            local lowerGuess = pitchPoints[bestGuessIndex - 1]
+            local guessPoint = pitchPoints[bestGuessIndex]
+            local higherGuess = pitchPoints[bestGuessIndex + 1]
+
+            local lowerGuessDist = math.abs(time - lowerGuess.time)
+            local guessPointDist = math.abs(time - guessPoint.time)
+            local higherGuessDist = math.abs(time - higherGuess.time)
+
+            local guessPointIsClosest = guessPointDist <= lowerGuessDist and guessPointDist <= higherGuessDist
+
+            if guessPointIsClosest or bestGuessIndex == 2 or bestGuessIndex == numPitchPoints - 1 then
+                break
+            end
+
+            if lowerGuessDist < guessPointDist then
+                bestGuessIndex = bestGuessIndex - 1
+
+            elseif higherGuessDist < guessPointDist then
+                bestGuessIndex = bestGuessIndex + 1
+
+            end
+        until guessPointIsClosest
+
         local guessPoint = pitchPoints[bestGuessIndex]
-        local higherGuess = pitchPoints[bestGuessIndex + 1]
 
-        local lowerGuessDist = math.abs(time - lowerGuess.time)
-        local guessPointDist = math.abs(time - guessPoint.time)
-        local higherGuessDist = math.abs(time - higherGuess.time)
+        if findLeft and guessPoint.time > time then
+            return pitchPoints[bestGuessIndex - 1], bestGuessIndex - 1
 
-        local guessPointIsClosest = guessPointDist <= lowerGuessDist and guessPointDist <= higherGuessDist
-
-        if guessPointIsClosest then
-            break
+        elseif not findLeft and guessPoint.time < time then
+            return pitchPoints[bestGuessIndex + 1], bestGuessIndex + 1
         end
 
-        if lowerGuessDist < guessPointDist then
-            bestGuessIndex = bestGuessIndex - 1
+        return guessPoint, bestGuessIndex
 
-        elseif higherGuessDist < guessPointDist then
-            bestGuessIndex = bestGuessIndex + 1
+    elseif bestGuessIndex < 1 and not findLeft then
+        return pitchPoints[1], 1
 
-        end
-    until guessPointIsClosest
-
-    local guessPoint = pitchPoints[bestGuessIndex]
-
-    if findLeft and guessPoint.time > time then
-        return pitchPoints[bestGuessIndex - 1]
-
-    elseif not findLeft and guessPoint.time < time then
-        return pitchPoints[bestGuessIndex + 1]
+    elseif bestGuessIndex > numPitchPoints and findLeft then
+        return pitchPoints[numPitchPoints], numPitchPoints
     end
 
-    return guessPoint
+    return nil, 0
 end
+
+
 
 ------------------- Helpful Functions -------------------
 function PitchPoint.getAveragePitch(pitchPoints)

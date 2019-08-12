@@ -222,6 +222,49 @@ function GUI.PitchEditor:onmouseup()
     self:redraw()
 end
 
+function GUI.PitchEditor:clearEnvelopesUnderPitchCorrection(correction)
+    if #self.pitchPoints > 0 then
+        local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+        local playrate = self.pitchPoints[1]:getPlayrate()
+
+        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+    end
+end
+
+function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, snappedMousePitch)
+    self:clearEnvelopesUnderPitchCorrection(correction)
+
+    local mouseTimeChange = mouseTime - self.previousMouseTime
+    local maxRightTimeChange = mouseTime - correction.leftTime
+    local maxLeftTimeChange = mouseTime - correction.rightTime
+
+    local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
+
+    if self.justCreatedNewPitchCorrection then
+        local change = math.min(mouseTimeChange, maxRightTimeChange)
+        correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
+        correction.rightPitch = correction.rightPitch + mousePitchChange
+    else
+        if self.editHandle == "left" then
+            local change = math.max(mouseTimeChange, maxLeftTimeChange)
+            correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
+            correction.leftPitch = correction.leftPitch + mousePitchChange
+
+        elseif self.editHandle == "right" then
+            local change = math.min(mouseTimeChange, maxRightTimeChange)
+            correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
+            correction.rightPitch = correction.rightPitch + mousePitchChange
+
+        elseif self.editHandle == "middle" then
+            correction.leftTime = correction.leftTime + mouseTimeChange
+            correction.leftPitch = correction.leftPitch + mousePitchChange
+
+            correction.rightTime = correction.rightTime + mouseTimeChange
+            correction.rightPitch = correction.rightPitch + mousePitchChange
+        end
+    end
+end
+
 function GUI.PitchEditor:handleCorrectionEditing()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
@@ -244,54 +287,18 @@ function GUI.PitchEditor:handleCorrectionEditing()
 
     if self.editCorrection then
         for key, correction in PitchCorrection.pairs(self.selectedPitchCorrections) do
-            -- Clear the pitch envelope under the correction before moving it.
-            if #self.pitchPoints > 0 then
-                local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
-                local playrate = self.pitchPoints[1]:getPlayrate()
-
-                reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
-            end
-
-            local mouseTimeChange = mouseTime - self.previousMouseTime
-            local maxRightTimeChange = mouseTime - correction.leftTime
-            local maxLeftTimeChange = mouseTime - correction.rightTime
-
-            local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
-
-            if self.justCreatedNewPitchCorrection then
-                local change = math.min(mouseTimeChange, maxRightTimeChange)
-                correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
-                correction.rightPitch = correction.rightPitch + mousePitchChange
-            else
-                if self.editHandle == "left" then
-                    local change = math.max(mouseTimeChange, maxLeftTimeChange)
-                    correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
-                    correction.leftPitch = correction.leftPitch + mousePitchChange
-
-                elseif self.editHandle == "right" then
-                    local change = math.min(mouseTimeChange, maxRightTimeChange)
-                    correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
-                    correction.rightPitch = correction.rightPitch + mousePitchChange
-
-                elseif self.editHandle == "middle" then
-                    correction.leftTime = correction.leftTime + mouseTimeChange
-                    correction.leftPitch = correction.leftPitch + mousePitchChange
-
-                    correction.rightTime = correction.rightTime + mouseTimeChange
-                    correction.rightPitch = correction.rightPitch + mousePitchChange
-                end
-            end
+            self:editPitchCorrection(correction, mouseTime, mousePitch, snappedMousePitch)
+            self:applyPitchCorrection(correction)
         end
+
+        PitchCorrection.updateLinkedOrder(self.pitchCorrections)
+
+        self:drawPreviewPitchLines()
     end
 
     self.previousMouseTime = mouseTime
     self.previousMousePitch = mousePitch
     self.previousSnappedMousePitch = snappedMousePitch
-
-    if self.editCorrection then
-        self:applyPitchCorrections()
-        self:drawPreviewPitchLines()
-    end
 
     self:drawPitchCorrections()
 end
@@ -985,6 +992,14 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
     end
 
     return closestTime
+end
+
+function GUI.PitchEditor:applyPitchCorrection(correction)
+    if self.take and #self.pitchPoints > 0 then
+        PitchCorrection.correctPitchPoints(self.pitchPoints, correction, self.pdSettings)
+
+        reaper.UpdateArrange()
+    end
 end
 
 function GUI.PitchEditor:applyPitchCorrections()
