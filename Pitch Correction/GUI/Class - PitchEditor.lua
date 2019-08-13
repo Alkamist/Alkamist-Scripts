@@ -495,8 +495,6 @@ function GUI.PitchEditor:ontype()
 
     if self.keys[char] then
         self.keys[char](self)
-        self:applyPitchCorrections()
-        self:drawPreviewPitchLines()
     end
 
     self:redraw()
@@ -1012,8 +1010,9 @@ GUI.PitchEditor.keys = {
     [GUI.chars.DELETE] = function(self)
 
         self:deleteSelectedPitchCorrections()
+        self:drawPreviewPitchLines()
         self:drawPitchCorrections()
-    self:redraw()
+        self:redraw()
 
     end
 
