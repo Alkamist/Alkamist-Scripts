@@ -967,6 +967,8 @@ function GUI.PitchEditor:deleteSelectedPitchCorrections()
     end)
 
     self:unselectAllPitchCorrections()
+
+    reaper.UpdateArrange()
 end
 
 function GUI.PitchEditor:getClosestValidTimeToPosition(time)
