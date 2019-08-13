@@ -7,8 +7,8 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 1.0
-local driftCorrection = 0.0
+local modCorrection = 0.2
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.1
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
@@ -214,6 +214,36 @@ function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime, 0, 0, 0, false, true)
 end
 
+function PitchCorrection.addEdgePointsToGroupOfCorrections(corrections, pitchEnvelope, playrate)
+    local numCorrections = Lua.getTableLength(corrections)
+
+    if numCorrections < 1 then return end
+
+    local leftEdgeTime = nil
+    local rightEdgeTime = nil
+
+    for correctionKey, correction in PitchCorrection.pairs(corrections) do
+        if leftEdgeTime == nil then leftEdgeTime = correction.leftTime end
+        if rightEdgeTime == nil then rightEdgeTime = correction.rightTime end
+
+        if correction.leftTime < leftEdgeTime then
+            leftEdgeTime = correction.leftTime
+        end
+
+        if correction.rightTime > rightEdgeTime then
+            rightEdgeTime = correction.rightTime
+        end
+    end
+
+    leftEdgeTime = playrate * leftEdgeTime
+    reaper.DeleteEnvelopePointRange(pitchEnvelope, leftEdgeTime - edgePointSpacing * 0.5, leftEdgeTime + edgePointSpacing * 0.5)
+    reaper.InsertEnvelopePoint(pitchEnvelope, leftEdgeTime, 0, 0, 0, false, true)
+
+    rightEdgeTime = playrate * rightEdgeTime
+    reaper.DeleteEnvelopePointRange(pitchEnvelope, rightEdgeTime - edgePointSpacing * 0.5, rightEdgeTime + edgePointSpacing * 0.5)
+    reaper.InsertEnvelopePoint(pitchEnvelope, rightEdgeTime, 0, 0, 0, false, true)
+end
+
 function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
     local pointsInCorrections = {}
 
@@ -342,8 +372,12 @@ function PitchCorrection.correctPitchPoints(pitchPoints, correction, pdSettings)
     if #pitchPoints < 1 then return end
     if correction == nil then return end
 
+    local pitchEnvelope = pitchPoints[1]:getEnvelope()
+    local playrate = pitchPoints[1]:getPlayrate()
+
     local overlappingCorrections = PitchCorrection.getOverlappingCorrections(correction)
 
+    PitchCorrection.addEdgePointsToGroupOfCorrections(overlappingCorrections, pitchEnvelope, playrate)
     PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, overlappingCorrections, pdSettings)
 end
 
