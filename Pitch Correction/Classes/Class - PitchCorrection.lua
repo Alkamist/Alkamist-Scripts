@@ -194,10 +194,13 @@ function PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     local pitchEnvelope = pitchPoints[1]:getEnvelope()
     local playrate = pitchPoints[1]:getPlayrate()
 
-    local firstEdgePointTime = pitchPoints[1].time - edgePointSpacing
-    reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime * playrate, 0, 0, 0, false, true)
-    local lastEdgePointTime = pitchPoints[numPitchPoints].time + edgePointSpacing
-    reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime * playrate, 0, 0, 0, false, true)
+    local firstEdgePointTime = playrate * (pitchPoints[1].time - edgePointSpacing)
+    reaper.DeleteEnvelopePointRange(pitchEnvelope, firstEdgePointTime - edgePointSpacing * 0.5, firstEdgePointTime + edgePointSpacing * 0.5)
+    reaper.InsertEnvelopePoint(pitchEnvelope, firstEdgePointTime, 0, 0, 0, false, true)
+
+    local lastEdgePointTime = playrate * (pitchPoints[numPitchPoints].time + edgePointSpacing)
+    reaper.DeleteEnvelopePointRange(pitchEnvelope, lastEdgePointTime - edgePointSpacing * 0.5, lastEdgePointTime + edgePointSpacing * 0.5)
+    reaper.InsertEnvelopePoint(pitchEnvelope, lastEdgePointTime, 0, 0, 0, false, true)
 end
 
 function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
@@ -285,7 +288,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         previousPoint = point
     end
 
-    --PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
+    PitchCorrection.addEdgePointsToPitchContent(pitchPoints)
     reaper.Envelope_SortPoints(pitchEnvelope)
 end
 
