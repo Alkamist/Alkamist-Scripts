@@ -164,18 +164,29 @@ function PitchCorrection.correctPitchDrift(point, pointIndex, pitchPoints, corre
 end
 
 -- If a certain amount of time has passed since the last point, add zero value edge points in that space.
-function PitchCorrection.addZeroPointToEnvelope(point, previousPoint)
-    local timePassedSinceLastPoint = point.time - previousPoint.time
+function PitchCorrection.addZeroPointsToEnvelope(point, pointIndex, pitchPoints)
+    if pointIndex <= 1 or pointIndex >= #pitchPoints then return end
+
+    local prevPoint = pitchPoints[pointIndex - 1]
+    local nextPoint = pitchPoints[pointIndex + 1]
+
+    local timeToPrevPoint = point.time - prevPoint.time
+    local timeToNextPoint = nextPoint.time - point.time
 
     local pitchEnvelope = point:getEnvelope()
     local playrate = point:getPlayrate()
 
-    if point.index > 1 and zeroPointThreshold then
-        if timePassedSinceLastPoint >= zeroPointThreshold then
-            local zeroPoint1Time = previousPoint.time + zeroPointSpacing
-            reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint1Time * playrate, 0, 0, 0, false, true)
-            local zeroPoint2Time = point.time - zeroPointSpacing
-            reaper.InsertEnvelopePoint(pitchEnvelope, zeroPoint2Time * playrate, 0, 0, 0, false, true)
+    if zeroPointThreshold then
+        if timeToPrevPoint >= zeroPointThreshold then
+            local zeroPointTime = playrate * (point.time - zeroPointSpacing)
+            reaper.DeleteEnvelopePointRange(pitchEnvelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
+            reaper.InsertEnvelopePoint(pitchEnvelope, zeroPointTime, 0, 0, 0, false, true)
+        end
+
+        if timeToNextPoint >= zeroPointThreshold then
+            local zeroPointTime = playrate * (point.time + zeroPointSpacing)
+            reaper.DeleteEnvelopePointRange(pitchEnvelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
+            reaper.InsertEnvelopePoint(pitchEnvelope, zeroPointTime, 0, 0, 0, false, true)
         end
     end
 end
@@ -242,7 +253,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
     end
 
     local previousPoint = pointsInCorrections[1]
-    for pointKey, point in PitchPoint.pairs(pointsInCorrections) do
+    for pointIndex, point in ipairs(pointsInCorrections) do
         local targetPitch = point.pitch
         local insideKeys = {}
         local numInsideKeys = 0
@@ -283,7 +294,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
 
         PitchCorrection.addCorrectedPointToEnvelope(point)
-        --PitchCorrection.addZeroPointToEnvelope(point, previousPoint)
+        PitchCorrection.addZeroPointsToEnvelope(point, point.index, pitchPoints)
 
         previousPoint = point
     end
