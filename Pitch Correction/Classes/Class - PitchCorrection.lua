@@ -8,7 +8,7 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 -- Pitch correction settings:
 local averageCorrection = 0.0
 local modCorrection = 1.0
-local driftCorrection = 0.0
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.1
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
@@ -254,6 +254,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
 
     local previousPoint = pointsInCorrections[1]
     for pointIndex, point in ipairs(pointsInCorrections) do
+        point.correctedPitch = point.pitch
         local targetPitch = point.pitch
         local insideKeys = {}
         local numInsideKeys = 0
@@ -288,10 +289,10 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
             local insideCorrectionLeft = pitchCorrections[insideKeys[1]].leftTime
             local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]].rightTime
 
-            --PitchCorrection.correctPitchDrift(point, point.index, pointsInCorrections, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+            PitchCorrection.correctPitchDrift(point, pointIndex, pointsInCorrections, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
 
-        PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
+        --PitchCorrection.correctPitchMod(point, targetPitch, modCorrection)
 
         PitchCorrection.addCorrectedPointToEnvelope(point)
         PitchCorrection.addZeroPointsToEnvelope(point, point.index, pitchPoints)

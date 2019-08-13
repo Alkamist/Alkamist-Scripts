@@ -1007,19 +1007,6 @@ function GUI.PitchEditor:applyPitchCorrection(correction)
     end
 end
 
-function GUI.PitchEditor:applyPitchCorrections()
-    if self.take and Lua.getTableLength(self.pitchPoints) > 0 then
-        local takePlayrate = self.pitchPoints[1]:getPlayrate()
-        local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
-
-        --reaper.DeleteEnvelopePointRange(pitchEnvelope, 0, takePlayrate * self:getTimeLength())
-
-        --PitchCorrection.correctPitchPointsToPitchCorrections(Lua.copyTable(self.pitchPoints), self.pitchCorrections, self.pdSettings)
-
-        reaper.UpdateArrange()
-    end
-end
-
 GUI.PitchEditor.keys = {
 
     [GUI.chars.DELETE] = function(self)
