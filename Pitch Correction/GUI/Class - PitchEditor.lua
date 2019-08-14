@@ -266,24 +266,18 @@ function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, 
 
     if self.justCreatedNewPitchCorrection then
         correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0, self:getTimeLength())
-        correction.node2.pitch = correction.node2.pitch + mousePitchChange
+        correction.node2.pitch = Lua.clamp(correction.node2.pitch + mousePitchChange, 0, self:getMaxPitch())
 
     else
 
-        if self.editHandle == "node1" then
-            correction.node1.time = correction.node1.time + mouseTimeChange
-            correction.node1.pitch = correction.node1.pitch + mousePitchChange
+        if self.editHandle == "node1" or self.editHandle == "line" then
+            correction.node1.time = Lua.clamp(correction.node1.time + mouseTimeChange, 0, self:getTimeLength())
+            correction.node1.pitch = Lua.clamp(correction.node1.pitch + mousePitchChange, 0, self:getMaxPitch())
+        end
 
-        elseif self.editHandle == "node2" then
-            correction.node2.time = correction.node2.time + mouseTimeChange
-            correction.node2.pitch = correction.node2.pitch + mousePitchChange
-
-        elseif self.editHandle == "line" then
-            correction.node1.time = correction.node1.time + mouseTimeChange
-            correction.node1.pitch = correction.node1.pitch + mousePitchChange
-
-            correction.node2.time = correction.node2.time + mouseTimeChange
-            correction.node2.pitch = correction.node2.pitch + mousePitchChange
+        if self.editHandle == "node2" or self.editHandle == "line" then
+            correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0, self:getTimeLength())
+            correction.node2.pitch = Lua.clamp(correction.node2.pitch + mousePitchChange, 0, self:getMaxPitch())
         end
 
     end
