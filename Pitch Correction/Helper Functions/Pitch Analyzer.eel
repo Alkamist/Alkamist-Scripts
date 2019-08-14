@@ -117,26 +117,26 @@ local (i return)
 
 function getPitch(spos, srate, winSamples, maxlen, windowStep, minF, maxF, YINthresh)
 local (maxLook minLook dpos cmndpos i freq) (
-    maxLook = floor(min(sourceSampleRate/minF,winSamples)); //from MinFreq
-    minLook = floor(sourceSampleRate/maxF); //from MaxFreq
+    maxLook = floor(min(sourceSampleRate / minF,winSamples)); //from MinFreq
+    minLook = floor(sourceSampleRate / maxF); //from MaxFreq
     dpos = winSamples + 100; //start of cmnd buffer, "difference position"
     cmndpos = dpos + maxLook + 100;
     cmndpos[0] = 1;
 
     i = 0;
     loop(maxLook - minLook + 1,
-        dpos[i] = d(minLook+i, spos, spos+winSamples);
+        dpos[i] = d(minLook + i, spos, spos + winSamples);
         i += 1;
     );
 
     i = 1;
     loop(maxLook - minLook + 1,
-        cmndpos[i] = dpos[i]/(avg(dpos, dpos+i+1));
+        cmndpos[i] = dpos[i] / (avg(dpos, dpos + i + 1));
         i += 1;
     );
 
-    avg(dpos, dpos+maxLook-minLook) > 0.00001 ? (
-        freq = srate/findMin(cmndpos, cmndpos+1+maxLook-minLook, YINthresh, srate, minLook);
+    avg(dpos, dpos + maxLook - minLook) > 0.00001 ? (
+        freq = srate / findMin(cmndpos, cmndpos + 1 + maxLook - minLook, YINthresh, srate, minLook);
     ) : (
         freq = 0;
     );

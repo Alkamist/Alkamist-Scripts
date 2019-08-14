@@ -22,7 +22,7 @@ if missing_lib then return 0 end
 -- Pitch detection settings:
 local pdSettings = {}
 pdSettings.maximumLength = 300
-pdSettings.windowStep = 0.02
+pdSettings.windowStep = 0.04
 pdSettings.overlap = 2.0
 pdSettings.minimumFrequency = 80
 pdSettings.maximumFrequency = 500
