@@ -265,7 +265,7 @@ function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, 
     local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
     if self.justCreatedNewPitchCorrection then
-        correction.node2.time = correction.node2.time + mouseTimeChange
+        correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0, self:getTimeLength())
         correction.node2.pitch = correction.node2.pitch + mousePitchChange
 
     else
@@ -648,8 +648,8 @@ function GUI.PitchEditor:drawKeyBackgrounds()
     gfx.setimgdim(self.keyBackgroundBuff, -1, -1)
     gfx.setimgdim(self.keyBackgroundBuff, w, h)
 
-    local lastKeyEnd = self:getPixelsFromPitch(128.5) - y
-    for i = 1, 128 do
+    local lastKeyEnd = self:getPixelsFromPitch(self:getMaxPitch() + 0.5) - y
+    for i = 1, math.floor(self:getMaxPitch()) do
         GUI.color("black_key_bg")
 
         for _, value in ipairs(whiteKeys) do
@@ -658,7 +658,7 @@ function GUI.PitchEditor:drawKeyBackgrounds()
             end
         end
 
-        local keyEnd = self:getPixelsFromPitch(128 - i + 0.5) - y
+        local keyEnd = self:getPixelsFromPitch(self:getMaxPitch() - i + 0.5) - y
         gfx.rect(0, keyEnd, w, keyEnd - lastKeyEnd + 1, 1)
 
         GUI.color("black_key_bg")
@@ -674,7 +674,7 @@ end
 function GUI.PitchEditor:drawKeyLines()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local keyHeight = self.zoomY * h * 1.0 / 128.0
+    local keyHeight = self.zoomY * h * 1.0 / self:getMaxPitch()
 
     self.keyLinesBuff = self.keyLinesBuff or GUI.GetBuffer()
 
@@ -683,10 +683,10 @@ function GUI.PitchEditor:drawKeyLines()
     gfx.setimgdim(self.keyLinesBuff, w, h)
 
     if keyHeight > 16 then
-        for i = 1, 128 do
+        for i = 1, math.floor(self:getMaxPitch()) do
             GUI.color("key_lines")
 
-            local keyLineHeight = self:getPixelsFromPitch(128 - i) - y
+            local keyLineHeight = self:getPixelsFromPitch(self:getMaxPitch() - i) - y
 
             gfx.line(0, keyLineHeight, w, keyLineHeight, false)
         end
@@ -704,8 +704,8 @@ function GUI.PitchEditor:drawKeys()
     gfx.setimgdim(self.keysBuff, -1, -1)
     gfx.setimgdim(self.keysBuff, w, h)
 
-    local lastKeyEnd = self:getPixelsFromPitch(128.5) - y
-    for i = 1, 128 do
+    local lastKeyEnd = self:getPixelsFromPitch(self:getMaxPitch() + 0.5) - y
+    for i = 1, math.floor(self:getMaxPitch()) do
         GUI.color("black_keys")
 
         for _, value in ipairs(whiteKeys) do
@@ -714,7 +714,7 @@ function GUI.PitchEditor:drawKeys()
             end
         end
 
-        local keyEnd = self:getPixelsFromPitch(128 - i + 0.5) - y
+        local keyEnd = self:getPixelsFromPitch(self:getMaxPitch() - i + 0.5) - y
         gfx.rect(0, keyEnd, self.keyWidth, keyEnd - lastKeyEnd + 1, 1)
 
         GUI.color("black_keys")
@@ -863,7 +863,7 @@ function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
     local scroll = scroll or self.scrollY
 
     local relativeY = yPixels - y
-    return 128.0 * (1.0 - (scroll + relativeY / (h * zoom))) - 0.5
+    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (h * zoom))) - 0.5
 end
 
 function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
@@ -871,7 +871,7 @@ function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
     local zoom = zoom or self.zoomY
     local scroll = scroll or self.scrollY
 
-    local pitchRatio = 1.0 - (0.5 + pitch) / 128.0
+    local pitchRatio = 1.0 - (0.5 + pitch) / self:getMaxPitch()
     return y + zoom * h * (pitchRatio - scroll)
 end
 
@@ -889,6 +889,10 @@ function GUI.PitchEditor:getTimeLength()
     end
 
     return 0
+end
+
+function GUI.PitchEditor:getMaxPitch()
+    return 128.0
 end
 
 function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
