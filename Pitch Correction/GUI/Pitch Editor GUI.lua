@@ -45,8 +45,7 @@ local elms = {}
 local function analyze_button_click()
     local selectedTake = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
 
-    PCFunc.saveSettingsInExtState(pdSettings)
-    PCFunc.analyzePitch(selectedTake)
+    PCFunc.analyzePitch(selectedTake, pdSettings)
 
     elms.pitch_editor:setTake(selectedTake, pdSettings)
 end

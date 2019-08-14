@@ -11,6 +11,16 @@ local PCFunc = {}
 
 local edgePointSpacing = 0.01
 
+function PCFunc.saveSettingsInExtState(settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
+end
+
 function PCFunc.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
     local file = io.open(kbini, 'r')
@@ -43,7 +53,9 @@ function PCFunc.getEELCommandID(name)
     return nil
 end
 
-function PCFunc.analyzePitch(take)
+function PCFunc.analyzePitch(take, settings)
+    PCFunc.saveSettingsInExtState(settings)
+
     local analyzerID = PCFunc.getEELCommandID("Pitch Analyzer")
 
     if analyzerID then
@@ -139,16 +151,6 @@ function PCFunc.savePitchCorrectionsInExtState(takeGUID, pitchCorrections)
                                                            "ISOVERLAPPED " .. tostring(correction.isOverlapped) .. "\n"
     end
     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeGUID .. "_corrections", pitchCorrectionsString)
-end
-
-function PCFunc.saveSettingsInExtState(settings)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
 function PCFunc.correctPitchBasedOnMIDIItem(midiItem, settings)
