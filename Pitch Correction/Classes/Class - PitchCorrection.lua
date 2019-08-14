@@ -34,6 +34,8 @@ function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch, prevCor
     object.prevCorrection = object.prevCorrection or prevCorrection
     object.nextCorrection = object.nextCorrection or nextCorrection
 
+    object.alreadyCorrected = object.alreadyCorrected or false
+
     setmetatable(object, self)
     self.__index = self
     return object
@@ -330,6 +332,8 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
                 numInsideKeys = numInsideKeys + 1
                 insideKeys[numInsideKeys] = correctionKey
             end
+
+            correction.alreadyCorrected = true
         end
 
         for index, key in ipairs(insideKeys) do
@@ -404,6 +408,7 @@ end
 function PitchCorrection.correctPitchPoints(pitchPoints, correction, pdSettings)
     if #pitchPoints < 1 then return end
     if correction == nil then return end
+    if correction.alreadyCorrected then return end
 
     local pitchEnvelope = pitchPoints[1]:getEnvelope()
     local playrate = pitchPoints[1]:getPlayrate()

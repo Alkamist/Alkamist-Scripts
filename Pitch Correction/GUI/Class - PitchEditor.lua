@@ -338,6 +338,10 @@ function GUI.PitchEditor:editAndApplyPitchCorrections(corrections)
     self.previousMouseTime = mouseTime
     self.previousMousePitch = mousePitch
     self.previousSnappedMousePitch = snappedMousePitch
+
+    for key, correction in pairs(corrections) do
+        correction.alreadyCorrected = false
+    end
 end
 
 function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, leftPitch, rightPitch)
