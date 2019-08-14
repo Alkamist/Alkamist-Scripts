@@ -258,29 +258,74 @@ function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
     return "line"
 end
 
-function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, snappedMousePitch)
-    self:clearEnvelopesUnderPitchCorrection(correction)
+function GUI.PitchEditor:editAndApplyPitchCorrections(corrections)
+    if Lua.getTableLength(corrections) < 1 then return end
+
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+
+    mouseTime = Lua.clamp(mouseTime,  0.0, self:getTimeLength())
+    mousePitch = Lua.clamp(mousePitch,  0.0, self:getMaxPitch())
+
+    local snappedMousePitch = self:getSnappedPitch(mousePitch)
 
     local mouseTimeChange = mouseTime - self.previousMouseTime
     local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
-    if self.justCreatedNewPitchCorrection then
-        correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0, self:getTimeLength())
-        correction.node2.pitch = Lua.clamp(correction.node2.pitch + mousePitchChange, 0, self:getMaxPitch())
+    local leftMostNode = nil
+    local rightMostNode = nil
+    local bottomMostNode = nil
+    local topMostNode = nil
 
-    else
+    for key, correction in pairs(corrections) do
+        self:clearEnvelopesUnderPitchCorrection(correction)
 
-        if self.editHandle == "node1" or self.editHandle == "line" then
-            correction.node1.time = Lua.clamp(correction.node1.time + mouseTimeChange, 0, self:getTimeLength())
-            correction.node1.pitch = Lua.clamp(correction.node1.pitch + mousePitchChange, 0, self:getMaxPitch())
-        end
+        leftMostNode = leftMostNode or correction:getLeftNode()
+        rightMostNode = rightMostNode or correction:getRightNode()
+        bottomMostNode = bottomMostNode or leftMostNode
+        topMostNode = topMostNode or rightMostNode
 
-        if self.editHandle == "node2" or self.editHandle == "line" then
-            correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0, self:getTimeLength())
-            correction.node2.pitch = Lua.clamp(correction.node2.pitch + mousePitchChange, 0, self:getMaxPitch())
-        end
+        if correction.node1.time < leftMostNode.time then leftMostNode = correction.node1 end
+        if correction.node2.time < leftMostNode.time then leftMostNode = correction.node2 end
 
+        if correction.node1.time > rightMostNode.time then rightMostNode = correction.node1 end
+        if correction.node2.time > rightMostNode.time then rightMostNode = correction.node2 end
+
+        if correction.node1.pitch < bottomMostNode.pitch then bottomMostNode = correction.node1 end
+        if correction.node2.pitch < bottomMostNode.pitch then bottomMostNode = correction.node2 end
+
+        if correction.node1.pitch > topMostNode.pitch then topMostNode = correction.node1 end
+        if correction.node2.pitch > topMostNode.pitch then topMostNode = correction.node2 end
     end
+
+    mouseTimeChange = Lua.clamp(mouseTimeChange,  -leftMostNode.time, self:getTimeLength() - rightMostNode.time)
+    mousePitchChange = Lua.clamp(mousePitchChange, -bottomMostNode.pitch, self:getMaxPitch() - topMostNode.pitch)
+
+    for key, correction in PitchCorrection.pairs(corrections) do
+        if self.justCreatedNewPitchCorrection then
+            correction.node2.time = correction.node2.time + mouseTimeChange
+            correction.node2.pitch = correction.node2.pitch + mousePitchChange
+
+        else
+
+            if self.editHandle == "node1" or self.editHandle == "line" then
+                correction.node1.time = correction.node1.time + mouseTimeChange
+                correction.node1.pitch = correction.node1.pitch + mousePitchChange
+            end
+
+            if self.editHandle == "node2" or self.editHandle == "line" then
+                correction.node2.time = correction.node2.time + mouseTimeChange
+                correction.node2.pitch = correction.node2.pitch + mousePitchChange
+            end
+
+        end
+
+        self:applyPitchCorrection(correction)
+    end
+
+    self.previousMouseTime = mouseTime
+    self.previousMousePitch = mousePitch
+    self.previousSnappedMousePitch = snappedMousePitch
 end
 
 function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, leftPitch, rightPitch)
@@ -297,10 +342,6 @@ function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, le
 end
 
 function GUI.PitchEditor:handleCorrectionEditing()
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
-    local snappedMousePitch = self:getSnappedPitch(mousePitch)
-
     -- The drag just started.
     if not self.lWasDragged then
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
@@ -317,19 +358,12 @@ function GUI.PitchEditor:handleCorrectionEditing()
     end
 
     if self.editCorrection then
-        for key, correction in PitchCorrection.pairs(self.selectedPitchCorrections) do
-            self:editPitchCorrection(correction, mouseTime, mousePitch, snappedMousePitch)
-            self:applyPitchCorrection(correction)
-        end
+        self:editAndApplyPitchCorrections(self.selectedPitchCorrections, mouseTime, mousePitch, snappedMousePitch)
 
         PitchCorrection.updateLinkedOrder(self.pitchCorrections)
 
         self:drawPreviewPitchLines()
     end
-
-    self.previousMouseTime = mouseTime
-    self.previousMousePitch = mousePitch
-    self.previousSnappedMousePitch = snappedMousePitch
 
     self:drawPitchCorrections()
 end
