@@ -176,7 +176,10 @@ function PitchPoint.loadPitchPoints(takeGUID)
     local itemLeftBound = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
     local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
     local itemRightBound = itemLeftBound + itemLength
-    local itemStartOffset = reaper.GetMediaItemInfo_Value(item, "D_STARTOFFS")
+    local itemStartOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+
+    local pointsLeftBound = itemStartOffset
+    local pointsRightBound = itemStartOffset + itemLength
 
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
@@ -190,7 +193,7 @@ function PitchPoint.loadPitchPoints(takeGUID)
                 stat[#stat + 1] = tonumber(value)
             end
 
-            if stat[2] >= itemStartOffset and stat[2] <= itemLength then
+            if stat[2] >= itemStartOffset and stat[2] <= pointsRightBound then
                 takePitchPoints[pointIndex] = PitchPoint:new(takeGUID, stat[1], stat[2], stat[3], stat[4])
 
                 pointIndex = pointIndex + 1
