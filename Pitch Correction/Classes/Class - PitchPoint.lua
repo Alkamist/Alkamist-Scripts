@@ -168,17 +168,33 @@ function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function PitchPoint.getPitchPoints(takeGUID)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeGUID)
+function PitchPoint.loadPitchPoints(takeGUID)
+    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
+    local takeName = reaper.GetTakeName(take)
+    local item = reaper.GetMediaItemTake_Item(take)
+
+    local itemLeftBound = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+    local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    local itemRightBound = itemLeftBound + itemLength
+    local itemStartOffset = reaper.GetMediaItemInfo_Value(item, "D_STARTOFFS")
+
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
     local takePitchPoints = {}
+    local pointIndex = 1
     for line in extState:gmatch("[^\r\n]+") do
         if line:match("PT") then
             local stat = {}
+
             for value in line:gmatch("[%.%-%d]+") do
                 stat[#stat + 1] = tonumber(value)
             end
-            takePitchPoints[stat[1]] = PitchPoint:new(takeGUID, stat[1], stat[2], stat[3], stat[4])
+
+            if stat[2] >= itemStartOffset and stat[2] <= itemLength then
+                takePitchPoints[pointIndex] = PitchPoint:new(takeGUID, stat[1], stat[2], stat[3], stat[4])
+
+                pointIndex = pointIndex + 1
+            end
         end
     end
 

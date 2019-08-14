@@ -151,6 +151,9 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
     #takeGUID = "";
     GetProjExtState(0, extStateKey, "currentTakeGUID", #takeGUID);
     itemTake = GetMediaItemTakeByGUID(0, #takeGUID);
+
+    GetTakeName(#takeName, itemTake);
+
     item = GetMediaItemTakeInfo_Value(itemTake, "P_ITEM");
     itemTrack =  GetMediaItem_Track(item);
     itemPosition = GetMediaItemInfo_Value(item, "D_POSITION");
@@ -261,8 +264,7 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
 
         DestroyAudioAccessor(accessor);
         str_insert(#outputString, "\n>\n", strlen(#outputString));
-        extension_api("BR_GetMediaItemTakeGUID", itemTake, #takeGUID);
-        SetProjExtState(0, extStateKey, #takeGUID, #outputString);
+        SetProjExtState(0, extStateKey, #takeName, #outputString);
     );
 );
 
