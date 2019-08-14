@@ -227,41 +227,65 @@ function GUI.PitchEditor:clearEnvelopesUnderPitchCorrection(correction)
         local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
         local playrate = self.pitchPoints[1]:getPlayrate()
 
-        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction:getLeftNode().time, playrate * correction:getRightNode().time)
     end
+end
+
+function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
+    if correction == nil then return nil end
+
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    local node1X = self:getPixelsFromTime(correction.node1.time)
+    local node1Y = self:getPixelsFromPitch(correction.node1.pitch)
+    local node2X = self:getPixelsFromTime(correction.node2.time)
+    local node2Y = self:getPixelsFromPitch(correction.node2.pitch)
+
+    local mouseDistanceFromNode1 = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, node1X, node1Y)
+    local mouseDistanceFromNode2 = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, node2X, node2Y)
+
+    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, node1X, node1Y, node2X, node2Y)
+
+    local isNode1 = mouseDistanceFromNode1 - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
+    local isNode2 = mouseDistanceFromNode2 - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
+    local isLine = isNode1 and isNode2
+
+    if isLine then return "line"
+    elseif isNode1 then return "node1"
+    elseif isNode2 then return "node2"
+    else return "line"end
+
+    return "line"
 end
 
 function GUI.PitchEditor:editPitchCorrection(correction, mouseTime, mousePitch, snappedMousePitch)
     self:clearEnvelopesUnderPitchCorrection(correction)
 
     local mouseTimeChange = mouseTime - self.previousMouseTime
-    local maxRightTimeChange = mouseTime - correction.leftTime
-    local maxLeftTimeChange = mouseTime - correction.rightTime
-
     local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
     if self.justCreatedNewPitchCorrection then
-        local change = math.min(mouseTimeChange, maxRightTimeChange)
-        correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
-        correction.rightPitch = correction.rightPitch + mousePitchChange
+        correction.node2.time = correction.node2.time + mouseTimeChange
+        correction.node2.pitch = correction.node2.pitch + mousePitchChange
+
     else
-        if self.editHandle == "left" then
-            local change = math.max(mouseTimeChange, maxLeftTimeChange)
-            correction.leftTime = math.min(correction.leftTime + change, correction.rightTime - self.minimumCorrectionTime)
-            correction.leftPitch = correction.leftPitch + mousePitchChange
 
-        elseif self.editHandle == "right" then
-            local change = math.min(mouseTimeChange, maxRightTimeChange)
-            correction.rightTime = math.max(correction.rightTime + change, correction.leftTime + self.minimumCorrectionTime)
-            correction.rightPitch = correction.rightPitch + mousePitchChange
+        if self.editHandle == "node1" then
+            correction.node1.time = correction.node1.time + mouseTimeChange
+            correction.node1.pitch = correction.node1.pitch + mousePitchChange
 
-        elseif self.editHandle == "middle" then
-            correction.leftTime = correction.leftTime + mouseTimeChange
-            correction.leftPitch = correction.leftPitch + mousePitchChange
+        elseif self.editHandle == "node2" then
+            correction.node2.time = correction.node2.time + mouseTimeChange
+            correction.node2.pitch = correction.node2.pitch + mousePitchChange
 
-            correction.rightTime = correction.rightTime + mouseTimeChange
-            correction.rightPitch = correction.rightPitch + mousePitchChange
+        elseif self.editHandle == "line" then
+            correction.node1.time = correction.node1.time + mouseTimeChange
+            correction.node1.pitch = correction.node1.pitch + mousePitchChange
+
+            correction.node2.time = correction.node2.time + mouseTimeChange
+            correction.node2.pitch = correction.node2.pitch + mousePitchChange
         end
+
     end
 end
 
@@ -713,11 +737,11 @@ function GUI.PitchEditor:drawPitchCorrections()
     gfx.setimgdim(self.pitchCorrectionsBuff, w, h)
 
     for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        local leftTimePixels = self:getPixelsFromTime(correction.leftTime) - x
-        local rightTimePixels = self:getPixelsFromTime(correction.rightTime) - x
+        local leftTimePixels = self:getPixelsFromTime(correction:getLeftNode().time) - x
+        local rightTimePixels = self:getPixelsFromTime(correction:getRightNode().time) - x
 
-        local leftPitchPixels = self:getPixelsFromPitch(correction.leftPitch) - y
-        local rightPitchPixels = self:getPixelsFromPitch(correction.rightPitch) - y
+        local leftPitchPixels = self:getPixelsFromPitch(correction:getLeftNode().pitch) - y
+        local rightPitchPixels = self:getPixelsFromPitch(correction:getRightNode().pitch) - y
 
         local circleRadii = 3
 
@@ -872,10 +896,10 @@ function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local leftHandleX = self:getPixelsFromTime(correction.leftTime)
-    local leftHandleY = self:getPixelsFromPitch(correction.leftPitch)
-    local rightHandleX = self:getPixelsFromTime(correction.rightTime)
-    local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
+    local leftHandleX = self:getPixelsFromTime(correction:getLeftNode().time)
+    local leftHandleY = self:getPixelsFromPitch(correction:getLeftNode().pitch)
+    local rightHandleX = self:getPixelsFromTime(correction:getRightNode().time)
+    local rightHandleY = self:getPixelsFromPitch(correction:getRightNode().pitch)
 
     local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
@@ -912,33 +936,6 @@ function GUI.PitchEditor:getPitchCorrectionUnderMouse()
     end
 
     return nil
-end
-
-function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
-    if correction == nil then return nil end
-
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local leftHandleX = self:getPixelsFromTime(correction.leftTime)
-    local leftHandleY = self:getPixelsFromPitch(correction.leftPitch)
-    local rightHandleX = self:getPixelsFromTime(correction.rightTime)
-    local rightHandleY = self:getPixelsFromPitch(correction.rightPitch)
-
-    local mouseDistanceFromLeftHandle = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY)
-    local mouseDistanceFromRightHandle = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, rightHandleX, rightHandleY)
-
-    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
-
-    local isLeft = mouseDistanceFromLeftHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
-    local isRight = mouseDistanceFromRightHandle - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
-    local isMiddle = isLeft and isRight
-
-    if isMiddle then return "middle"
-    elseif isLeft then return "left"
-    elseif isRight then return "right"
-    else return "middle"end
-
-    return "middle"
 end
 
 function GUI.PitchEditor:selectPitchCorrection(correction)
@@ -984,13 +981,13 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
     end
 
     if insideCorrection then
-        local timeToLeft = math.abs(time - insideCorrection.leftTime)
-        local timeToRight = math.abs(time - insideCorrection.rightTime)
+        local timeToLeft = math.abs(time - insideCorrection:getLeftNode().time)
+        local timeToRight = math.abs(time - insideCorrection:getRightNode().time)
 
         if timeToLeft < timeToRight then
-            closestTime = insideCorrection.leftTime
+            closestTime = insideCorrection:getLeftNode().time
         else
-            closestTime = insideCorrection.rightTime
+            closestTime = insideCorrection:getRightNode().time
         end
     else
         closestTime = time

@@ -22,10 +22,14 @@ local PitchCorrection = {}
 function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch, prevCorrection, nextCorrection)
     local object = {}
 
-    object.leftTime = leftTime or 0
-    object.rightTime = rightTime or 0
-    object.leftPitch = leftPitch or 0
-    object.rightPitch = rightPitch or 0
+    object.node1 = {}
+    object.node2 = {}
+
+    object.node1.time = leftTime or 0
+    object.node2.time = rightTime or 0
+
+    object.node1.pitch = leftPitch or 0
+    object.node2.pitch = rightPitch or 0
 
     object.prevCorrection = object.prevCorrection or prevCorrection
     object.nextCorrection = object.nextCorrection or nextCorrection
@@ -35,31 +39,58 @@ function PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch, prevCor
     return object
 end
 
+function PitchCorrection:getLeftNode()
+    if self.node1.time < self.node2.time then
+        return self.node1
+
+    elseif self.node2.time < self.node1.time then
+        return self.node2
+    end
+
+    return self.node1
+end
+
+function PitchCorrection:getRightNode()
+    if self.node1.time > self.node2.time then
+        return self.node1
+
+    elseif self.node2.time > self.node1.time then
+        return self.node2
+    end
+
+    return self.node2
+end
+
 function PitchCorrection:getLength()
-    return self.rightTime - self.leftTime
+    return self:getRightNode().time - self:getLeftNode().time
 end
 
 function PitchCorrection:getInterval()
-    return self.rightPitch - self.leftPitch
+    return self:getRightNode().pitch - self:getLeftNode().pitch
 end
 
 function PitchCorrection:getPitch(time)
     local length = self:getLength()
+    local leftNode = self:getLeftNode()
+    local rightNode = self:getRightNode()
+
     if length > 0 then
-        local timeRatio = (time - self.leftTime) / self:getLength()
-        local rawPitch = self.leftPitch + self:getInterval() * timeRatio
+        local timeRatio = (time - leftNode.time) / self:getLength()
+        local rawPitch = leftNode.pitch + self:getInterval() * timeRatio
         return rawPitch
+
     elseif length < 0 then
-        local timeRatio = (time - self.rightTime) / self:getLength()
-        local rawPitch = self.rightPitch + self:getInterval() * timeRatio
+        local timeRatio = (time - rightNode.time) / self:getLength()
+        local rawPitch = rightNode.pitch + self:getInterval() * timeRatio
         return rawPitch
+
     else
-        return self.leftPitch
+        return leftNode.pitch
     end
 end
 
 function PitchCorrection:timeIsInside(time)
-    return time >= self.leftTime and time <= self.rightTime
+    return time >= self:getLeftNode().time and time <= self:getRightNode().time
 end
 
 
@@ -72,10 +103,12 @@ function PitchCorrection.pairs(pitchCorrections)
     end
 
     table.sort(temp, function(pc1, pc2)
-        local pc1GoesFirst = pc1[2].leftTime < pc2[2].leftTime
-        if pc1[2].leftTime == pc2[2].leftTime then
-            pc1GoesFirst = pc1[2].rightTime > pc2[2].rightTime
+        local pc1GoesFirst = pc1[2]:getLeftNode().time < pc2[2]:getLeftNode().time
+
+        if pc1[2]:getLeftNode().time == pc2[2]:getLeftNode().time then
+            pc1GoesFirst = pc1[2]:getRightNode().time > pc2[2]:getRightNode().time
         end
+
         return pc1GoesFirst
     end)
 
@@ -223,15 +256,15 @@ function PitchCorrection.addEdgePointsToGroupOfCorrections(corrections, pitchEnv
     local rightEdgeTime = nil
 
     for correctionKey, correction in PitchCorrection.pairs(corrections) do
-        if leftEdgeTime == nil then leftEdgeTime = correction.leftTime end
-        if rightEdgeTime == nil then rightEdgeTime = correction.rightTime end
+        if leftEdgeTime == nil then leftEdgeTime = correction:getLeftNode().time end
+        if rightEdgeTime == nil then rightEdgeTime = correction:getRightNode().time end
 
-        if correction.leftTime < leftEdgeTime then
-            leftEdgeTime = correction.leftTime
+        if correction:getLeftNode().time < leftEdgeTime then
+            leftEdgeTime = correction:getLeftNode().time
         end
 
-        if correction.rightTime > rightEdgeTime then
-            rightEdgeTime = correction.rightTime
+        if correction:getRightNode().time > rightEdgeTime then
+            rightEdgeTime = correction:getRightNode().time
         end
     end
 
@@ -249,8 +282,8 @@ function PitchCorrection.getPointsInCorrections(pitchPoints, pitchCorrections)
 
     local pointIndexes = {}
     for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-        local leftPoint, leftPointIndex = PitchPoint.findPointByTime(correction.leftTime, pitchPoints, false)
-        local rightPoint, rightPointIndex = PitchPoint.findPointByTime(correction.rightTime, pitchPoints, true)
+        local leftPoint, leftPointIndex = PitchPoint.findPointByTime(correction:getLeftNode().time, pitchPoints, false)
+        local rightPoint, rightPointIndex = PitchPoint.findPointByTime(correction:getRightNode().time, pitchPoints, true)
 
         table.insert(pointIndexes, leftPointIndex)
         table.insert(pointIndexes, rightPointIndex)
@@ -279,7 +312,7 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
     local playrate = pitchPoints[1]:getPlayrate()
 
     for correctionKey, correction in PitchCorrection.pairs(pitchCorrections) do
-        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction.leftTime, playrate * correction.rightTime)
+        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction:getLeftNode().time, playrate * correction:getRightNode().time)
     end
 
     local previousPoint = pointsInCorrections[1]
@@ -306,8 +339,8 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
                 targetPitch = correction:getPitch(point.time)
             else
                 local previousCorrection = pitchCorrections[insideKeys[index - 1]]
-                local slideLength = previousCorrection.rightTime - correction.leftTime
-                local pointTimeInCorrection = point.time - correction.leftTime
+                local slideLength = previousCorrection:getRightNode().time - correction:getLeftNode().time
+                local pointTimeInCorrection = point.time - correction:getLeftNode().time
                 local correctionWeight = pointTimeInCorrection / slideLength
                 local correctionPitchDifference = correction:getPitch(point.time) - targetPitch
 
@@ -316,8 +349,8 @@ function PitchCorrection.applyCorrectionsToPitchPoints(pitchPoints, pitchCorrect
         end
 
         if numInsideKeys > 0 then
-            local insideCorrectionLeft = pitchCorrections[insideKeys[1]].leftTime
-            local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]].rightTime
+            local insideCorrectionLeft = pitchCorrections[insideKeys[1]]:getLeftNode().time
+            local insideCorrectionRight = pitchCorrections[insideKeys[numInsideKeys]]:getRightNode().time
 
             PitchCorrection.correctPitchDrift(point, pointIndex, pointsInCorrections, insideCorrectionLeft, insideCorrectionRight, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
         end
@@ -344,7 +377,7 @@ function PitchCorrection.getOverlappingCorrections(correction)
     -- Insert left overlapping corrections into the group.
     if correction.prevCorrection then
         repeat
-            local prevCorrectionOverlaps = currCorrection.prevCorrection.rightTime > currCorrection.leftTime
+            local prevCorrectionOverlaps = currCorrection.prevCorrection:getRightNode().time > currCorrection:getLeftNode().time
 
             if prevCorrectionOverlaps then table.insert(overlappingCorrections, currCorrection.prevCorrection) end
 
@@ -357,7 +390,7 @@ function PitchCorrection.getOverlappingCorrections(correction)
     -- Insert right overlapping corrections into the group.
     if correction.nextCorrection then
         repeat
-            local nextCorrectionOverlaps = currCorrection.nextCorrection.leftTime < currCorrection.rightTime
+            local nextCorrectionOverlaps = currCorrection.nextCorrection:getLeftNode().time < currCorrection:getRightNode().time
 
             if nextCorrectionOverlaps then table.insert(overlappingCorrections, currCorrection.nextCorrection) end
 
