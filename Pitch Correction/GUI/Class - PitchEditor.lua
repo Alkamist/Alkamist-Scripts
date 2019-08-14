@@ -297,6 +297,11 @@ function GUI.PitchEditor:editAndApplyPitchCorrections(corrections)
     local mouseTimeChange = mouseTime - self.previousMouseTime
     local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
 
+    -- Holding shift disables pitch snapping.
+    if gfx.mouse_cap & 8 == 8 then
+        mousePitchChange = mousePitch - self.previousMousePitch
+    end
+
     local lineTimeChange = Lua.clamp(mouseTimeChange,  -leftMostNode.time, self:getTimeLength() - rightMostNode.time)
     local linePitchChange = Lua.clamp(mousePitchChange, -bottomMostNode.pitch, self:getMaxPitch() - topMostNode.pitch)
 
@@ -360,12 +365,17 @@ function GUI.PitchEditor:handleCorrectionEditing()
         self.previousSnappedMousePitch = self:getSnappedPitch(mouseOriginalPitch)
 
         if self.editCorrection == nil then
-            self:createAndEditNewPitchCorrection(mouseOriginalTime, mouseOriginalTime, mouseOriginalSnappedPitch, mouseOriginalSnappedPitch)
+            -- Holding shift disables pitch snapping.
+            if gfx.mouse_cap & 8 == 8 then
+                self:createAndEditNewPitchCorrection(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
+            else
+                self:createAndEditNewPitchCorrection(mouseOriginalTime, mouseOriginalTime, mouseOriginalSnappedPitch, mouseOriginalSnappedPitch)
+            end
         end
     end
 
     if self.editCorrection then
-        self:editAndApplyPitchCorrections(self.selectedPitchCorrections, mouseTime, mousePitch, snappedMousePitch)
+        self:editAndApplyPitchCorrections(self.selectedPitchCorrections)
 
         PitchCorrection.updateLinkedOrder(self.pitchCorrections)
 
@@ -786,6 +796,7 @@ function GUI.PitchEditor:drawPitchCorrections()
 
             gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
             gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
+
         else
             GUI.color("pitch_correction")
             gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
