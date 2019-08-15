@@ -859,7 +859,7 @@ function GUI.PitchEditor:setTake(take, pdSettings)
         self.take = take
         self.item = reaper.GetMediaItemTake_Item(take)
         self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-        self.pitchPoints = PitchPoint.loadPitchPoints(self.takeGUID)
+        self.pitchPoints = PitchPoint.getPitchPoints(self.takeGUID)
         self.pdSettings = pdSettings
     else
         self.take = nil

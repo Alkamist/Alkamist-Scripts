@@ -168,15 +168,15 @@ function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function PitchPoint.loadPitchPoints(takeGUID)
+function PitchPoint.getPitchPoints(takeGUID)
     local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
     local takeName = reaper.GetTakeName(take)
     local item = reaper.GetMediaItemTake_Item(take)
 
     local itemLeftBound = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
     local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-    local itemRightBound = itemLeftBound + itemLength
     local itemStartOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
 
     local pointsLeftBound = itemStartOffset
     local pointsRightBound = itemStartOffset + itemLength

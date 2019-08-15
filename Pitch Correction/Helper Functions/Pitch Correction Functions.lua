@@ -76,25 +76,26 @@ function PCFunc.analyzePitch(takeGUID, settings)
         stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", i, pos, srcPos)
     end
 
+
+
+    PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
+    Reaper.reaperCMD(analyzerID)
+    local pitchData = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+
+
+
     local analysisString = "PLAYRATE " .. playrate .. "\n" ..
 
                            "<STRETCHMARKERS\n" .. stretchMarkersString ..
                            ">\n" ..
 
                            "STARTOFFSET " .. startOffset .. "\n" ..
-                           "LENGTH " .. length .. "\n"
+                           "LENGTH " .. length .. "\n" ..
 
-    PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
-
-    Reaper.reaperCMD(analyzerID)
-
-    local pitchData = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
-
-    analysisString = analysisString .. "<PITCHDATA\n" .. pitchData .. ">\n"
+                           "<PITCHDATA\n" .. pitchData ..
+                           ">\n"
 
     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
-
-    --msg(analysisString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)

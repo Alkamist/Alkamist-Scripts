@@ -6,6 +6,10 @@ function Lua.clamp(number, low, high)
     return math.min(math.max(number, low), high)
 end
 
+function Lua.floatsAreEqual(float1, float2, tolerance)
+    return math.abs(float1 - float2) < tolerance
+end
+
 function Lua.copyTable(source, base)
     if type(source) ~= "table" then return source end
 
