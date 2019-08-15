@@ -2,6 +2,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Reaper = require "Various Functions.Reaper Functions"
 local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 
 
@@ -53,6 +54,84 @@ function PCFunc.getEELCommandID(name)
     return nil
 end
 
+function PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)
+    local pitchDataGroups = {}
+    local pitchRanges = {}
+
+    for line in pitchDataString:gmatch("[^\r\n]+") do
+        if line:match("<PITCHDATA") then
+            local range = {}
+            range.leftTime = tonumber(line:match("<PITCHDATA (%d+.%d+)"))
+            range.rightTime = tonumber(line:match("<PITCHDATA %d+.%d+ (%d+.%d+)"))
+
+            table.insert(pitchRanges, range)
+        end
+    end
+
+    for index, range in pairs(pitchRanges) do
+        pitchDataGroups[index] = {}
+
+        pitchDataGroups[index].leftTime = range.leftTime
+        pitchDataGroups[index].rightTime = range.rightTime
+        pitchDataGroups[index].points = PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, range.leftTime, range.rightTime)
+    end
+
+    return pitchDataGroups
+end
+
+function PCFunc.getPreviousPitchDataGroups(takeName)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
+
+    return PCFunc.getPitchDataGroupsFromPitchDataString(takeName, extState)
+end
+
+function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
+    local groupsCombined = false
+    local outputGroup = {}
+
+    outputGroup.leftTime = math.min(favoredGroup.leftTime, secondaryGroup.leftTime)
+    outputGroup.rightTime = math.max(favoredGroup.rightTime, secondaryGroup.rightTime)
+
+    local favoredIndex = 1
+    local secondaryIndex = 1
+    for i = 1, #favoredGroup + #secondaryGroup do
+        local outputPoint = favoredGroup.points[favoredIndex]
+
+        if outputPoint.time <= secondaryGroup.leftTime then
+            table.insert(outputGroup.points, outputPoint)
+            favoredIndex = favoredIndex + 1
+
+        else
+            outputPoint = secondaryGroup.points[secondaryIndex]
+            table.insert(outputGroup.points, outputPoint)
+            secondaryIndex = secondaryIndex + 1
+        end
+    end
+
+    if #outputGroup > #favoredGroup then
+        groupsCombined = true
+    end
+
+    return outputGroup, groupsCombined
+end
+
+function PCFunc.getAnalysisStringFromDataGroups(dataGroups)
+    local analysisString = ""
+
+    for dataGroupIndex, dataGroup in pairs(dataGroups) do
+        local dataString = ""
+
+        for pointIndex, point in pairs(dataGroup.points) do
+            dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
+        end
+
+        analysisString = analysisString .. "<PITCHDATA\n" .. dataString ..
+                                           ">\n"
+    end
+
+    return analysisString
+end
+
 function PCFunc.analyzePitch(takeGUID, settings)
     local analyzerID = PCFunc.getEELCommandID("Pitch Analyzer")
 
@@ -68,34 +147,60 @@ function PCFunc.analyzePitch(takeGUID, settings)
     local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
     local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
 
-    local stretchMarkersString = ""
-    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
-    for i = 1, numStretchMarkers do
-        local _, pos, srcPos = reaper.GetTakeStretchMarker(take, i - 1)
-
-        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", i, pos, srcPos)
-    end
-
+--    local stretchMarkersString = ""
+--    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
+--    for i = 1, numStretchMarkers do
+--        local _, pos, srcPos = reaper.GetTakeStretchMarker(take, i - 1)
+--
+--        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", i, pos, srcPos)
+--    end
 
 
     PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
     Reaper.reaperCMD(analyzerID)
-    local pitchData = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
 
+    --local prevPitchPoints = PitchPoint.getPitchPointsFromTakeName(takeName)
+    --local dataPitchPoints = PCFunc.getPitchPointsFromDataString(takeGUID)
 
-    local analysisString = "PLAYRATE " .. playrate .. "\n" ..
+--    local analysisString = "PLAYRATE " .. playrate .. "\n" ..
+--
+--                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
+--                           ">\n" ..
+--
+--                           "STARTOFFSET " .. startOffset .. "\n" ..
+--                           "LENGTH " .. length .. "\n" ..
+--
+--                           "<PITCHDATA\n" .. pitchData ..
+--                           ">\n"
 
-                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                           ">\n" ..
+    local prevPitchDataGroups = PCFunc.getPreviousPitchDataGroups(takeName)
 
-                           "STARTOFFSET " .. startOffset .. "\n" ..
-                           "LENGTH " .. length .. "\n" ..
+    local pitchDataString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+    local pitchDataGroup = PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)[1]
 
-                           "<PITCHDATA\n" .. pitchData ..
-                           ">\n"
+    local outputDataGroups = {}
+    for index, prevDataGroup in pairs(prevPitchDataGroups) do
+        local dataGroupCombined = false
+        pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
 
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
+        msg(dataGroupCombined)
+
+        if dataGroupCombined then
+            if index == #prevPitchDataGroups then
+                table.insert(outputDataGroups, pitchDataGroup)
+            end
+
+        else
+            table.insert(outputDataGroups, prevDataGroup)
+        end
+    end
+
+    --local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups)
+
+    --msg(analysisString)
+
+    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)

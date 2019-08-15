@@ -116,8 +116,8 @@ local(i return)
 
 function getFrequency(spos srate winSamples maxlen windowStep minF maxF YINthresh)
 local(maxLook minLook dpos cmndpos i freq) (
-    maxLook = floor(min(sourceSampleRate / minF,winSamples)); //from MinFreq
-    minLook = floor(sourceSampleRate / maxF); //from MaxFreq
+    maxLook = floor(min(srate / minF,winSamples)); //from MinFreq
+    minLook = floor(srate / maxF); //from MaxFreq
     dpos = winSamples + 100; //start of cmnd buffer, "difference position"
     cmndpos = dpos + maxLook + 100;
     cmndpos[0] = 1;
@@ -145,7 +145,7 @@ local(maxLook minLook dpos cmndpos i freq) (
 );
 
 function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSlimit lowRMSlimitdB overlap YINthresh)
-local(item take playrate itemSource accessor bufferSize seekPosition length rms trig_note i_com)
+local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSource accessor bufferSize seekPosition length rms trig_note i_com)
 (
     #pitchData = "";
 
@@ -162,6 +162,11 @@ local(item take playrate itemSource accessor bufferSize seekPosition length rms 
         itemSource = GetMediaItemTake_Source(take);
         sourceSampleRate = GetMediaSourceSampleRate(itemSource);
 
+
+        str_insert(#pitchData, "<PITCHDATA ",                          strlen(#outputString));
+        str_insert(#pitchData, sprintf(#, "%f ", startOffset),         strlen(#pitchData));
+        str_insert(#pitchData, sprintf(#, "%f", startOffset + length), strlen(#pitchData));
+        str_insert(#pitchData, "\n",                                   strlen(#pitchData));
 
 
         bufferSize = floor(sourceSampleRate * windowStep);
@@ -218,6 +223,9 @@ local(item take playrate itemSource accessor bufferSize seekPosition length rms 
         );
 
         DestroyAudioAccessor(accessor);
+
+        str_insert(#pitchData, ">",  strlen(#pitchData));
+        str_insert(#pitchData, "\n", strlen(#pitchData));
     );
 );
 

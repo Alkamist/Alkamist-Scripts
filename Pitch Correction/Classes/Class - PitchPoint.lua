@@ -168,22 +168,13 @@ function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function PitchPoint.getPitchPoints(takeGUID)
-    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
-    local takeName = reaper.GetTakeName(take)
-    local item = reaper.GetMediaItemTake_Item(take)
-
-    local itemLeftBound = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
-    local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-    local itemStartOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
-    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
-
-    local pointsLeftBound = itemStartOffset
-    local pointsRightBound = itemStartOffset + itemLength
+function PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, leftTime, rightTime)
+    local pointsLeftBound = leftTime
+    local pointsRightBound = rightTime
 
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
-    local takePitchPoints = {}
+    local rawPoints = {}
     local pointIndex = 1
     local recordPitchData = false
 
@@ -206,7 +197,12 @@ function PitchPoint.getPitchPoints(takeGUID)
 
             if #point > 1 then
                 if point[1] >= pointsLeftBound and point[1] <= pointsRightBound then
-                    takePitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point[1], point[2], point[3])
+                    rawPoints[pointIndex] = {}
+
+                    rawPoints[pointIndex].index = pointIndex
+                    rawPoints[pointIndex].time = point[1]
+                    rawPoints[pointIndex].pitch = point[2]
+                    rawPoints[pointIndex].rms = point[3]
 
                     pointIndex = pointIndex + 1
                 end
@@ -215,7 +211,63 @@ function PitchPoint.getPitchPoints(takeGUID)
 
     end
 
-    return takePitchPoints
+    return rawPoints
+end
+
+function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, leftTime, rightTime)
+    local pointsLeftBound = leftTime
+    local pointsRightBound = rightTime
+
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
+
+    local pitchPoints = {}
+    local pointIndex = 1
+    local recordPitchData = false
+
+    for line in extState:gmatch("[^\r\n]+") do
+
+        if line:match("<PITCHDATA") then
+            recordPitchData = true
+        end
+
+        if line:match(">") then
+            recordPitchData = false
+        end
+
+        if recordPitchData then
+            local point = {}
+
+            for value in line:gmatch("[%.%-%d]+") do
+                table.insert(point, tonumber(value))
+            end
+
+            if #point > 1 then
+                if point[1] >= pointsLeftBound and point[1] <= pointsRightBound then
+                    pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point[1], point[2], point[3])
+
+                    pointIndex = pointIndex + 1
+                end
+            end
+        end
+
+    end
+
+    return pitchPoints
+end
+
+function PitchPoint.getPitchPointsByTakeGUID(takeGUID)
+    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
+    local takeName = reaper.GetTakeName(take)
+    local item = reaper.GetMediaItemTake_Item(take)
+
+    local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    local itemStartOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+    --local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+
+    local pointsLeftBound = itemStartOffset
+    local pointsRightBound = itemStartOffset + itemLength
+
+    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeName, pointsLeftBound, pointsRightBound)
 end
 
 return PitchPoint
