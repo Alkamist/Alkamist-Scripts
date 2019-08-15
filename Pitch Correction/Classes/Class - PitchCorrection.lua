@@ -7,9 +7,9 @@ local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 0.2
+local modCorrection = 0.0
 local driftCorrection = 1.0
-local driftCorrectionSpeed = 0.1
+local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
 local edgePointSpacing = 0.01

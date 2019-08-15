@@ -185,20 +185,34 @@ function PitchPoint.loadPitchPoints(takeGUID)
 
     local takePitchPoints = {}
     local pointIndex = 1
+    local recordPitchData = false
+
     for line in extState:gmatch("[^\r\n]+") do
-        if line:match("PT") then
-            local stat = {}
+
+        if line:match("<PITCHDATA") then
+            recordPitchData = true
+        end
+
+        if line:match(">") then
+            recordPitchData = false
+        end
+
+        if recordPitchData then
+            local point = {}
 
             for value in line:gmatch("[%.%-%d]+") do
-                stat[#stat + 1] = tonumber(value)
+                table.insert(point, tonumber(value))
             end
 
-            if stat[2] >= itemStartOffset and stat[2] <= pointsRightBound then
-                takePitchPoints[pointIndex] = PitchPoint:new(takeGUID, stat[1], stat[2], stat[3], stat[4])
+            if #point > 1 then
+                if point[1] >= pointsLeftBound and point[1] <= pointsRightBound then
+                    takePitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point[1], point[2], point[3])
 
-                pointIndex = pointIndex + 1
+                    pointIndex = pointIndex + 1
+                end
             end
         end
+
     end
 
     return takePitchPoints

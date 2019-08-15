@@ -43,11 +43,12 @@ local fonts = GUI.get_OS_fonts()
 local elms = {}
 
 local function analyze_button_click()
-    local selectedTake = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
+    local take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
+    local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
 
-    PCFunc.analyzePitch(selectedTake, pdSettings)
+    PCFunc.analyzePitch(takeGUID, pdSettings)
 
-    elms.pitch_editor:setTake(selectedTake, pdSettings)
+    elms.pitch_editor:setTake(take, pdSettings)
 end
 
 

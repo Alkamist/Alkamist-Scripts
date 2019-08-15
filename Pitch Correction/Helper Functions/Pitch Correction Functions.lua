@@ -11,13 +11,13 @@ local PCFunc = {}
 
 local edgePointSpacing = 0.01
 
-function PCFunc.saveSettingsInExtState(settings)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXLENGTH", settings.maximumLength, false)
+function PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
@@ -53,23 +53,48 @@ function PCFunc.getEELCommandID(name)
     return nil
 end
 
-function PCFunc.analyzePitch(take, settings)
-    PCFunc.saveSettingsInExtState(settings)
-
+function PCFunc.analyzePitch(takeGUID, settings)
     local analyzerID = PCFunc.getEELCommandID("Pitch Analyzer")
 
-    if analyzerID then
-        -- Save the current GUID of the item take we are processing in the ext state.
-        -- Since there is no way to pass arguments to the external EEL script, we need
-        -- to do this so it knows which item to process.
-        local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-        reaper.SetProjExtState(0, "Alkamist_PitchCorrection", "currentTakeGUID", takeGUID)
-
-        Reaper.reaperCMD(analyzerID)
-    else
+    if not analyzerID then
         reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
         return 0
     end
+
+    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
+    local takeName = reaper.GetTakeName(take)
+    local item = reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
+    local startOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+
+    local stretchMarkersString = ""
+    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
+    for i = 1, numStretchMarkers do
+        local _, pos, srcPos = reaper.GetTakeStretchMarker(take, i - 1)
+
+        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", i, pos, srcPos)
+    end
+
+    local analysisString = "PLAYRATE " .. playrate .. "\n" ..
+
+                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
+                           ">\n" ..
+
+                           "STARTOFFSET " .. startOffset .. "\n" ..
+                           "LENGTH " .. length .. "\n"
+
+    PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
+
+    Reaper.reaperCMD(analyzerID)
+
+    local pitchData = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+
+    analysisString = analysisString .. "<PITCHDATA\n" .. pitchData .. ">\n"
+
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
+
+    --msg(analysisString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)

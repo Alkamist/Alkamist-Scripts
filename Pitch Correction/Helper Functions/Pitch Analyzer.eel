@@ -2,10 +2,9 @@
 // used some modified code snippets from JSFX Pitch Follower by aparker127 http://stash.reaper.fm/v/30507/pitch-follower
 
 function msg(s)(ShowConsoleMsg(s); ShowConsoleMsg("\n"));
-function msg2(s)(ShowConsoleMsg(sprintf(#,"%f", s )); ShowConsoleMsg("\n"));
 
 function d(tau istart iwinend) //Difference Function (YIN eq. 6)
-local (sum i_d)
+local(sum i_d)
 (
     sum = 0;
     i_d = 0;
@@ -19,7 +18,7 @@ local (sum i_d)
 );
 
 function avg(imin imax) //max non-inclusive
-local (num sum)
+local(num sum)
 (
     num = 0;
     sum = 0;
@@ -33,7 +32,7 @@ local (num sum)
 );
 
 function parab(iclosest)
-local (x1 y1 x2 y2 x3 y3 denom a b c)
+local(x1 y1 x2 y2 x3 y3 denom a b c)
 (
     x1 = iclosest - 1;
     y1 = x1[0];
@@ -50,7 +49,7 @@ local (x1 y1 x2 y2 x3 y3 denom a b c)
 );
 
 function findMin(istart iend thresh srate minLook)
-local (i rmin return_ind return_ind) (
+local(i rmin return_ind return_ind) (
     i = 1;
     rmin = thresh; // "running min"
     return_ind = -srate;
@@ -78,7 +77,7 @@ function lim(val, min0, max0)(
 );
 
 function round(num)
-local (mult ret)
+local(mult ret)
 (
     num >= 0 ? (
         mult = 1;
@@ -96,7 +95,7 @@ local (mult ret)
 );
 
 function cmnd(tau istart iwinend) //Cumulative Mean Normalized Difference (YIN eq. 8)
-local (i return)
+local(i return)
 (
     dbufstart = 127127;
 
@@ -115,8 +114,8 @@ local (i return)
     return;
 );
 
-function getPitch(spos, srate, winSamples, maxlen, windowStep, minF, maxF, YINthresh)
-local (maxLook minLook dpos cmndpos i freq) (
+function getFrequency(spos srate winSamples maxlen windowStep minF maxF YINthresh)
+local(maxLook minLook dpos cmndpos i freq) (
     maxLook = floor(min(sourceSampleRate / minF,winSamples)); //from MinFreq
     minLook = floor(sourceSampleRate / maxF); //from MaxFreq
     dpos = winSamples + 100; //start of cmnd buffer, "difference position"
@@ -145,82 +144,34 @@ local (maxLook minLook dpos cmndpos i freq) (
     freq
 );
 
-function collectItemData(extStateKey, maxLength, windowStep, minF, maxF, lowRMSlimit, lowRMSlimitdB, overlap, YINthresh)
-local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSource accessor bufferSize seekPosition length rms trig_note i_com)
+function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSlimit lowRMSlimitdB overlap YINthresh)
+local(item take playrate itemSource accessor bufferSize seekPosition length rms trig_note i_com)
 (
-    #takeGUID = "";
-    GetProjExtState(0, extStateKey, "currentTakeGUID", #takeGUID);
-    itemTake = GetMediaItemTakeByGUID(0, #takeGUID);
+    #pitchData = "";
 
-    GetTakeName(#takeName, itemTake);
+    take = GetMediaItemTakeByGUID(0, #takeGUID);
 
-    item = GetMediaItemTakeInfo_Value(itemTake, "P_ITEM");
-    itemTrack =  GetMediaItem_Track(item);
-    itemPosition = GetMediaItemInfo_Value(item, "D_POSITION");
-    itemLength = GetMediaItemInfo_Value(item, "D_LENGTH");
-    hasData = 0;
+    TakeIsMIDI(take) == 0 ? (
 
-    TakeIsMIDI(itemTake) == 0 ? (
-        startOffset = GetMediaItemTakeInfo_Value(itemTake, "D_STARTOFFS");
-        playrate = GetMediaItemTakeInfo_Value(itemTake, "D_PLAYRATE");
-        numStretchMarkers = GetTakeNumStretchMarkers(itemTake);
-        itemSource = GetMediaItemTake_Source(itemTake);
+        item = GetMediaItemTakeInfo_Value(take, "P_ITEM");
+
+        length = GetMediaItemInfo_Value(item, "D_LENGTH");
+        startOffset = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
+        playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
+        numStretchMarkers = GetTakeNumStretchMarkers(take);
+        itemSource = GetMediaItemTake_Source(take);
         sourceSampleRate = GetMediaSourceSampleRate(itemSource);
-        hasData = 1;
 
-        accessor = CreateTakeAudioAccessor(itemTake);
+
+
         bufferSize = floor(sourceSampleRate * windowStep);
-        length = min(itemLength, maxLength);
-
-        #outputString = "";
-        str_insert(#outputString, "LENGTH ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", itemLength), strlen(#outputString));
-        str_insert(#outputString, "\nSTARTOFFSET ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", startOffset), strlen(#outputString));
-        str_insert(#outputString, "\nPLAYRATE ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", playrate), strlen(#outputString));
-        str_insert(#outputString, "\nNUMSTRETCHMARKERS ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", numStretchMarkers), strlen(#outputString));
-
-        str_insert(#outputString, "\n<STRETCHMARKERS ", strlen(#outputString));
-
-        stretchMarkerIndex = 1;
-        loop (numStretchMarkers,
-            GetTakeStretchMarker(itemTake, stretchMarkerIndex - 1, stretchMarkerPosition, stretchMarkerSourcePosition);
-
-            str_insert(#outputString, "\n   SM ", strlen(#outputString));
-            str_insert(#outputString, sprintf(#, "%f", stretchMarkerIndex), strlen(#outputString));
-            str_insert(#outputString, " ", strlen(#outputString));
-            str_insert(#outputString, sprintf(#, "%f", stretchMarkerPosition), strlen(#outputString));
-            str_insert(#outputString, " ", strlen(#outputString));
-            str_insert(#outputString, sprintf(#, "%f", stretchMarkerSourcePosition), strlen(#outputString));
-
-            stretchMarkerIndex += 1;
-        );
-        str_insert(#outputString, "\n>\n", strlen(#outputString));
-
-        str_insert(#outputString, "WINDOW ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", windowStep), strlen(#outputString));
-        str_insert(#outputString, "\nBUFSZ ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", bufferSize), strlen(#outputString));
-
-        str_insert(#outputString, "\nMINF ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", minF), strlen(#outputString));
-        str_insert(#outputString, "\nMAXF ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", maxF), strlen(#outputString));
-        str_insert(#outputString, "\nLOWRMSLIM ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", lowRMSlimitdB), strlen(#outputString));
-        str_insert(#outputString, "\nOVERLAP ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", overlap), strlen(#outputString));
-        str_insert(#outputString, "\nYINTHRESH ", strlen(#outputString));
-        str_insert(#outputString, sprintf(#,"%f", YINthresh), strlen(#outputString));
-        str_insert(#outputString,"\n<POINTDATA",strlen(#outputString));
 
         seekPosition = 0;
         spos = 0;
         memset(0,0, bufferSize); // clear samplebuffer
         i_com = 1;
-        pointIndex = 1;
+
+        accessor = CreateTakeAudioAccessor(take);
 
         while (
             trig_note = 0;
@@ -238,21 +189,25 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
             // Perform Pitch detection
             f_com = 0;
             rms > lowRMSlimit ? (
-                frequency = getPitch(spos, sourceSampleRate, bufferSize, maxlen, windowStep, minF, maxF, YINthresh);
+                frequency = getFrequency(spos, sourceSampleRate, bufferSize, maxlen, windowStep, minF, maxF, YINthresh);
                 note = 69 + 12 * log(frequency / 440) / log(2);
                 note = min(max(note, 0), 127);
 
-                frequency > 0 && strlen(#outputString) < 64000 ? (
-                    str_insert(#outputString, "\n   PT ", strlen(#outputString));
-                    str_insert(#outputString, sprintf(#, "%f", pointIndex), strlen(#outputString));
-                    str_insert(#outputString, " ", strlen(#outputString));
-                    str_insert(#outputString, sprintf(#, "%f", seekPosition + startOffset), strlen(#outputString));
-                    str_insert(#outputString, " ", strlen(#outputString));
-                    str_insert(#outputString, sprintf(#, "%f", note), strlen(#outputString));
-                    str_insert(#outputString, " ", strlen(#outputString));
-                    str_insert(#outputString, sprintf(#, "%f", rms), strlen(#outputString));
-                    str_insert(#outputString, " ", strlen(#outputString));
-                    pointIndex += 1;
+                frequency > 0 && strlen(#pitchData) < 64000 ?
+                (
+                    str_insert(#pitchData, "    ",                                       strlen(#pitchData));
+
+                    str_insert(#pitchData, sprintf(#, "%f", seekPosition + startOffset), strlen(#pitchData));
+                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
+
+                    str_insert(#pitchData, sprintf(#, "%f", note),                       strlen(#pitchData));
+                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
+
+                    str_insert(#pitchData, sprintf(#, "%f", rms),                        strlen(#pitchData));
+                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
+
+                    str_insert(#pitchData, "\n",                                         strlen(#pitchData));
+
                 );
             );
 
@@ -263,15 +218,14 @@ local (item itemTrack itemPosition itemLength itemTake playrate hasData itemSour
         );
 
         DestroyAudioAccessor(accessor);
-        str_insert(#outputString, "\n>\n", strlen(#outputString));
-        SetProjExtState(0, extStateKey, #takeName, #outputString);
     );
 );
 
-function calculateMain(extStateKey)
+function calculatePitchDataAndWriteToExtState()
 (
+    GetExtState(#takeGUID, "Alkamist_PitchCorrection", "TAKEGUID");
+
     // Get parameters from the ext state.
-    GetExtState(#maxLength, "Alkamist_PitchCorrection", "MAXLENGTH");
     GetExtState(#windowStep, "Alkamist_PitchCorrection", "WINDOWSTEP");
     GetExtState(#minFreq, "Alkamist_PitchCorrection", "MINFREQ");
     GetExtState(#maxFreq, "Alkamist_PitchCorrection", "MAXFREQ");
@@ -280,7 +234,6 @@ function calculateMain(extStateKey)
     GetExtState(#lowRMSLimitdB, "Alkamist_PitchCorrection", "LOWRMSLIMDB");
 
     // Convert the parameters from strings to numbers.
-    match("%f", #maxLength, maxLength);
     match("%f", #windowStep, windowStep);
     match("%f", #minFreq, minFreq);
     match("%f", #maxFreq, maxFreq);
@@ -290,17 +243,17 @@ function calculateMain(extStateKey)
 
     lowRMSlimit = exp(lowRMSLimitdB * 0.11512925464970228420089957273422);
 
-    // Process the audio item and write to the ext state.
-    collectItemData(extStateKey,
-                    maxLength,
-                    windowStep,
-                    minFreq,
-                    maxFreq,
-                    lowRMSlimit,
-                    lowRMSLimitdB,
-                    overlap,
-                    YINthresh);
+    getPitchDataByTakeGUID(#pitchData,
+                           #takeGUID,
+                           windowStep,
+                           minFreq,
+                           maxFreq,
+                           lowRMSlimit,
+                           lowRMSLimitdB,
+                           overlap,
+                           YINthresh);
+
+    SetExtState("Alkamist_PitchCorrection", "PITCHDATA", #pitchData, 0)
 );
 
-#extStateKey = "Alkamist_PitchCorrection";
-calculateMain(#extStateKey);
+calculatePitchDataAndWriteToExtState()
