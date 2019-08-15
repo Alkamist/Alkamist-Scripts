@@ -73,7 +73,7 @@ function PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)
 
         pitchDataGroups[index].leftTime = range.leftTime
         pitchDataGroups[index].rightTime = range.rightTime
-        pitchDataGroups[index].points = PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, range.leftTime, range.rightTime)
+        pitchDataGroups[index].points = PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, range.leftTime, range.rightTime)
     end
 
     return pitchDataGroups
@@ -91,10 +91,11 @@ function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
 
     outputGroup.leftTime = math.min(favoredGroup.leftTime, secondaryGroup.leftTime)
     outputGroup.rightTime = math.max(favoredGroup.rightTime, secondaryGroup.rightTime)
+    outputGroup.points = {}
 
     local favoredIndex = 1
     local secondaryIndex = 1
-    for i = 1, #favoredGroup + #secondaryGroup do
+    for i = 1, #favoredGroup.points + #secondaryGroup.points do
         local outputPoint = favoredGroup.points[favoredIndex]
 
         if outputPoint.time <= secondaryGroup.leftTime then
@@ -125,7 +126,8 @@ function PCFunc.getAnalysisStringFromDataGroups(dataGroups)
             dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
         end
 
-        analysisString = analysisString .. "<PITCHDATA\n" .. dataString ..
+        analysisString = analysisString .. "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
+                                               dataString ..
                                            ">\n"
     end
 
@@ -184,21 +186,18 @@ function PCFunc.analyzePitch(takeGUID, settings)
         local dataGroupCombined = false
         pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
 
-        msg(dataGroupCombined)
-
-        if dataGroupCombined then
-            if index == #prevPitchDataGroups then
-                table.insert(outputDataGroups, pitchDataGroup)
-            end
-
-        else
+        if not dataGroupCombined then
             table.insert(outputDataGroups, prevDataGroup)
+        end
+
+        if index == #prevPitchDataGroups then
+            table.insert(outputDataGroups, pitchDataGroup)
         end
     end
 
-    --local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups)
+    local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups)
 
-    --msg(analysisString)
+    msg(analysisString)
 
     --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
 end

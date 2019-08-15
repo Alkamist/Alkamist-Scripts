@@ -168,27 +168,24 @@ function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, leftTime, rightTime)
-    local pointsLeftBound = leftTime
-    local pointsRightBound = rightTime
-
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
-
+function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, leftTime, rightTime)
     local rawPoints = {}
     local pointIndex = 1
     local recordPitchData = false
+    local skipThisLine = false
 
-    for line in extState:gmatch("[^\r\n]+") do
+    for line in pitchDataString:gmatch("[^\r\n]+") do
 
         if line:match("<PITCHDATA") then
             recordPitchData = true
+            skipThisLine = true
         end
 
         if line:match(">") then
             recordPitchData = false
         end
 
-        if recordPitchData then
+        if recordPitchData and not skipThisLine then
             local point = {}
 
             for value in line:gmatch("[%.%-%d]+") do
@@ -196,7 +193,7 @@ function PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, leftTime, rightT
             end
 
             if #point > 1 then
-                if point[1] >= pointsLeftBound and point[1] <= pointsRightBound then
+                if point[1] >= leftTime and point[1] <= rightTime then
                     rawPoints[pointIndex] = {}
 
                     rawPoints[pointIndex].index = pointIndex
@@ -209,47 +206,23 @@ function PitchPoint.getRawPointsByTakeNameInTimeRange(takeName, leftTime, rightT
             end
         end
 
+        skipThisLine = false
     end
 
     return rawPoints
 end
 
 function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, leftTime, rightTime)
-    local pointsLeftBound = leftTime
-    local pointsRightBound = rightTime
-
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
     local pitchPoints = {}
     local pointIndex = 1
     local recordPitchData = false
 
-    for line in extState:gmatch("[^\r\n]+") do
+    local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, leftTime, rightTime)
 
-        if line:match("<PITCHDATA") then
-            recordPitchData = true
-        end
-
-        if line:match(">") then
-            recordPitchData = false
-        end
-
-        if recordPitchData then
-            local point = {}
-
-            for value in line:gmatch("[%.%-%d]+") do
-                table.insert(point, tonumber(value))
-            end
-
-            if #point > 1 then
-                if point[1] >= pointsLeftBound and point[1] <= pointsRightBound then
-                    pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point[1], point[2], point[3])
-
-                    pointIndex = pointIndex + 1
-                end
-            end
-        end
-
+    for pointIndex, point in pairs(rawPoints) do
+        pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point.time, point.pitch, point.rms)
     end
 
     return pitchPoints
@@ -267,7 +240,7 @@ function PitchPoint.getPitchPointsByTakeGUID(takeGUID)
     local pointsLeftBound = itemStartOffset
     local pointsRightBound = itemStartOffset + itemLength
 
-    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeName, pointsLeftBound, pointsRightBound)
+    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, pointsLeftBound, pointsRightBound)
 end
 
 return PitchPoint
