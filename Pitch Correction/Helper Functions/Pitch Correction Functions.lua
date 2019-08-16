@@ -86,34 +86,47 @@ function PCFunc.getPreviousPitchDataGroups(takeName)
 end
 
 function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
-    local groupsCombined = false
-    local outputGroup = {}
+    local groupsAreOverlapping = favoredGroup.leftTime >= secondaryGroup.leftTime and favoredGroup.leftTime <= secondaryGroup.rightTime
+                              or favoredGroup.rightTime >= secondaryGroup.leftTime and favoredGroup.rightTime <= secondaryGroup.rightTime
 
-    outputGroup.leftTime = math.min(favoredGroup.leftTime, secondaryGroup.leftTime)
-    outputGroup.rightTime = math.max(favoredGroup.rightTime, secondaryGroup.rightTime)
-    outputGroup.points = {}
+                              or secondaryGroup.leftTime >= favoredGroup.leftTime and secondaryGroup.leftTime <= favoredGroup.rightTime
+                              or secondaryGroup.rightTime >= favoredGroup.leftTime and secondaryGroup.rightTime <= favoredGroup.rightTime
 
-    local favoredIndex = 1
-    local secondaryIndex = 1
-    for i = 1, #favoredGroup.points + #secondaryGroup.points do
-        local outputPoint = favoredGroup.points[favoredIndex]
+    if groupsAreOverlapping then
+        local outputGroup = {}
 
-        if outputPoint.time <= secondaryGroup.leftTime then
-            table.insert(outputGroup.points, outputPoint)
-            favoredIndex = favoredIndex + 1
+        outputGroup.points = {}
+        outputGroup.leftTime = math.min(favoredGroup.leftTime, secondaryGroup.leftTime)
+        outputGroup.rightTime = math.max(favoredGroup.rightTime, secondaryGroup.rightTime)
 
-        else
-            outputPoint = secondaryGroup.points[secondaryIndex]
-            table.insert(outputGroup.points, outputPoint)
-            secondaryIndex = secondaryIndex + 1
+        local favoredPointsWereInserted = false
+        for secondaryIndex, secondaryPoint in ipairs(secondaryGroup.points) do
+
+            if secondaryPoint.time < favoredGroup.leftTime or secondaryPoint.time > favoredGroup.rightTime then
+                table.insert(outputGroup.points, secondaryPoint)
+            end
+
+            if not favoredPointsWereInserted then
+
+                if secondaryPoint.time >= favoredGroup.leftTime then
+
+                    for favoredIndex, favoredPoint in ipairs(favoredGroup.points) do
+                        table.insert(outputGroup.points, favoredPoint)
+                    end
+
+                    favoredPointsWereInserted = true
+
+                end
+
+            end
+
         end
+
+        return outputGroup, true
+
     end
 
-    if #outputGroup > #favoredGroup then
-        groupsCombined = true
-    end
-
-    return outputGroup, groupsCombined
+    return favoredGroup, false
 end
 
 function PCFunc.getAnalysisStringFromDataGroups(dataGroups)
@@ -182,24 +195,33 @@ function PCFunc.analyzePitch(takeGUID, settings)
     local pitchDataGroup = PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)[1]
 
     local outputDataGroups = {}
-    for index, prevDataGroup in pairs(prevPitchDataGroups) do
-        local dataGroupCombined = false
-        pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
 
-        if not dataGroupCombined then
-            table.insert(outputDataGroups, prevDataGroup)
+    if #prevPitchDataGroups > 0 then
+
+        for index, prevDataGroup in pairs(prevPitchDataGroups) do
+            local dataGroupCombined = false
+            pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
+
+            if not dataGroupCombined then
+                table.insert(outputDataGroups, prevDataGroup)
+            end
+
+            if index == #prevPitchDataGroups then
+                table.insert(outputDataGroups, pitchDataGroup)
+            end
         end
 
-        if index == #prevPitchDataGroups then
-            table.insert(outputDataGroups, pitchDataGroup)
-        end
+    else
+
+        table.insert(outputDataGroups, pitchDataGroup)
+
     end
 
     local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups)
 
-    msg(analysisString)
+    --msg(analysisString)
 
-    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)

@@ -49,7 +49,7 @@ end
 
 
 ------------------- Sorting -------------------
-function PitchPoint.pairs(pitchPoints)
+--[[function PitchPoint.pairs(pitchPoints)
     local temp = {}
     for key, correction in pairs(pitchPoints) do
         table.insert(temp, {key, correction})
@@ -71,7 +71,7 @@ function PitchPoint.pairs(pitchPoints)
     end
 
     return iterator
-end
+end]]--
 
 function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
     local numPitchPoints = #pitchPoints
@@ -148,17 +148,17 @@ end
 function PitchPoint.getAveragePitch(pitchPoints)
     local pitchAverage = 0
 
-    for key, point in PitchPoint.pairs(pitchPoints) do
+    for key, point in ipairs(pitchPoints) do
         pitchAverage = pitchAverage + point.pitch
     end
 
-    return pitchAverage / Lua.getTableLength(pitchPoints)
+    return pitchAverage / #pitchPoints
 end
 
 function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     local newPoints = {}
     local dataIndex = 1
-    for key, point in PitchPoint.pairs(pitchPoints) do
+    for key, point in ipairs(pitchPoints) do
         if point.time >= leftTime and point.time <= rightTime then
             newPoints[dataIndex] = point
             dataIndex = dataIndex + 1
@@ -221,7 +221,7 @@ function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, left
 
     local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, leftTime, rightTime)
 
-    for pointIndex, point in pairs(rawPoints) do
+    for pointIndex, point in ipairs(rawPoints) do
         pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point.time, point.pitch, point.rms)
     end
 

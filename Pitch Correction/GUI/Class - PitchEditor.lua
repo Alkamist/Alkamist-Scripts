@@ -610,7 +610,7 @@ function GUI.PitchEditor:drawPitchLines()
     local previousPointX = 0
     local previousPointY = 0
 
-    for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
+    for pointKey, point in ipairs(self.pitchPoints) do
         local pointX = self:getPixelsFromTime(point.time) - x
         local pointY = self:getPixelsFromPitch(point.pitch) - y
 
@@ -659,7 +659,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
 
     local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
 
-    for pointKey, point in PitchPoint.pairs(self.pitchPoints) do
+    for pointKey, point in ipairs(self.pitchPoints) do
         local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
 
         local pitchValue = point.pitch + envelopeValue
