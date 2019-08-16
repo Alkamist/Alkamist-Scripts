@@ -154,12 +154,14 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, pl
     local recordPitchData = false
     local skipThisLine = false
 
+    local floatTolerance = 0.0001
+
     for line in pitchDataString:gmatch("[^\r\n]+") do
 
         --------------------- Playrate ---------------------
 
         local prevPlayrate = tonumber(line:match("PLAYRATE ([%.%-%d]+)"))
-        if Lua.floatsAreEqual( prevPlayrate, playrate, 0.0001 ) then
+        if Lua.floatsAreEqual( prevPlayrate, playrate, floatTolerance ) then
             playratesMatch = true
         end
 
@@ -171,7 +173,6 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, pl
             compareStretchMarkers = true
             stretchMarkersMatch = true
             stretchMarkerIndex = 1
-            skipThisLine = true
         end
 
         if line:match(">") and compareStretchMarkers then
@@ -187,28 +188,32 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, pl
             end
         end
 
-        if compareStretchMarkers and not skipThisLine then
+        if compareStretchMarkers then
             local pos =    tonumber( line:match("    ([%.%-%d]+)") )
             local srcPos = tonumber( line:match("    [%.%-%d]+ ([%.%-%d]+)") )
 
-            local currentStretchMarker = stretchMarkers[stretchMarkerIndex]
+            if pos and srcPos then
 
-            if currentStretchMarker then
+                local currentStretchMarker = stretchMarkers[stretchMarkerIndex]
 
-                if not Lua.floatsAreEqual( currentStretchMarker.pos, pos, 0.0001 ) then
+                if currentStretchMarker then
+
+                    if not Lua.floatsAreEqual( currentStretchMarker.pos, pos, floatTolerance ) then
+                        stretchMarkersMatch = false
+                    end
+
+                    if not Lua.floatsAreEqual( currentStretchMarker.srcPos, srcPos, floatTolerance ) then
+                        stretchMarkersMatch = false
+                    end
+
+                -- There are less input stretch markers than there are string stretch markers.
+                else
                     stretchMarkersMatch = false
                 end
 
-                if not Lua.floatsAreEqual( currentStretchMarker.srcPos, srcPos, 0.0001 ) then
-                    stretchMarkersMatch = false
-                end
+                stretchMarkerIndex = stretchMarkerIndex + 1
 
-            -- There are less input stretch markers than there are string stretch markers.
-            else
-                stretchMarkersMatch = false
             end
-
-            stretchMarkerIndex = stretchMarkerIndex + 1
         end
 
 
@@ -217,37 +222,34 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, pl
 
         if line:match("<PITCHDATA") and playratesMatch and stretchMarkersMatch then
             recordPitchData = true
-            skipThisLine = true
         end
 
-        if line:match(">") and recordPitchData then
+        if line:match("PLAYRATE") and recordPitchData then
             recordPitchData = false
             playratesMatch = false
             stretchMarkersMatch = false
         end
 
-        if recordPitchData and not skipThisLine then
-            local point = {}
+        if recordPitchData then
+            local pointTime =  tonumber( line:match("    ([%.%-%d]+)") )
+            local pointPitch = tonumber( line:match("    [%.%-%d]+ ([%.%-%d]+)") )
+            local pointRMS =   tonumber( line:match("    [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
 
-            for value in line:gmatch("[%.%-%d]+") do
-                table.insert(point, tonumber(value))
-            end
+            if pointTime and pointPitch and pointRMS then
+                if pointTime >= leftTime and pointTime <= rightTime then
+                    rawPoints[pointIndex] = {
 
-            if #point > 1 then
-                if point[1] >= leftTime and point[1] <= rightTime then
-                    rawPoints[pointIndex] = {}
+                        index = pointIndex,
+                        time = pointTime,
+                        pitch = pointPitch,
+                        rms = pointRMS
 
-                    rawPoints[pointIndex].index = pointIndex
-                    rawPoints[pointIndex].time = point[1]
-                    rawPoints[pointIndex].pitch = point[2]
-                    rawPoints[pointIndex].rms = point[3]
+                    }
 
                     pointIndex = pointIndex + 1
                 end
             end
         end
-
-        skipThisLine = false
     end
 
     return rawPoints

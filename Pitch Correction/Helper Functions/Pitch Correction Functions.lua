@@ -141,6 +141,10 @@ function PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMar
     end
 
     local analysisString = ""
+    local analysisHeader = "PLAYRATE " .. playrate .. "\n" ..
+
+                            "<STRETCHMARKERS\n" .. stretchMarkersString ..
+                            ">\n"
 
     for dataGroupIndex, dataGroup in pairs(dataGroups) do
         if #dataGroup.points > 0 then
@@ -151,18 +155,13 @@ function PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMar
                 dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
             end
 
-            analysisString = analysisString .. "PLAYRATE " .. playrate .. "\n" ..
-
-                                               "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                                               ">\n" ..
-
-                                               "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
+            analysisString = analysisString .. "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
                                                    dataString ..
                                                ">\n"
         end
     end
 
-    return analysisString
+    return analysisString, analysisHeader
 end
 
 function PCFunc.getPitchDataGroupFromExtState(startOffset, length)
@@ -187,6 +186,41 @@ function PCFunc.getPitchDataGroupFromExtState(startOffset, length)
     end
 
     return outputGroup
+end
+
+function PCFunc.getNewDataStringFromDataGroups(takeName, dataGroups, playrate, stretchMarkers)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
+
+    local analysisString, analysisHeader = PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMarkers)
+
+    local headerStart, headerEnd = string.find(extState, analysisHeader)
+    local newDataString = ""
+
+    if headerStart and headerEnd then
+
+        local searchIndex = headerEnd
+        local stringToRemove = ""
+
+        repeat
+
+            local line = string.match(extState, "([^\r\n]+)", searchIndex)
+
+            if line == nil then break end
+
+            stringToRemove = stringToRemove .. line .. "\n"
+
+            searchIndex = searchIndex + string.len(line) + 1
+
+        until string.match(line, "PLAYRATE")
+
+        local modifiedExtState = string.gsub(extState, stringToRemove, "")
+        newDataString = modifiedExtState .. analysisString
+
+    else
+        newDataString = extState .. analysisHeader .. analysisString
+    end
+
+    return newDataString
 end
 
 function PCFunc.analyzePitch(takeGUID, settings)
@@ -248,13 +282,11 @@ function PCFunc.analyzePitch(takeGUID, settings)
 
     end
 
-    local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups, playrate, stretchMarkers)
+    local newDataString = PCFunc.getNewDataStringFromDataGroups(takeName, outputDataGroups, playrate, stretchMarkers)
 
-    msg(analysisString)
+    msg(newDataString)
 
-    --local analysisString = PCFunc.getAnalysisStringFromDataGroups({ pitchDataGroup }, playrate, stretchMarkers)
-
-    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
+    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, newDataString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)
