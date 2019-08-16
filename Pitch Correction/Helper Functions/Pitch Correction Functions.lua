@@ -79,7 +79,7 @@ function PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)
     return pitchDataGroups
 end
 
-function PCFunc.getPreviousPitchDataGroups(takeName)
+function PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
     return PCFunc.getPitchDataGroupsFromPitchDataString(takeName, extState)
@@ -129,7 +129,12 @@ function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
     return favoredGroup, false
 end
 
-function PCFunc.getAnalysisStringFromDataGroups(dataGroups)
+function PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMarkers)
+    local stretchMarkersString = ""
+    for markerIndex, marker in ipairs(stretchMarkers) do
+        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", markerIndex, marker.pos, marker.srcPos)
+    end
+
     local analysisString = ""
 
     for dataGroupIndex, dataGroup in pairs(dataGroups) do
@@ -139,7 +144,12 @@ function PCFunc.getAnalysisStringFromDataGroups(dataGroups)
             dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
         end
 
-        analysisString = analysisString .. "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
+        analysisString = analysisString .. "PLAYRATE " .. playrate .. "\n" ..
+
+                                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
+                                           ">\n" ..
+
+                                           "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
                                                dataString ..
                                            ">\n"
     end
@@ -155,41 +165,24 @@ function PCFunc.analyzePitch(takeGUID, settings)
         return 0
     end
 
-    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
-    local takeName = reaper.GetTakeName(take)
-    local item = reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
-    local startOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
-    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
-
---    local stretchMarkersString = ""
---    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
---    for i = 1, numStretchMarkers do
---        local _, pos, srcPos = reaper.GetTakeStretchMarker(take, i - 1)
---
---        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", i, pos, srcPos)
---    end
 
 
     PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
     Reaper.reaperCMD(analyzerID)
 
 
-    --local prevPitchPoints = PitchPoint.getPitchPointsFromTakeName(takeName)
-    --local dataPitchPoints = PCFunc.getPitchPointsFromDataString(takeGUID)
 
---    local analysisString = "PLAYRATE " .. playrate .. "\n" ..
---
---                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
---                           ">\n" ..
---
---                           "STARTOFFSET " .. startOffset .. "\n" ..
---                           "LENGTH " .. length .. "\n" ..
---
---                           "<PITCHDATA\n" .. pitchData ..
---                           ">\n"
+    local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
+    local takeName = reaper.GetTakeName(take)
+    local item = reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
+    local startOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+    local stretchMarkers = Reaper.getStretchMarkers(take)
 
-    local prevPitchDataGroups = PCFunc.getPreviousPitchDataGroups(takeName)
+
+
+    local prevPitchDataGroups = PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
 
     local pitchDataString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
     local pitchDataGroup = PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)[1]
@@ -217,11 +210,11 @@ function PCFunc.analyzePitch(takeGUID, settings)
 
     end
 
-    local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups)
+    local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups, playrate, stretchMarkers)
 
     --msg(analysisString)
 
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
+    --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
 end
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)

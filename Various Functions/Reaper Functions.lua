@@ -14,40 +14,6 @@ function Reaper.reaperCMD(id)
     end
 end
 
-function Reaper.copyTable(source, base)
-    if type(source) ~= "table" then return source end
-
-    local meta = getmetatable(source)
-    local new = base or {}
-    for k, v in pairs(source) do
-        if type(v) == "table" then
-            if base then
-                new[k] = GUI.table_copy(v, base[k])
-            else
-                new[k] = GUI.table_copy(v, nil)
-            end
-
-        else
-            if not base or (base and new[k] == nil) then
-
-                new[k] = v
-            end
-        end
-    end
-    setmetatable(new, meta)
-
-    return new
-end
-
-function Reaper.getTableLength(t)
-    local len = 0
-    for k in pairs(t) do
-        len = len + 1
-    end
-
-    return len
-end
-
 function Reaper.getItemType(item)
     local _, selectedChunk =  reaper.GetItemStateChunk(item, "", 0)
     local itemType = string.match(selectedChunk, "<SOURCE%s(%P%P%P).*\n")
@@ -89,6 +55,21 @@ function Reaper.restoreSelectedItems(items)
             setItemSelected(items[i], true)
         end
     end
+end
+
+function Reaper.getStretchMarkers(take)
+    local stretchMarkers = {}
+    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
+    for i = 1, numStretchMarkers do
+        local _, pos, srcPos = reaper.GetTakeStretchMarker(take, i - 1)
+
+        stretchMarkers[i] = {
+            pos = pos,
+            srcPos = srcPos
+        }
+    end
+
+    return stretchMarkers
 end
 
 return Reaper

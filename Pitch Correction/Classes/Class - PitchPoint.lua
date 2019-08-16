@@ -1,6 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local Lua = require "Various Functions.Lua Functions"
+local Reaper = require "Various Functions.Reaper Functions"
 
 
 
@@ -49,30 +50,6 @@ end
 
 
 ------------------- Sorting -------------------
---[[function PitchPoint.pairs(pitchPoints)
-    local temp = {}
-    for key, correction in pairs(pitchPoints) do
-        table.insert(temp, {key, correction})
-    end
-
-    table.sort(temp, function(pp1, pp2)
-        return pp1[2].index < pp2[2].index
-    end)
-
-    local i = 0
-    local iterator = function()
-        i = i + 1
-
-        if temp[i] == nil then
-            return nil
-        else
-            return temp[i][1], temp[i][2]
-        end
-    end
-
-    return iterator
-end]]--
-
 function PitchPoint.findPointByTime(time, pitchPoints, findLeft)
     local numPitchPoints = #pitchPoints
 
@@ -168,21 +145,85 @@ function PitchPoint.getPitchPointsInTimeRange(pitchPoints, leftTime, rightTime)
     return newPoints
 end
 
-function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, leftTime, rightTime)
+function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, playrate, stretchMarkers, leftTime, rightTime)
     local rawPoints = {}
     local pointIndex = 1
+    local stretchMarkerIndex = 1
+    local playratesMatch = false
+    local stretchMarkersMatch = false
     local recordPitchData = false
     local skipThisLine = false
 
     for line in pitchDataString:gmatch("[^\r\n]+") do
 
-        if line:match("<PITCHDATA") then
+        --------------------- Playrate ---------------------
+
+        local prevPlayrate = tonumber(line:match("PLAYRATE ([%.%-%d]+)"))
+        if Lua.floatsAreEqual( prevPlayrate, playrate, 0.0001 ) then
+            playratesMatch = true
+        end
+
+
+
+        --------------------- Stretch Markers ---------------------
+
+        if line:match("<STRETCHMARKERS") and playratesMatch then
+            compareStretchMarkers = true
+            stretchMarkersMatch = true
+            stretchMarkerIndex = 1
+            skipThisLine = true
+        end
+
+        if line:match(">") and compareStretchMarkers then
+            compareStretchMarkers = false
+
+            -- There are no stretch markers in the string or the input.
+            if stretchMarkerIndex == 1 and #stretchMarkers == 0 then
+                stretchMarkersMatch = true
+
+            -- There are more input stretch markers than there are string stretch markers.
+            elseif #stretchMarkers ~= stretchMarkerIndex - 1 then
+                stretchMarkersMatch = false
+            end
+        end
+
+        if compareStretchMarkers and not skipThisLine then
+            local pos =    tonumber( line:match("    ([%.%-%d]+)") )
+            local srcPos = tonumber( line:match("    [%.%-%d]+ ([%.%-%d]+)") )
+
+            local currentStretchMarker = stretchMarkers[stretchMarkerIndex]
+
+            if currentStretchMarker then
+
+                if not Lua.floatsAreEqual( currentStretchMarker.pos, pos, 0.0001 ) then
+                    stretchMarkersMatch = false
+                end
+
+                if not Lua.floatsAreEqual( currentStretchMarker.srcPos, srcPos, 0.0001 ) then
+                    stretchMarkersMatch = false
+                end
+
+            -- There are less input stretch markers than there are string stretch markers.
+            else
+                stretchMarkersMatch = false
+            end
+
+            stretchMarkerIndex = stretchMarkerIndex + 1
+        end
+
+
+
+        --------------------- Pitch Data ---------------------
+
+        if line:match("<PITCHDATA") and playratesMatch and stretchMarkersMatch then
             recordPitchData = true
             skipThisLine = true
         end
 
-        if line:match(">") then
+        if line:match(">") and recordPitchData then
             recordPitchData = false
+            playratesMatch = false
+            stretchMarkersMatch = false
         end
 
         if recordPitchData and not skipThisLine then
@@ -212,14 +253,14 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, le
     return rawPoints
 end
 
-function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, leftTime, rightTime)
+function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, playrate, stretchMarkers, leftTime, rightTime)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
     local pitchPoints = {}
     local pointIndex = 1
     local recordPitchData = false
 
-    local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, leftTime, rightTime)
+    local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, playrate, stretchMarkers, leftTime, rightTime)
 
     for pointIndex, point in ipairs(rawPoints) do
         pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point.time, point.pitch, point.rms)
@@ -235,12 +276,13 @@ function PitchPoint.getPitchPointsByTakeGUID(takeGUID)
 
     local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
     local itemStartOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
-    --local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+    local stretchMarkers = Reaper.getStretchMarkers(take)
 
     local pointsLeftBound = itemStartOffset
     local pointsRightBound = itemStartOffset + itemLength
 
-    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, pointsLeftBound, pointsRightBound)
+    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, playrate, stretchMarkers, pointsLeftBound, pointsRightBound)
 end
 
 return PitchPoint

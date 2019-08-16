@@ -7,6 +7,8 @@ function Lua.clamp(number, low, high)
 end
 
 function Lua.floatsAreEqual(float1, float2, tolerance)
+    if float1 == nil or float2 == nil then return false end
+
     return math.abs(float1 - float2) < tolerance
 end
 
