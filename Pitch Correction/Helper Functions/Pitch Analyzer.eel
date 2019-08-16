@@ -163,11 +163,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
         sourceSampleRate = GetMediaSourceSampleRate(itemSource);
 
 
-        str_insert(#pitchData, "<PITCHDATA ",                          strlen(#outputString));
-        str_insert(#pitchData, sprintf(#, "%f ", startOffset),         strlen(#pitchData));
-        str_insert(#pitchData, sprintf(#, "%f", startOffset + length), strlen(#pitchData));
-        str_insert(#pitchData, "\n",                                   strlen(#pitchData));
-
 
         bufferSize = floor(sourceSampleRate * windowStep);
 
@@ -200,7 +195,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
 
                 frequency > 0 && strlen(#pitchData) < 64000 ?
                 (
-                    str_insert(#pitchData, "    ",                                       strlen(#pitchData));
 
                     str_insert(#pitchData, sprintf(#, "%f", seekPosition + startOffset), strlen(#pitchData));
                     str_insert(#pitchData, " ",                                          strlen(#pitchData));
@@ -223,9 +217,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
         );
 
         DestroyAudioAccessor(accessor);
-
-        str_insert(#pitchData, ">",  strlen(#pitchData));
-        str_insert(#pitchData, "\n", strlen(#pitchData));
     );
 );
 

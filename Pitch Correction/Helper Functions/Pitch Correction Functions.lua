@@ -54,35 +54,40 @@ function PCFunc.getEELCommandID(name)
     return nil
 end
 
-function PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)
-    local pitchDataGroups = {}
-    local pitchRanges = {}
-
-    for line in pitchDataString:gmatch("[^\r\n]+") do
-        if line:match("<PITCHDATA") then
-            local range = {}
-            range.leftTime = tonumber(line:match("<PITCHDATA (%d+.%d+)"))
-            range.rightTime = tonumber(line:match("<PITCHDATA %d+.%d+ (%d+.%d+)"))
-
-            table.insert(pitchRanges, range)
-        end
-    end
-
-    for index, range in pairs(pitchRanges) do
-        pitchDataGroups[index] = {}
-
-        pitchDataGroups[index].leftTime = range.leftTime
-        pitchDataGroups[index].rightTime = range.rightTime
-        pitchDataGroups[index].points = PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, range.leftTime, range.rightTime)
-    end
-
-    return pitchDataGroups
-end
-
 function PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
-    return PCFunc.getPitchDataGroupsFromPitchDataString(takeName, extState)
+    local pitchDataGroups = {}
+    local pitchRanges = {}
+
+    for line in extState:gmatch("[^\r\n]+") do
+
+        if line:match("<PITCHDATA") then
+
+            table.insert(pitchRanges, {
+
+                leftTime =  tonumber( line:match("<PITCHDATA (%d+.%d+)") ),
+                rightTime = tonumber( line:match("<PITCHDATA %d+.%d+ (%d+.%d+)") )
+
+            })
+
+        end
+
+    end
+
+    for index, range in ipairs(pitchRanges) do
+
+        pitchDataGroups[index] = {
+
+            leftTime = range.leftTime,
+            rightTime = range.rightTime,
+            points = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, playrate, stretchMarkers, range.leftTime, range.rightTime)
+
+        }
+
+    end
+
+    return pitchDataGroups
 end
 
 function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
@@ -132,29 +137,56 @@ end
 function PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMarkers)
     local stretchMarkersString = ""
     for markerIndex, marker in ipairs(stretchMarkers) do
-        stretchMarkersString = stretchMarkersString .. string.format("    %i %f %f\n", markerIndex, marker.pos, marker.srcPos)
+        stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", marker.pos, marker.srcPos)
     end
 
     local analysisString = ""
 
     for dataGroupIndex, dataGroup in pairs(dataGroups) do
-        local dataString = ""
+        if #dataGroup.points > 0 then
 
-        for pointIndex, point in pairs(dataGroup.points) do
-            dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
+            local dataString = ""
+
+            for pointIndex, point in pairs(dataGroup.points) do
+                dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
+            end
+
+            analysisString = analysisString .. "PLAYRATE " .. playrate .. "\n" ..
+
+                                               "<STRETCHMARKERS\n" .. stretchMarkersString ..
+                                               ">\n" ..
+
+                                               "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
+                                                   dataString ..
+                                               ">\n"
         end
-
-        analysisString = analysisString .. "PLAYRATE " .. playrate .. "\n" ..
-
-                                           "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                                           ">\n" ..
-
-                                           "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
-                                               dataString ..
-                                           ">\n"
     end
 
     return analysisString
+end
+
+function PCFunc.getPitchDataGroupFromExtState(startOffset, length)
+    local outputGroup = {
+        leftTime = startOffset,
+        rightTime = startOffset + length,
+        points = {}
+    }
+
+    local pitchDataString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+
+    for line in pitchDataString:gmatch("[^\r\n]+") do
+
+        table.insert(outputGroup.points, {
+
+            time =  tonumber( line:match("([%.%-%d]+)") ),
+            pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+)") ),
+            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
+
+        })
+
+    end
+
+    return outputGroup
 end
 
 function PCFunc.analyzePitch(takeGUID, settings)
@@ -183,9 +215,15 @@ function PCFunc.analyzePitch(takeGUID, settings)
 
 
     local prevPitchDataGroups = PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
+    local pitchDataGroup = PCFunc.getPitchDataGroupFromExtState(startOffset, length)
 
-    local pitchDataString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
-    local pitchDataGroup = PCFunc.getPitchDataGroupsFromPitchDataString(takeName, pitchDataString)[1]
+--    msg(#prevPitchDataGroups)
+--    msg(prevPitchDataGroups[1].leftTime)
+--    msg(prevPitchDataGroups[1].rightTime)
+--
+--    for index, value in ipairs(prevPitchDataGroups[1].points) do
+--        msg(tostring(value.time) .. " " .. tostring(value.pitch) .. " " .. tostring(value.rms))
+--    end
 
     local outputDataGroups = {}
 
@@ -212,7 +250,9 @@ function PCFunc.analyzePitch(takeGUID, settings)
 
     local analysisString = PCFunc.getAnalysisStringFromDataGroups(outputDataGroups, playrate, stretchMarkers)
 
-    --msg(analysisString)
+    msg(analysisString)
+
+    --local analysisString = PCFunc.getAnalysisStringFromDataGroups({ pitchDataGroup }, playrate, stretchMarkers)
 
     --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, analysisString)
 end

@@ -253,22 +253,6 @@ function PitchPoint.getRawPointsByPitchDataStringInTimeRange(pitchDataString, pl
     return rawPoints
 end
 
-function PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, playrate, stretchMarkers, leftTime, rightTime)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
-
-    local pitchPoints = {}
-    local pointIndex = 1
-    local recordPitchData = false
-
-    local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, playrate, stretchMarkers, leftTime, rightTime)
-
-    for pointIndex, point in ipairs(rawPoints) do
-        pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point.time, point.pitch, point.rms)
-    end
-
-    return pitchPoints
-end
-
 function PitchPoint.getPitchPointsByTakeGUID(takeGUID)
     local take = reaper.GetMediaItemTakeByGUID(0, takeGUID)
     local takeName = reaper.GetTakeName(take)
@@ -282,7 +266,21 @@ function PitchPoint.getPitchPointsByTakeGUID(takeGUID)
     local pointsLeftBound = itemStartOffset
     local pointsRightBound = itemStartOffset + itemLength
 
-    return PitchPoint.getPitchPointsByTakeNameInTimeRange(takeGUID, takeName, playrate, stretchMarkers, pointsLeftBound, pointsRightBound)
+
+
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
+
+    local pitchPoints = {}
+    local pointIndex = 1
+    local recordPitchData = false
+
+    local rawPoints = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, playrate, stretchMarkers, pointsLeftBound, pointsRightBound)
+
+    for pointIndex, point in ipairs(rawPoints) do
+        pitchPoints[pointIndex] = PitchPoint:new(takeGUID, pointIndex, point.time, point.pitch, point.rms)
+    end
+
+    return pitchPoints
 end
 
 return PitchPoint
