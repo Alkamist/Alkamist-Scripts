@@ -188,6 +188,33 @@ function PCFunc.getPitchDataGroupFromExtState(startOffset, length)
     return outputGroup
 end
 
+function PCFunc.getCombinedDataGroups(pitchDataGroup, prevPitchDataGroups)
+    local outputDataGroups = {}
+
+    if #prevPitchDataGroups > 0 then
+
+        for index, prevDataGroup in pairs(prevPitchDataGroups) do
+            local dataGroupCombined = false
+            pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
+
+            if not dataGroupCombined then
+                table.insert(outputDataGroups, prevDataGroup)
+            end
+
+            if index == #prevPitchDataGroups then
+                table.insert(outputDataGroups, pitchDataGroup)
+            end
+        end
+
+    else
+
+        table.insert(outputDataGroups, pitchDataGroup)
+
+    end
+
+    return outputDataGroups
+end
+
 function PCFunc.getNewDataStringFromDataGroups(takeName, dataGroups, playrate, stretchMarkers)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
 
@@ -251,40 +278,11 @@ function PCFunc.analyzePitch(takeGUID, settings)
     local prevPitchDataGroups = PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
     local pitchDataGroup = PCFunc.getPitchDataGroupFromExtState(startOffset, length)
 
---    msg(#prevPitchDataGroups)
---    msg(prevPitchDataGroups[1].leftTime)
---    msg(prevPitchDataGroups[1].rightTime)
---
---    for index, value in ipairs(prevPitchDataGroups[1].points) do
---        msg(tostring(value.time) .. " " .. tostring(value.pitch) .. " " .. tostring(value.rms))
---    end
+    local combinedDataGroups = PCFunc.getCombinedDataGroups(pitchDataGroup, prevPitchDataGroups)
 
-    local outputDataGroups = {}
+    local newDataString = PCFunc.getNewDataStringFromDataGroups(takeName, combinedDataGroups, playrate, stretchMarkers)
 
-    if #prevPitchDataGroups > 0 then
-
-        for index, prevDataGroup in pairs(prevPitchDataGroups) do
-            local dataGroupCombined = false
-            pitchDataGroup, dataGroupCombined = PCFunc.getCombinedPitchDataGroup(pitchDataGroup, prevDataGroup)
-
-            if not dataGroupCombined then
-                table.insert(outputDataGroups, prevDataGroup)
-            end
-
-            if index == #prevPitchDataGroups then
-                table.insert(outputDataGroups, pitchDataGroup)
-            end
-        end
-
-    else
-
-        table.insert(outputDataGroups, pitchDataGroup)
-
-    end
-
-    local newDataString = PCFunc.getNewDataStringFromDataGroups(takeName, outputDataGroups, playrate, stretchMarkers)
-
-    msg(newDataString)
+    --msg(newDataString)
 
     --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, newDataString)
 end
