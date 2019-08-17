@@ -81,6 +81,7 @@ function PitchGroup:getSavedPoints()
 
             if line:match(">") and recordPointData then
                 recordPointData = false
+                break
             end
 
             -- Record any points that are within the bounds of the item.
