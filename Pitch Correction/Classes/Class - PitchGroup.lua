@@ -68,7 +68,7 @@ function PitchGroup.getDataStringFromHeader(fullDataString, dataHeader)
         until false
     end
 
-    return dataHeader .. outputDataString
+    return outputDataString
 end
 
 function PitchGroup.getGroupsFromDataString(dataStringFromHeader)
@@ -80,7 +80,7 @@ function PitchGroup:savePoints()
     local dataHeader = self:getDataHeader()
 
     local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
-    local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+    --local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
 --    local combinedGroups = PitchGroup:getCombinedGroups(prevPitchGroups)
 --
 --    local saveString = dataHeader
@@ -89,7 +89,7 @@ function PitchGroup:savePoints()
 --        saveString = saveString .. group:getDataString()
 --    end
 --
---    local newExtState = string.gsub(extState, dataStringFromHeader, "") .. saveString
+--    local newExtState = string.gsub(extState, dataHeader .. dataStringFromHeader, "") .. saveString
 --
 --    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
 end
@@ -98,45 +98,23 @@ function PitchGroup:getSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
     local dataHeader = self:getDataHeader()
 
+    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
+
     local leftBound = self.startOffset
     local rightBound = leftBound + self.length
 
-    local headerStart, headerEnd = string.find(extState, dataHeader)
     local pointString = ""
 
-    -- Search through the ext state for any relevant points and write them to the point string.
-    if headerStart and headerEnd then
-        local searchIndex = headerEnd
-        local recordPointData = false
+    for line in dataStringFromHeader:gmatch("[^\r\n]+") do
 
-        repeat
+        local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
-            local line = string.match(extState, "([^\r\n]+)", searchIndex)
-            if line == nil then break end
-
-            if line:match("<PITCHDATA") then
-                recordPointData = true
+        if pointTime then
+            if pointTime >= leftBound and pointTime <= rightBound then
+                pointString = pointString .. line .. "\n"
             end
+        end
 
-            if line:match(">") and recordPointData then
-                recordPointData = false
-                break
-            end
-
-            -- Record any points that are within the bounds of the item.
-            if recordPointData then
-                local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-
-                if pointTime then
-                    if pointTime >= leftBound and pointTime <= rightBound then
-                        pointString = pointString .. line .. "\n"
-                    end
-                end
-            end
-
-            searchIndex = searchIndex + string.len(line) + 1
-
-        until string.match(line, "PLAYRATE")
     end
 
     return PitchGroup.getPointsFromString(pointString)
