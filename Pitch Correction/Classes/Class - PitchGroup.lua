@@ -48,19 +48,58 @@ function PitchGroup:analyze(settings)
     self:savePoints()
 end
 
+function PitchGroup.getDataStringFromHeader(fullDataString, dataHeader)
+    local headerStart, headerEnd = string.find(fullDataString, dataHeader)
+    local outputDataString = ""
+
+    if headerStart and headerEnd then
+        local searchIndex = headerEnd
+
+        repeat
+
+            local line = string.match(fullDataString, "([^\r\n]+)", searchIndex)
+            if line == nil then break end
+            if string.match(line, "PLAYRATE") then break end
+
+            outputDataString = outputDataString .. line .. "\n"
+
+            searchIndex = searchIndex + string.len(line) + 1
+
+        until false
+    end
+
+    return dataHeader .. outputDataString
+end
+
+function PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+
+end
+
 function PitchGroup:savePoints()
-    --local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
     local dataHeader = self:getDataHeader()
-    local dataString = self:getDataString()
 
-    local saveString = dataHeader .. dataString
-
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, saveString)
+    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
+    local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+--    local combinedGroups = PitchGroup:getCombinedGroups(prevPitchGroups)
+--
+--    local saveString = dataHeader
+--
+--    for index, group in ipairs(combinedGroups) do
+--        saveString = saveString .. group:getDataString()
+--    end
+--
+--    local newExtState = string.gsub(extState, dataStringFromHeader, "") .. saveString
+--
+--    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
 end
 
 function PitchGroup:getSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
     local dataHeader = self:getDataHeader()
+
+    local leftBound = self.startOffset
+    local rightBound = leftBound + self.length
 
     local headerStart, headerEnd = string.find(extState, dataHeader)
     local pointString = ""
@@ -89,7 +128,7 @@ function PitchGroup:getSavedPoints()
                 local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
                 if pointTime then
-                    if pointTime >= self.startOffset and pointTime <= self.startOffset + self.length then
+                    if pointTime >= leftBound and pointTime <= rightBound then
                         pointString = pointString .. line .. "\n"
                     end
                 end
@@ -174,6 +213,8 @@ function PitchGroup:getDataString()
 end
 
 function PitchGroup:setItem(item)
+    if Reaper.getItemType(item) == "midi" then return end
+
     self.item = item
     self.take = reaper.GetActiveTake(self.item)
     self.takeName = reaper.GetTakeName(self.take)
