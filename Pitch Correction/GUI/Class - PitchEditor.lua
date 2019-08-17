@@ -427,7 +427,7 @@ function GUI.PitchEditor:setItemsToSelectedItems()
 end
 
 function GUI.PitchEditor:onupdate()
-    self:setItemsToSelectedItems()
+    --self:setItemsToSelectedItems()
 
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
@@ -663,24 +663,28 @@ function GUI.PitchEditor:drawPreviewPitchLines()
 
     GUI.color("pitch_preview_lines")
 
+    local groupsTimeOffset = self.pitchGroups[1].leftTime
+
     for groupIndex, group in ipairs(self.pitchGroups) do
         local previousPoint = nil
         local previousPointX = nil
         local previousPointY = nil
 
-        local pitchEnvelope = group:getEnvelope()
+        local pitchEnvelope = group.envelope
+        local playrate = group.playrate
 
         for pointIndex, point in ipairs(group.points) do
             previousPoint = previousPoint or point
-            previousPointX = previousPointX or pointX
-            previousPointY = previousPointY or pointY
 
-            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
+            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time / playrate, 44100, 0)
 
             local pitchValue = point.pitch + envelopeValue
 
-            local pointX = self:getPixelsFromTime(point.time) - self.x
+            local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset - group.startOffset) - self.x
             local pointY = self:getPixelsFromPitch(pitchValue) - self.y
+
+            previousPointX = previousPointX or pointX
+            previousPointY = previousPointY or pointY
 
             if point.time - previousPoint.time > drawThreshold then
                 previousPointX = pointX
@@ -787,7 +791,7 @@ function GUI.PitchEditor:drawKeys()
 end
 
 function GUI.PitchEditor:drawPitchCorrections()
-    local x, y, w, h = self.x, self.y, self.w, self.h
+    --[[local x, y, w, h = self.x, self.y, self.w, self.h
 
     self.pitchCorrectionsBuff = self.pitchCorrectionsBuff or GUI.GetBuffer()
 
@@ -818,7 +822,7 @@ function GUI.PitchEditor:drawPitchCorrections()
             gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
             gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
         end
-    end
+    end]]--
 
     self:redraw()
 end
@@ -874,12 +878,12 @@ end
 
 function GUI.PitchEditor:analyzePitchGroups()
     for groupIndex, group in ipairs(self.pitchGroups) do
-        group:analyze()
+        group:analyze(self.pdSettings)
     end
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    --self:drawPitchCorrections()
 
     self:redraw()
 end
@@ -889,38 +893,34 @@ function GUI.PitchEditor:getSnappedPitch(pitch)
 end
 
 function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
-    local x, y, w, h = self.x, self.y, self.w, self.h
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    local relativeX = xPixels - x - self.keyWidth
-    return self:getTimeLength() * (scroll + relativeX / ((w - self.keyWidth) * zoom))
+    local relativeX = xPixels - self.x - self.keyWidth
+    return self:getTimeLength() * (scroll + relativeX / ((self.w - self.keyWidth) * zoom))
 end
 
 function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
-    local x, y, w, h = self.x, self.y, self.w, self.h
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    return self.keyWidth + x + zoom * (w - self.keyWidth) * (time / self:getTimeLength() - scroll)
+    return self.keyWidth + self.x + zoom * (self.w - self.keyWidth) * (time / self:getTimeLength() - scroll)
 end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
-    local x, y, w, h = self.x, self.y, self.w, self.h
     local zoom = zoom or self.zoomY
     local scroll = scroll or self.scrollY
 
-    local relativeY = yPixels - y
-    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (h * zoom))) - 0.5
+    local relativeY = yPixels - self.y
+    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (self.h * zoom))) - 0.5
 end
 
 function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
-    local x, y, w, h = self.x, self.y, self.w, self.h
     local zoom = zoom or self.zoomY
     local scroll = scroll or self.scrollY
 
     local pitchRatio = 1.0 - (0.5 + pitch) / self:getMaxPitch()
-    return y + zoom * h * (pitchRatio - scroll)
+    return self.y + zoom * self.h * (pitchRatio - scroll)
 end
 
 function GUI.PitchEditor:getTimeLeftBound()
@@ -932,11 +932,14 @@ function GUI.PitchEditor:getTimeLeftBound()
 end
 
 function GUI.PitchEditor:getTimeLength()
-    if reaper.ValidatePtr(self.item, "MediaItem*") then
-        return reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    end
+    local numPitchGroups = #self.pitchGroups
 
-    return 0
+    if numPitchGroups < 1 then return 0 end
+
+    local leftBound = self.pitchGroups[1].leftTime
+    local rightBound = self.pitchGroups[numPitchGroups].rightTime
+
+    return rightBound - leftBound
 end
 
 function GUI.PitchEditor:getMaxPitch()

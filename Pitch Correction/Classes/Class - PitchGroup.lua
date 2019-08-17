@@ -14,13 +14,14 @@ function PitchGroup:new(o)
 
     setmetatable(o, self)
     self.__index = self
-    self:setItem(self.item)
+
+    o:setItem(o.item)
 
     return o
 end
 
-function PitchGroup.prepareExtStateForPitchDetection(settings)
-    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", self.takeGUID, false)
+function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
@@ -37,7 +38,7 @@ function PitchGroup:analyze(settings)
         return 0
     end
 
-    PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
+    PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
     Reaper.reaperCMD(analyzerID)
 
     local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
@@ -79,7 +80,7 @@ function PitchGroup.getPitchGroupsFromItems(items)
 
     for index, item in pairs(items) do
         if reaper.ValidatePtr(item, "MediaItem*") then
-            table.insert( pitchGroups, { item = item } )
+            table.insert( pitchGroups, PitchGroup:new( { item = item } ) )
         end
     end
 
@@ -126,10 +127,10 @@ function PitchGroup:getDataHeader()
         stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", marker.pos, marker.srcPos)
     end
 
-    local analysisHeader = "PLAYRATE " .. self.playrate .. "\n" ..
+    local dataHeader = "PLAYRATE " .. self.playrate .. "\n" ..
 
-                            "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                            ">\n"
+                       "<STRETCHMARKERS\n" .. stretchMarkersString ..
+                       ">\n"
 
     return dataHeader
 end
