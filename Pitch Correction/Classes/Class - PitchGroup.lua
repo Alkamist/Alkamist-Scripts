@@ -75,7 +75,7 @@ function PitchGroup:getSavedPoints()
             local line = string.match(extState, "([^\r\n]+)", searchIndex)
             if line == nil then break end
 
-            if line:match(string.format("<PITCHDATA %f %f", self.startOffset, self.startOffset + self.length)) then
+            if line:match("<PITCHDATA") then
                 recordPointData = true
             end
 
@@ -83,8 +83,15 @@ function PitchGroup:getSavedPoints()
                 recordPointData = false
             end
 
+            -- Record any points that are within the bounds of the item.
             if recordPointData then
-                pointString = pointString .. line .. "\n"
+                local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
+
+                if pointTime then
+                    if pointTime >= self.startOffset and pointTime <= self.startOffset + self.length then
+                        pointString = pointString .. line .. "\n"
+                    end
+                end
             end
 
             searchIndex = searchIndex + string.len(line) + 1
@@ -113,9 +120,9 @@ function PitchGroup.getPointsFromString(pointString)
 
         table.insert(points, {
 
-            time =  line:match("([%.%-%d]+)"),
-            pitch = line:match("[%.%-%d]+ ([%.%-%d]+)"),
-            rms =   line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)")
+            time =  tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ),
+            pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
+            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
 
         } )
 
