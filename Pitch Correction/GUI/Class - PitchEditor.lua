@@ -8,8 +8,9 @@ end
 
 
 local Lua = require "Various Functions.Lua Functions"
-local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
-local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
+--local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+--local PCFunc = require "Pitch Correction.Helper Functions.Pitch Correction Functions"
 
 local mousePitchCorrectionPixelTolerance = 5
 
@@ -44,7 +45,7 @@ end
 
 
 GUI.PitchEditor = GUI.Element:new()
-function GUI.PitchEditor:new(name, z, x, y, w, h, take, pdSettings)
+function GUI.PitchEditor:new(name, z, x, y, w, h)
     -- This provides support for creating elms with a keyed table
     local object = (not x and type(z) == "table") and z or {}
 
@@ -102,25 +103,25 @@ function GUI.PitchEditor:new(name, z, x, y, w, h, take, pdSettings)
     object.keyWidthMult = 0.05
     object.keyWidth = object.w * object.keyWidthMult
 
+    object.pitchGroups = {}
+
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
     self.__index = self
 
-    object:setTake(object.take or take, object.pdSettings or pdSettings)
-
     return object
 end
 
 function GUI.PitchEditor:init()
-    local x, y, w, h = self.x, self.y, self.w, self.h
+    self:setItemsToSelectedItems()
 
     self:drawKeyBackgrounds()
     self:drawBackground()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    --self:drawPitchCorrections()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -171,7 +172,7 @@ function GUI.PitchEditor:onmousedown()
     self.scrollXPreDrag = self.scrollX
     self.scrollYPreDrag = self.scrollY
 
-    local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
+    --[[local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
 
     if correctionUnderMouse then
         if gfx.mouse_cap & 8 == 0 and not correctionUnderMouse.isSelected then
@@ -181,10 +182,10 @@ function GUI.PitchEditor:onmousedown()
         self:selectPitchCorrection(correctionUnderMouse)
         self.editCorrection = correctionUnderMouse
         self.editHandle = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderMouse)
-    end
+    end]]--
 
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    --self:drawPitchCorrections()
 
     self:redraw()
 end
@@ -195,7 +196,7 @@ function GUI.PitchEditor:onmouseup()
     if not self.lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
-        local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
+        --local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
 
         if correctionUnderMouse == nil then
             local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
@@ -203,12 +204,12 @@ function GUI.PitchEditor:onmouseup()
 
             self:drawEditCursor()
 
-            self:unselectAllPitchCorrections()
+            --self:unselectAllPitchCorrections()
 
         -- Not holding shift:
         elseif gfx.mouse_cap & 8 == 0 then
-            self:unselectAllPitchCorrections()
-            self:selectPitchCorrection(correctionUnderMouse)
+            --self:unselectAllPitchCorrections()
+            --self:selectPitchCorrection(correctionUnderMouse)
         end
     end
 
@@ -217,18 +218,18 @@ function GUI.PitchEditor:onmouseup()
     self.editCorrection = nil
     self.editHandle = nil
 
-    self:drawPitchCorrections()
+    --self:drawPitchCorrections()
 
     self:redraw()
 end
 
 function GUI.PitchEditor:clearEnvelopesUnderPitchCorrection(correction)
-    if #self.pitchPoints > 0 then
-        local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
-        local playrate = self.pitchPoints[1]:getPlayrate()
+    --if #self.pitchPoints > 0 then
+        --local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+        --local playrate = self.pitchPoints[1]:getPlayrate()
 
-        reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction:getLeftNode().time, playrate * correction:getRightNode().time)
-    end
+        --reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction:getLeftNode().time, playrate * correction:getRightNode().time)
+    --end
 end
 
 function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
@@ -392,25 +393,41 @@ end
 function GUI.PitchEditor:ondrag()
     if self.item == nil then return end
 
-    self:handleCorrectionEditing()
+    --self:handleCorrectionEditing()
 
     self.lWasDragged = true
 
     self:redraw()
 end
 
-function GUI.PitchEditor:onupdate()
-    local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+function GUI.PitchEditor:setItemsToSelectedItems()
+    local itemsAreSelectedOnMultipleTracks = false
+    local numSelectedItems = reaper.CountSelectedMediaItems(0)
+    local selectedItems = {}
 
-    if selectedItem ~= previousSelectedItem then
-        local selectedTake = nil
+    for i = 1, numSelectedItems do
+        local item = reaper.GetSelectedMediaItem(0, i - 1)
+        local itemTrack = reaper.GetMediaItemTrack(item)
 
-        if selectedItem then selectedTake = reaper.GetActiveTake(selectedItem) end
+        if i > 1 then
+            local previousItem = reaper.GetSelectedMediaItem(0, i - 2)
+            local previousItemTrack = reaper.GetMediaItemTrack(previousItem)
 
-        self:setTake(selectedTake, self.pdSettings)
+            if itemTrack ~= previousItemTrack then
+                itemsAreSelectedOnMultipleTracks = true
+            end
+        end
+
+        table.insert(selectedItems, item)
     end
 
+    if not itemsAreSelectedOnMultipleTracks then
+        self:setItems(selectedItems)
+    end
+end
 
+function GUI.PitchEditor:onupdate()
+    self:setItemsToSelectedItems()
 
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
@@ -418,6 +435,7 @@ function GUI.PitchEditor:onupdate()
     if projectIsPlaying then
         self:drawEditCursor()
         self.playCursorCleared = false
+
     elseif not self.playCursorCleared then
         self:drawEditCursor()
         self.playCursorCleared = true
@@ -589,14 +607,11 @@ function GUI.PitchEditor:drawBackground()
 end
 
 function GUI.PitchEditor:drawPitchLines()
-    if #self.pitchPoints < 1 then return end
-    if self.take == nil then return end
+    --[[if #self.pitchGroups < 1 then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local windowStep = 0.04
-    local overlap = 2
-    local drawThreshold = 2.5 * windowStep / overlap
+    local drawThreshold = 2.5 * self.pdSettings.windowStep / self.pdSettings.overlap
 
     self.pitchLinesBuff = self.pitchLinesBuff or GUI.GetBuffer()
 
@@ -632,57 +647,52 @@ function GUI.PitchEditor:drawPitchLines()
         previousPointY = pointY
     end
 
-    self:redraw()
+    self:redraw()]]--
 end
 
 function GUI.PitchEditor:drawPreviewPitchLines()
-    if #self.pitchPoints < 1 then return end
-    if self.take == nil then return end
+    if #self.pitchGroups < 1 then return end
 
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local windowStep = 0.04
-    local overlap = 2
-    local drawThreshold = 2.5 * windowStep / overlap
+    local drawThreshold = 2.5 * self.pdSettings.windowStep / self.pdSettings.overlap
 
     self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
 
     gfx.dest = self.previewLinesBuff
     gfx.setimgdim(self.previewLinesBuff, -1, -1)
-    gfx.setimgdim(self.previewLinesBuff, w, h)
+    gfx.setimgdim(self.previewLinesBuff, self.w, self.h)
 
     GUI.color("pitch_preview_lines")
 
-    local previousPoint = nil
-    local previousPointX = 0
-    local previousPointY = 0
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        local previousPoint = nil
+        local previousPointX = nil
+        local previousPointY = nil
 
-    local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
+        local pitchEnvelope = group:getEnvelope()
 
-    for pointKey, point in ipairs(self.pitchPoints) do
-        local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
+        for pointIndex, point in ipairs(group.points) do
+            previousPoint = previousPoint or point
+            previousPointX = previousPointX or pointX
+            previousPointY = previousPointY or pointY
 
-        local pitchValue = point.pitch + envelopeValue
+            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time, 44100, 0)
 
-        local pointX = self:getPixelsFromTime(point.time) - x
-        local pointY = self:getPixelsFromPitch(pitchValue) - y
+            local pitchValue = point.pitch + envelopeValue
 
-        if pointKey == 1 then
+            local pointX = self:getPixelsFromTime(point.time) - self.x
+            local pointY = self:getPixelsFromPitch(pitchValue) - self.y
+
+            if point.time - previousPoint.time > drawThreshold then
+                previousPointX = pointX
+                previousPointY = pointY
+            end
+
+            gfx.line(previousPointX, previousPointY, pointX, pointY, false)
+
             previousPoint = point
             previousPointX = pointX
             previousPointY = pointY
         end
-
-        if point.time - previousPoint.time > drawThreshold then
-            previousPointX = pointX
-            previousPointY = pointY
-        end
-
-        gfx.line(previousPointX, previousPointY, pointX, pointY, false)
-
-        previousPoint = point
-        previousPointX = pointX
-        previousPointY = pointY
     end
 
     self:redraw()
@@ -844,39 +854,27 @@ function GUI.PitchEditor:drawEditCursor()
     self:redraw()
 end
 
-function GUI.PitchEditor:setTake(take, pdSettings)
-    local isTake = reaper.ValidatePtr(take, "MediaItem_Take*")
-
-    if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
+function GUI.PitchEditor:setItems(items)
+    --[[if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
     if self.previewLinesBuff then GUI.FreeBuffer(self.previewLinesBuff) end
     if self.pitchCorrectionsBuff then GUI.FreeBuffer(self.pitchCorrectionsBuff) end
 
     self.pitchLinesBuff = nil
     self.previewLinesBuff = nil
-    self.pitchCorrectionsBuff = nil
+    self.pitchCorrectionsBuff = nil]]--
 
-    if take and isTake then
-        self.take = take
-        self.item = reaper.GetMediaItemTake_Item(take)
-        self.takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-        self.pitchPoints = PitchPoint.getPitchPointsByTakeGUID(self.takeGUID)
-        self.pdSettings = pdSettings
-    else
-        self.take = nil
-        self.item = nil
-        self.takeGUID = nil
+    self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
 
-        for key in pairs(self.pitchPoints) do
-            self.pitchPoints[key] = nil
-        end
+    self:drawPitchLines()
+    self:drawPreviewPitchLines()
+    --self:drawPitchCorrections()
 
-        for key in pairs(self.pitchCorrections) do
-            self.pitchCorrections[key] = nil
-        end
+    self:redraw()
+end
 
-        for key in pairs(self.pitchCorrections) do
-            self.pdSettings[key] = nil
-        end
+function GUI.PitchEditor:analyzePitchGroups()
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        group:analyze()
     end
 
     self:drawPitchLines()
@@ -1051,8 +1049,8 @@ function GUI.PitchEditor:getClosestValidTimeToPosition(time)
 end
 
 function GUI.PitchEditor:applyPitchCorrection(correction)
-    if self.take and #self.pitchPoints > 0 then
-        PitchCorrection.correctPitchPoints(self.pitchPoints, correction, self.pdSettings)
+    if #self.pitchGroups > 0 then
+        --PitchCorrection.correctPitchPoints(self.pitchPoints, correction, self.pdSettings)
 
         reaper.UpdateArrange()
     end

@@ -4,6 +4,4 @@ function msg(m)
     reaper.ShowConsoleMsg(tostring(m).."\n")
 end
 
-local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
-
 require "Pitch Correction.GUI.Pitch Editor GUI"

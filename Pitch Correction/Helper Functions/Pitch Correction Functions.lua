@@ -1,16 +1,16 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local Reaper = require "Various Functions.Reaper Functions"
-local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
-local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
+--local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
+--local PitchPoint = require "Pitch Correction.Classes.Class - PitchPoint"
 
 
 
 local PCFunc = {}
 
-
-
 local edgePointSpacing = 0.01
+
+
 
 function PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
@@ -20,74 +20,6 @@ function PCFunc.prepareExtStateForPitchCorrection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
-end
-
-function PCFunc.getEELCommandID(name)
-    local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
-    local file = io.open(kbini, 'r')
-
-    local content = nil
-    if file then
-        content = file:read('a')
-        file:close()
-    end
-
-    if content then
-        local nameString = nil
-        for line in content:gmatch('[^\r\n]+') do
-            if line:match(name) then
-                nameString = line:match('SCR %d+ %d+ ([%a%_%d]+)')
-                break
-            end
-        end
-
-        local commandID = nil
-        if nameString then
-            commandID = reaper.NamedCommandLookup('_' .. nameString)
-        end
-
-        if commandID and commandID ~= 0 then
-            return commandID
-        end
-    end
-
-    return nil
-end
-
-function PCFunc.getPreviousPitchDataGroups(takeName, playrate, stretchMarkers)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
-
-    local pitchDataGroups = {}
-    local pitchRanges = {}
-
-    for line in extState:gmatch("[^\r\n]+") do
-
-        if line:match("<PITCHDATA") then
-
-            table.insert(pitchRanges, {
-
-                leftTime =  tonumber( line:match("<PITCHDATA (%d+.%d+)") ),
-                rightTime = tonumber( line:match("<PITCHDATA %d+.%d+ (%d+.%d+)") )
-
-            })
-
-        end
-
-    end
-
-    for index, range in ipairs(pitchRanges) do
-
-        pitchDataGroups[index] = {
-
-            leftTime = range.leftTime,
-            rightTime = range.rightTime,
-            points = PitchPoint.getRawPointsByPitchDataStringInTimeRange(extState, playrate, stretchMarkers, range.leftTime, range.rightTime)
-
-        }
-
-    end
-
-    return pitchDataGroups
 end
 
 function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
@@ -134,60 +66,6 @@ function PCFunc.getCombinedPitchDataGroup(favoredGroup, secondaryGroup)
     return favoredGroup, false
 end
 
-function PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMarkers)
-    local stretchMarkersString = ""
-    for markerIndex, marker in ipairs(stretchMarkers) do
-        stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", marker.pos, marker.srcPos)
-    end
-
-    local analysisString = ""
-    local analysisHeader = "PLAYRATE " .. playrate .. "\n" ..
-
-                            "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                            ">\n"
-
-    for dataGroupIndex, dataGroup in pairs(dataGroups) do
-        if #dataGroup.points > 0 then
-
-            local dataString = ""
-
-            for pointIndex, point in pairs(dataGroup.points) do
-                dataString = dataString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
-            end
-
-            analysisString = analysisString .. "<PITCHDATA " .. string.format("%f %f\n", dataGroup.leftTime, dataGroup.rightTime) ..
-                                                   dataString ..
-                                               ">\n"
-        end
-    end
-
-    return analysisString, analysisHeader
-end
-
-function PCFunc.getPitchDataGroupFromExtState(startOffset, length)
-    local outputGroup = {
-        leftTime = startOffset,
-        rightTime = startOffset + length,
-        points = {}
-    }
-
-    local pitchDataString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
-
-    for line in pitchDataString:gmatch("[^\r\n]+") do
-
-        table.insert(outputGroup.points, {
-
-            time =  tonumber( line:match("([%.%-%d]+)") ),
-            pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+)") ),
-            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
-
-        })
-
-    end
-
-    return outputGroup
-end
-
 function PCFunc.getCombinedDataGroups(pitchDataGroup, prevPitchDataGroups)
     local outputDataGroups = {}
 
@@ -213,41 +91,6 @@ function PCFunc.getCombinedDataGroups(pitchDataGroup, prevPitchDataGroups)
     end
 
     return outputDataGroups
-end
-
-function PCFunc.getNewDataStringFromDataGroups(takeName, dataGroups, playrate, stretchMarkers)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", takeName)
-
-    local analysisString, analysisHeader = PCFunc.getAnalysisStringFromDataGroups(dataGroups, playrate, stretchMarkers)
-
-    local headerStart, headerEnd = string.find(extState, analysisHeader)
-    local newDataString = ""
-
-    if headerStart and headerEnd then
-
-        local searchIndex = headerEnd
-        local stringToRemove = ""
-
-        repeat
-
-            local line = string.match(extState, "([^\r\n]+)", searchIndex)
-
-            if line == nil then break end
-
-            stringToRemove = stringToRemove .. line .. "\n"
-
-            searchIndex = searchIndex + string.len(line) + 1
-
-        until string.match(line, "PLAYRATE")
-
-        local modifiedExtState = string.gsub(extState, stringToRemove, "")
-        newDataString = modifiedExtState .. analysisString
-
-    else
-        newDataString = extState .. analysisHeader .. analysisString
-    end
-
-    return newDataString
 end
 
 function PCFunc.analyzePitch(takeGUID, settings)
@@ -286,6 +129,8 @@ function PCFunc.analyzePitch(takeGUID, settings)
 
     --reaper.SetProjExtState(0, "Alkamist_PitchCorrection", takeName, newDataString)
 end
+
+
 
 function PCFunc.itemPitchesNeedRecalculation(currentItem, settings)
     local changeTolerance = 0.000001

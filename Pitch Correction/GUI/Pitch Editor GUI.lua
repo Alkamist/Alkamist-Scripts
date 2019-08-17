@@ -7,8 +7,6 @@ if not lib_path or lib_path == "" then
 end
 loadfile(lib_path .. "Core.lua")()
 
-local PCFunc = require "Pitch Correction.Helper Functions.Pitch Correction Functions"
-
 require "Pitch Correction.GUI.Class - PitchEditor"
 GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
@@ -43,12 +41,7 @@ local fonts = GUI.get_OS_fonts()
 local elms = {}
 
 local function analyze_button_click()
-    local take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
-    local takeGUID = reaper.BR_GetMediaItemTakeGUID(take)
-
-    PCFunc.analyzePitch(takeGUID, pdSettings)
-
-    elms.pitch_editor:setTake(take, pdSettings)
+    elms.pitch_editor:analyzePitchGroups()
 end
 
 
@@ -85,7 +78,6 @@ elms.pitch_editor = {
     y = 52,
     w = 0,
     h = 0,
-    take = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0)),
     pdSettings = pdSettings
 }
 
