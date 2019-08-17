@@ -1,6 +1,6 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
---local Lua = require "Various Functions.Lua Functions"
+local Lua = require "Various Functions.Lua Functions"
 local Reaper = require "Various Functions.Reaper Functions"
 
 
@@ -15,7 +15,9 @@ function PitchGroup:new(o)
     setmetatable(o, self)
     self.__index = self
 
-    o:setItem(o.item)
+    if o.item then
+        o:setItem(o.item)
+    end
 
     return o
 end
@@ -71,8 +73,135 @@ function PitchGroup.getDataStringFromHeader(fullDataString, dataHeader)
     return outputDataString
 end
 
-function PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+function PitchGroup.getGroupsFromDataString(dataString)
+    local outputGroups = {}
+    local groupIndex = 1
+    local searchIndex = 1
+    local recordPointData = false
 
+    repeat
+
+        local line = string.match(dataString, "([^\r\n]+)", searchIndex)
+        if line == nil then break end
+
+        if line:match("<PITCHDATA") then
+            local leftBound =  tonumber( line:match("<PITCHDATA ([%.%-%d]+) [%.%-%d]+") )
+            local rightBound = tonumber( line:match("<PITCHDATA [%.%-%d]+ ([%.%-%d]+)") )
+
+            outputGroups[groupIndex] = PitchGroup:new( {
+
+                startOffset = leftBound,
+                length = rightBound - leftBound,
+                points = {}
+
+            } )
+
+            recordPointData = true
+        end
+
+        if line:match(">") and recordPointData then
+            recordPointData = false
+            groupIndex = groupIndex + 1
+        end
+
+        if recordPointData then
+            local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
+
+            if pointTime then
+                local pointPitch = tonumber( line:match("    [%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") )
+                local pointRMS =   tonumber( line:match("    [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
+
+                table.insert(outputGroups[groupIndex].points, {
+
+                    time = pointTime,
+                    pitch = pointPitch,
+                    rms = pointRMS
+
+                })
+            end
+        end
+
+        searchIndex = searchIndex + string.len(line) + 1
+
+    until false
+
+    return outputGroups
+end
+
+function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
+    local favoredLeftBound = favoredGroup.startOffset
+    local favoredRightBound = favoredLeftBound + favoredGroup.length
+
+    local secondaryLeftBound = secondaryGroup.startOffset
+    local secondaryRightBound = secondaryLeftBound + secondaryGroup.length
+
+    local groupsAreOverlapping = favoredLeftBound >= secondaryLeftBound and favoredLeftBound <= secondaryRightBound
+                              or favoredRightBound >= secondaryLeftBound and favoredRightBound <= secondaryRightBound
+
+                              or secondaryLeftBound >= favoredLeftBound and secondaryLeftBound <= favoredRightBound
+                              or secondaryRightBound >= favoredLeftBound and secondaryRightBound <= favoredRightBound
+
+    if groupsAreOverlapping then
+
+        local outputGroup = PitchGroup:new( {
+
+            startOffset = math.min(favoredGroup.startOffset, secondaryGroup.startOffset),
+            length = math.max(favoredGroup.length, secondaryGroup.length),
+            points = {}
+
+        } )
+
+        local favoredPointsWereInserted = false
+        for secondaryIndex, secondaryPoint in ipairs(secondaryGroup.points) do
+
+            if secondaryPoint.time < favoredLeftBound or secondaryPoint.time > favoredRightBound then
+                table.insert(outputGroup.points, secondaryPoint)
+            end
+
+            if not favoredPointsWereInserted then
+
+                if secondaryPoint.time >= favoredLeftBound then
+
+                    for favoredIndex, favoredPoint in ipairs(favoredGroup.points) do
+                        table.insert(outputGroup.points, favoredPoint)
+                    end
+
+                    favoredPointsWereInserted = true
+
+                end
+            end
+        end
+
+        return outputGroup, true
+
+    end
+
+    return favoredGroup, false
+end
+
+function PitchGroup.getCombinedGroups(favoredGroup, prevPitchGroups)
+    local outputGroups = {}
+
+    if #prevPitchGroups > 0 then
+
+        for index, prevGroup in ipairs(prevPitchGroups) do
+            local dataGroupCombined = false
+            favoredGroup, dataGroupCombined = PitchGroup.getCombinedGroup(favoredGroup, prevGroup)
+
+            if not dataGroupCombined then
+                table.insert(outputGroups, prevGroup)
+            end
+
+            if index == #prevPitchGroups then
+                table.insert(outputGroups, favoredGroup)
+            end
+        end
+
+    else
+        table.insert(outputGroups, favoredGroup)
+    end
+
+    return outputGroups
 end
 
 function PitchGroup:savePoints()
@@ -80,32 +209,24 @@ function PitchGroup:savePoints()
     local dataHeader = self:getDataHeader()
 
     local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
-    --local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
---    local combinedGroups = PitchGroup:getCombinedGroups(prevPitchGroups)
---
---    local saveString = dataHeader
---
---    for index, group in ipairs(combinedGroups) do
---        saveString = saveString .. group:getDataString()
---    end
---
---    local newExtState = string.gsub(extState, dataHeader .. dataStringFromHeader, "") .. saveString
---
---    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
+    local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+    local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
+
+    local saveString = dataHeader
+
+    for index, group in ipairs(combinedGroups) do
+        saveString = saveString .. group:getDataString()
+    end
+
+    local newExtState = string.gsub(extState, dataHeader .. dataStringFromHeader, "") .. saveString
+
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
 end
 
-function PitchGroup:getSavedPoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
-    local dataHeader = self:getDataHeader()
-
-    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
-
-    local leftBound = self.startOffset
-    local rightBound = leftBound + self.length
-
+function PitchGroup.getPointsFromDataStringWithinRange(dataString, leftBound, rightBound)
     local pointString = ""
 
-    for line in dataStringFromHeader:gmatch("[^\r\n]+") do
+    for line in dataString:gmatch("[^\r\n]+") do
 
         local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
@@ -118,6 +239,18 @@ function PitchGroup:getSavedPoints()
     end
 
     return PitchGroup.getPointsFromString(pointString)
+end
+
+function PitchGroup:getSavedPoints()
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local dataHeader = self:getDataHeader()
+
+    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
+
+    local leftBound = self.startOffset
+    local rightBound = leftBound + self.length
+
+    return PitchGroup.getPointsFromDataStringWithinRange(dataStringFromHeader, leftBound, rightBound)
 end
 
 function PitchGroup:getEnvelope()
