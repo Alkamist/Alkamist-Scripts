@@ -44,6 +44,55 @@ function PitchGroup:analyze(settings)
     local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
     self.points = PitchGroup.getPointsFromString(analysisString)
+
+    self:savePoints()
+end
+
+function PitchGroup:savePoints()
+    --local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local dataHeader = self:getDataHeader()
+    local dataString = self:getDataString()
+
+    local saveString = dataHeader .. dataString
+
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, saveString)
+end
+
+function PitchGroup:getSavedPoints()
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local dataHeader = self:getDataHeader()
+
+    local headerStart, headerEnd = string.find(extState, dataHeader)
+    local pointString = ""
+
+    -- Search through the ext state for any relevant points and write them to the point string.
+    if headerStart and headerEnd then
+        local searchIndex = headerEnd
+        local recordPointData = false
+
+        repeat
+
+            local line = string.match(extState, "([^\r\n]+)", searchIndex)
+            if line == nil then break end
+
+            if line:match(string.format("<PITCHDATA %f %f", self.startOffset, self.startOffset + self.length)) then
+                recordPointData = true
+            end
+
+            if line:match(">") and recordPointData then
+                recordPointData = false
+            end
+
+            if recordPointData then
+                pointString = pointString .. line .. "\n"
+            end
+
+            searchIndex = searchIndex + string.len(line) + 1
+
+        until string.match(line, "PLAYRATE")
+    end
+
+    return PitchGroup.getPointsFromString(pointString)
 end
 
 function PitchGroup:getEnvelope()
@@ -87,39 +136,6 @@ function PitchGroup.getPitchGroupsFromItems(items)
     return pitchGroups
 end
 
-function PitchGroup:getSavedPoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
-    local dataHeader = self:getDataHeader()
-
-    local headerStart, headerEnd = string.find(extState, dataHeader)
-    local pointString = ""
-
-    -- Search through the ext state for any relevant points and write them to the point string.
-    if headerStart and headerEnd then
-        local searchIndex = headerEnd
-        local recordPointData = false
-
-        repeat
-
-            local line = string.match(extState, "([^\r\n]+)", searchIndex)
-            if line == nil then break end
-
-            if line:match(string.format("<PITCHDATA %f %f"), self.startOffset, self.startOffset + self.length) then
-                recordPointData = true
-            end
-
-            if recordPointData then
-                pointString = pointString .. line .. "\n"
-            end
-
-            searchIndex = searchIndex + string.len(line) + 1
-
-        until string.match(line, "PLAYRATE")
-    end
-
-    return PitchGroup.getPointsFromString(pointString)
-end
-
 function PitchGroup:getDataHeader()
     local stretchMarkersString = ""
 
@@ -142,7 +158,7 @@ function PitchGroup:getDataString()
         pitchString = pitchString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
     end
 
-    local dataString = "<PITCHDATA " .. string.format("%f %f\n", self.leftTime, self.rightTime) ..
+    local dataString = "<PITCHDATA " .. string.format("%f %f\n", self.startOffset, self.startOffset + self.length) ..
                             pitchString ..
                         ">\n"
 
