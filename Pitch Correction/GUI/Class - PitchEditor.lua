@@ -143,11 +143,11 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.keyLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.pitchLinesBuff and self.take then
+    if self.pitchLinesBuff then
         gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.previewLinesBuff and self.take then
+    if self.previewLinesBuff then
         gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
@@ -155,7 +155,7 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.pitchCorrectionsBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.editCursorBuff and self.take then
+    if self.editCursorBuff then
         gfx.blit(self.editCursorBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
@@ -165,8 +165,6 @@ function GUI.PitchEditor:draw()
 end
 
 function GUI.PitchEditor:onmousedown()
-    if self.item == nil then return end
-
     self.zoomXPreDrag = self.zoomX
     self.zoomYPreDrag = self.zoomY
     self.scrollXPreDrag = self.scrollX
@@ -191,8 +189,6 @@ function GUI.PitchEditor:onmousedown()
 end
 
 function GUI.PitchEditor:onmouseup()
-    if self.item == nil then return end
-
     if not self.lWasDragged then
         local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -828,8 +824,6 @@ function GUI.PitchEditor:drawPitchCorrections()
 end
 
 function GUI.PitchEditor:drawEditCursor()
-    if self.item == nil then return end
-
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local editCursorPosition = reaper.GetCursorPositionEx(0)
@@ -924,11 +918,11 @@ function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
 end
 
 function GUI.PitchEditor:getTimeLeftBound()
-    if reaper.ValidatePtr(self.item, "MediaItem*") then
-        return reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-    end
+    local numPitchGroups = #self.pitchGroups
 
-    return 0
+    if numPitchGroups < 1 then return 0 end
+
+    return self.pitchGroups[1].leftTime
 end
 
 function GUI.PitchEditor:getTimeLength()
