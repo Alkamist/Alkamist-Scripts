@@ -298,7 +298,7 @@ function PitchGroup:getDataHeader()
     local stretchMarkersString = ""
 
     for markerIndex, marker in ipairs(self.stretchMarkers) do
-        stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", marker.pos, marker.srcPos)
+        stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", self.startOffset + marker.pos, marker.srcPos)
     end
 
     local dataHeader = "PLAYRATE " .. self.playrate .. "\n" ..
