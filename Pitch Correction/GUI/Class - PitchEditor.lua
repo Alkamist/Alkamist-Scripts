@@ -66,7 +66,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
         y = 0
     }
 
-    object.correctionGroup = {}
+    object.correctionGroup = CorrectionGroup:new()
 
     object.keyWidthMult = 0.05
     object.keyWidth = object.w * object.keyWidthMult
@@ -82,6 +82,8 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
 end
 
 function GUI.PitchEditor:init()
+    self:initDragZoomAndScroll()
+
     self:setItemsToSelectedItems()
 
     self:drawKeyBackgrounds()
@@ -89,7 +91,7 @@ function GUI.PitchEditor:init()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -119,8 +121,8 @@ function GUI.PitchEditor:draw()
         gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
-    if self.pitchCorrectionsBuff then
-        gfx.blit(self.pitchCorrectionsBuff, 1, 0, 0, 0, w, h, x, y)
+    if self.correctionGroupBuff then
+        gfx.blit(self.correctionGroupBuff, 1, 0, 0, 0, w, h, x, y)
     end
 
     if self.editCursorBuff then
@@ -142,17 +144,28 @@ function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     reaper.UpdateArrange()
 end
 
-function GUI.PitchEditor:getMouseDistanceToCorrectionNode(node)
-    if node == nil then return nil end
+function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
+    if nodes == nil then return nil end
+    if nodes[index] == nil then return nil end
+
+    --[[local node = nodes[index]
+    local nextNode = nodes[index + 1] or node
 
     local leftHandleX = self:getPixelsFromTime(node.time)
     local leftHandleY = self:getPixelsFromPitch(node.pitch)
-    local rightHandleX = self:getPixelsFromTime(node.nextNode.time)
-    local rightHandleY = self:getPixelsFromPitch(node.nextNode.pitch)
+    local rightHandleX = self:getPixelsFromTime(nextNode.time)
+    local rightHandleY = self:getPixelsFromPitch(nextNode.pitch)
 
     local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
-    return mouseDistanceFromPitchCorrectionLine
+    return mouseDistanceFromPitchCorrectionLine]]--
+
+    local node = nodes[index]
+
+    local nodeX = self:getPixelsFromTime(node.time)
+    local nodeY = self:getPixelsFromPitch(node.pitch)
+
+    return Lua.distanceBetweenTwoPoints(nodeX, nodeY, GUI.mouse.x, GUI.mouse.y)
 end
 
 function GUI.PitchEditor:getCorrectionNodeUnderMouse()
@@ -162,7 +175,7 @@ function GUI.PitchEditor:getCorrectionNodeUnderMouse()
     local correctionDistances = {}
 
     for index, node in ipairs(self.correctionGroup.nodes) do
-        correctionDistances[index] = self:getMouseDistanceToCorrectionNode(node)
+        correctionDistances[index] = self:getMouseDistanceToCorrectionNode(index, self.correctionGroup.nodes)
     end
 
     local smallestDistanceIndex = nil
@@ -203,7 +216,7 @@ function GUI.PitchEditor:onmousedown()
     end
 
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -232,15 +245,47 @@ function GUI.PitchEditor:onmouseup()
     self.lWasDragged = false
     self.editNode = nil
 
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
 
     self:redraw()
 end
 
 function GUI.PitchEditor:ondrag()
+    if self.editNode == nil then
+        local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox)
+        local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
+        --local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
 
+        self.correctionGroup:addNode( {
+
+            time = mouseOriginalTime,
+            pitch = mouseOriginalPitch,
+            isActive = true
+
+        } )
+
+        self.editNode = self.correctionGroup:addNode( {
+
+            time = mouseOriginalTime,
+            pitch = mouseOriginalPitch,
+            isActive = true
+
+        } )
+    end
+
+    if self.editNode then
+        local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+        local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+
+        self.editNode.time = mouseTime
+        self.editNode.pitch = mousePitch
+
+        self.correctionGroup:sort()
+    end
 
     self.lWasDragged = true
+
+    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -307,8 +352,6 @@ function GUI.PitchEditor:initDragZoomAndScroll()
 end
 
 function GUI.PitchEditor:onmousem_down()
-    self:initDragZoomAndScroll()
-
     if GUI.IsInside(self) then
         self.mouseXPreDrag = GUI.mouse.x
         self.scrollXPreDrag = self.scrollX
@@ -410,7 +453,7 @@ function GUI.PitchEditor:onm_drag()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -427,7 +470,7 @@ function GUI.PitchEditor:onresize()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -440,7 +483,7 @@ function GUI.PitchEditor:ondelete()
     GUI.FreeBuffer(self.keyLinesBuff)
     GUI.FreeBuffer(self.pitchLinesBuff)
     GUI.FreeBuffer(self.previewLinesBuff)
-    GUI.FreeBuffer(self.pitchCorrectionsBuff)
+    GUI.FreeBuffer(self.correctionGroupBuff)
     GUI.FreeBuffer(self.editCursorBuff)
     GUI.FreeBuffer(self.keysBuff)
 end
@@ -659,38 +702,40 @@ function GUI.PitchEditor:drawKeys()
     self:redraw()
 end
 
-function GUI.PitchEditor:drawPitchCorrections()
+function GUI.PitchEditor:drawCorrectionGroup()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    self.pitchCorrectionsBuff = self.pitchCorrectionsBuff or GUI.GetBuffer()
+    self.correctionGroupBuff = self.correctionGroupBuff or GUI.GetBuffer()
 
-    gfx.dest = self.pitchCorrectionsBuff
-    gfx.setimgdim(self.pitchCorrectionsBuff, -1, -1)
-    gfx.setimgdim(self.pitchCorrectionsBuff, w, h)
+    gfx.dest = self.correctionGroupBuff
+    gfx.setimgdim(self.correctionGroupBuff, -1, -1)
+    gfx.setimgdim(self.correctionGroupBuff, w, h)
 
-    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        local leftTimePixels = self:getPixelsFromTime(correction:getLeftNode().time) - x
-        local rightTimePixels = self:getPixelsFromTime(correction:getRightNode().time) - x
+    GUI.color("pitch_correction_selected")
 
-        local leftPitchPixels = self:getPixelsFromPitch(correction:getLeftNode().pitch) - y
-        local rightPitchPixels = self:getPixelsFromPitch(correction:getRightNode().pitch) - y
+    local prevNode = nil
 
-        local circleRadii = 3
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        prevNode = prevNode or node
 
-        if correction.isSelected == true then
-            GUI.color("pitch_correction_selected")
-            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+        local leftTimePixels = self:getPixelsFromTime(prevNode.time) - x
+        local rightTimePixels = self:getPixelsFromTime(node.time) - x
 
-            gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
+        local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
+        local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
+
+        gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+
+        local circleRadii = 4
+
+        if node.isSelected == true then
             gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
 
         else
-            GUI.color("pitch_correction")
-            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
-
-            gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, false, false)
         end
+
+        prevNode = node
     end
 
     self:redraw()
@@ -728,17 +773,17 @@ end
 function GUI.PitchEditor:setItems(items)
     --[[if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
     if self.previewLinesBuff then GUI.FreeBuffer(self.previewLinesBuff) end
-    if self.pitchCorrectionsBuff then GUI.FreeBuffer(self.pitchCorrectionsBuff) end
+    if self.correctionGroupBuff then GUI.FreeBuffer(self.correctionGroupBuff) end
 
     self.pitchLinesBuff = nil
     self.previewLinesBuff = nil
-    self.pitchCorrectionsBuff = nil]]--
+    self.correctionGroupBuff = nil]]--
 
     self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -750,7 +795,7 @@ function GUI.PitchEditor:analyzePitchGroups()
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawPitchCorrections()
+    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -827,7 +872,7 @@ GUI.PitchEditor.keys = {
 
         self:deleteSelectedCorrectionNodes()
         self:drawPreviewPitchLines()
-        self:drawPitchCorrections()
+        self:drawCorrectionGroup()
         self:redraw()
 
     end

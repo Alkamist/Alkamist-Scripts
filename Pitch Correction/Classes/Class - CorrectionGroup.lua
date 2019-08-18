@@ -29,6 +29,17 @@ function CorrectionGroup:new(o)
     return o
 end
 
+function CorrectionGroup:sort()
+    table.sort(self.nodes, function(a, b) return a.time < b.time end)
+end
+
+function CorrectionGroup:addNode(newNode)
+    table.insert(self.nodes, newNode)
+    self:sort()
+
+    return newNode
+end
+
 function CorrectionGroup:getBindingNodes(time)
     local previousNode = nil
 
