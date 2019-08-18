@@ -11,7 +11,7 @@ local Lua = require "Various Functions.Lua Functions"
 local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 local CorrectionGroup = require "Pitch Correction.Classes.Class - CorrectionGroup"
 
-local mousePitchCorrectionPixelTolerance = 5
+local mousePitchCorrectionPixelTolerance = 8
 
 
 

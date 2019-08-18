@@ -59,6 +59,8 @@ function CorrectionGroup:getBindingNodes(time)
             return node, nil
         end
 
+        previousNode = node
+
     end
 
     return nil, nil
