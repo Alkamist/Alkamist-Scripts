@@ -285,6 +285,14 @@ function GUI.PitchEditor:ondrag()
         } )
 
     else
+        -- Clean up envelope point content before editing.
+        for groupIndex, group in ipairs(self.pitchGroups) do
+            --local editOffset = group.leftTime - self:getTimeLeftBound()
+            --self.correctionGroup:clearEnvelopeContent(group, editOffset)
+            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+        end
+
+        -- Edit the corrections.
         for index, node in ipairs(self.correctionGroup.nodes) do
             if node.isSelected then
                 node.time = node.time + mouseTimeChange
@@ -294,6 +302,7 @@ function GUI.PitchEditor:ondrag()
 
         self.correctionGroup:sort()
 
+        -- Apply the newly edited corrections to the envelope.
         for groupIndex, group in ipairs(self.pitchGroups) do
             local editOffset = group.leftTime - self:getTimeLeftBound()
 
