@@ -5,8 +5,6 @@ local Reaper = require "Various Functions.Reaper Functions"
 
 
 
-------------------- Class -------------------
-
 local PitchGroup = {}
 
 function PitchGroup:new(o)
@@ -179,12 +177,12 @@ function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
     return favoredGroup, false
 end
 
-function PitchGroup.getCombinedGroups(favoredGroup, prevPitchGroups)
+function PitchGroup.getCombinedGroups(favoredGroup, secondaryGroups)
     local outputGroups = {}
 
-    if #prevPitchGroups > 0 then
+    if #secondaryGroups > 0 then
 
-        for index, prevGroup in ipairs(prevPitchGroups) do
+        for index, prevGroup in ipairs(secondaryGroups) do
             local dataGroupCombined = false
             favoredGroup, dataGroupCombined = PitchGroup.getCombinedGroup(favoredGroup, prevGroup)
 
@@ -192,7 +190,7 @@ function PitchGroup.getCombinedGroups(favoredGroup, prevPitchGroups)
                 table.insert(outputGroups, prevGroup)
             end
 
-            if index == #prevPitchGroups then
+            if index == #secondaryGroups then
                 table.insert(outputGroups, favoredGroup)
             end
         end
@@ -338,6 +336,75 @@ function PitchGroup:setItem(item)
     self.envelope = self:getEnvelope()
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
     self.points = self:getSavedPoints()
+end
+
+function PitchGroup.findPointByTime(time, points, findLeft)
+    local numPoints = #points
+
+    if numPoints < 1 then
+        return nil, 0
+    end
+
+    local firstPoint = points[1]
+    local lastPoint = points[numPoints]
+    local totalTime = lastPoint.time - firstPoint.time
+
+    local bestGuessIndex = math.floor(numPoints * time / totalTime)
+    bestGuessIndex = Lua.clamp(bestGuessIndex, 1, numPoints)
+
+    local guessPoint = points[bestGuessIndex]
+    local prevGuessError = math.abs(guessPoint.time - time)
+    local prevGuessIsLeftOfTime = guessPoint.time <= time
+
+    repeat
+        guessPoint = points[bestGuessIndex]
+
+        local guessError = math.abs(guessPoint.time - time)
+        local guessIsLeftOfTime = guessPoint.time <= time
+
+        if guessIsLeftOfTime then
+            -- You are going right and the target is still to the right.
+            if prevGuessIsLeftOfTime then
+                bestGuessIndex = bestGuessIndex + 1
+
+            -- You were going left and passed the target.
+            else
+                if guessError < prevGuessError then
+                    return guessPoint, bestGuessIndex
+                else
+                    return points[bestGuessIndex + 1], bestGuessIndex + 1
+                end
+            end
+
+        else
+            -- You are going left and the target is still to the left.
+            if not prevGuessIsLeftOfTime then
+                bestGuessIndex = bestGuessIndex - 1
+
+            -- You were going right and passed the target.
+            else
+                if guessError < prevGuessError then
+                    return guessPoint, bestGuessIndex
+                else
+                    return points[bestGuessIndex - 1], bestGuessIndex - 1
+                end
+            end
+
+        end
+
+        prevGuessError = guessError
+        prevGuessIsLeftOfTime = guessIsLeftOfTime
+
+    until bestGuessIndex < 1 or bestGuessIndex > numPoints
+
+    if bestGuessIndex < 1 then
+        return firstPoint, 1
+
+    elseif bestGuessIndex > numPoints then
+        return lastPoint, numPoints
+    end
+
+    return firstPoint, 1
 end
 
 return PitchGroup

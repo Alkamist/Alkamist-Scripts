@@ -9,8 +9,7 @@ end
 
 local Lua = require "Various Functions.Lua Functions"
 local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
---local PitchCorrection = require "Pitch Correction.Classes.Class - PitchCorrection"
---local PCFunc = require "Pitch Correction.Helper Functions.Pitch Correction Functions"
+local CorrectionGroup = require "Pitch Correction.Classes.Class - CorrectionGroup"
 
 local mousePitchCorrectionPixelTolerance = 5
 
@@ -62,43 +61,12 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     object.orig_w = object.w
     object.orig_h = object.h
 
-    object.zoomX = 1.0
-    object.zoomY = 1.0
+    object.mousePrev = {
+        x = 0,
+        y = 0
+    }
 
-    object.scrollX = 0.0
-    object.scrollY = 0.0
-
-    object.zoomXPreDrag = 1.0
-    object.scrollXPreDrag = 0.0
-
-    object.zoomYPreDrag = 1.0
-    object.scrollYPreDrag = 1.0
-
-    object.mousePrev = {}
-    object.mousePrev.x = 0
-    object.mousePrev.y = 0
-
-    object.shouldZoom = false
-    object.shouldDragScroll = false
-
-    object.mouse_cap_prev = gfx.mouse_cap
-
-    object.pitchCorrections = {}
-    object.selectedPitchCorrections = {}
-
-    object.playCursorCleared = false
-
-    object.lWasDragged = false
-    object.previousMouseTime = 0
-    object.previousMousePitch = 0
-    object.previousSnappedMousePitch = 0
-
-    object.justCreatedNewPitchCorrection = false
-
-    object.editCorrection = nil
-    object.editHandle = nil
-
-    object.minimumCorrectionTime = 0.001
+    object.correctionGroup = {}
 
     object.keyWidthMult = 0.05
     object.keyWidth = object.w * object.keyWidthMult
@@ -121,7 +89,7 @@ function GUI.PitchEditor:init()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    --self:drawPitchCorrections()
+    self:drawPitchCorrections()
     self:drawEditCursor()
     self:drawKeys()
 
@@ -164,232 +132,113 @@ function GUI.PitchEditor:draw()
     end
 end
 
+function GUI.PitchEditor:deleteSelectedCorrectionNodes()
+    Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
+        local value = t[i]
+
+        return value.isSelected
+    end)
+
+    reaper.UpdateArrange()
+end
+
+function GUI.PitchEditor:getMouseDistanceToCorrectionNode(node)
+    if node == nil then return nil end
+
+    local leftHandleX = self:getPixelsFromTime(node.time)
+    local leftHandleY = self:getPixelsFromPitch(node.pitch)
+    local rightHandleX = self:getPixelsFromTime(node.nextNode.time)
+    local rightHandleY = self:getPixelsFromPitch(node.nextNode.pitch)
+
+    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
+
+    return mouseDistanceFromPitchCorrectionLine
+end
+
+function GUI.PitchEditor:getCorrectionNodeUnderMouse()
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x) or 0
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y) or 0
+
+    local correctionDistances = {}
+
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        correctionDistances[index] = self:getMouseDistanceToCorrectionNode(node)
+    end
+
+    local smallestDistanceIndex = nil
+    for index, distance in ipairs(correctionDistances) do
+        smallestDistanceIndex = smallestDistanceIndex or index
+
+        if distance < correctionDistances[smallestDistanceIndex] then
+            smallestDistanceIndex = index
+        end
+    end
+
+    if smallestDistanceIndex == nil then return nil end
+
+    if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance then
+        return self.correctionGroup.nodes[smallestDistanceIndex]
+    end
+
+    return nil
+end
+
+function GUI.PitchEditor:unselectAllCorrectionNodes()
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        node.isSelected = false
+    end
+end
+
 function GUI.PitchEditor:onmousedown()
-    self.zoomXPreDrag = self.zoomX
-    self.zoomYPreDrag = self.zoomY
-    self.scrollXPreDrag = self.scrollX
-    self.scrollYPreDrag = self.scrollY
+    local nodeUnderMouse = self:getCorrectionNodeUnderMouse()
 
-    --[[local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
-
-    if correctionUnderMouse then
-        if gfx.mouse_cap & 8 == 0 and not correctionUnderMouse.isSelected then
-            self:unselectAllPitchCorrections()
+    if nodeUnderMouse then
+        -- Not holding shift.
+        if gfx.mouse_cap & 8 == 0 and not nodeUnderMouse.isSelected then
+            self:unselectAllCorrectionNodes()
         end
 
-        self:selectPitchCorrection(correctionUnderMouse)
-        self.editCorrection = correctionUnderMouse
-        self.editHandle = self:getClosestHandleInPitchCorrectionToMouse(correctionUnderMouse)
-    end]]--
+        nodeUnderMouse.isSelected = true
+        self.editNode = nodeUnderMouse
+    end
 
     self:drawPreviewPitchLines()
-    --self:drawPitchCorrections()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
 
 function GUI.PitchEditor:onmouseup()
+    self.lWasDragged = self.lWasDragged or false
+
     if not self.lWasDragged then
-        local x, y, w, h = self.x, self.y, self.w, self.h
+        local nodeUnderMouse = self:getCorrectionNodeUnderMouse()
 
-        --local correctionUnderMouse = self:getPitchCorrectionUnderMouse()
-
-        if correctionUnderMouse == nil then
+        if nodeUnderMouse == nil then
             local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
             reaper.SetEditCurPos(playTime, false, true)
 
             self:drawEditCursor()
 
-            --self:unselectAllPitchCorrections()
+            self:unselectAllCorrectionNodes()
 
         -- Not holding shift:
         elseif gfx.mouse_cap & 8 == 0 then
-            --self:unselectAllPitchCorrections()
-            --self:selectPitchCorrection(correctionUnderMouse)
+            self:unselectAllCorrectionNodes()
+            nodeUnderMouse.isSelected = true
         end
     end
 
     self.lWasDragged = false
-    self.justCreatedNewPitchCorrection = false
-    self.editCorrection = nil
-    self.editHandle = nil
+    self.editNode = nil
 
-    --self:drawPitchCorrections()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
 
-function GUI.PitchEditor:clearEnvelopesUnderPitchCorrection(correction)
-    --if #self.pitchPoints > 0 then
-        --local pitchEnvelope = self.pitchPoints[1]:getEnvelope()
-        --local playrate = self.pitchPoints[1]:getPlayrate()
-
-        --reaper.DeleteEnvelopePointRange(pitchEnvelope, playrate * correction:getLeftNode().time, playrate * correction:getRightNode().time)
-    --end
-end
-
-function GUI.PitchEditor:getClosestHandleInPitchCorrectionToMouse(correction)
-    if correction == nil then return nil end
-
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local node1X = self:getPixelsFromTime(correction.node1.time)
-    local node1Y = self:getPixelsFromPitch(correction.node1.pitch)
-    local node2X = self:getPixelsFromTime(correction.node2.time)
-    local node2Y = self:getPixelsFromPitch(correction.node2.pitch)
-
-    local mouseDistanceFromNode1 = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, node1X, node1Y)
-    local mouseDistanceFromNode2 = Lua.distanceBetweenTwoPoints(GUI.mouse.x, GUI.mouse.y, node2X, node2Y)
-
-    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, node1X, node1Y, node2X, node2Y)
-
-    local isNode1 = mouseDistanceFromNode1 - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
-    local isNode2 = mouseDistanceFromNode2 - mouseDistanceFromPitchCorrectionLine < mousePitchCorrectionPixelTolerance
-    local isLine = isNode1 and isNode2
-
-    if isLine then return "line"
-    elseif isNode1 then return "node1"
-    elseif isNode2 then return "node2"
-    else return "line"end
-
-    return "line"
-end
-
-function GUI.PitchEditor:editAndApplyPitchCorrections(corrections)
-    if Lua.getTableLength(corrections) < 1 then return end
-
-    local leftMostNode = nil
-    local rightMostNode = nil
-    local bottomMostNode = nil
-    local topMostNode = nil
-
-    for key, correction in pairs(corrections) do
-        self:clearEnvelopesUnderPitchCorrection(correction)
-
-        leftMostNode = leftMostNode or correction:getLeftNode()
-        rightMostNode = rightMostNode or correction:getRightNode()
-        bottomMostNode = bottomMostNode or leftMostNode
-        topMostNode = topMostNode or rightMostNode
-
-        if correction.node1.time < leftMostNode.time then leftMostNode = correction.node1 end
-        if correction.node2.time < leftMostNode.time then leftMostNode = correction.node2 end
-
-        if correction.node1.time > rightMostNode.time then rightMostNode = correction.node1 end
-        if correction.node2.time > rightMostNode.time then rightMostNode = correction.node2 end
-
-        if correction.node1.pitch < bottomMostNode.pitch then bottomMostNode = correction.node1 end
-        if correction.node2.pitch < bottomMostNode.pitch then bottomMostNode = correction.node2 end
-
-        if correction.node1.pitch > topMostNode.pitch then topMostNode = correction.node1 end
-        if correction.node2.pitch > topMostNode.pitch then topMostNode = correction.node2 end
-    end
-
-
-
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
-
-    local snappedMousePitch = self:getSnappedPitch(mousePitch)
-
-    local mouseTimeChange = mouseTime - self.previousMouseTime
-    local mousePitchChange = snappedMousePitch - self.previousSnappedMousePitch
-
-    -- Holding shift disables pitch snapping.
-    if gfx.mouse_cap & 8 == 8 then
-        mousePitchChange = mousePitch - self.previousMousePitch
-    end
-
-    local lineTimeChange = Lua.clamp(mouseTimeChange,  -leftMostNode.time, self:getTimeLength() - rightMostNode.time)
-    local linePitchChange = Lua.clamp(mousePitchChange, -bottomMostNode.pitch, self:getMaxPitch() - topMostNode.pitch)
-
-    for key, correction in PitchCorrection.pairs(corrections) do
-        if self.justCreatedNewPitchCorrection then
-            correction.node2.time = correction.node2.time + mouseTimeChange
-            correction.node2.pitch = correction.node2.pitch + mousePitchChange
-
-        else
-
-            if self.editHandle == "node1" then
-                correction.node1.time = Lua.clamp(correction.node1.time + mouseTimeChange, 0.0, self:getTimeLength())
-                correction.node1.pitch = Lua.clamp(correction.node1.pitch + mousePitchChange, 0.0, self:getMaxPitch())
-            end
-
-            if self.editHandle == "node2" then
-                correction.node2.time = Lua.clamp(correction.node2.time + mouseTimeChange, 0.0, self:getTimeLength())
-                correction.node2.pitch = Lua.clamp(correction.node2.pitch + mousePitchChange, 0.0, self:getMaxPitch())
-            end
-
-            if self.editHandle == "line" then
-                correction.node1.time = correction.node1.time + lineTimeChange
-                correction.node1.pitch = correction.node1.pitch + linePitchChange
-
-                correction.node2.time = correction.node2.time + lineTimeChange
-                correction.node2.pitch = correction.node2.pitch + linePitchChange
-            end
-
-        end
-
-        self:applyPitchCorrection(correction)
-    end
-
-    self.previousMouseTime = mouseTime
-    self.previousMousePitch = mousePitch
-    self.previousSnappedMousePitch = snappedMousePitch
-
-    for key, correction in pairs(corrections) do
-        correction.alreadyCorrected = false
-    end
-end
-
-function GUI.PitchEditor:createAndEditNewPitchCorrection(leftTime, rightTime, leftPitch, rightPitch)
-    self:unselectAllPitchCorrections()
-
-    local newCorrection = PitchCorrection:new(leftTime, rightTime, leftPitch, rightPitch)
-    self:selectPitchCorrection(newCorrection)
-    table.insert(self.pitchCorrections, newCorrection)
-
-    self.justCreatedNewPitchCorrection = true
-    self.editCorrection = newCorrection
-
-    return newCorrection
-end
-
-function GUI.PitchEditor:handleCorrectionEditing()
-    -- The drag just started.
-    if not self.lWasDragged then
-        local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox, self.zoomXPreDrag, self.scrollXPreDrag)
-        local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy, self.zoomYPreDrag, self.scrollYPreDrag)
-        local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
-
-        self.previousMouseTime = mouseOriginalTime
-        self.previousMousePitch = mouseOriginalPitch
-        self.previousSnappedMousePitch = self:getSnappedPitch(mouseOriginalPitch)
-
-        if self.editCorrection == nil then
-            -- Holding shift disables pitch snapping.
-            if gfx.mouse_cap & 8 == 8 then
-                self:createAndEditNewPitchCorrection(mouseOriginalTime, mouseOriginalTime, mouseOriginalPitch, mouseOriginalPitch)
-            else
-                self:createAndEditNewPitchCorrection(mouseOriginalTime, mouseOriginalTime, mouseOriginalSnappedPitch, mouseOriginalSnappedPitch)
-            end
-        end
-    end
-
-    if self.editCorrection then
-        self:editAndApplyPitchCorrections(self.selectedPitchCorrections)
-
-        PitchCorrection.updateLinkedOrder(self.pitchCorrections)
-
-        self:drawPreviewPitchLines()
-    end
-
-    self:drawPitchCorrections()
-end
-
 function GUI.PitchEditor:ondrag()
-    if self.item == nil then return end
 
-    --self:handleCorrectionEditing()
 
     self.lWasDragged = true
 
@@ -423,6 +272,8 @@ function GUI.PitchEditor:setItemsToSelectedItems()
 end
 
 function GUI.PitchEditor:onupdate()
+    self.playCursorCleared = self.playCursorCleared or false
+
     --self:setItemsToSelectedItems()
 
     local projectPlaystate = reaper.GetPlayStateEx(0)
@@ -436,11 +287,28 @@ function GUI.PitchEditor:onupdate()
         self:drawEditCursor()
         self.playCursorCleared = true
     end
+end
 
-    previousSelectedItem = selectedItem
+function GUI.PitchEditor:initDragZoomAndScroll()
+    self.zoomX = self.zoomX or 1.0
+    self.zoomY = self.zoomY or 1.0
+    self.scrollX = self.scrollX or 0.0
+    self.scrollY = self.scrollY or 0.0
+
+    self.zoomXPreDrag = self.zoomXPreDrag or 1.0
+    self.zoomYPreDrag = self.zoomYPreDrag or 1.0
+    self.scrollXPreDrag = self.scrollXPreDrag or 0.0
+    self.scrollYPreDrag = self.scrollYPreDrag or 0.0
+
+    self.shouldZoom = self.shouldZoom or false
+    self.shouldDragScroll = self.shouldDragScroll or false
+
+    self.mouse_cap_prev = self.mouse_cap_prev or gfx.mouse_cap
 end
 
 function GUI.PitchEditor:onmousem_down()
+    self:initDragZoomAndScroll()
+
     if GUI.IsInside(self) then
         self.mouseXPreDrag = GUI.mouse.x
         self.scrollXPreDrag = self.scrollX
@@ -603,7 +471,7 @@ function GUI.PitchEditor:drawBackground()
 end
 
 function GUI.PitchEditor:drawPitchLines()
-    --[[if #self.pitchGroups < 1 then return end
+    if #self.pitchGroups < 1 then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
@@ -617,33 +485,38 @@ function GUI.PitchEditor:drawPitchLines()
 
     GUI.color("pitch_lines")
 
-    local previousPoint = nil
-    local previousPointX = 0
-    local previousPointY = 0
+    local groupsTimeOffset = self.pitchGroups[1].leftTime
 
-    for pointKey, point in ipairs(self.pitchPoints) do
-        local pointX = self:getPixelsFromTime(point.time) - x
-        local pointY = self:getPixelsFromPitch(point.pitch) - y
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        local previousPoint = nil
+        local previousPointX = nil
+        local previousPointY = nil
 
-        if pointKey == 1 then
+        for pointIndex, point in ipairs(group.points) do
+            previousPoint = previousPoint or point
+
+            local pitchValue = point.pitch
+
+            local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset - group.startOffset) - self.x
+            local pointY = self:getPixelsFromPitch(pitchValue) - self.y
+
+            previousPointX = previousPointX or pointX
+            previousPointY = previousPointY or pointY
+
+            if point.time - previousPoint.time > drawThreshold then
+                previousPointX = pointX
+                previousPointY = pointY
+            end
+
+            gfx.line(previousPointX, previousPointY, pointX, pointY, false)
+
             previousPoint = point
             previousPointX = pointX
             previousPointY = pointY
         end
-
-        if point.time - previousPoint.time > drawThreshold then
-            previousPointX = pointX
-            previousPointY = pointY
-        end
-
-        gfx.line(previousPointX, previousPointY, pointX, pointY, false)
-
-        previousPoint = point
-        previousPointX = pointX
-        previousPointY = pointY
     end
 
-    self:redraw()]]--
+    self:redraw()
 end
 
 function GUI.PitchEditor:drawPreviewPitchLines()
@@ -787,7 +660,7 @@ function GUI.PitchEditor:drawKeys()
 end
 
 function GUI.PitchEditor:drawPitchCorrections()
-    --[[local x, y, w, h = self.x, self.y, self.w, self.h
+    local x, y, w, h = self.x, self.y, self.w, self.h
 
     self.pitchCorrectionsBuff = self.pitchCorrectionsBuff or GUI.GetBuffer()
 
@@ -818,7 +691,7 @@ function GUI.PitchEditor:drawPitchCorrections()
             gfx.circle(leftTimePixels, leftPitchPixels, circleRadii, true, false)
             gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
         end
-    end]]--
+    end
 
     self:redraw()
 end
@@ -865,7 +738,7 @@ function GUI.PitchEditor:setItems(items)
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    --self:drawPitchCorrections()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
@@ -877,7 +750,7 @@ function GUI.PitchEditor:analyzePitchGroups()
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    --self:drawPitchCorrections()
+    self:drawPitchCorrections()
 
     self:redraw()
 end
@@ -940,124 +813,19 @@ function GUI.PitchEditor:getMaxPitch()
     return 128.0
 end
 
-function GUI.PitchEditor:getMouseDistanceToPitchCorrection(correction)
-    if correction == nil then return nil end
-
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local leftHandleX = self:getPixelsFromTime(correction:getLeftNode().time)
-    local leftHandleY = self:getPixelsFromPitch(correction:getLeftNode().pitch)
-    local rightHandleX = self:getPixelsFromTime(correction:getRightNode().time)
-    local rightHandleY = self:getPixelsFromPitch(correction:getRightNode().pitch)
-
-    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
-
-    return mouseDistanceFromPitchCorrectionLine
-end
-
-function GUI.PitchEditor:getPitchCorrectionUnderMouse()
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x) or 0
-    local mousePitch = self:getPitchFromPixels(GUI.mouse.y) or 0
-
-    local correctionDistances = {}
-
-    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        correctionDistances[key] = self:getMouseDistanceToPitchCorrection(correction)
-    end
-
-    local smallestDistanceKey = nil
-    for key, distance in pairs(correctionDistances) do
-        if smallestDistanceKey == nil then
-            smallestDistanceKey = key
-        end
-
-        if distance < correctionDistances[smallestDistanceKey] then
-            smallestDistanceKey = key
-        end
-    end
-
-    if smallestDistanceKey == nil then return nil end
-
-    if correctionDistances[smallestDistanceKey] <= mousePitchCorrectionPixelTolerance then
-        return self.pitchCorrections[smallestDistanceKey]
-    end
-
-    return nil
-end
-
-function GUI.PitchEditor:selectPitchCorrection(correction)
-    if not correction.isSelected then
-        correction.isSelected = true
-        table.insert(self.selectedPitchCorrections, correction)
-    end
-end
-
-function GUI.PitchEditor:unselectAllPitchCorrections()
-    Lua.arrayRemove(self.selectedPitchCorrections, function(t, i)
-        t[i].isSelected = false
-        return true
-    end)
-end
-
-function GUI.PitchEditor:deleteSelectedPitchCorrections()
-    Lua.arrayRemove(self.pitchCorrections, function(t, i)
-        local value = t[i]
-
-        if value.isSelected then
-            self:clearEnvelopesUnderPitchCorrection(value)
-        end
-
-        return value.isSelected
-    end)
-
-    self:unselectAllPitchCorrections()
-
-    reaper.UpdateArrange()
-end
-
-function GUI.PitchEditor:getClosestValidTimeToPosition(time)
-    local closestTime = nil
-    local insideCorrection = nil
-
-    for key, correction in PitchCorrection.pairs(self.pitchCorrections) do
-        if correction ~= self.editCorrection then
-            if correction:timeIsInside(time) then
-                insideCorrection = correction
-            end
-        end
-    end
-
-    if insideCorrection then
-        local timeToLeft = math.abs(time - insideCorrection:getLeftNode().time)
-        local timeToRight = math.abs(time - insideCorrection:getRightNode().time)
-
-        if timeToLeft < timeToRight then
-            closestTime = insideCorrection:getLeftNode().time
-        else
-            closestTime = insideCorrection:getRightNode().time
-        end
-    else
-        closestTime = time
-    end
-
-    return closestTime
-end
-
 function GUI.PitchEditor:applyPitchCorrection(correction)
-    if #self.pitchGroups > 0 then
-        --PitchCorrection.correctPitchPoints(self.pitchPoints, correction, self.pdSettings)
-
-        reaper.UpdateArrange()
-    end
+--    if #self.pitchGroups > 0 then
+--        correction:correctPitchGroups(self.pitchGroups, self.pdSettings)
+--
+--        reaper.UpdateArrange()
+--    end
 end
 
 GUI.PitchEditor.keys = {
 
     [GUI.chars.DELETE] = function(self)
 
-        self:deleteSelectedPitchCorrections()
+        self:deleteSelectedCorrectionNodes()
         self:drawPreviewPitchLines()
         self:drawPitchCorrections()
         self:redraw()
