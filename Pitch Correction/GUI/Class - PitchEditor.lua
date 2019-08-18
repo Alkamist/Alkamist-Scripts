@@ -293,7 +293,12 @@ function GUI.PitchEditor:ondrag()
         end
 
         self.correctionGroup:sort()
-        self.correctionGroup:correctPitchGroups(self.pitchGroups, self.pdSettings)
+
+        for groupIndex, group in ipairs(self.pitchGroups) do
+            local editOffset = group.leftTime - self:getTimeLeftBound()
+
+            self.correctionGroup:correctPitchGroup(group, editOffset, pdSettings)
+        end
 
         self:drawPreviewPitchLines()
     end
@@ -595,7 +600,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local groupsTimeOffset = self.pitchGroups[1].leftTime
 
     for groupIndex, group in ipairs(self.pitchGroups) do
-        local previousPoint = nil
+        local previousPointTime = nil
         local previousPointX = nil
         local previousPointY = nil
 
@@ -603,26 +608,27 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local playrate = group.playrate
 
         for pointIndex, point in ipairs(group.points) do
-            previousPoint = previousPoint or point
+            local relativePointTime = point.time - group.startOffset
+            previousPointTime = previousPointTime or relativePointTime
 
-            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.time / playrate, 44100, 0)
+            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, relativePointTime / playrate, 44100, 0)
 
             local pitchValue = point.pitch + envelopeValue
 
-            local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset - group.startOffset) - self.x
+            local pointX = self:getPixelsFromTime(group.leftTime + relativePointTime - groupsTimeOffset) - self.x
             local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
             previousPointX = previousPointX or pointX
             previousPointY = previousPointY or pointY
 
-            if point.time - previousPoint.time > drawThreshold then
+            if relativePointTime - previousPointTime > drawThreshold then
                 previousPointX = pointX
                 previousPointY = pointY
             end
 
             gfx.line(previousPointX, previousPointY, pointX, pointY, false)
 
-            previousPoint = point
+            previousPointTime = relativePointTime
             previousPointX = pointX
             previousPointY = pointY
         end
