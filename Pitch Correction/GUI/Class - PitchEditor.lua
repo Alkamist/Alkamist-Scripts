@@ -203,16 +203,18 @@ function GUI.PitchEditor:unselectAllCorrectionNodes()
 end
 
 function GUI.PitchEditor:onmousedown()
-    local nodeUnderMouse = self:getCorrectionNodeUnderMouse()
+    self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
 
-    if nodeUnderMouse then
+    self.editNode = self:getCorrectionNodeUnderMouse()
+
+    if self.editNode then
         -- Not holding shift.
-        if gfx.mouse_cap & 8 == 0 and not nodeUnderMouse.isSelected then
+        if gfx.mouse_cap & 8 == 0 and not self.editNode.isSelected then
             self:unselectAllCorrectionNodes()
         end
 
-        nodeUnderMouse.isSelected = true
-        self.editNode = nodeUnderMouse
+        self.editNode.isSelected = true
     end
 
     self:drawPreviewPitchLines()
@@ -251,7 +253,15 @@ function GUI.PitchEditor:onmouseup()
 end
 
 function GUI.PitchEditor:ondrag()
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+
+    local mouseTimeChange = mouseTime - self.prevMouseTime
+    local mousePitchChange = mousePitch - self.prevMousePitch
+
     if self.editNode == nil then
+        self:unselectAllCorrectionNodes()
+
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox)
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
         --local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
@@ -260,30 +270,37 @@ function GUI.PitchEditor:ondrag()
 
             time = mouseOriginalTime,
             pitch = mouseOriginalPitch,
+            isSelected = false,
             isActive = true
 
         } )
 
         self.editNode = self.correctionGroup:addNode( {
 
-            time = mouseOriginalTime,
-            pitch = mouseOriginalPitch,
-            isActive = true
+            time = mouseTime,
+            pitch = mousePitch,
+            isSelected = true,
+            isActive = false
 
         } )
-    end
 
-    if self.editNode then
-        local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
-        local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
-
-        self.editNode.time = mouseTime
-        self.editNode.pitch = mousePitch
+    else
+        for index, node in ipairs(self.correctionGroup.nodes) do
+            if node.isSelected then
+                node.time = node.time + mouseTimeChange
+                node.pitch = node.pitch + mousePitchChange
+            end
+        end
 
         self.correctionGroup:sort()
+        self.correctionGroup:correctPitchGroups(self.pitchGroups, self.pdSettings)
+
+        self:drawPreviewPitchLines()
     end
 
     self.lWasDragged = true
+    self.prevMouseTime = mouseTime
+    self.prevMousePitch = mousePitch
 
     self:drawCorrectionGroup()
 
@@ -582,7 +599,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local previousPointX = nil
         local previousPointY = nil
 
-        local pitchEnvelope = group.envelope
+        local pitchEnvelope = group.envelope or group:getEnvelope()
         local playrate = group.playrate
 
         for pointIndex, point in ipairs(group.points) do
@@ -724,7 +741,9 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
         local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
 
-        gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+        if prevNode.isActive then
+            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+        end
 
         local circleRadii = 4
 
@@ -856,14 +875,6 @@ end
 
 function GUI.PitchEditor:getMaxPitch()
     return 128.0
-end
-
-function GUI.PitchEditor:applyPitchCorrection(correction)
---    if #self.pitchGroups > 0 then
---        correction:correctPitchGroups(self.pitchGroups, self.pdSettings)
---
---        reaper.UpdateArrange()
---    end
 end
 
 GUI.PitchEditor.keys = {
