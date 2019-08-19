@@ -306,7 +306,7 @@ function GUI.PitchEditor:ondrag()
         for groupIndex, group in ipairs(self.pitchGroups) do
             local editOffset = group.leftTime - self:getTimeLeftBound()
 
-            self.correctionGroup:correctPitchGroup(group, editOffset, pdSettings)
+            self.correctionGroup:correctPitchGroup(group, editOffset, self.pdSettings)
         end
 
         self:drawPreviewPitchLines()

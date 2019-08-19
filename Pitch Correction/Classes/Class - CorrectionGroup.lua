@@ -85,6 +85,48 @@ function CorrectionGroup:timeIsInActiveCorrection(time)
     return false
 end
 
+function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, targetPitch, correctionStrength, correctionSpeed, pdSettings)
+    local minTimePerPoint = pdSettings.windowStep / pdSettings.overlap
+    local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
+    local numPitchPoints = #pitchGroup.points
+
+    local leftNode, rightNode = self:getBindingNodes(point.time - pitchGroup.startOffset)
+    local correctionLeftTime = leftNode.time
+    local correctionRightTime = rightNode.time
+
+    local driftAverage = 0
+    local numDriftPoints = 0
+    for i = 1, maxDriftPoints do
+        local accessIndex = pointIndex + i - math.floor(maxDriftPoints * 0.5)
+
+        if accessIndex >= 1 and accessIndex <= numPitchPoints then
+            local driftPoint = pitchGroup.points[accessIndex]
+            local correctionRadius = correctionSpeed * 0.5
+
+            local driftPointIsInCorrectionRadius = driftPoint.time >= point.time - correctionRadius
+                                               and driftPoint.time <= point.time + correctionRadius
+
+            local driftPointIsInCorrectionTime = driftPoint.time - pitchGroup.startOffset >= correctionLeftTime
+                                             and driftPoint.time - pitchGroup.startOffset <= correctionRightTime
+
+            if driftPointIsInCorrectionRadius and driftPointIsInCorrectionTime then
+                driftAverage = driftAverage + driftPoint.pitch
+
+                numDriftPoints = numDriftPoints + 1
+            end
+        end
+    end
+
+    if numDriftPoints > 0 then
+        driftAverage = driftAverage / numDriftPoints
+    end
+
+    local pitchDrift = driftAverage - targetPitch
+    local pitchCorrection = -pitchDrift * correctionStrength
+
+    point.correctedPitch = point.correctedPitch + pitchCorrection
+end
+
 function CorrectionGroup.correctPitchMod(point, targetPitch, correctionStrength)
     local modDeviation = point.correctedPitch - targetPitch
     local pitchCorrection = -modDeviation * correctionStrength
@@ -158,7 +200,8 @@ function CorrectionGroup:correctPitchGroup(pitchGroup, editOffset, pdSettings)
             point.correctedPitch = point.pitch
             local targetPitch = self:getPitch(relativePointTime + editOffset)
 
-            CorrectionGroup.correctPitchMod(point, targetPitch, modCorrection)
+            self:correctPitchDrift(point, pointIndex, pitchGroup, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+            --CorrectionGroup.correctPitchMod(point, targetPitch, modCorrection)
 
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePointTime * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
         end
