@@ -7,8 +7,8 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 1.0
-local driftCorrection = 0.0
+local modCorrection = 0.0
+local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
@@ -72,8 +72,10 @@ function CorrectionGroup:getBindingNodes(time)
     return nil, nil
 end
 
-function CorrectionGroup:getPitch(time)
-    local leftNode, rightNode = self:getBindingNodes(time)
+function CorrectionGroup:getPitch(time, leftNode, rightNode)
+    if not leftNode or not rightNode then
+        leftNode, rightNode = self:getBindingNodes(time)
+    end
 
     local timeRatio = (time - leftNode.time) / (rightNode.time - leftNode.time)
     local pitch = leftNode.pitch + (rightNode.pitch - leftNode.pitch) * timeRatio
@@ -81,8 +83,10 @@ function CorrectionGroup:getPitch(time)
     return pitch
 end
 
-function CorrectionGroup:timeIsInActiveCorrection(time)
-    local leftNode, rightNode = self:getBindingNodes(time)
+function CorrectionGroup:timeIsInActiveCorrection(time, leftNode, rightNode)
+    if not leftNode or not rightNode then
+        leftNode, rightNode = self:getBindingNodes(time)
+    end
 
     if leftNode and rightNode then
         return leftNode.isActive
@@ -91,12 +95,11 @@ function CorrectionGroup:timeIsInActiveCorrection(time)
     return false
 end
 
-function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, targetPitch, correctionStrength, correctionSpeed, pdSettings)
+function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, editOffset, leftNode, rightNode, correctionStrength, correctionSpeed, pdSettings)
     local minTimePerPoint = pdSettings.windowStep / pdSettings.overlap
     local maxDriftPoints = math.ceil(correctionSpeed / minTimePerPoint)
     local numPitchPoints = #pitchGroup.points
 
-    local leftNode, rightNode = self:getBindingNodes(point.time - pitchGroup.startOffset)
     local correctionLeftTime = leftNode.time
     local correctionRightTime = rightNode.time
 
@@ -107,16 +110,18 @@ function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, target
 
         if accessIndex >= 1 and accessIndex <= numPitchPoints then
             local driftPoint = pitchGroup.points[accessIndex]
+            local relativePointTime = driftPoint.time - pitchGroup.startOffset
             local correctionRadius = correctionSpeed * 0.5
 
             local driftPointIsInCorrectionRadius = driftPoint.time >= point.time - correctionRadius
                                                and driftPoint.time <= point.time + correctionRadius
 
-            local driftPointIsInCorrectionTime = driftPoint.time - pitchGroup.startOffset >= correctionLeftTime
-                                             and driftPoint.time - pitchGroup.startOffset <= correctionRightTime
+            local driftPointIsInCorrectionTime = relativePointTime >= correctionLeftTime
+                                             and relativePointTime <= correctionRightTime
 
             if driftPointIsInCorrectionRadius and driftPointIsInCorrectionTime then
-                driftAverage = driftAverage + driftPoint.pitch
+                local targetPitch = self:getPitch(relativePointTime + editOffset, leftNode, rightNode)
+                driftAverage = driftAverage + driftPoint.pitch - targetPitch
 
                 numDriftPoints = numDriftPoints + 1
             end
@@ -127,8 +132,7 @@ function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, target
         driftAverage = driftAverage / numDriftPoints
     end
 
-    local pitchDrift = driftAverage - targetPitch
-    local pitchCorrection = -pitchDrift * correctionStrength
+    local pitchCorrection = -driftAverage * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
@@ -195,18 +199,18 @@ function CorrectionGroup:correctPitchGroup(pitchGroup, editOffset, pdSettings)
     local leftEdgeTime = playrate * (self.nodes[1].time - editOffset)
     local rightEdgeTime = playrate * (self.nodes[#self.nodes].time - editOffset)
 
-    --self:clearEnvelopeContent(pitchGroup, editOffset)
-
     local prevRelativePointTime = nil
     for pointIndex, point in ipairs(pitchGroup.points) do
         local relativePointTime = point.time - pitchGroup.startOffset
         prevRelativePointTime = prevRelativePointTime or relativePointTime
 
-        if self:timeIsInActiveCorrection(relativePointTime + editOffset) then
-            point.correctedPitch = point.pitch
-            local targetPitch = self:getPitch(relativePointTime + editOffset)
+        local leftNode, rightNode = self:getBindingNodes(relativePointTime + editOffset)
 
-            self:correctPitchDrift(point, pointIndex, pitchGroup, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
+        if self:timeIsInActiveCorrection(relativePointTime + editOffset, leftNode, rightNode) then
+            point.correctedPitch = point.pitch
+            local targetPitch = self:getPitch(relativePointTime + editOffset, leftNode, rightNode)
+
+            self:correctPitchDrift(point, pointIndex, pitchGroup, editOffset, leftNode, rightNode, driftCorrection, driftCorrectionSpeed, pdSettings)
             CorrectionGroup.correctPitchMod(point, targetPitch, modCorrection)
 
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePointTime * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
