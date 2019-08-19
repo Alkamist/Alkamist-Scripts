@@ -73,10 +73,12 @@ function CorrectionGroup:getBindingNodes(time)
 end
 
 function CorrectionGroup:getPitch(time, pitchGroup)
-    local leftNode, rightNode = self:getBindingNodes(time + pitchGroup.editOffset)
+    local relativeTime = time + pitchGroup.editOffset
+
+    local leftNode, rightNode = self:getBindingNodes(relativeTime)
 
     if leftNode and rightNode then
-        local timeRatio = (time - leftNode.time) / (rightNode.time - leftNode.time)
+        local timeRatio = (relativeTime - leftNode.time) / (rightNode.time - leftNode.time)
         local pitch = leftNode.pitch + (rightNode.pitch - leftNode.pitch) * timeRatio
 
         return pitch

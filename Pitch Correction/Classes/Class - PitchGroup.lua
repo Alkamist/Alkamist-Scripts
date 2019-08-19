@@ -274,7 +274,7 @@ function PitchGroup:getEnvelope()
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.take, "Pitch")
 
     if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        reaper.Main_OnCommand(41612, 0) -- Take: Toggle take pitch envelope
+        Reaper.reaperCMD("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.take, "Pitch")
     end
 

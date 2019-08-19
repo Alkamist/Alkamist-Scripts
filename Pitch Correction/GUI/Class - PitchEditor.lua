@@ -341,6 +341,20 @@ function GUI.PitchEditor:ondrag()
     self:redraw()
 end
 
+function GUI.PitchEditor:setItems(items)
+    self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
+
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        group.editOffset = group.leftTime - self:getTimeLeftBound()
+    end
+
+    self:drawPitchLines()
+    self:drawPreviewPitchLines()
+    self:drawCorrectionGroup()
+
+    self:redraw()
+end
+
 function GUI.PitchEditor:setItemsToSelectedItems()
     local itemsAreSelectedOnMultipleTracks = false
     local numSelectedItems = reaper.CountSelectedMediaItems(0)
@@ -633,13 +647,10 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local previousPointX = nil
         local previousPointY = nil
 
-        local pitchEnvelope = group.envelope or group:getEnvelope()
-        local playrate = group.playrate
-
         for pointIndex, point in ipairs(group.points) do
             previousPointTime = previousPointTime or point.relativeTime
 
-            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.relativeTime / playrate, 44100, 0)
+            local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.relativeTime / group.playrate, 44100, 0)
 
             local pitchValue = point.pitch + envelopeValue
 
@@ -819,20 +830,6 @@ function GUI.PitchEditor:drawEditCursor()
         GUI.color("play_cursor")
         gfx.line(playPositionPixels, 0, playPositionPixels, h, false)
     end
-
-    self:redraw()
-end
-
-function GUI.PitchEditor:setItems(items)
-    self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
-
-    for groupIndex, group in ipairs(self.pitchGroups) do
-        group.editOffset = group.leftTime - self:getTimeLeftBound()
-    end
-
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
 
     self:redraw()
 end
