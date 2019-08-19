@@ -139,18 +139,10 @@ end
 
 function CorrectionGroup.correctPitchMod(point, targetPitch, correctionStrength)
     local modDeviation = point.correctedPitch - targetPitch
-
     local pitchCorrection = -modDeviation * correctionStrength
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
-
---[[function CorrectionGroup.correctPitchMod(point, targetPitch, correctionStrength)
-    local modDeviation = point.correctedPitch - targetPitch
-    local pitchCorrection = -modDeviation * correctionStrength
-
-    point.correctedPitch = point.correctedPitch + pitchCorrection
-end]]--
 
 function CorrectionGroup:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
     local pointTime = point.time - pitchGroup.startOffset
@@ -158,13 +150,13 @@ function CorrectionGroup:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
     local timeToPrevPoint = 0.0
 
     if pointIndex > 1 then
-        prevPointTime = pitchGroup.points[pointIndex - 1].time - pitchGroup.startOffset
-        timeToPrevPoint = pointTime - prevPointTime
+        prevPointTime = pitchGroup.points[pointIndex - 1].relativeTime
+        timeToPrevPoint = point.relativeTime - prevPointTime
     end
 
     if zeroPointThreshold then
         if timeToPrevPoint >= zeroPointThreshold then
-            local zeroPoint1Time = pitchGroup.playrate * (pointTime - zeroPointSpacing)
+            local zeroPoint1Time = pitchGroup.playrate * (point.relativeTime - zeroPointSpacing)
             reaper.DeleteEnvelopePointRange(pitchGroup.envelope, zeroPoint1Time - zeroPointSpacing * 0.5, zeroPoint1Time + zeroPointSpacing * 0.5)
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPoint1Time, 0, 0, 0, false, true)
 
@@ -213,16 +205,20 @@ function CorrectionGroup:addEdgePointsToNodes(pitchGroup)
     end
 end
 
+function CorrectionGroup:insertCorrectedPointToEnvelope(point, pitchGroup)
+    reaper.InsertEnvelopePoint(pitchGroup.envelope, point.relativeTime * pitchGroup.playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
+end
+
 function CorrectionGroup:correctPitchGroup(pitchGroup)
     if #self.nodes < 2 then return end
 
-    --local prevRelativePointTime = nil
     for pointIndex, point in ipairs(pitchGroup.points) do
+        point.correctedPitch = point.pitch
 
         --self:correctPitchDrift(point, pointIndex, pitchGroup)
         --self:correctPitchMod(point, pointIndex, pitchGroup)
 
-        --self:insertCorrectedPointToEnvelope(pitchGroup)
+        self:insertCorrectedPointToEnvelope(point, pitchGroup)
 
         self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
 
@@ -241,10 +237,6 @@ function CorrectionGroup:correctPitchGroup(pitchGroup)
 
             reaper.InsertEnvelopePoint(pitchGroup.envelope, relativePointTime * pitchGroup.playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
         end]]--
-
-        --self:addZeroPointsToEnvelope(relativePointTime, prevRelativePointTime, pitchGroup.envelope, pitchGroup.playrate)
-
-        --prevRelativePointTime = relativePointTime
     end
 
     self:addEdgePointsToNodes(pitchGroup)

@@ -61,7 +61,7 @@ function PitchGroup:analyze(settings)
 
     local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
-    self.points = PitchGroup.getPointsFromString(analysisString)
+    self.points = self:getPointsFromString(analysisString)
     self.minTimePerPoint = self:getMinTimePerPoint()
 
     self:savePoints()
@@ -240,7 +240,7 @@ function PitchGroup:savePoints()
     reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
 end
 
-function PitchGroup.getPointsFromDataStringWithinRange(dataString, leftBound, rightBound)
+function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, rightBound)
     local pointString = ""
 
     for line in dataString:gmatch("[^\r\n]+") do
@@ -255,7 +255,7 @@ function PitchGroup.getPointsFromDataStringWithinRange(dataString, leftBound, ri
 
     end
 
-    return PitchGroup.getPointsFromString(pointString)
+    return self:getPointsFromString(pointString)
 end
 
 function PitchGroup:getSavedPoints()
@@ -267,7 +267,7 @@ function PitchGroup:getSavedPoints()
     local leftBound = self.startOffset
     local rightBound = leftBound + self.length
 
-    return PitchGroup.getPointsFromDataStringWithinRange(dataStringFromHeader, leftBound, rightBound)
+    return self:getPointsFromDataStringWithinRange(dataStringFromHeader, leftBound, rightBound)
 end
 
 function PitchGroup:getEnvelope()
@@ -281,16 +281,18 @@ function PitchGroup:getEnvelope()
     return pitchEnvelope
 end
 
-function PitchGroup.getPointsFromString(pointString)
+function PitchGroup:getPointsFromString(pointString)
     local points = {}
 
     for line in pointString:gmatch("[^\r\n]+") do
+        local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
         table.insert(points, {
 
-            time =  tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ),
+            time =  pointTime,
             pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
-            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
+            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
+            relativeTime = pointTime - self.startOffset
 
         } )
 
