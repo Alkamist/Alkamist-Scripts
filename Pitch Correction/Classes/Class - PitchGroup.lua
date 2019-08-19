@@ -17,6 +17,8 @@ function PitchGroup:new(o)
         o:setItem(o.item)
     end
 
+    o.editOffset = o.editOffset or 0.0
+
     return o
 end
 
@@ -28,6 +30,22 @@ function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
+end
+
+function PitchGroup:getMinTimePerPoint()
+    local prevPoint = nil
+    local minTimePerPoint = self.length
+
+    for index, point in ipairs(self.points) do
+        if prevPoint then
+            local timeFromLastPoint = point.time - prevPoint.time
+            minTimePerPoint = math.min(minTimePerPoint, timeFromLastPoint)
+        end
+
+        prevPoint = point
+    end
+
+    return minTimePerPoint
 end
 
 function PitchGroup:analyze(settings)
@@ -44,6 +62,7 @@ function PitchGroup:analyze(settings)
     local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
     self.points = PitchGroup.getPointsFromString(analysisString)
+    self.minTimePerPoint = self:getMinTimePerPoint()
 
     self:savePoints()
 end
@@ -336,6 +355,7 @@ function PitchGroup:setItem(item)
     self.envelope = self:getEnvelope()
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
     self.points = self:getSavedPoints()
+    self.minTimePerPoint = self:getMinTimePerPoint()
 end
 
 function PitchGroup.findPointByTime(time, points, findLeft)

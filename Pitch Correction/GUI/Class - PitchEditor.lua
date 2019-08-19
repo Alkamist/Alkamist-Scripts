@@ -204,10 +204,8 @@ end
 
 function GUI.PitchEditor:applyPitchCorrections()
     for groupIndex, group in ipairs(self.pitchGroups) do
-        local editOffset = group.leftTime - self:getTimeLeftBound()
-
         reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-        self.correctionGroup:correctPitchGroup(group, editOffset, self.pdSettings)
+        self.correctionGroup:correctPitchGroup(group)
     end
 end
 
@@ -571,8 +569,6 @@ function GUI.PitchEditor:drawPitchLines()
 
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    local drawThreshold = 2.5 * self.pdSettings.windowStep / self.pdSettings.overlap
-
     self.pitchLinesBuff = self.pitchLinesBuff or GUI.GetBuffer()
 
     gfx.dest = self.pitchLinesBuff
@@ -584,6 +580,8 @@ function GUI.PitchEditor:drawPitchLines()
     local groupsTimeOffset = self.pitchGroups[1].leftTime
 
     for groupIndex, group in ipairs(self.pitchGroups) do
+        local drawThreshold = 2.5 * group.minTimePerPoint
+
         local previousPoint = nil
         local previousPointX = nil
         local previousPointY = nil
@@ -618,8 +616,6 @@ end
 function GUI.PitchEditor:drawPreviewPitchLines()
     if #self.pitchGroups < 1 then return end
 
-    local drawThreshold = 2.5 * self.pdSettings.windowStep / self.pdSettings.overlap
-
     self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
 
     gfx.dest = self.previewLinesBuff
@@ -631,6 +627,8 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local groupsTimeOffset = self.pitchGroups[1].leftTime
 
     for groupIndex, group in ipairs(self.pitchGroups) do
+        local drawThreshold = 2.5 * group.minTimePerPoint
+
         local previousPointTime = nil
         local previousPointX = nil
         local previousPointY = nil
@@ -827,15 +825,11 @@ function GUI.PitchEditor:drawEditCursor()
 end
 
 function GUI.PitchEditor:setItems(items)
-    --[[if self.pitchLinesBuff then GUI.FreeBuffer(self.pitchLinesBuff) end
-    if self.previewLinesBuff then GUI.FreeBuffer(self.previewLinesBuff) end
-    if self.correctionGroupBuff then GUI.FreeBuffer(self.correctionGroupBuff) end
-
-    self.pitchLinesBuff = nil
-    self.previewLinesBuff = nil
-    self.correctionGroupBuff = nil]]--
-
     self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
+
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        group.editOffset = group.leftTime - self:getTimeLeftBound()
+    end
 
     self:drawPitchLines()
     self:drawPreviewPitchLines()
