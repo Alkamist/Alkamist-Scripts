@@ -205,6 +205,7 @@ end
 function GUI.PitchEditor:onmousedown()
     self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    self.prevMouseSnappedPitch = self:getSnappedPitch(self.prevMousePitch)
 
     self.editNode = self:getCorrectionNodeUnderMouse()
 
@@ -255,16 +256,26 @@ end
 function GUI.PitchEditor:ondrag()
     local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
     local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    local mouseSnappedPitch = self:getSnappedPitch(mousePitch)
 
     local mouseTimeChange = mouseTime - self.prevMouseTime
     local mousePitchChange = mousePitch - self.prevMousePitch
+
+    if gfx.mouse_cap & 8 == 0 then
+        mousePitch = mouseSnappedPitch
+        mousePitchChange = mouseSnappedPitch - self.prevMouseSnappedPitch
+    end
 
     if self.editNode == nil then
         self:unselectAllCorrectionNodes()
 
         local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox)
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
-        --local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
+        local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
+
+        if gfx.mouse_cap & 8 == 0 then
+            mouseOriginalPitch = mouseOriginalSnappedPitch
+        end
 
         self.correctionGroup:addNode( {
 
@@ -315,6 +326,7 @@ function GUI.PitchEditor:ondrag()
     self.lWasDragged = true
     self.prevMouseTime = mouseTime
     self.prevMousePitch = mousePitch
+    self.prevMouseSnappedPitch = mouseSnappedPitch
 
     self:drawCorrectionGroup()
 
