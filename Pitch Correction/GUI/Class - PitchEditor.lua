@@ -919,6 +919,7 @@ GUI.PitchEditor.keys = {
     [GUI.chars.DELETE] = function(self)
 
         self:deleteSelectedCorrectionNodes()
+        self:applyPitchCorrections()
         self:drawPreviewPitchLines()
         self:drawCorrectionGroup()
         self:redraw()
