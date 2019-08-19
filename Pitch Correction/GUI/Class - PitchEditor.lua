@@ -202,6 +202,15 @@ function GUI.PitchEditor:unselectAllCorrectionNodes()
     end
 end
 
+function GUI.PitchEditor:applyPitchCorrections()
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        local editOffset = group.leftTime - self:getTimeLeftBound()
+
+        reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+        self.correctionGroup:correctPitchGroup(group, editOffset, self.pdSettings)
+    end
+end
+
 function GUI.PitchEditor:onmousedown()
     self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
@@ -213,6 +222,11 @@ function GUI.PitchEditor:onmousedown()
         -- Not holding shift.
         if gfx.mouse_cap & 8 == 0 and not self.editNode.isSelected then
             self:unselectAllCorrectionNodes()
+        end
+
+        if gfx.mouse_cap & 16 == 16 then
+            self.editNode.isActive = not self.editNode.isActive
+            self:applyPitchCorrections()
         end
 
         self.editNode.isSelected = true
@@ -261,6 +275,7 @@ function GUI.PitchEditor:ondrag()
     local mouseTimeChange = mouseTime - self.prevMouseTime
     local mousePitchChange = mousePitch - self.prevMousePitch
 
+    -- Use snapped pitch if shift is not being held.
     if gfx.mouse_cap & 8 == 0 then
         mousePitch = mouseSnappedPitch
         mousePitchChange = mouseSnappedPitch - self.prevMouseSnappedPitch
@@ -273,18 +288,26 @@ function GUI.PitchEditor:ondrag()
         local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
         local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
 
+        -- Use snapped pitch if shift is not being held.
         if gfx.mouse_cap & 8 == 0 then
             mouseOriginalPitch = mouseOriginalSnappedPitch
         end
 
-        self.correctionGroup:addNode( {
+        local newNodeIndex = self.correctionGroup:getNodeIndex( self.correctionGroup:addNode( {
 
             time = mouseOriginalTime,
             pitch = mouseOriginalPitch,
             isSelected = false,
             isActive = true
 
-        } )
+        } ) )
+
+        -- If holding control when adding a new node, activate the previous node so it connects.
+        if gfx.mouse_cap & 4 == 4 then
+            if newNodeIndex > 1 then
+                self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
+            end
+        end
 
         self.editNode = self.correctionGroup:addNode( {
 
@@ -296,13 +319,6 @@ function GUI.PitchEditor:ondrag()
         } )
 
     else
-        -- Clean up envelope point content before editing.
-        for groupIndex, group in ipairs(self.pitchGroups) do
-            --local editOffset = group.leftTime - self:getTimeLeftBound()
-            --self.correctionGroup:clearEnvelopeContent(group, editOffset)
-            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-        end
-
         -- Edit the corrections.
         for index, node in ipairs(self.correctionGroup.nodes) do
             if node.isSelected then
@@ -312,13 +328,7 @@ function GUI.PitchEditor:ondrag()
         end
 
         self.correctionGroup:sort()
-
-        -- Apply the newly edited corrections to the envelope.
-        for groupIndex, group in ipairs(self.pitchGroups) do
-            local editOffset = group.leftTime - self:getTimeLeftBound()
-
-            self.correctionGroup:correctPitchGroup(group, editOffset, self.pdSettings)
-        end
+        self:applyPitchCorrections()
 
         self:drawPreviewPitchLines()
     end

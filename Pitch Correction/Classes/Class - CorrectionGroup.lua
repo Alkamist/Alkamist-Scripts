@@ -8,7 +8,7 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 -- Pitch correction settings:
 local averageCorrection = 0.0
 local modCorrection = 1.0
-local driftCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.05
 local zeroPointSpacing = 0.01
@@ -33,15 +33,21 @@ function CorrectionGroup:sort()
     table.sort(self.nodes, function(a, b) return a.time < b.time end)
 end
 
-function CorrectionGroup:test(pitchGroup, pdSettings)
-    msg(self.nodes)
-end
-
 function CorrectionGroup:addNode(newNode)
     table.insert(self.nodes, newNode)
     self:sort()
 
     return newNode
+end
+
+function CorrectionGroup:getNodeIndex(inputNode)
+    for index, node in ipairs(self.nodes) do
+        if inputNode == node then
+            return index
+        end
+    end
+
+    return nil
 end
 
 function CorrectionGroup:getBindingNodes(time)
@@ -201,7 +207,7 @@ function CorrectionGroup:correctPitchGroup(pitchGroup, editOffset, pdSettings)
             local targetPitch = self:getPitch(relativePointTime + editOffset)
 
             self:correctPitchDrift(point, pointIndex, pitchGroup, targetPitch, driftCorrection, driftCorrectionSpeed, pdSettings)
-            --CorrectionGroup.correctPitchMod(point, targetPitch, modCorrection)
+            CorrectionGroup.correctPitchMod(point, targetPitch, modCorrection)
 
             reaper.InsertEnvelopePoint(pitchEnvelope, relativePointTime * playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
         end
