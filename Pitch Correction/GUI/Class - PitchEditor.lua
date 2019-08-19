@@ -591,7 +591,7 @@ function GUI.PitchEditor:drawPitchLines()
 
             local pitchValue = point.pitch
 
-            local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset - group.startOffset) - self.x
+            local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
             local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
             previousPointX = previousPointX or pointX
@@ -637,27 +637,26 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local playrate = group.playrate
 
         for pointIndex, point in ipairs(group.points) do
-            local relativePointTime = point.time - group.startOffset
-            previousPointTime = previousPointTime or relativePointTime
+            previousPointTime = previousPointTime or point.relativeTime
 
-            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, relativePointTime / playrate, 44100, 0)
+            local _, envelopeValue = reaper.Envelope_Evaluate(pitchEnvelope, point.relativeTime / playrate, 44100, 0)
 
             local pitchValue = point.pitch + envelopeValue
 
-            local pointX = self:getPixelsFromTime(group.leftTime + relativePointTime - groupsTimeOffset) - self.x
+            local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
             local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
             previousPointX = previousPointX or pointX
             previousPointY = previousPointY or pointY
 
-            if relativePointTime - previousPointTime > drawThreshold then
+            if point.relativeTime - previousPointTime > drawThreshold then
                 previousPointX = pointX
                 previousPointY = pointY
             end
 
             gfx.line(previousPointX, previousPointY, pointX, pointY, false)
 
-            previousPointTime = relativePointTime
+            previousPointTime = point.relativeTime
             previousPointX = pointX
             previousPointY = pointY
         end
