@@ -106,7 +106,7 @@ function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup, editOf
     local driftAverage = 0
     local numDriftPoints = 0
     for i = 1, maxDriftPoints do
-        local accessIndex = pointIndex + i - math.floor(maxDriftPoints * 0.5)
+        local accessIndex = pointIndex + i - math.ceil(maxDriftPoints * 0.5)
 
         if accessIndex >= 1 and accessIndex <= numPitchPoints then
             local driftPoint = pitchGroup.points[accessIndex]
