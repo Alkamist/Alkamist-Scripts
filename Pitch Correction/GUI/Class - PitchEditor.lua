@@ -209,6 +209,58 @@ function GUI.PitchEditor:applyPitchCorrections()
     end
 end
 
+function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
+    self:unselectAllCorrectionNodes()
+
+    local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox)
+    local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
+    local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
+
+    -- Use snapped pitch if shift is not being held.
+    if gfx.mouse_cap & 8 == 0 then
+        mouseOriginalPitch = mouseOriginalSnappedPitch
+    end
+
+    local newNodeIndex = self.correctionGroup:getNodeIndex( self.correctionGroup:addNode( {
+
+        time = mouseOriginalTime,
+        pitch = mouseOriginalPitch,
+        isSelected = false,
+        isActive = true
+
+    } ) )
+
+    -- If holding control when adding a new node, activate the previous node so it connects.
+    if gfx.mouse_cap & 4 == 4 then
+        if newNodeIndex > 1 then
+            self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
+        end
+    end
+
+    self.editNode = self.correctionGroup:addNode( {
+
+        time = mouseTime,
+        pitch = mousePitch,
+        isSelected = true,
+        isActive = false
+
+    } )
+end
+
+function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        if node.isSelected then
+            node.time = node.time + mouseTimeChange
+            node.pitch = node.pitch + mousePitchChange
+        end
+    end
+
+    self.correctionGroup:sort()
+    self:applyPitchCorrections()
+
+    self:drawPreviewPitchLines()
+end
+
 function GUI.PitchEditor:onmousedown()
     self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
@@ -280,55 +332,10 @@ function GUI.PitchEditor:ondrag()
     end
 
     if self.editNode == nil then
-        self:unselectAllCorrectionNodes()
-
-        local mouseOriginalTime = self:getTimeFromPixels(GUI.mouse.ox)
-        local mouseOriginalPitch = self:getPitchFromPixels(GUI.mouse.oy)
-        local mouseOriginalSnappedPitch = self:getSnappedPitch(mouseOriginalPitch)
-
-        -- Use snapped pitch if shift is not being held.
-        if gfx.mouse_cap & 8 == 0 then
-            mouseOriginalPitch = mouseOriginalSnappedPitch
-        end
-
-        local newNodeIndex = self.correctionGroup:getNodeIndex( self.correctionGroup:addNode( {
-
-            time = mouseOriginalTime,
-            pitch = mouseOriginalPitch,
-            isSelected = false,
-            isActive = true
-
-        } ) )
-
-        -- If holding control when adding a new node, activate the previous node so it connects.
-        if gfx.mouse_cap & 4 == 4 then
-            if newNodeIndex > 1 then
-                self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
-            end
-        end
-
-        self.editNode = self.correctionGroup:addNode( {
-
-            time = mouseTime,
-            pitch = mousePitch,
-            isSelected = true,
-            isActive = false
-
-        } )
+        self:handleNodeCreation(mouseTime, mousePitch)
 
     else
-        -- Edit the corrections.
-        for index, node in ipairs(self.correctionGroup.nodes) do
-            if node.isSelected then
-                node.time = node.time + mouseTimeChange
-                node.pitch = node.pitch + mousePitchChange
-            end
-        end
-
-        self.correctionGroup:sort()
-        self:applyPitchCorrections()
-
-        self:drawPreviewPitchLines()
+        self:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.lWasDragged = true
