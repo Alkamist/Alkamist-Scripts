@@ -33,6 +33,8 @@ GUI.colors["play_cursor"] = {255, 255, 255, 40}
 GUI.colors["pitch_correction"] = {32, 118, 167, 255}
 GUI.colors["pitch_correction_selected"] = {65, 210, 240, 255}
 
+GUI.colors["box_select"] = {255, 255, 255, 150}
+
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
 local whiteKeys = {}
 for i = 1, 11 do
@@ -581,6 +583,29 @@ function GUI.PitchEditor:onm_drag()
     self:redraw()
 end
 
+function GUI.PitchEditor:onmouser_down()
+    if GUI.IsInside(self) then
+        self.boxSelect = { x1 = GUI.mouse.x, y1 = GUI.mouse.y, x2 = GUI.mouse.x, y2 = GUI.mouse.y }
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:onmouser_up()
+    self.boxSelect = nil
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:onr_drag()
+    if self.boxSelect then
+        self.boxSelect.x2 = GUI.mouse.x
+        self.boxSelect.y2 = GUI.mouse.y
+    end
+
+    self:redraw()
+end
+
 function GUI.PitchEditor:onresize()
     self.w = GUI.cur_w - 4
     self.h = GUI.cur_h - self.y - 2
@@ -641,6 +666,7 @@ function GUI.PitchEditor:drawUI()
     self:drawCorrectionGroup()
     self:drawEditCursor()
     --self:drawKeys()
+    self:drawBoxSelect()
 end
 
 function GUI.PitchEditor:drawPitchLines()
@@ -853,4 +879,20 @@ function GUI.PitchEditor:drawEditCursor()
     end
 
     gfx.a = 1.0
+end
+
+function GUI.PitchEditor:drawBoxSelect()
+    if self.boxSelect then
+        GUI.color("box_select")
+        local boxX = math.min(self.boxSelect.x1, self.boxSelect.x2) - self.x
+        local boxY = math.min(self.boxSelect.y1, self.boxSelect.y2) - self.y
+        local boxW = math.abs(self.boxSelect.x1 - self.boxSelect.x2)
+        local boxH = math.abs(self.boxSelect.y1 - self.boxSelect.y2)
+
+        gfx.rect(boxX, boxY, boxW, boxH, 0)
+        gfx.a = gfx.a * 0.07
+        gfx.rect(boxX + 1, boxY + 1, boxW - 1, boxH - 1, 1)
+
+        gfx.a = 1.0
+    end
 end
