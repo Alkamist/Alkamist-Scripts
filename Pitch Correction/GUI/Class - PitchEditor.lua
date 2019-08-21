@@ -148,7 +148,19 @@ function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
     if nodes == nil then return nil end
     if nodes[index] == nil then return nil end
 
-    --[[local node = nodes[index]
+    local node = nodes[index]
+
+    local nodeX = self:getPixelsFromTime(node.time)
+    local nodeY = self:getPixelsFromPitch(node.pitch)
+
+    return Lua.distanceBetweenTwoPoints(nodeX, nodeY, GUI.mouse.x, GUI.mouse.y)
+end
+
+function GUI.PitchEditor:getMouseDistanceToLine(index, nodes)
+    if nodes == nil then return nil end
+    if nodes[index] == nil then return nil end
+
+    local node = nodes[index]
     local nextNode = nodes[index + 1] or node
 
     local leftHandleX = self:getPixelsFromTime(node.time)
@@ -156,16 +168,9 @@ function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
     local rightHandleX = self:getPixelsFromTime(nextNode.time)
     local rightHandleY = self:getPixelsFromPitch(nextNode.pitch)
 
-    local mouseDistanceFromPitchCorrectionLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
+    local mouseDistanceFromLine = Lua.minDistanceBetweenPointAndLineSegment(GUI.mouse.x, GUI.mouse.y, leftHandleX, leftHandleY, rightHandleX, rightHandleY)
 
-    return mouseDistanceFromPitchCorrectionLine]]--
-
-    local node = nodes[index]
-
-    local nodeX = self:getPixelsFromTime(node.time)
-    local nodeY = self:getPixelsFromPitch(node.pitch)
-
-    return Lua.distanceBetweenTwoPoints(nodeX, nodeY, GUI.mouse.x, GUI.mouse.y)
+    return mouseDistanceFromLine
 end
 
 function GUI.PitchEditor:getCorrectionNodeUnderMouse()
@@ -191,6 +196,36 @@ function GUI.PitchEditor:getCorrectionNodeUnderMouse()
 
     if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance then
         return self.correctionGroup.nodes[smallestDistanceIndex]
+    end
+
+    return nil
+end
+
+function GUI.PitchEditor:getLineUnderMouse()
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x) or 0
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y) or 0
+
+    local correctionDistances = {}
+
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        correctionDistances[index] = self:getMouseDistanceToLine(index, self.correctionGroup.nodes)
+    end
+
+    local smallestDistanceIndex = nil
+    for index, distance in ipairs(correctionDistances) do
+        smallestDistanceIndex = smallestDistanceIndex or index
+
+        if distance < correctionDistances[smallestDistanceIndex] then
+            smallestDistanceIndex = index
+        end
+    end
+
+    if smallestDistanceIndex == nil then return nil end
+
+    if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance then
+        return { node1 = self.correctionGroup.nodes[smallestDistanceIndex],
+                 node2 = self.correctionGroup.nodes[smallestDistanceIndex + 1]
+        }
     end
 
     return nil
@@ -261,12 +296,28 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     self:drawPreviewPitchLines()
 end
 
+function GUI.PitchEditor:handleLineEditing(mouseTimeChange, mousePitchChange)
+    if not self.editLine.node1 or not self.editLine.node2 then return end
+
+    self.editLine.node1.time = self.editLine.node1.time + mouseTimeChange
+    self.editLine.node1.pitch = self.editLine.node1.pitch + mousePitchChange
+
+    self.editLine.node2.time = self.editLine.node2.time + mouseTimeChange
+    self.editLine.node2.pitch = self.editLine.node2.pitch + mousePitchChange
+
+    self.correctionGroup:sort()
+    self:applyPitchCorrections()
+
+    self:drawPreviewPitchLines()
+end
+
 function GUI.PitchEditor:onmousedown()
     self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
     self.prevMouseSnappedPitch = self:getSnappedPitch(self.prevMousePitch)
 
     self.editNode = self:getCorrectionNodeUnderMouse()
+    self.editLine = self:getLineUnderMouse()
 
     if self.editNode then
         -- Not holding shift.
@@ -311,6 +362,7 @@ function GUI.PitchEditor:onmouseup()
 
     self.lWasDragged = false
     self.editNode = nil
+    self.editLine = nil
 
     self:drawCorrectionGroup()
 
@@ -332,7 +384,12 @@ function GUI.PitchEditor:ondrag()
     end
 
     if self.editNode == nil then
-        self:handleNodeCreation(mouseTime, mousePitch)
+
+        if self.editLine then
+            self:handleLineEditing(mouseTimeChange, mousePitchChange)
+        else
+            self:handleNodeCreation(mouseTime, mousePitch)
+        end
 
     else
         self:handleNodeEditing(mouseTimeChange, mousePitchChange)
