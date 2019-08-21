@@ -792,6 +792,8 @@ end
 function GUI.PitchEditor:drawCorrectionGroup()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
+    local circleRadii = 3
+
     GUI.color("pitch_correction_selected")
 
     local prevNode = nil
@@ -805,11 +807,17 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
         local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
 
-        if prevNode.isActive then
-            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, true)
-        end
+        local angle = math.atan(rightPitchPixels - leftPitchPixels, rightTimePixels - leftTimePixels)
+        local timeOffset = math.cos(angle) * (circleRadii + 1)
+        local pitchOffset = math.sin(angle) * (circleRadii + 1)
+        local leftLineTimePixels = leftTimePixels + timeOffset
+        local rightLineTimePixels = rightTimePixels - timeOffset
+        local leftLinePitchPixels = leftPitchPixels + pitchOffset
+        local rightLinePitchPixels = rightPitchPixels - pitchOffset
 
-        local circleRadii = 3
+        if prevNode.isActive and index > 1 then
+            gfx.line(leftLineTimePixels, leftLinePitchPixels, rightLineTimePixels, rightLinePitchPixels, true)
+        end
 
         if node.isSelected == true then
             gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, true)
