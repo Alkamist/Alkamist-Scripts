@@ -543,12 +543,8 @@ function GUI.PitchEditor:ondrag()
 
     if not self.altOnEditLDown then
 
-        if self.editNode == nil then
-
-            if not self.editLine then
-                self:handleNodeCreation(mouseTime, mousePitch)
-            end
-
+        if self.editNode == nil and self.editLine == nil then
+            self:handleNodeCreation(mouseTime, mousePitch)
         end
 
         self:handleNodeEditing(mouseTimeChange, mousePitchChange)
