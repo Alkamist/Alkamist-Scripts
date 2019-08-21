@@ -456,6 +456,15 @@ function GUI.PitchEditor:onmousedown()
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
     self.prevMouseSnappedPitch = self:getSnappedPitch(self.prevMousePitch)
 
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    local mousePitch = self:getPitchFromPixels(GUI.mouse.y)
+    local mouseSnappedPitch = self:getSnappedPitch(mousePitch)
+
+    -- Use snapped pitch if shift is not being held.
+    if gfx.mouse_cap & 8 == 0 then
+        mousePitch = mouseSnappedPitch
+    end
+
     self.editNode = self:getCorrectionNodeUnderMouse()
     self.editLine = self:getLineUnderMouse()
 
@@ -495,12 +504,14 @@ function GUI.PitchEditor:onmousedown()
 
         -- Holding alt.
         if gfx.mouse_cap & 16 == 16 then
+            self:unselectAllCorrectionNodes()
+
             self.editNode = self.correctionGroup:addNode( {
 
-                time = Lua.clamp(self:getTimeFromPixels(GUI.mouse.x), 0.0, self:getTimeLength()),
-                pitch = Lua.clamp(self:getPitchFromPixels(GUI.mouse.y), 0.0, self:getMaxPitch()),
+                time = Lua.clamp(mouseTime, 0.0, self:getTimeLength()),
+                pitch = Lua.clamp(mousePitch, 0.0, self:getMaxPitch()),
                 isSelected = true,
-                isActive = true
+                isActive = false
 
             } )
 
@@ -512,6 +523,8 @@ function GUI.PitchEditor:onmousedown()
             if newNodeIndex > 1 then
                 self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
             end
+
+            self:applyPitchCorrections()
         end
     end
 
