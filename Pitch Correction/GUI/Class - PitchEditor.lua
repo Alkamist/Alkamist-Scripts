@@ -174,7 +174,9 @@ function GUI.PitchEditor:getLineUnderMouse()
 
     if smallestDistanceIndex == nil then return nil end
 
-    if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance then
+    if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance
+    and self.correctionGroup.nodes[smallestDistanceIndex].isActive then
+
         return { node1 = self.correctionGroup.nodes[smallestDistanceIndex],
                  node2 = self.correctionGroup.nodes[smallestDistanceIndex + 1]
         }
@@ -187,6 +189,8 @@ function GUI.PitchEditor:unselectAllCorrectionNodes()
     for index, node in ipairs(self.correctionGroup.nodes) do
         node.isSelected = false
     end
+
+    self:updateExtremeSelectedNodes()
 end
 
 function GUI.PitchEditor:applyPitchCorrections()
@@ -226,12 +230,14 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
 
     self.editNode = self.correctionGroup:addNode( {
 
-        time = mouseTime,
-        pitch = mousePitch,
+        time = Lua.clamp(mouseTime, 0.0, self:getTimeLength()),
+        pitch = Lua.clamp(mousePitch, 0.0, self:getMaxPitch()),
         isSelected = true,
         isActive = false
 
     } )
+
+    self:updateExtremeSelectedNodes()
 end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
@@ -246,17 +252,18 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     self:applyPitchCorrections()
 end
 
-function GUI.PitchEditor:handleLineEditing(mouseTimeChange, mousePitchChange)
+function GUI.PitchEditor:handleLineSelection()
     if not self.editLine.node1 or not self.editLine.node2 then return end
 
-    self.editLine.node1.time = self.editLine.node1.time + mouseTimeChange
-    self.editLine.node1.pitch = self.editLine.node1.pitch + mousePitchChange
+    -- Shift is not held.
+    if gfx.mouse_cap & 8 == 0 then
+        self:unselectAllCorrectionNodes()
+    end
 
-    self.editLine.node2.time = self.editLine.node2.time + mouseTimeChange
-    self.editLine.node2.pitch = self.editLine.node2.pitch + mousePitchChange
+    self.editLine.node1.isSelected = true
+    self.editLine.node2.isSelected = true
 
-    self.correctionGroup:sort()
-    self:applyPitchCorrections()
+    self:updateExtremeSelectedNodes()
 end
 
 function GUI.PitchEditor:setItems(items)
@@ -406,6 +413,28 @@ function GUI.PitchEditor:moveSelectedNodesUp()
     reaper.UpdateArrange()
 end
 
+function GUI.PitchEditor:updateExtremeSelectedNodes()
+    self.leftSelectedNode = nil
+    self.rightSelectedNode = nil
+    self.bottomSelectedNode = nil
+    self.topSelectedNode = nil
+
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        if node.isSelected then
+            self.leftSelectedNode = self.leftSelectedNode or node
+            self.rightSelectedNode = self.rightSelectedNode or node
+            self.bottomSelectedNode = self.bottomSelectedNode or node
+            self.topSelectedNode = self.topSelectedNode or node
+
+            if node.time <= self.leftSelectedNode.time then self.leftSelectedNode = node end
+            if node.time >= self.rightSelectedNode.time then self.rightSelectedNode = node end
+            if node.pitch <= self.bottomSelectedNode.pitch then self.bottomSelectedNode = node end
+            if node.pitch >= self.topSelectedNode.pitch then self.topSelectedNode = node end
+        end
+    end
+end
+
+
 
 ------------------ Events ------------------
 
@@ -449,6 +478,7 @@ function GUI.PitchEditor:onmousedown()
         end
 
         self.editNode.isSelected = true
+        self:updateExtremeSelectedNodes()
 
     elseif self.editLine then
         -- If holding alt, deactivate the node responsible for creating the line.
@@ -458,6 +488,8 @@ function GUI.PitchEditor:onmousedown()
             self:applyPitchCorrections()
             self.altOnEditLDown = true
         end
+
+        self:handleLineSelection()
     end
 
     self:redraw()
@@ -502,19 +534,29 @@ function GUI.PitchEditor:ondrag()
         mousePitchChange = mouseSnappedPitch - self.prevMouseSnappedPitch
     end
 
+    if self.leftSelectedNode and self.rightSelectedNode then
+        local timeMin = math.min(-self.leftSelectedNode.time, 0)
+        local timeMax = math.max(self:getTimeLength() - self.rightSelectedNode.time, 0)
+        mouseTimeChange = Lua.clamp(mouseTimeChange, timeMin, timeMax)
+    end
+
+    if self.bottomSelectedNode and self.topSelectedNode then
+        local pitchMin = math.min(-self.bottomSelectedNode.pitch, 0)
+        local pitchMax = math.max(self:getMaxPitch() - self.topSelectedNode.pitch, 0)
+        mousePitchChange = Lua.clamp(mousePitchChange, pitchMin, pitchMax)
+    end
+
     if not self.altOnEditLDown then
 
         if self.editNode == nil then
 
-            if self.editLine then
-                self:handleLineEditing(mouseTimeChange, mousePitchChange)
-            else
+            if not self.editLine then
                 self:handleNodeCreation(mouseTime, mousePitch)
             end
 
-        else
-            self:handleNodeEditing(mouseTimeChange, mousePitchChange)
         end
+
+        self:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.lWasDragged = true
@@ -670,6 +712,8 @@ function GUI.PitchEditor:onmouser_up()
                 end
             end
         end
+
+        self:updateExtremeSelectedNodes()
     end
 
     self.boxSelect = nil
