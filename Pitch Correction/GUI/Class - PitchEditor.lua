@@ -230,8 +230,8 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
 
     self.editNode = self.correctionGroup:addNode( {
 
-        time = Lua.clamp(mouseTime, 0.0, self:getTimeLength()),
-        pitch = Lua.clamp(mousePitch, 0.0, self:getMaxPitch()),
+        time = Lua.clamp(mouseOriginalTime, 0.0, self:getTimeLength()),
+        pitch = Lua.clamp(mouseOriginalPitch, 0.0, self:getMaxPitch()),
         isSelected = true,
         isActive = false
 
@@ -499,16 +499,11 @@ function GUI.PitchEditor:onmouseup()
     self.lWasDragged = self.lWasDragged or false
 
     if not self.lWasDragged and not self.altOnEditLDown then
-        if self.editNode == nil then
+        if self.editNode == nil and self.editLine == nil then
             local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
             reaper.SetEditCurPos(playTime, false, true)
 
             self:unselectAllCorrectionNodes()
-
-        -- Not holding shift or alt:
-        elseif gfx.mouse_cap & 8 == 0 and gfx.mouse_cap & 16 == 0 then
-            self:unselectAllCorrectionNodes()
-            self.editNode.isSelected = true
         end
     end
 
