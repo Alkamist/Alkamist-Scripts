@@ -473,16 +473,19 @@ function GUI.PitchEditor:ondrag()
         mousePitchChange = mouseSnappedPitch - self.prevMouseSnappedPitch
     end
 
-    if self.editNode == nil then
+    if not self.altOnEditLDown then
 
-        if self.editLine then
-            self:handleLineEditing(mouseTimeChange, mousePitchChange)
+        if self.editNode == nil then
+
+            if self.editLine then
+                self:handleLineEditing(mouseTimeChange, mousePitchChange)
+            else
+                self:handleNodeCreation(mouseTime, mousePitch)
+            end
+
         else
-            self:handleNodeCreation(mouseTime, mousePitch)
+            self:handleNodeEditing(mouseTimeChange, mousePitchChange)
         end
-
-    else
-        self:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.lWasDragged = true
