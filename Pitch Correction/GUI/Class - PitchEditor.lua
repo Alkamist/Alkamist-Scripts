@@ -480,16 +480,39 @@ function GUI.PitchEditor:onmousedown()
         self.editNode.isSelected = true
         self:updateExtremeSelectedNodes()
 
-    elseif self.editLine then
-        -- If holding alt, deactivate the node responsible for creating the line.
-        if gfx.mouse_cap & 16 == 16 then
-            self.editLine.node1.isActive = false
+    else
+        if self.editLine then
+            -- If holding alt, deactivate the node responsible for creating the line.
+            if gfx.mouse_cap & 16 == 16 then
+                --self.editLine.node1.isActive = false
 
-            self:applyPitchCorrections()
-            self.altOnEditLDown = true
+                --self:applyPitchCorrections()
+                self.altOnEditLDown = true
+            end
+
+            self:handleLineSelection()
         end
 
-        self:handleLineSelection()
+        -- Holding alt.
+        if gfx.mouse_cap & 16 == 16 then
+            self.editNode = self.correctionGroup:addNode( {
+
+                time = Lua.clamp(self:getTimeFromPixels(GUI.mouse.x), 0.0, self:getTimeLength()),
+                pitch = Lua.clamp(self:getPitchFromPixels(GUI.mouse.y), 0.0, self:getMaxPitch()),
+                isSelected = true,
+                isActive = true
+
+            } )
+
+            self.correctionGroup:sort()
+            self:updateExtremeSelectedNodes()
+
+            local newNodeIndex = self.correctionGroup:getNodeIndex(self.editNode)
+
+            if newNodeIndex > 1 then
+                self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
+            end
+        end
     end
 
     self:redraw()
