@@ -78,19 +78,9 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     return object
 end
 
-function GUI.PitchEditor:init()
-    self:initDragZoomAndScroll()
 
-    self:setItemsToSelectedItems()
 
-    self:drawUI()
-end
-
-function GUI.PitchEditor:draw()
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    gfx.blit(self.uiBuffer, 1, 0, 0, 0, w, h, x, y)
-end
+------------------ Helper Functions ------------------
 
 function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
@@ -265,6 +255,140 @@ function GUI.PitchEditor:handleLineEditing(mouseTimeChange, mousePitchChange)
     self:applyPitchCorrections()
 end
 
+function GUI.PitchEditor:setItems(items)
+    self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
+
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        group.editOffset = group.leftTime - self:getTimeLeftBound()
+    end
+
+    self:redraw()
+end
+
+function GUI.PitchEditor:setItemsToSelectedItems()
+    local itemsAreSelectedOnMultipleTracks = false
+    local numSelectedItems = reaper.CountSelectedMediaItems(0)
+    local selectedItems = {}
+
+    for i = 1, numSelectedItems do
+        local item = reaper.GetSelectedMediaItem(0, i - 1)
+        local itemTrack = reaper.GetMediaItemTrack(item)
+
+        if i > 1 then
+            local previousItem = reaper.GetSelectedMediaItem(0, i - 2)
+            local previousItemTrack = reaper.GetMediaItemTrack(previousItem)
+
+            if itemTrack ~= previousItemTrack then
+                itemsAreSelectedOnMultipleTracks = true
+            end
+        end
+
+        table.insert(selectedItems, item)
+    end
+
+    if not itemsAreSelectedOnMultipleTracks then
+        self:setItems(selectedItems)
+    end
+end
+
+function GUI.PitchEditor:initDragZoomAndScroll()
+    self.zoomX = self.zoomX or 1.0
+    self.zoomY = self.zoomY or 1.0
+    self.scrollX = self.scrollX or 0.0
+    self.scrollY = self.scrollY or 0.0
+
+    self.zoomXPreDrag = self.zoomXPreDrag or 1.0
+    self.zoomYPreDrag = self.zoomYPreDrag or 1.0
+    self.scrollXPreDrag = self.scrollXPreDrag or 0.0
+    self.scrollYPreDrag = self.scrollYPreDrag or 0.0
+
+    self.shouldZoom = self.shouldZoom or false
+    self.shouldDragScroll = self.shouldDragScroll or false
+
+    self.mouse_cap_prev = self.mouse_cap_prev or gfx.mouse_cap
+end
+
+function GUI.PitchEditor:analyzePitchGroups()
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        group:analyze(self.pdSettings)
+    end
+end
+
+function GUI.PitchEditor:getSnappedPitch(pitch)
+    return GUI.round(pitch)
+end
+
+function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
+    local zoom = zoom or self.zoomX
+    local scroll = scroll or self.scrollX
+
+    local relativeX = xPixels - self.x - self.keyWidth
+    return self:getTimeLength() * (scroll + relativeX / ((self.w - self.keyWidth) * zoom))
+end
+
+function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
+    local zoom = zoom or self.zoomX
+    local scroll = scroll or self.scrollX
+
+    return self.keyWidth + self.x + zoom * (self.w - self.keyWidth) * (time / self:getTimeLength() - scroll)
+end
+
+function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
+    local zoom = zoom or self.zoomY
+    local scroll = scroll or self.scrollY
+
+    local relativeY = yPixels - self.y
+    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (self.h * zoom))) - 0.5
+end
+
+function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
+    local zoom = zoom or self.zoomY
+    local scroll = scroll or self.scrollY
+
+    local pitchRatio = 1.0 - (0.5 + pitch) / self:getMaxPitch()
+    return self.y + zoom * self.h * (pitchRatio - scroll)
+end
+
+function GUI.PitchEditor:getTimeLeftBound()
+    local numPitchGroups = #self.pitchGroups
+
+    if numPitchGroups < 1 then return 0 end
+
+    return self.pitchGroups[1].leftTime
+end
+
+function GUI.PitchEditor:getTimeLength()
+    local numPitchGroups = #self.pitchGroups
+
+    if numPitchGroups < 1 then return 0 end
+
+    local leftBound = self.pitchGroups[1].leftTime
+    local rightBound = self.pitchGroups[numPitchGroups].rightTime
+
+    return rightBound - leftBound
+end
+
+function GUI.PitchEditor:getMaxPitch()
+    return 128.0
+end
+
+
+
+------------------ Events ------------------
+
+function GUI.PitchEditor:init()
+    self:initDragZoomAndScroll()
+
+    self:setItemsToSelectedItems()
+
+    self:drawUI()
+end
+
+function GUI.PitchEditor:onupdate()
+    self:drawUI()
+    self:redraw()
+end
+
 function GUI.PitchEditor:onmousedown()
     self.prevMouseTime = self:getTimeFromPixels(GUI.mouse.x)
     self.prevMousePitch = self:getPitchFromPixels(GUI.mouse.y)
@@ -348,64 +472,6 @@ function GUI.PitchEditor:ondrag()
     self.prevMouseSnappedPitch = mouseSnappedPitch
 
     self:redraw()
-end
-
-function GUI.PitchEditor:setItems(items)
-    self.pitchGroups = PitchGroup.getPitchGroupsFromItems(items)
-
-    for groupIndex, group in ipairs(self.pitchGroups) do
-        group.editOffset = group.leftTime - self:getTimeLeftBound()
-    end
-
-    self:redraw()
-end
-
-function GUI.PitchEditor:setItemsToSelectedItems()
-    local itemsAreSelectedOnMultipleTracks = false
-    local numSelectedItems = reaper.CountSelectedMediaItems(0)
-    local selectedItems = {}
-
-    for i = 1, numSelectedItems do
-        local item = reaper.GetSelectedMediaItem(0, i - 1)
-        local itemTrack = reaper.GetMediaItemTrack(item)
-
-        if i > 1 then
-            local previousItem = reaper.GetSelectedMediaItem(0, i - 2)
-            local previousItemTrack = reaper.GetMediaItemTrack(previousItem)
-
-            if itemTrack ~= previousItemTrack then
-                itemsAreSelectedOnMultipleTracks = true
-            end
-        end
-
-        table.insert(selectedItems, item)
-    end
-
-    if not itemsAreSelectedOnMultipleTracks then
-        self:setItems(selectedItems)
-    end
-end
-
-function GUI.PitchEditor:onupdate()
-    self:drawUI()
-    self:redraw()
-end
-
-function GUI.PitchEditor:initDragZoomAndScroll()
-    self.zoomX = self.zoomX or 1.0
-    self.zoomY = self.zoomY or 1.0
-    self.scrollX = self.scrollX or 0.0
-    self.scrollY = self.scrollY or 0.0
-
-    self.zoomXPreDrag = self.zoomXPreDrag or 1.0
-    self.zoomYPreDrag = self.zoomYPreDrag or 1.0
-    self.scrollXPreDrag = self.scrollXPreDrag or 0.0
-    self.scrollYPreDrag = self.scrollYPreDrag or 0.0
-
-    self.shouldZoom = self.shouldZoom or false
-    self.shouldDragScroll = self.shouldDragScroll or false
-
-    self.mouse_cap_prev = self.mouse_cap_prev or gfx.mouse_cap
 end
 
 function GUI.PitchEditor:onmousem_down()
@@ -534,6 +600,27 @@ function GUI.PitchEditor:ontype()
     end
 
     self:redraw()
+end
+
+GUI.PitchEditor.keys = {
+
+    [GUI.chars.DELETE] = function(self)
+
+        self:deleteSelectedCorrectionNodes()
+        self:redraw()
+
+    end
+
+}
+
+
+
+------------------- Drawing -------------------
+
+function GUI.PitchEditor:draw()
+    local x, y, w, h = self.x, self.y, self.w, self.h
+
+    gfx.blit(self.uiBuffer, 1, 0, 0, 0, w, h, x, y)
 end
 
 function GUI.PitchEditor:drawUI()
@@ -757,78 +844,3 @@ function GUI.PitchEditor:drawEditCursor()
 
     gfx.a = 1.0
 end
-
-function GUI.PitchEditor:analyzePitchGroups()
-    for groupIndex, group in ipairs(self.pitchGroups) do
-        group:analyze(self.pdSettings)
-    end
-end
-
-function GUI.PitchEditor:getSnappedPitch(pitch)
-    return GUI.round(pitch)
-end
-
-function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
-    local zoom = zoom or self.zoomX
-    local scroll = scroll or self.scrollX
-
-    local relativeX = xPixels - self.x - self.keyWidth
-    return self:getTimeLength() * (scroll + relativeX / ((self.w - self.keyWidth) * zoom))
-end
-
-function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
-    local zoom = zoom or self.zoomX
-    local scroll = scroll or self.scrollX
-
-    return self.keyWidth + self.x + zoom * (self.w - self.keyWidth) * (time / self:getTimeLength() - scroll)
-end
-
-function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
-    local zoom = zoom or self.zoomY
-    local scroll = scroll or self.scrollY
-
-    local relativeY = yPixels - self.y
-    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (self.h * zoom))) - 0.5
-end
-
-function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
-    local zoom = zoom or self.zoomY
-    local scroll = scroll or self.scrollY
-
-    local pitchRatio = 1.0 - (0.5 + pitch) / self:getMaxPitch()
-    return self.y + zoom * self.h * (pitchRatio - scroll)
-end
-
-function GUI.PitchEditor:getTimeLeftBound()
-    local numPitchGroups = #self.pitchGroups
-
-    if numPitchGroups < 1 then return 0 end
-
-    return self.pitchGroups[1].leftTime
-end
-
-function GUI.PitchEditor:getTimeLength()
-    local numPitchGroups = #self.pitchGroups
-
-    if numPitchGroups < 1 then return 0 end
-
-    local leftBound = self.pitchGroups[1].leftTime
-    local rightBound = self.pitchGroups[numPitchGroups].rightTime
-
-    return rightBound - leftBound
-end
-
-function GUI.PitchEditor:getMaxPitch()
-    return 128.0
-end
-
-GUI.PitchEditor.keys = {
-
-    [GUI.chars.DELETE] = function(self)
-
-        self:deleteSelectedCorrectionNodes()
-        self:redraw()
-
-    end
-
-}
