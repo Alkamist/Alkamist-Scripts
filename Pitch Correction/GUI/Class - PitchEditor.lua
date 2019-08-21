@@ -376,6 +376,35 @@ function GUI.PitchEditor:getMaxPitch()
     return 128.0
 end
 
+function GUI.PitchEditor:moveSelectedNodesDown()
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        if node.isSelected then
+            if gfx.mouse_cap & 8 == 8 then
+                node.pitch = Lua.clamp(node.pitch - 12.0, 0, self:getMaxPitch())
+            else
+                node.pitch = Lua.clamp(node.pitch - 1.0, 0, self:getMaxPitch())
+            end
+        end
+    end
+
+    self:applyPitchCorrections()
+    reaper.UpdateArrange()
+end
+
+function GUI.PitchEditor:moveSelectedNodesUp()
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        if node.isSelected then
+            if gfx.mouse_cap & 8 == 8 then
+                node.pitch = Lua.clamp(node.pitch + 12.0, 0, self:getMaxPitch())
+            else
+                node.pitch = Lua.clamp(node.pitch + 1.0, 0, self:getMaxPitch())
+            end
+        end
+    end
+
+    self:applyPitchCorrections()
+    reaper.UpdateArrange()
+end
 
 
 ------------------ Events ------------------
@@ -685,7 +714,18 @@ GUI.PitchEditor.keys = {
     [GUI.chars.DELETE] = function(self)
 
         self:deleteSelectedCorrectionNodes()
-        self:redraw()
+
+    end,
+
+    [GUI.chars.DOWN] = function(self)
+
+        self:moveSelectedNodesDown()
+
+    end,
+
+    [GUI.chars.UP] = function(self)
+
+        self:moveSelectedNodesUp()
 
     end
 
