@@ -407,12 +407,28 @@ function GUI.PitchEditor:onmousedown()
             self:unselectAllCorrectionNodes()
         end
 
+        -- Holding alt.
         if gfx.mouse_cap & 16 == 16 then
-            self.editNode.isActive = not self.editNode.isActive
+            for index, node in ipairs(self.correctionGroup.nodes) do
+                if node.isSelected or node == self.editNode then
+                    node.isActive = not node.isActive
+                end
+            end
+
             self:applyPitchCorrections()
+            self.altOnEditLDown = true
         end
 
         self.editNode.isSelected = true
+
+    elseif self.editLine then
+        -- If holding alt, deactivate the node responsible for creating the line.
+        if gfx.mouse_cap & 16 == 16 then
+            self.editLine.node1.isActive = false
+
+            self:applyPitchCorrections()
+            self.altOnEditLDown = true
+        end
     end
 
     self:redraw()
@@ -421,25 +437,24 @@ end
 function GUI.PitchEditor:onmouseup()
     self.lWasDragged = self.lWasDragged or false
 
-    if not self.lWasDragged then
-        local nodeUnderMouse = self:getCorrectionNodeUnderMouse()
-
-        if nodeUnderMouse == nil then
+    if not self.lWasDragged and not self.altOnEditLDown then
+        if self.editNode == nil then
             local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
             reaper.SetEditCurPos(playTime, false, true)
 
             self:unselectAllCorrectionNodes()
 
-        -- Not holding shift:
-        elseif gfx.mouse_cap & 8 == 0 then
+        -- Not holding shift or alt:
+        elseif gfx.mouse_cap & 8 == 0 and gfx.mouse_cap & 16 == 0 then
             self:unselectAllCorrectionNodes()
-            nodeUnderMouse.isSelected = true
+            self.editNode.isSelected = true
         end
     end
 
     self.lWasDragged = false
     self.editNode = nil
     self.editLine = nil
+    self.altOnEditLDown = false
 
     self:redraw()
 end
