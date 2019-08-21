@@ -592,6 +592,39 @@ function GUI.PitchEditor:onmouser_down()
 end
 
 function GUI.PitchEditor:onmouser_up()
+    if self.boxSelect then
+        local leftTime = self:getTimeFromPixels( math.min(self.boxSelect.x1, self.boxSelect.x2) )
+        local rightTime = self:getTimeFromPixels( math.max(self.boxSelect.x1, self.boxSelect.x2) )
+        local bottomPitch = self:getPitchFromPixels( math.max(self.boxSelect.y1, self.boxSelect.y2) )
+        local topPitch = self:getPitchFromPixels( math.min(self.boxSelect.y1, self.boxSelect.y2) )
+
+        for index, node in ipairs(self.correctionGroup.nodes) do
+            local nodeIsInBoxSelection = node.time >= leftTime and node.time <= rightTime
+                                     and node.pitch >= bottomPitch and node.pitch <= topPitch
+
+
+            if nodeIsInBoxSelection then
+
+                -- Holding shift
+                if gfx.mouse_cap & 8 == 8 then
+                    node.isSelected = true
+
+                -- Holding control.
+                elseif gfx.mouse_cap & 4 == 4 then
+                    node.isSelected = not node.isSelected
+
+                else
+                    node.isSelected = true
+                end
+
+            else
+                if gfx.mouse_cap & 8 == 0 and gfx.mouse_cap & 4 == 0 then
+                    node.isSelected = false
+                end
+            end
+        end
+    end
+
     self.boxSelect = nil
 
     self:redraw()
