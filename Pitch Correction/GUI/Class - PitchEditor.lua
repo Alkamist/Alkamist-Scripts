@@ -22,13 +22,13 @@ GUI.colors["white_key_bg"] = {59, 59, 59, 255}
 GUI.colors["black_key_bg"] = {50, 50, 50, 255}
 
 GUI.colors["white_key_lines"] = {65, 65, 65, 255}
-GUI.colors["key_lines"] = {255, 255, 255, 80}
+GUI.colors["key_lines"] = {255, 255, 255, 20}
 
 GUI.colors["pitch_lines"] = {40, 80, 40, 255}
 GUI.colors["pitch_preview_lines"] = {0, 210, 32, 255}
 
-GUI.colors["edit_cursor"] = {255, 255, 255, 180}
-GUI.colors["play_cursor"] = {255, 255, 255, 120}
+GUI.colors["edit_cursor"] = {255, 255, 255, 70}
+GUI.colors["play_cursor"] = {255, 255, 255, 40}
 
 GUI.colors["pitch_correction"] = {32, 118, 167, 255}
 GUI.colors["pitch_correction_selected"] = {65, 210, 240, 255}
@@ -58,9 +58,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     object.w = GUI.w - 4
     object.h = GUI.h - object.y - 2
 
-    object.orig_w = object.w
-    object.orig_h = object.h
-
     object.mousePrev = {
         x = 0,
         y = 0
@@ -86,52 +83,13 @@ function GUI.PitchEditor:init()
 
     self:setItemsToSelectedItems()
 
-    self:drawKeyBackgrounds()
-    self:drawBackground()
-    self:drawKeyLines()
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
-    self:drawEditCursor()
-    self:drawKeys()
-
-    self:redraw()
+    self:drawUI()
 end
 
 function GUI.PitchEditor:draw()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
-    if self.backgroundBuff then
-        gfx.blit(self.backgroundBuff, 1, 0, 0, 0, self.orig_w, self.orig_h, x, y, w, h)
-    end
-
-    if self.keyBackgroundBuff then
-        gfx.blit(self.keyBackgroundBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.keyLinesBuff then
-        gfx.blit(self.keyLinesBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.pitchLinesBuff then
-        gfx.blit(self.pitchLinesBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.previewLinesBuff then
-        gfx.blit(self.previewLinesBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.correctionGroupBuff then
-        gfx.blit(self.correctionGroupBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.editCursorBuff then
-        gfx.blit(self.editCursorBuff, 1, 0, 0, 0, w, h, x, y)
-    end
-
-    if self.keysBuff then
-        gfx.blit(self.keysBuff, 1, 0, 0, 0, w, h, x, y)
-    end
+    gfx.blit(self.uiBuffer, 1, 0, 0, 0, w, h, x, y)
 end
 
 function GUI.PitchEditor:deleteSelectedCorrectionNodes()
@@ -292,8 +250,6 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
 
     self.correctionGroup:sort()
     self:applyPitchCorrections()
-
-    self:drawPreviewPitchLines()
 end
 
 function GUI.PitchEditor:handleLineEditing(mouseTimeChange, mousePitchChange)
@@ -307,8 +263,6 @@ function GUI.PitchEditor:handleLineEditing(mouseTimeChange, mousePitchChange)
 
     self.correctionGroup:sort()
     self:applyPitchCorrections()
-
-    self:drawPreviewPitchLines()
 end
 
 function GUI.PitchEditor:onmousedown()
@@ -333,9 +287,6 @@ function GUI.PitchEditor:onmousedown()
         self.editNode.isSelected = true
     end
 
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
-
     self:redraw()
 end
 
@@ -349,8 +300,6 @@ function GUI.PitchEditor:onmouseup()
             local playTime = self:getTimeLeftBound() + self:getTimeFromPixels(GUI.mouse.x)
             reaper.SetEditCurPos(playTime, false, true)
 
-            self:drawEditCursor()
-
             self:unselectAllCorrectionNodes()
 
         -- Not holding shift:
@@ -363,8 +312,6 @@ function GUI.PitchEditor:onmouseup()
     self.lWasDragged = false
     self.editNode = nil
     self.editLine = nil
-
-    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -400,8 +347,6 @@ function GUI.PitchEditor:ondrag()
     self.prevMousePitch = mousePitch
     self.prevMouseSnappedPitch = mouseSnappedPitch
 
-    self:drawCorrectionGroup()
-
     self:redraw()
 end
 
@@ -411,10 +356,6 @@ function GUI.PitchEditor:setItems(items)
     for groupIndex, group in ipairs(self.pitchGroups) do
         group.editOffset = group.leftTime - self:getTimeLeftBound()
     end
-
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
 
     self:redraw()
 end
@@ -446,21 +387,8 @@ function GUI.PitchEditor:setItemsToSelectedItems()
 end
 
 function GUI.PitchEditor:onupdate()
-    self.playCursorCleared = self.playCursorCleared or false
-
-    --self:setItemsToSelectedItems()
-
-    local projectPlaystate = reaper.GetPlayStateEx(0)
-    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
-
-    if projectIsPlaying then
-        self:drawEditCursor()
-        self.playCursorCleared = false
-
-    elseif not self.playCursorCleared then
-        self:drawEditCursor()
-        self.playCursorCleared = true
-    end
+    self:drawUI()
+    self:redraw()
 end
 
 function GUI.PitchEditor:initDragZoomAndScroll()
@@ -501,11 +429,15 @@ function GUI.PitchEditor:onmousem_down()
             self.shouldZoom = false
         end
     end
+
+    self:redraw()
 end
 
 function GUI.PitchEditor:onmousem_up()
     self.shouldZoom = false
     self.shouldDragScroll = false
+
+    self:redraw()
 end
 
 function GUI.PitchEditor:onm_drag()
@@ -578,14 +510,6 @@ function GUI.PitchEditor:onm_drag()
     self.mousePrev.y = GUI.mouse.y
     self.mouse_cap_prev = gfx.mouse_cap
 
-    self:drawKeyBackgrounds()
-    self:drawKeyLines()
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
-    self:drawEditCursor()
-    self:drawKeys()
-
     self:redraw()
 end
 
@@ -595,26 +519,11 @@ function GUI.PitchEditor:onresize()
 
     self.keyWidth = self.w * self.keyWidthMult
 
-    self:drawKeyBackgrounds()
-    self:drawKeyLines()
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
-    self:drawEditCursor()
-    self:drawKeys()
-
     self:redraw()
 end
 
 function GUI.PitchEditor:ondelete()
-    GUI.FreeBuffer(self.backgroundBuff)
-    GUI.FreeBuffer(self.keyBackgroundBuff)
-    GUI.FreeBuffer(self.keyLinesBuff)
-    GUI.FreeBuffer(self.pitchLinesBuff)
-    GUI.FreeBuffer(self.previewLinesBuff)
-    GUI.FreeBuffer(self.correctionGroupBuff)
-    GUI.FreeBuffer(self.editCursorBuff)
-    GUI.FreeBuffer(self.keysBuff)
+    GUI.FreeBuffer(self.uiBuffer)
 end
 
 function GUI.PitchEditor:ontype()
@@ -627,31 +536,28 @@ function GUI.PitchEditor:ontype()
     self:redraw()
 end
 
-function GUI.PitchEditor:drawBackground()
-    local x, y, w, h = self.x, self.y, self.w, self.h
+function GUI.PitchEditor:drawUI()
+    self.uiBuffer = self.uiBuffer or GUI.GetBuffer()
+    gfx.setimgdim(self.uiBuffer, -1, -1)
+    gfx.setimgdim(self.uiBuffer, self.w, self.h)
+    gfx.dest = self.uiBuffer
 
-    self.backgroundBuff = self.backgroundBuff or GUI.GetBuffer()
+    --GUI.color("elm_bg")
+    --gfx.rect(0, 0, self.w, self.h, 1)
 
-    gfx.dest = self.backgroundBuff
-    gfx.setimgdim(self.backgroundBuff, -1, -1)
-    gfx.setimgdim(self.backgroundBuff, w, h)
-
-    GUI.color("elm_bg")
-    gfx.rect(0, 0, w, h, 1)
-
-    self:redraw()
+    self:drawKeyBackgrounds()
+    self:drawKeyLines()
+    self:drawPitchLines()
+    self:drawPreviewPitchLines()
+    self:drawCorrectionGroup()
+    self:drawEditCursor()
+    --self:drawKeys()
 end
 
 function GUI.PitchEditor:drawPitchLines()
     if #self.pitchGroups < 1 then return end
 
     local x, y, w, h = self.x, self.y, self.w, self.h
-
-    self.pitchLinesBuff = self.pitchLinesBuff or GUI.GetBuffer()
-
-    gfx.dest = self.pitchLinesBuff
-    gfx.setimgdim(self.pitchLinesBuff, -1, -1)
-    gfx.setimgdim(self.pitchLinesBuff, w, h)
 
     GUI.color("pitch_lines")
 
@@ -680,25 +586,17 @@ function GUI.PitchEditor:drawPitchLines()
                 previousPointY = pointY
             end
 
-            gfx.line(previousPointX, previousPointY, pointX, pointY, false)
+            gfx.line(previousPointX, previousPointY, pointX, pointY, true)
 
             previousPoint = point
             previousPointX = pointX
             previousPointY = pointY
         end
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawPreviewPitchLines()
     if #self.pitchGroups < 1 then return end
-
-    self.previewLinesBuff = self.previewLinesBuff or GUI.GetBuffer()
-
-    gfx.dest = self.previewLinesBuff
-    gfx.setimgdim(self.previewLinesBuff, -1, -1)
-    gfx.setimgdim(self.previewLinesBuff, self.w, self.h)
 
     GUI.color("pitch_preview_lines")
 
@@ -729,25 +627,17 @@ function GUI.PitchEditor:drawPreviewPitchLines()
                 previousPointY = pointY
             end
 
-            gfx.line(previousPointX, previousPointY, pointX, pointY, false)
+            gfx.line(previousPointX, previousPointY, pointX, pointY, true)
 
             previousPointTime = point.relativeTime
             previousPointX = pointX
             previousPointY = pointY
         end
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawKeyBackgrounds()
     local x, y, w, h = self.x, self.y, self.w, self.h
-
-    self.keyBackgroundBuff = self.keyBackgroundBuff or GUI.GetBuffer()
-
-    gfx.dest = self.keyBackgroundBuff
-    gfx.setimgdim(self.keyBackgroundBuff, -1, -1)
-    gfx.setimgdim(self.keyBackgroundBuff, w, h)
 
     local lastKeyEnd = self:getPixelsFromPitch(self:getMaxPitch() + 0.5) - y
     for i = 1, math.floor(self:getMaxPitch()) do
@@ -768,20 +658,12 @@ function GUI.PitchEditor:drawKeyBackgrounds()
 
         lastKeyEnd = keyEnd
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawKeyLines()
     local x, y, w, h = self.x, self.y, self.w, self.h
 
     local keyHeight = self.zoomY * h * 1.0 / self:getMaxPitch()
-
-    self.keyLinesBuff = self.keyLinesBuff or GUI.GetBuffer()
-
-    gfx.dest = self.keyLinesBuff
-    gfx.setimgdim(self.keyLinesBuff, -1, -1)
-    gfx.setimgdim(self.keyLinesBuff, w, h)
 
     if keyHeight > 16 then
         for i = 1, math.floor(self:getMaxPitch()) do
@@ -790,20 +672,14 @@ function GUI.PitchEditor:drawKeyLines()
             local keyLineHeight = self:getPixelsFromPitch(self:getMaxPitch() - i) - y
 
             gfx.line(0, keyLineHeight, w, keyLineHeight, false)
+
+            gfx.a = 1.0
         end
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawKeys()
     local x, y, w, h = self.x, self.y, self.w, self.h
-
-    self.keysBuff = self.keysBuff or GUI.GetBuffer()
-
-    gfx.dest = self.keysBuff
-    gfx.setimgdim(self.keysBuff, -1, -1)
-    gfx.setimgdim(self.keysBuff, w, h)
 
     local lastKeyEnd = self:getPixelsFromPitch(self:getMaxPitch() + 0.5) - y
     for i = 1, math.floor(self:getMaxPitch()) do
@@ -824,18 +700,10 @@ function GUI.PitchEditor:drawKeys()
 
         lastKeyEnd = keyEnd
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawCorrectionGroup()
     local x, y, w, h = self.x, self.y, self.w, self.h
-
-    self.correctionGroupBuff = self.correctionGroupBuff or GUI.GetBuffer()
-
-    gfx.dest = self.correctionGroupBuff
-    gfx.setimgdim(self.correctionGroupBuff, -1, -1)
-    gfx.setimgdim(self.correctionGroupBuff, w, h)
 
     GUI.color("pitch_correction_selected")
 
@@ -851,22 +719,20 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
 
         if prevNode.isActive then
-            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, false)
+            gfx.line(leftTimePixels, leftPitchPixels, rightTimePixels, rightPitchPixels, true)
         end
 
-        local circleRadii = 4
+        local circleRadii = 3
 
         if node.isSelected == true then
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, false)
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, true)
 
         else
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, false, false)
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, false, true)
         end
 
         prevNode = node
     end
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:drawEditCursor()
@@ -877,12 +743,6 @@ function GUI.PitchEditor:drawEditCursor()
 
     local playPosition = reaper.GetPlayPositionEx(0)
     local playPositionPixels = self:getPixelsFromTime(playPosition - self:getTimeLeftBound()) - x
-
-    self.editCursorBuff = self.editCursorBuff or GUI.GetBuffer()
-
-    gfx.dest = self.editCursorBuff
-    gfx.setimgdim(self.editCursorBuff, -1, -1)
-    gfx.setimgdim(self.editCursorBuff, w, h)
 
     GUI.color("edit_cursor")
 
@@ -895,19 +755,13 @@ function GUI.PitchEditor:drawEditCursor()
         gfx.line(playPositionPixels, 0, playPositionPixels, h, false)
     end
 
-    self:redraw()
+    gfx.a = 1.0
 end
 
 function GUI.PitchEditor:analyzePitchGroups()
     for groupIndex, group in ipairs(self.pitchGroups) do
         group:analyze(self.pdSettings)
     end
-
-    self:drawPitchLines()
-    self:drawPreviewPitchLines()
-    self:drawCorrectionGroup()
-
-    self:redraw()
 end
 
 function GUI.PitchEditor:getSnappedPitch(pitch)
@@ -973,9 +827,6 @@ GUI.PitchEditor.keys = {
     [GUI.chars.DELETE] = function(self)
 
         self:deleteSelectedCorrectionNodes()
-        self:applyPitchCorrections()
-        self:drawPreviewPitchLines()
-        self:drawCorrectionGroup()
         self:redraw()
 
     end
