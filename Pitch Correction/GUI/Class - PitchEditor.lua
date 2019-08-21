@@ -89,6 +89,8 @@ function GUI.PitchEditor:deleteSelectedCorrectionNodes()
         return value.isSelected
     end)
 
+    self:applyPitchCorrections()
+
     reaper.UpdateArrange()
 end
 
