@@ -30,8 +30,8 @@ GUI.colors["pitch_preview_lines"] = {0, 210, 32, 255}
 GUI.colors["edit_cursor"] = {255, 255, 255, 70}
 GUI.colors["play_cursor"] = {255, 255, 255, 40}
 
-GUI.colors["pitch_correction"] = {32, 118, 167, 255}
-GUI.colors["pitch_correction_selected"] = {65, 210, 240, 255}
+GUI.colors["correction"] = {65, 210, 240, 255}
+GUI.colors["correction_inactive"] = {232, 30, 105, 255}
 
 GUI.colors["box_select"] = {255, 255, 255, 150}
 
@@ -855,8 +855,6 @@ function GUI.PitchEditor:drawCorrectionGroup()
 
     local circleRadii = 3
 
-    GUI.color("pitch_correction_selected")
-
     local prevNode = nil
 
     for index, node in ipairs(self.correctionGroup.nodes) do
@@ -876,16 +874,15 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local leftLinePitchPixels = leftPitchPixels + pitchOffset
         local rightLinePitchPixels = rightPitchPixels - pitchOffset
 
+        GUI.color("correction")
+
         if prevNode.isActive and index > 1 then
             gfx.line(leftLineTimePixels, leftLinePitchPixels, rightLineTimePixels, rightLinePitchPixels, true)
         end
 
-        if node.isSelected == true then
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, true, true)
+        if not node.isActive then GUI.color("correction_inactive") end
 
-        else
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, false, true)
-        end
+        gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, node.isSelected, true)
 
         prevNode = node
     end
