@@ -61,7 +61,8 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
                         time =       nodeTime,
                         pitch =      nodePitch,
                         isSelected = nodeIsSelected,
-                        isActive =   nodeIsActive
+                        isActive =   nodeIsActive,
+                        saveTime = rawNodeTime
                     } )
 
                 end
@@ -71,7 +72,8 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
                     time =       nodeTime,
                     pitch =      nodePitch,
                     isSelected = nodeIsSelected,
-                    isActive =   nodeIsActive
+                    isActive =   nodeIsActive,
+                    saveTime = rawNodeTime
                 } )
             end
 
@@ -84,7 +86,11 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
 end
 
 function CorrectionGroup:loadSavedCorrections(pitchGroup)
-    self.nodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
+    local loadedNodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
+
+    for index, node in ipairs(loadedNodes) do
+        table.insert(self.nodes, node)
+    end
 
     self:sort()
 end
@@ -93,14 +99,23 @@ function CorrectionGroup:saveCorrections(pitchGroup)
     local saveGroup = CorrectionGroup:new()
     saveGroup.nodes = self:getSavedNodesInRange(pitchGroup)
 
+    for index, node in ipairs(saveGroup.nodes) do
+        node.time = node.time - pitchGroup.editOffset
+    end
+
     Lua.arrayRemove(saveGroup.nodes, function(t, i)
         local value = t[i]
 
-        return value.time >= pitchGroup.startOffset and value.time <= pitchGroup.startOffset + pitchGroup.length
+        return value.time >= 0.0 and value.time <= pitchGroup.length
     end)
 
     for index, node in ipairs(self.nodes) do
-        table.insert(saveGroup.nodes, node)
+        local newNode = Lua.copyTable(node)
+        newNode.time = newNode.time - pitchGroup.editOffset
+
+        if newNode.time >= 0.0 and newNode.time <= pitchGroup.length then
+            table.insert(saveGroup.nodes, newNode)
+        end
     end
 
     saveGroup:sort()
@@ -110,7 +125,7 @@ function CorrectionGroup:saveCorrections(pitchGroup)
     local correctionString = ""
 
     for index, node in ipairs(saveGroup.nodes) do
-        local nodeTime = node.time + pitchGroup.startOffset - pitchGroup.editOffset
+        local nodeTime = node.saveTime or node.time + pitchGroup.startOffset
 
         correctionString = correctionString .. string.format("    %f %f %f %f\n", nodeTime,
                                                                                   node.pitch,
@@ -300,11 +315,16 @@ function CorrectionGroup:addEdgePointsToNodes(pitchGroup)
     for index, node in ipairs(self.nodes) do
         prevNode = prevNode or node
 
-        if not node.isActive then
-            reaper.InsertEnvelopePoint(pitchGroup.envelope, (node.time + edgePointSpacing * 0.5) * pitchGroup.playrate, 0.0, 0, 0, false, true)
+        local nodeTime = node.time - pitchGroup.editOffset
 
-        elseif not prevNode.isActive then
-            reaper.InsertEnvelopePoint(pitchGroup.envelope, (node.time - edgePointSpacing * 0.5) * pitchGroup.playrate, 0.0, 0, 0, false, true)
+        if nodeTime >= 0.0 and nodeTime <= pitchGroup.length then
+
+            if not node.isActive then
+                reaper.InsertEnvelopePoint(pitchGroup.envelope, (nodeTime + edgePointSpacing * 0.5) * pitchGroup.playrate, 0.0, 0, 0, false, true)
+
+            elseif not prevNode.isActive then
+                reaper.InsertEnvelopePoint(pitchGroup.envelope, (nodeTime - edgePointSpacing * 0.5) * pitchGroup.playrate, 0.0, 0, 0, false, true)
+            end
         end
 
         prevNode = node
