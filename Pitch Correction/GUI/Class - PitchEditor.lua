@@ -483,6 +483,15 @@ function GUI.PitchEditor:onmousedown()
             self.altOnEditLDown = true
         end
 
+        -- Holding control.
+        if gfx.mouse_cap & 4 == 4 then
+            for index, node in ipairs(self.correctionGroup.nodes) do
+                if node.isSelected or node == self.editNode then
+                    node.pitch = GUI.round(node.pitch)
+                end
+            end
+        end
+
         self.editNode.isSelected = true
         self:updateExtremeSelectedNodes()
 
