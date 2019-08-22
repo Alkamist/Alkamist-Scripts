@@ -29,6 +29,59 @@ function CorrectionGroup:new(o)
     return o
 end
 
+function CorrectionGroup:loadSavedCorrections(pitchGroup)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections")
+
+    local headerStart, headerEnd = string.find(extState, "<NODES")
+
+    if headerStart and headerEnd then
+
+        local searchIndex = headerEnd + 1
+
+        repeat
+
+            local line = string.match(extState, "([^\r\n]+)", searchIndex)
+            if line == nil then break end
+            if string.match(line, ">") then break end
+
+            local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+ [%.%-%d]+") ) + pitchGroup.editOffset - pitchGroup.startOffset
+
+            table.insert(self.nodes, {
+
+                time =       pointTime,
+                pitch =      tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ),
+                isSelected = tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ) > 0,
+                isActive =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ) > 0
+
+            } )
+
+            searchIndex = searchIndex + string.len(line) + 1
+
+        until false
+    end
+
+    self:sort()
+end
+
+function CorrectionGroup:saveCorrections(pitchGroup)
+    local correctionString = ""
+
+    for index, node in ipairs(self.nodes) do
+        local nodeTime = node.time + pitchGroup.startOffset - pitchGroup.editOffset
+
+        correctionString = correctionString .. string.format("    %f %f %f %f\n", nodeTime,
+                                                                                  node.pitch,
+                                                                                  node.isSelected and 1 or 0,
+                                                                                  node.isActive and 1 or 0)
+    end
+
+    local dataString = "<NODES\n" ..
+                            correctionString ..
+                        ">\n"
+
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections", dataString)
+end
+
 function CorrectionGroup:sort()
     table.sort(self.nodes, function(a, b) return a.time < b.time end)
 end

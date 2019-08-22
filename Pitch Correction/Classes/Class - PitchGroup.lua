@@ -258,7 +258,7 @@ function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, ri
     return self:getPointsFromString(pointString)
 end
 
-function PitchGroup:getSavedPoints()
+function PitchGroup:loadSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
     local dataHeader = self:getDataHeader()
 
@@ -356,7 +356,7 @@ function PitchGroup:setItem(item)
     self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")
     self.envelope = self:getEnvelope()
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
-    self.points = self:getSavedPoints()
+    self.points = self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
 

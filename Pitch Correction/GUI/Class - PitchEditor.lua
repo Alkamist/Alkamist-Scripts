@@ -68,6 +68,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     object.correctionGroup = CorrectionGroup:new()
 
     object.pitchGroups = {}
+    object.focus = true
 
     GUI.redraw_z[z] = true
 
@@ -268,7 +269,10 @@ function GUI.PitchEditor:setItems(items)
 
     for groupIndex, group in ipairs(self.pitchGroups) do
         group.editOffset = group.leftTime - self:getTimeLeftBound()
+        self.correctionGroup:loadSavedCorrections(group)
     end
+
+    self:applyPitchCorrections()
 
     self:redraw()
 end
@@ -801,6 +805,18 @@ GUI.PitchEditor.keys = {
     [GUI.chars.UP] = function(self)
 
         self:moveSelectedNodesUp()
+
+    end,
+
+    -- S -- Save
+    [19] = function(self)
+
+        -- Holding control.
+        if gfx.mouse_cap & 4 == 4 then
+            for groupIndex, group in ipairs(self.pitchGroups) do
+                self.correctionGroup:saveCorrections(group)
+            end
+        end
 
     end
 
