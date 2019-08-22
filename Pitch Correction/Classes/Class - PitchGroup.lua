@@ -186,29 +186,29 @@ function PitchGroup:setItem(item)
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
 
-function PitchGroup.findPointByTime(time, points, findLeft)
-    local numPoints = #points
+function PitchGroup:getPointIndexByTime(time)
+    local numPoints = #self.points
 
     if numPoints < 1 then
-        return nil, 0
+        return nil
     end
 
-    local firstPoint = points[1]
-    local lastPoint = points[numPoints]
-    local totalTime = lastPoint.time - firstPoint.time
+    local firstPoint = self.points[1]
+    local lastPoint = self.points[numPoints]
+    local totalTime = lastPoint.relativeTime - firstPoint.relativeTime
 
     local bestGuessIndex = math.floor(numPoints * time / totalTime)
     bestGuessIndex = Lua.clamp(bestGuessIndex, 1, numPoints)
 
-    local guessPoint = points[bestGuessIndex]
-    local prevGuessError = math.abs(guessPoint.time - time)
-    local prevGuessIsLeftOfTime = guessPoint.time <= time
+    local guessPoint = self.points[bestGuessIndex]
+    local prevGuessError = math.abs(guessPoint.relativeTime - time)
+    local prevGuessIsLeftOfTime = guessPoint.relativeTime <= time
 
     repeat
-        guessPoint = points[bestGuessIndex]
+        guessPoint = self.points[bestGuessIndex]
 
-        local guessError = math.abs(guessPoint.time - time)
-        local guessIsLeftOfTime = guessPoint.time <= time
+        local guessError = math.abs(guessPoint.relativeTime - time)
+        local guessIsLeftOfTime = guessPoint.relativeTime <= time
 
         if guessIsLeftOfTime then
             -- You are going right and the target is still to the right.
@@ -218,9 +218,9 @@ function PitchGroup.findPointByTime(time, points, findLeft)
             -- You were going left and passed the target.
             else
                 if guessError < prevGuessError then
-                    return guessPoint, bestGuessIndex
+                    return bestGuessIndex
                 else
-                    return points[bestGuessIndex + 1], bestGuessIndex + 1
+                    return bestGuessIndex + 1
                 end
             end
 
@@ -234,7 +234,7 @@ function PitchGroup.findPointByTime(time, points, findLeft)
                 if guessError < prevGuessError then
                     return guessPoint, bestGuessIndex
                 else
-                    return points[bestGuessIndex - 1], bestGuessIndex - 1
+                    return bestGuessIndex - 1
                 end
             end
 
@@ -246,13 +246,13 @@ function PitchGroup.findPointByTime(time, points, findLeft)
     until bestGuessIndex < 1 or bestGuessIndex > numPoints
 
     if bestGuessIndex < 1 then
-        return firstPoint, 1
+        return 1
 
     elseif bestGuessIndex > numPoints then
-        return lastPoint, numPoints
+        return numPoints
     end
 
-    return firstPoint, 1
+    return 1
 end
 
 

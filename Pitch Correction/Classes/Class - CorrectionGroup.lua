@@ -7,7 +7,7 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 0.3
+local modCorrection = 1.0
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.05
@@ -161,62 +161,28 @@ function CorrectionGroup:getNodeIndex(inputNode)
     return nil
 end
 
-function CorrectionGroup:getBindingNodes(time)
-    local previousNode = nil
-
-    for index, node in ipairs(self.nodes) do
-
-        previousNode = previousNode or node
-
-        if node.time >= time and previousNode.time <= time then
-            return previousNode, node
-        end
-
-        if index == #self.nodes and node.time <= time then
-            return node, nil
-        end
-
-        previousNode = node
-
-    end
-
-    return nil, nil
-end
-
-function CorrectionGroup:getPitch(time, pitchGroup)
+function CorrectionGroup:getPitch(time, node, nextNode, pitchGroup)
     local relativeTime = time + pitchGroup.editOffset
 
-    local leftNode, rightNode = self:getBindingNodes(relativeTime)
-
-    if leftNode and rightNode then
-        local timeRatio = (relativeTime - leftNode.time) / (rightNode.time - leftNode.time)
-        local pitch = leftNode.pitch + (rightNode.pitch - leftNode.pitch) * timeRatio
+    if node and nextNode then
+        local timeRatio = (relativeTime - node.time) / (nextNode.time - node.time)
+        local pitch = node.pitch + (nextNode.pitch - node.pitch) * timeRatio
 
         return pitch
     end
 
-    if leftNode then
-        return leftNode.pitch
+    if node then
+        return node.pitch
     end
 
-    if rightNode then
-        return rightNode.pitch
+    if nextNode then
+        return nextNode.pitch
     end
 
     return nil
 end
 
-function CorrectionGroup:pointIsInActiveCorrection(point, pitchGroup)
-    local leftNode, rightNode = self:getBindingNodes(point.relativeTime + pitchGroup.editOffset)
-
-    if leftNode and rightNode then
-        return leftNode.isActive
-    end
-
-    return false
-end
-
-function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup)
+function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pitchGroup)
     local maxDriftPoints = math.ceil(driftCorrectionSpeed / pitchGroup.minTimePerPoint)
     local numPitchPoints = #pitchGroup.points
 
@@ -232,9 +198,9 @@ function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup)
             local driftPointIsInCorrectionRadius = driftPoint.time >= point.time - correctionRadius
                                                and driftPoint.time <= point.time + correctionRadius
 
-            if driftPointIsInCorrectionRadius and self:pointIsInActiveCorrection(driftPoint, pitchGroup) then
+            if driftPointIsInCorrectionRadius and self:pointIsAffectedByNode(node, nextNode, driftPoint, pitchGroup) then
 
-                local targetPitch = self:getPitch(driftPoint.relativeTime, pitchGroup)
+                local targetPitch = self:getPitch(driftPoint.relativeTime, node, nextNode, pitchGroup)
 
                 if targetPitch then
                     driftAverage = driftAverage + driftPoint.pitch - targetPitch
@@ -255,8 +221,8 @@ function CorrectionGroup:correctPitchDrift(point, pointIndex, pitchGroup)
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
 
-function CorrectionGroup:correctPitchMod(point, pointIndex, pitchGroup)
-    local targetPitch = self:getPitch(point.relativeTime, pitchGroup)
+function CorrectionGroup:correctPitchMod(node, nextNode, point, pointIndex, pitchGroup)
+    local targetPitch = self:getPitch(point.relativeTime, node, nextNode, pitchGroup)
     if not targetPitch then return end
 
     local modDeviation = point.correctedPitch - targetPitch
@@ -335,12 +301,85 @@ function CorrectionGroup:insertCorrectedPointToEnvelope(point, pitchGroup)
     reaper.InsertEnvelopePoint(pitchGroup.envelope, point.relativeTime * pitchGroup.playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
 end
 
+function CorrectionGroup:pointIsAffectedByNode(node, nextNode, point, pitchGroup)
+    local nodeTime = node.time - pitchGroup.editOffset
+    local nextNodeTime = nextNode.time - pitchGroup.editOffset
+
+    return point.relativeTime >= nodeTime and point.relativeTime <= nextNodeTime
+end
+
+function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
+    if not node          then return {} end
+    if not node.isActive then return {} end
+    if not nextNode      then return {} end
+
+    local points = {}
+
+    local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset)
+    local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset)
+
+    for index, point in ipairs(pitchGroup.points) do
+        if index >= firstIndex and index <= lastIndex then
+            table.insert(points, point)
+        end
+    end
+
+    return points, firstIndex, lastIndex
+end
+
+function CorrectionGroup:correctPitchGroupWithSelectedNodes(pitchGroup)
+    if #self.nodes < 2 then return end
+
+    for nodeIndex, node in ipairs(self.nodes) do
+        local nextNode = nil
+
+        if nodeIndex < #self.nodes then nextNode = self.nodes[nodeIndex + 1] end
+
+        local pointsInNode, firstPointIndex = self:getPointsAffectedByNode(node, nextNode, pitchGroup)
+
+        for pointIndex, point in ipairs(pointsInNode) do
+
+            point.correctedPitch = point.pitch
+
+            self:correctPitchDrift(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
+            self:correctPitchMod(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
+
+            self:insertCorrectedPointToEnvelope(point, pitchGroup)
+
+            --self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
+
+        end
+    end
+
+    --for pointIndex, point in ipairs(pitchGroup.points) do
+
+        --if self:pointIsInActiveCorrection(point, pitchGroup) then
+
+--            point.correctedPitch = point.pitch
+--
+--            self:correctPitchDrift(point, pointIndex, pitchGroup)
+--            self:correctPitchMod(point, pointIndex, pitchGroup)
+--
+--            self:insertCorrectedPointToEnvelope(point, pitchGroup)
+--
+--            self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
+
+        --end
+    --end
+
+    --self:addEdgePointsToNodes(pitchGroup)
+    --self:addEdgePointsToCorrectionGroup(pitchGroup)
+    --CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
+
+    reaper.Envelope_SortPoints(pitchGroup.envelope)
+end
+
 function CorrectionGroup:correctPitchGroup(pitchGroup)
     if #self.nodes < 2 then return end
 
-    --[[for pointIndex, point in ipairs(pitchGroup.points) do
+    --for pointIndex, point in ipairs(pitchGroup.points) do
 
-        if self:pointIsInActiveCorrection(point, pitchGroup) then
+        --[[if self:pointIsInActiveCorrection(point, pitchGroup) then
 
             point.correctedPitch = point.pitch
 
@@ -351,14 +390,14 @@ function CorrectionGroup:correctPitchGroup(pitchGroup)
 
             self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
 
-        end
-    end
+        end]]--
+    --end
 
-    self:addEdgePointsToNodes(pitchGroup)
-    self:addEdgePointsToCorrectionGroup(pitchGroup)
-    CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
+    --self:addEdgePointsToNodes(pitchGroup)
+    --self:addEdgePointsToCorrectionGroup(pitchGroup)
+    --CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
 
-    reaper.Envelope_SortPoints(pitchGroup.envelope)]]--
+    --reaper.Envelope_SortPoints(pitchGroup.envelope)
 end
 
 return CorrectionGroup

@@ -191,10 +191,16 @@ function GUI.PitchEditor:unselectAllCorrectionNodes()
     self:updateExtremeSelectedNodes()
 end
 
-function GUI.PitchEditor:applyPitchCorrections()
+function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
     for groupIndex, group in ipairs(self.pitchGroups) do
-        reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-        self.correctionGroup:correctPitchGroup(group)
+        --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+
+        if useSelectedNodes then
+            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+            self.correctionGroup:correctPitchGroupWithSelectedNodes(group)
+        else
+            --self.correctionGroup:correctPitchGroup(group)
+        end
     end
 end
 
@@ -247,7 +253,7 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.correctionGroup:sort()
-    --self:applyPitchCorrections()
+    self:applyPitchCorrections(true)
 end
 
 function GUI.PitchEditor:handleLineSelection()
