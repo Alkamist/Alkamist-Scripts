@@ -29,8 +29,10 @@ function CorrectionGroup:new(o)
     return o
 end
 
-function CorrectionGroup:loadSavedCorrections(pitchGroup)
+function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections")
+
+    local outputNodes = {}
 
     local headerStart, headerEnd = string.find(extState, "<NODES")
 
@@ -44,29 +46,70 @@ function CorrectionGroup:loadSavedCorrections(pitchGroup)
             if line == nil then break end
             if string.match(line, ">") then break end
 
-            local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+ [%.%-%d]+") ) + pitchGroup.editOffset - pitchGroup.startOffset
+            local rawNodeTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+ [%.%-%d]+") )
 
-            table.insert(self.nodes, {
+            local nodeTime = rawNodeTime + pitchGroup.editOffset - pitchGroup.startOffset
+            local nodePitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
+            local nodeIsSelected = tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ) > 0
+            local nodeIsActive = tonumber( line:match("[%.%-%d]+ [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ) > 0
 
-                time =       pointTime,
-                pitch =      tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ),
-                isSelected = tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ) > 0,
-                isActive =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ) > 0
+            if leftTime and rightTime then
 
-            } )
+                if rawNodeTime >= leftTime and rawNodeTime <= rightTime then
+
+                    table.insert(outputNodes, {
+                        time =       nodeTime,
+                        pitch =      nodePitch,
+                        isSelected = nodeIsSelected,
+                        isActive =   nodeIsActive
+                    } )
+
+                end
+
+            else
+                table.insert(outputNodes, {
+                    time =       nodeTime,
+                    pitch =      nodePitch,
+                    isSelected = nodeIsSelected,
+                    isActive =   nodeIsActive
+                } )
+            end
 
             searchIndex = searchIndex + string.len(line) + 1
 
         until false
     end
 
+    return outputNodes
+end
+
+function CorrectionGroup:loadSavedCorrections(pitchGroup)
+    self.nodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
+
     self:sort()
 end
 
 function CorrectionGroup:saveCorrections(pitchGroup)
-    local correctionString = ""
+    local saveGroup = CorrectionGroup:new()
+    saveGroup.nodes = self:getSavedNodesInRange(pitchGroup)
+
+    Lua.arrayRemove(saveGroup.nodes, function(t, i)
+        local value = t[i]
+
+        return value.time >= pitchGroup.startOffset and value.time <= pitchGroup.startOffset + pitchGroup.length
+    end)
 
     for index, node in ipairs(self.nodes) do
+        table.insert(saveGroup.nodes, node)
+    end
+
+    saveGroup:sort()
+
+
+
+    local correctionString = ""
+
+    for index, node in ipairs(saveGroup.nodes) do
         local nodeTime = node.time + pitchGroup.startOffset - pitchGroup.editOffset
 
         correctionString = correctionString .. string.format("    %f %f %f %f\n", nodeTime,
