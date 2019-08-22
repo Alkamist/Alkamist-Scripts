@@ -850,6 +850,12 @@ function GUI.PitchEditor:drawUI()
     self:drawBoxSelect()
 end
 
+function GUI.PitchEditor:lineXIsOnScreen(lineX1, lineX2)
+    return lineX1 >= 0 and lineX1 <= self.w
+        or lineX2 >= 0 and lineX2 <= self.w
+        or lineX1 <= 0 and lineX2 >= self.w
+end
+
 function GUI.PitchEditor:drawPitchLines()
     if #self.pitchGroups < 1 then return end
 
@@ -858,36 +864,40 @@ function GUI.PitchEditor:drawPitchLines()
     local groupsTimeOffset = self.pitchGroups[1].leftTime
 
     for groupIndex, group in ipairs(self.pitchGroups) do
-        local drawThreshold = 2.5 * group.minTimePerPoint
+        local groupPixelStart = self:getPixelsFromTime(group.editOffset)
+        local groupPixelEnd = self:getPixelsFromTime(group.editOffset + group.length)
 
-        local previousPoint = nil
-        local previousPointX = nil
-        local previousPointY = nil
+        if self:lineXIsOnScreen(groupPixelStart, groupPixelEnd) then
+            local drawThreshold = 2.5 * group.minTimePerPoint
 
-        for pointIndex, point in ipairs(group.points) do
-            previousPoint = previousPoint or point
+            local previousPoint = nil
+            local previousPointX = nil
+            local previousPointY = nil
 
-            local pitchValue = point.pitch
+            for pointIndex, point in ipairs(group.points) do
+                previousPoint = previousPoint or point
 
-            local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
-            local pointY = self:getPixelsFromPitch(pitchValue) - self.y
+                local pitchValue = point.pitch
 
-            previousPointX = previousPointX or pointX
-            previousPointY = previousPointY or pointY
+                local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
+                local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
-            if point.time - previousPoint.time > drawThreshold then
+                previousPointX = previousPointX or pointX
+                previousPointY = previousPointY or pointY
+
+                if point.time - previousPoint.time > drawThreshold then
+                    previousPointX = pointX
+                    previousPointY = pointY
+                end
+
+                if self:lineXIsOnScreen(previousPointX, pointX) then
+                    gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+                end
+
+                previousPoint = point
                 previousPointX = pointX
                 previousPointY = pointY
             end
-
-            if previousPointX >= 0 and previousPointX <= self.w
-            or pointX >= 0 and pointX <= self.w  then
-                gfx.line(previousPointX, previousPointY, pointX, pointY, true)
-            end
-
-            previousPoint = point
-            previousPointX = pointX
-            previousPointY = pointY
         end
     end
 end
@@ -900,38 +910,42 @@ function GUI.PitchEditor:drawPreviewPitchLines()
     local groupsTimeOffset = self.pitchGroups[1].leftTime
 
     for groupIndex, group in ipairs(self.pitchGroups) do
-        local drawThreshold = 2.5 * group.minTimePerPoint
+        local groupPixelStart = self:getPixelsFromTime(group.editOffset)
+        local groupPixelEnd = self:getPixelsFromTime(group.editOffset + group.length)
 
-        local previousPointTime = nil
-        local previousPointX = nil
-        local previousPointY = nil
+        if self:lineXIsOnScreen(groupPixelStart, groupPixelEnd) then
+            local drawThreshold = 2.5 * group.minTimePerPoint
 
-        for pointIndex, point in ipairs(group.points) do
-            previousPointTime = previousPointTime or point.relativeTime
+            local previousPointTime = nil
+            local previousPointX = nil
+            local previousPointY = nil
 
-            local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.relativeTime / group.playrate, 44100, 0)
+            for pointIndex, point in ipairs(group.points) do
+                previousPointTime = previousPointTime or point.relativeTime
 
-            local pitchValue = point.pitch + envelopeValue
+                local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.relativeTime / group.playrate, 44100, 0)
 
-            local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
-            local pointY = self:getPixelsFromPitch(pitchValue) - self.y
+                local pitchValue = point.pitch + envelopeValue
 
-            previousPointX = previousPointX or pointX
-            previousPointY = previousPointY or pointY
+                local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
+                local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
-            if point.relativeTime - previousPointTime > drawThreshold then
+                previousPointX = previousPointX or pointX
+                previousPointY = previousPointY or pointY
+
+                if point.relativeTime - previousPointTime > drawThreshold then
+                    previousPointX = pointX
+                    previousPointY = pointY
+                end
+
+                if self:lineXIsOnScreen(previousPointX, pointX) then
+                    gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+                end
+
+                previousPointTime = point.relativeTime
                 previousPointX = pointX
                 previousPointY = pointY
             end
-
-            if previousPointX >= 0 and previousPointX <= self.w
-            or pointX >= 0 and pointX <= self.w  then
-                gfx.line(previousPointX, previousPointY, pointX, pointY, true)
-            end
-
-            previousPointTime = point.relativeTime
-            previousPointX = pointX
-            previousPointY = pointY
         end
     end
 end
@@ -991,8 +1005,7 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local leftTimePixels = self:getPixelsFromTime(prevNode.time) - x
         local rightTimePixels = self:getPixelsFromTime(node.time) - x
 
-        if leftTimePixels >= 0 and leftTimePixels <= self.w
-        or rightTimePixels >= 0 and rightTimePixels <= self.w  then
+        if self:lineXIsOnScreen(leftTimePixels, rightTimePixels) then
 
             local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
             local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
