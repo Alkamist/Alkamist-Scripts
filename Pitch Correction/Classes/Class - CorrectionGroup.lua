@@ -338,7 +338,7 @@ end
 function CorrectionGroup:correctPitchGroup(pitchGroup)
     if #self.nodes < 2 then return end
 
-    for pointIndex, point in ipairs(pitchGroup.points) do
+    --[[for pointIndex, point in ipairs(pitchGroup.points) do
 
         if self:pointIsInActiveCorrection(point, pitchGroup) then
 
@@ -358,7 +358,7 @@ function CorrectionGroup:correctPitchGroup(pitchGroup)
     self:addEdgePointsToCorrectionGroup(pitchGroup)
     CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
 
-    reaper.Envelope_SortPoints(pitchGroup.envelope)
+    reaper.Envelope_SortPoints(pitchGroup.envelope)]]--
 end
 
 return CorrectionGroup

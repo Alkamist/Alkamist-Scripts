@@ -247,7 +247,7 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.correctionGroup:sort()
-    self:applyPitchCorrections()
+    --self:applyPitchCorrections()
 end
 
 function GUI.PitchEditor:handleLineSelection()
@@ -503,9 +503,6 @@ function GUI.PitchEditor:onmousedown()
         if self.editLine then
             -- If holding alt, deactivate the node responsible for creating the line.
             if gfx.mouse_cap & 16 == 16 then
-                --self.editLine.node1.isActive = false
-
-                --self:applyPitchCorrections()
                 self.altOnEditLDown = true
             end
 
@@ -552,6 +549,9 @@ function GUI.PitchEditor:onmouseup()
             self:unselectAllCorrectionNodes()
         end
     end
+
+    self:applyPitchCorrections()
+    reaper.UpdateArrange()
 
     self.lWasDragged = false
     self.editNode = nil
@@ -847,14 +847,11 @@ function GUI.PitchEditor:drawUI()
     self:drawPreviewPitchLines()
     self:drawCorrectionGroup()
     self:drawEditCursor()
-    --self:drawKeys()
     self:drawBoxSelect()
 end
 
 function GUI.PitchEditor:drawPitchLines()
     if #self.pitchGroups < 1 then return end
-
-    local x, y, w, h = self.x, self.y, self.w, self.h
 
     GUI.color("pitch_lines")
 
@@ -883,7 +880,10 @@ function GUI.PitchEditor:drawPitchLines()
                 previousPointY = pointY
             end
 
-            gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+            if previousPointX >= 0 and previousPointX <= self.w
+            or pointX >= 0 and pointX <= self.w  then
+                gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+            end
 
             previousPoint = point
             previousPointX = pointX
@@ -924,7 +924,10 @@ function GUI.PitchEditor:drawPreviewPitchLines()
                 previousPointY = pointY
             end
 
-            gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+            if previousPointX >= 0 and previousPointX <= self.w
+            or pointX >= 0 and pointX <= self.w  then
+                gfx.line(previousPointX, previousPointY, pointX, pointY, true)
+            end
 
             previousPointTime = point.relativeTime
             previousPointX = pointX
@@ -988,26 +991,31 @@ function GUI.PitchEditor:drawCorrectionGroup()
         local leftTimePixels = self:getPixelsFromTime(prevNode.time) - x
         local rightTimePixels = self:getPixelsFromTime(node.time) - x
 
-        local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
-        local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
+        if leftTimePixels >= 0 and leftTimePixels <= self.w
+        or rightTimePixels >= 0 and rightTimePixels <= self.w  then
 
-        local angle = math.atan(rightPitchPixels - leftPitchPixels, rightTimePixels - leftTimePixels)
-        local timeOffset = math.cos(angle) * (circleRadii + 1)
-        local pitchOffset = math.sin(angle) * (circleRadii + 1)
-        local leftLineTimePixels = leftTimePixels + timeOffset
-        local rightLineTimePixels = rightTimePixels - timeOffset
-        local leftLinePitchPixels = leftPitchPixels + pitchOffset
-        local rightLinePitchPixels = rightPitchPixels - pitchOffset
+            local leftPitchPixels = self:getPixelsFromPitch(prevNode.pitch) - y
+            local rightPitchPixels = self:getPixelsFromPitch(node.pitch) - y
 
-        GUI.color("correction")
+            local angle = math.atan(rightPitchPixels - leftPitchPixels, rightTimePixels - leftTimePixels)
+            local timeOffset = math.cos(angle) * (circleRadii + 1)
+            local pitchOffset = math.sin(angle) * (circleRadii + 1)
+            local leftLineTimePixels = leftTimePixels + timeOffset
+            local rightLineTimePixels = rightTimePixels - timeOffset
+            local leftLinePitchPixels = leftPitchPixels + pitchOffset
+            local rightLinePitchPixels = rightPitchPixels - pitchOffset
 
-        if prevNode.isActive and index > 1 then
-            gfx.line(leftLineTimePixels, leftLinePitchPixels, rightLineTimePixels, rightLinePitchPixels, true)
+            GUI.color("correction")
+
+            if prevNode.isActive and index > 1 then
+                gfx.line(leftLineTimePixels, leftLinePitchPixels, rightLineTimePixels, rightLinePitchPixels, true)
+            end
+
+            if not node.isActive then GUI.color("correction_inactive") end
+
+            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, node.isSelected, true)
+
         end
-
-        if not node.isActive then GUI.color("correction_inactive") end
-
-        gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, node.isSelected, true)
 
         prevNode = node
     end
