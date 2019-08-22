@@ -67,9 +67,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
 
     object.correctionGroup = CorrectionGroup:new()
 
-    object.keyWidthMult = 0.05
-    object.keyWidth = object.w * object.keyWidthMult
-
     object.pitchGroups = {}
 
     GUI.redraw_z[z] = true
@@ -333,15 +330,15 @@ function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    local relativeX = xPixels - self.x - self.keyWidth
-    return self:getTimeLength() * (scroll + relativeX / ((self.w - self.keyWidth) * zoom))
+    local relativeX = xPixels - self.x
+    return self:getTimeLength() * (scroll + relativeX / (self.w * zoom))
 end
 
 function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
     local zoom = zoom or self.zoomX
     local scroll = scroll or self.scrollX
 
-    return self.keyWidth + self.x + zoom * (self.w - self.keyWidth) * (time / self:getTimeLength() - scroll)
+    return self.x + zoom * self.w * (time / self:getTimeLength() - scroll)
 end
 
 function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
@@ -761,8 +758,6 @@ function GUI.PitchEditor:onresize()
     self.w = GUI.cur_w - 4
     self.h = GUI.cur_h - self.y - 2
 
-    self.keyWidth = self.w * self.keyWidthMult
-
     self:redraw()
 end
 
@@ -952,30 +947,6 @@ function GUI.PitchEditor:drawKeyLines()
 
             gfx.a = 1.0
         end
-    end
-end
-
-function GUI.PitchEditor:drawKeys()
-    local x, y, w, h = self.x, self.y, self.w, self.h
-
-    local lastKeyEnd = self:getPixelsFromPitch(self:getMaxPitch() + 0.5) - y
-    for i = 1, math.floor(self:getMaxPitch()) do
-        GUI.color("black_keys")
-
-        for _, value in ipairs(whiteKeys) do
-            if i == value then
-                GUI.color("white_keys")
-            end
-        end
-
-        local keyEnd = self:getPixelsFromPitch(self:getMaxPitch() - i + 0.5) - y
-        gfx.rect(0, keyEnd, self.keyWidth, keyEnd - lastKeyEnd + 1, 1)
-
-        GUI.color("black_keys")
-
-        gfx.line(0, keyEnd, self.keyWidth - 1, keyEnd, false)
-
-        lastKeyEnd = keyEnd
     end
 end
 
