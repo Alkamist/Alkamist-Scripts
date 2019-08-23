@@ -218,7 +218,14 @@ function GUI.PitchEditor:unselectNode(node)
                 return value == node
             end)
 
-            table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+            if #self.selectedNodes > 0 then
+
+                table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+                self.selectedNodesStartingIndex = self.correctionGroup:getNodeIndex(self.selectedNodes[1])
+
+            else
+                self.selectedNodesStartingIndex = 0
+            end
         end
     end
 end
