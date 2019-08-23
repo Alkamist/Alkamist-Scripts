@@ -232,7 +232,6 @@ function CorrectionGroup:correctPitchMod(node, nextNode, point, pointIndex, pitc
 end
 
 function CorrectionGroup:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
-    local pointTime = point.time - pitchGroup.startOffset
     local prevPointTime = 0.0
     local timeToPrevPoint = 0.0
 
@@ -346,35 +345,21 @@ function CorrectionGroup:correctPitchGroupWithSelectedNodes(pitchGroup)
 
                 for pointIndex, point in ipairs(pointsInNode) do
 
+                    local pointGroupIndex = firstPointIndex + pointIndex - 1
+
                     point.correctedPitch = point.pitch
 
-                    --self:correctPitchDrift(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
-                    self:correctPitchMod(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
+                    --self:correctPitchDrift(node, nextNode, point, pointGroupIndex, pitchGroup)
+                    self:correctPitchMod(node, nextNode, point, pointGroupIndex, pitchGroup)
 
                     self:insertCorrectedPointToEnvelope(point, pitchGroup)
 
-                    --self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
+                    self:addZeroPointsToEnvelope(point, pointGroupIndex, pitchGroup)
 
                 end
             end
         end
     end
-
-    --for pointIndex, point in ipairs(pitchGroup.points) do
-
-        --if self:pointIsInActiveCorrection(point, pitchGroup) then
-
---            point.correctedPitch = point.pitch
---
---            self:correctPitchDrift(point, pointIndex, pitchGroup)
---            self:correctPitchMod(point, pointIndex, pitchGroup)
---
---            self:insertCorrectedPointToEnvelope(point, pitchGroup)
---
---            self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
-
-        --end
-    --end
 
     --self:addEdgePointsToNodes(pitchGroup)
     --self:addEdgePointsToCorrectionGroup(pitchGroup)
