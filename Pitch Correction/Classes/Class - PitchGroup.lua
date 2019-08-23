@@ -263,56 +263,26 @@ end
 
 function PitchGroup:savePoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
-    local dataHeader = self:getDataHeader()
 
-    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
-    local prevPitchGroups = PitchGroup.getGroupsFromDataString(dataStringFromHeader)
+    local prevPitchGroups = PitchGroup.getGroupsFromDataString(extState)
     local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
 
-    local saveString = dataHeader
+    local saveString = ""
 
     for index, group in ipairs(combinedGroups) do
         saveString = saveString .. group:getDataString()
     end
 
-    local newExtState = string.gsub(extState, dataHeader .. dataStringFromHeader, "") .. saveString
-
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, newExtState)
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, saveString)
 end
 
 function PitchGroup:loadSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
-    local dataHeader = self:getDataHeader()
-
-    local dataStringFromHeader = PitchGroup.getDataStringFromHeader(extState, dataHeader)
 
     local leftBound = self.startOffset
     local rightBound = leftBound + self.length
 
-    return self:getPointsFromDataStringWithinRange(dataStringFromHeader, leftBound, rightBound)
-end
-
-function PitchGroup.getDataStringFromHeader(fullDataString, dataHeader)
-    local headerStart, headerEnd = string.find(fullDataString, dataHeader)
-    local outputDataString = ""
-
-    if headerStart and headerEnd then
-        local searchIndex = headerEnd
-
-        repeat
-
-            local line = string.match(fullDataString, "([^\r\n]+)", searchIndex)
-            if line == nil then break end
-            if string.match(line, "PLAYRATE") then break end
-
-            outputDataString = outputDataString .. line .. "\n"
-
-            searchIndex = searchIndex + string.len(line) + 1
-
-        until false
-    end
-
-    return outputDataString
+    return self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound)
 end
 
 function PitchGroup.getGroupsFromDataString(dataString)
@@ -375,13 +345,15 @@ function PitchGroup:getPointsFromString(pointString)
 
     for line in pointString:gmatch("[^\r\n]+") do
         local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
+        local scaledPointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ) / self.playrate
 
         table.insert(points, {
 
-            time =  pointTime,
+            time =  scaledPointTime,
             pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
             rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
-            relativeTime = pointTime - self.startOffset
+            relativeTime = scaledPointTime - self.startOffset / self.playrate,
+            envelopeTime = pointTime - self.startOffset
 
         } )
 
@@ -406,21 +378,6 @@ function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, ri
     end
 
     return self:getPointsFromString(pointString)
-end
-
-function PitchGroup:getDataHeader()
-    local stretchMarkersString = ""
-
-    for markerIndex, marker in ipairs(self.stretchMarkers) do
-        stretchMarkersString = stretchMarkersString .. string.format("    %f %f\n", self.startOffset + marker.pos, marker.srcPos)
-    end
-
-    local dataHeader = "PLAYRATE " .. self.playrate .. "\n" ..
-
-                       "<STRETCHMARKERS\n" .. stretchMarkersString ..
-                       ">\n"
-
-    return dataHeader
 end
 
 function PitchGroup:getDataString()

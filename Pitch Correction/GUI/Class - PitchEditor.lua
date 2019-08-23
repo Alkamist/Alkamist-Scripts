@@ -975,7 +975,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
             for pointIndex, point in ipairs(group.points) do
                 previousPointTime = previousPointTime or point.relativeTime
 
-                local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.relativeTime / group.playrate, 44100, 0)
+                local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.envelopeTime, 44100, 0)
 
                 local pitchValue = point.pitch + envelopeValue
 
