@@ -66,6 +66,7 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     }
 
     object.correctionGroup = CorrectionGroup:new()
+    object.selectedNodes = {}
 
     object.pitchGroups = {}
     object.focus = true
@@ -83,6 +84,8 @@ end
 ------------------ Helper Functions ------------------
 
 function GUI.PitchEditor:deleteSelectedCorrectionNodes()
+    self.selectedNodes = {}
+
     Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
         local value = t[i]
 
@@ -185,10 +188,42 @@ end
 
 function GUI.PitchEditor:unselectAllCorrectionNodes()
     for index, node in ipairs(self.correctionGroup.nodes) do
-        node.isSelected = false
+        self:unselectNode(node)
     end
 
     self:updateExtremeSelectedNodes()
+end
+
+function GUI.PitchEditor:selectNode(node)
+    if not node.isSelected then
+        node.isSelected = true
+        table.insert(self.selectedNodes, node)
+
+        table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+    end
+end
+
+function GUI.PitchEditor:unselectNode(node)
+    if node.isSelected then
+        node.isSelected = false
+
+        Lua.arrayRemove(self.selectedNodes, function(t, i)
+            local value = t[i]
+
+            return value == node
+        end)
+
+        table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+    end
+end
+
+function GUI.PitchEditor:setNodeSelected(node, selected)
+    if selected then
+        self:selectNode(node)
+
+    else
+        self:unselectNode(node)
+    end
 end
 
 function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
@@ -236,24 +271,30 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
 
         time = Lua.clamp(mouseOriginalTime, 0.0, self:getTimeLength()),
         pitch = Lua.clamp(mouseOriginalPitch, 0.0, self:getMaxPitch()),
-        isSelected = true,
+        isSelected = false,
         isActive = false
 
     } )
+
+    self:selectNode(self.editNode)
 
     self:updateExtremeSelectedNodes()
 end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        if node.isSelected then
-            node.time = node.time + mouseTimeChange
-            node.pitch = node.pitch + mousePitchChange
-        end
+    --local testTime = reaper.time_precise()
+    --for groupIndex, group in ipairs(self.pitchGroups) do
+    --    self.correctionGroup:clearSelectedNodes(group)
+    --end
+    --msg(reaper.time_precise() - testTime)
+
+    for index, node in ipairs(self.selectedNodes) do
+        node.time = node.time + mouseTimeChange
+        node.pitch = node.pitch + mousePitchChange
     end
 
     self.correctionGroup:sort()
-    self:applyPitchCorrections(true)
+    --self:applyPitchCorrections(true)
 end
 
 function GUI.PitchEditor:handleLineSelection()
@@ -264,8 +305,8 @@ function GUI.PitchEditor:handleLineSelection()
         self:unselectAllCorrectionNodes()
     end
 
-    self.editLine.node1.isSelected = true
-    self.editLine.node2.isSelected = true
+    self:selectNode(node1)
+    self:selectNode(node2)
 
     self:updateExtremeSelectedNodes()
 end
@@ -391,13 +432,11 @@ function GUI.PitchEditor:getMaxPitch()
 end
 
 function GUI.PitchEditor:moveSelectedNodesDown()
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        if node.isSelected then
-            if gfx.mouse_cap & 8 == 8 then
-                node.pitch = Lua.clamp(node.pitch - 12.0, 0, self:getMaxPitch())
-            else
-                node.pitch = Lua.clamp(node.pitch - 1.0, 0, self:getMaxPitch())
-            end
+    for index, node in ipairs(self.selectedNodes) do
+        if gfx.mouse_cap & 8 == 8 then
+            node.pitch = Lua.clamp(node.pitch - 12.0, 0, self:getMaxPitch())
+        else
+            node.pitch = Lua.clamp(node.pitch - 1.0, 0, self:getMaxPitch())
         end
     end
 
@@ -406,13 +445,11 @@ function GUI.PitchEditor:moveSelectedNodesDown()
 end
 
 function GUI.PitchEditor:moveSelectedNodesUp()
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        if node.isSelected then
-            if gfx.mouse_cap & 8 == 8 then
-                node.pitch = Lua.clamp(node.pitch + 12.0, 0, self:getMaxPitch())
-            else
-                node.pitch = Lua.clamp(node.pitch + 1.0, 0, self:getMaxPitch())
-            end
+    for index, node in ipairs(self.selectedNodes) do
+        if gfx.mouse_cap & 8 == 8 then
+            node.pitch = Lua.clamp(node.pitch + 12.0, 0, self:getMaxPitch())
+        else
+            node.pitch = Lua.clamp(node.pitch + 1.0, 0, self:getMaxPitch())
         end
     end
 
@@ -426,18 +463,16 @@ function GUI.PitchEditor:updateExtremeSelectedNodes()
     self.bottomSelectedNode = nil
     self.topSelectedNode = nil
 
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        if node.isSelected then
-            self.leftSelectedNode = self.leftSelectedNode or node
-            self.rightSelectedNode = self.rightSelectedNode or node
-            self.bottomSelectedNode = self.bottomSelectedNode or node
-            self.topSelectedNode = self.topSelectedNode or node
+    for index, node in ipairs(self.selectedNodes) do
+        self.leftSelectedNode = self.leftSelectedNode or node
+        self.rightSelectedNode = self.rightSelectedNode or node
+        self.bottomSelectedNode = self.bottomSelectedNode or node
+        self.topSelectedNode = self.topSelectedNode or node
 
-            if node.time <= self.leftSelectedNode.time then self.leftSelectedNode = node end
-            if node.time >= self.rightSelectedNode.time then self.rightSelectedNode = node end
-            if node.pitch <= self.bottomSelectedNode.pitch then self.bottomSelectedNode = node end
-            if node.pitch >= self.topSelectedNode.pitch then self.topSelectedNode = node end
-        end
+        if node.time <= self.leftSelectedNode.time then self.leftSelectedNode = node end
+        if node.time >= self.rightSelectedNode.time then self.rightSelectedNode = node end
+        if node.pitch <= self.bottomSelectedNode.pitch then self.bottomSelectedNode = node end
+        if node.pitch >= self.topSelectedNode.pitch then self.topSelectedNode = node end
     end
 end
 
@@ -483,10 +518,12 @@ function GUI.PitchEditor:onmousedown()
 
         -- Holding alt.
         if gfx.mouse_cap & 16 == 16 then
-            for index, node in ipairs(self.correctionGroup.nodes) do
-                if node.isSelected or node == self.editNode then
-                    node.isActive = not node.isActive
-                end
+            if not self.editNode.isSelected then
+                self.editNode.isActive = not self.editNode.isActive
+            end
+
+            for index, node in ipairs(self.selectedNodes) do
+                node.isActive = not node.isActive
             end
 
             self:applyPitchCorrections()
@@ -495,14 +532,12 @@ function GUI.PitchEditor:onmousedown()
 
         -- Holding control.
         if gfx.mouse_cap & 4 == 4 then
-            for index, node in ipairs(self.correctionGroup.nodes) do
-                if node.isSelected or node == self.editNode then
-                    node.pitch = GUI.round(node.pitch)
-                end
+            for index, node in ipairs(self.selectedNodes) do
+                node.pitch = GUI.round(node.pitch)
             end
         end
 
-        self.editNode.isSelected = true
+        self:selectNode(self.editNode)
         self:updateExtremeSelectedNodes()
 
     else
@@ -523,10 +558,12 @@ function GUI.PitchEditor:onmousedown()
 
                 time = Lua.clamp(mouseTime, 0.0, self:getTimeLength()),
                 pitch = Lua.clamp(mousePitch, 0.0, self:getMaxPitch()),
-                isSelected = true,
+                isSelected = false,
                 isActive = false
 
             } )
+
+            self:selectNode(self.editNode)
 
             self.correctionGroup:sort()
             self:updateExtremeSelectedNodes()
@@ -739,19 +776,19 @@ function GUI.PitchEditor:onmouser_up()
 
                 -- Holding shift
                 if gfx.mouse_cap & 8 == 8 then
-                    node.isSelected = true
+                    self:selectNode(node)
 
                 -- Holding control.
                 elseif gfx.mouse_cap & 4 == 4 then
-                    node.isSelected = not node.isSelected
+                    self:setNodeSelected(node, not node.isSelected)
 
                 else
-                    node.isSelected = true
+                    self:selectNode(node)
                 end
 
             else
                 if gfx.mouse_cap & 8 == 0 and gfx.mouse_cap & 4 == 0 then
-                    node.isSelected = false
+                    self:unselectNode(node)
                 end
             end
         end
