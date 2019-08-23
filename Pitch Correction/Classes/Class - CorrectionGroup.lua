@@ -269,14 +269,6 @@ function CorrectionGroup:addZeroPointsToEnvelope(node, nextNode, point, pointInd
     end
 end
 
-function CorrectionGroup:addEdgePointsToCorrectionGroup(pitchGroup)
-    local leftEdgeTime = pitchGroup.playrate * (self.nodes[1].time - pitchGroup.editOffset)
-    local rightEdgeTime = pitchGroup.playrate * (self.nodes[#self.nodes].time - pitchGroup.editOffset)
-
-    reaper.InsertEnvelopePoint(pitchGroup.envelope, leftEdgeTime, 0, 0, 0, false, true)
-    reaper.InsertEnvelopePoint(pitchGroup.envelope, rightEdgeTime, 0, 0, 0, false, true)
-end
-
 function CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
     local leftEdgeTime = pitchGroup.playrate * (pitchGroup.points[1].time - pitchGroup.startOffset - edgePointSpacing * 0.5)
     local rightEdgeTime = pitchGroup.playrate * (pitchGroup.points[#pitchGroup.points].time - pitchGroup.startOffset + edgePointSpacing * 0.5)
@@ -378,9 +370,6 @@ function CorrectionGroup:correctPitchGroupWithSelectedNodes(pitchGroup)
 
         self:addEdgePointsToNode(node, nodeIndex, pitchGroup)
     end
-
-    --self:addEdgePointsToCorrectionGroup(pitchGroup)
-    --CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
 
     reaper.Envelope_SortPoints(pitchGroup.envelope)
 end
