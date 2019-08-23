@@ -195,25 +195,31 @@ function GUI.PitchEditor:unselectAllCorrectionNodes()
 end
 
 function GUI.PitchEditor:selectNode(node)
-    if not node.isSelected then
-        node.isSelected = true
-        table.insert(self.selectedNodes, node)
+    if node then
+        if not node.isSelected then
+            node.isSelected = true
+            table.insert(self.selectedNodes, node)
 
-        table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+            table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+
+            self.selectedNodesStartingIndex = self.correctionGroup:getNodeIndex(self.selectedNodes[1])
+        end
     end
 end
 
 function GUI.PitchEditor:unselectNode(node)
-    if node.isSelected then
-        node.isSelected = false
+    if node then
+        if node.isSelected then
+            node.isSelected = false
 
-        Lua.arrayRemove(self.selectedNodes, function(t, i)
-            local value = t[i]
+            Lua.arrayRemove(self.selectedNodes, function(t, i)
+                local value = t[i]
 
-            return value == node
-        end)
+                return value == node
+            end)
 
-        table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+            table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+        end
     end
 end
 
@@ -232,7 +238,7 @@ function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
 
         if useSelectedNodes then
             --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-            self.correctionGroup:correctPitchGroupWithSelectedNodes(group)
+            self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
         else
             --self.correctionGroup:correctPitchGroup(group)
         end
@@ -283,9 +289,9 @@ end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     --local testTime = reaper.time_precise()
-    --for groupIndex, group in ipairs(self.pitchGroups) do
-    --    self.correctionGroup:clearSelectedNodes(group)
-    --end
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        self.correctionGroup:clearSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
+    end
     --msg(reaper.time_precise() - testTime)
 
     for index, node in ipairs(self.selectedNodes) do
@@ -294,7 +300,7 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     self.correctionGroup:sort()
-    --self:applyPitchCorrections(true)
+    self:applyPitchCorrections(true)
 end
 
 function GUI.PitchEditor:handleLineSelection()
@@ -305,8 +311,8 @@ function GUI.PitchEditor:handleLineSelection()
         self:unselectAllCorrectionNodes()
     end
 
-    self:selectNode(node1)
-    self:selectNode(node2)
+    self:selectNode(self.editLine.node1)
+    self:selectNode(self.editLine.node2)
 
     self:updateExtremeSelectedNodes()
 end
