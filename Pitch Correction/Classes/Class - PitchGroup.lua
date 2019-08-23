@@ -186,6 +186,12 @@ function PitchGroup:setItem(item)
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
 
+function PitchGroup:timeIsWithinPitchContent(time)
+    if #self.points < 1 then return end
+
+    return time >= self.points[1].relativeTime and time <= self.points[#self.points].relativeTime
+end
+
 function PitchGroup:getPointIndexByTime(time, findLeft)
     local numPoints = #self.points
 
