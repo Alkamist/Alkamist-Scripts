@@ -331,23 +331,32 @@ function CorrectionGroup:correctPitchGroupWithSelectedNodes(pitchGroup)
     if #self.nodes < 2 then return end
 
     for nodeIndex, node in ipairs(self.nodes) do
-        local nextNode = nil
 
+        local nextNode = nil
         if nodeIndex < #self.nodes then nextNode = self.nodes[nodeIndex + 1] end
 
-        local pointsInNode, firstPointIndex = self:getPointsAffectedByNode(node, nextNode, pitchGroup)
+        if nextNode then
+            if node.isSelected or nextNode.isSelected then
+                local nodeTime = node.time - pitchGroup.editOffset
+                local nextNodeTime = nextNode.time - pitchGroup.editOffset
 
-        for pointIndex, point in ipairs(pointsInNode) do
+                reaper.DeleteEnvelopePointRange(pitchGroup.envelope, nodeTime * pitchGroup.playrate, nextNodeTime * pitchGroup.playrate)
 
-            point.correctedPitch = point.pitch
+                local pointsInNode, firstPointIndex = self:getPointsAffectedByNode(node, nextNode, pitchGroup)
 
-            self:correctPitchDrift(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
-            self:correctPitchMod(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
+                for pointIndex, point in ipairs(pointsInNode) do
 
-            self:insertCorrectedPointToEnvelope(point, pitchGroup)
+                    point.correctedPitch = point.pitch
 
-            --self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
+                    --self:correctPitchDrift(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
+                    self:correctPitchMod(node, nextNode, point, firstPointIndex + pointIndex, pitchGroup)
 
+                    self:insertCorrectedPointToEnvelope(point, pitchGroup)
+
+                    --self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
+
+                end
+            end
         end
     end
 

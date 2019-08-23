@@ -196,7 +196,7 @@ function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
         --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
 
         if useSelectedNodes then
-            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+            --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
             self.correctionGroup:correctPitchGroupWithSelectedNodes(group)
         else
             --self.correctionGroup:correctPitchGroup(group)
