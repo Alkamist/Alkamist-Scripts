@@ -186,7 +186,7 @@ function PitchGroup:setItem(item)
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
 
-function PitchGroup:getPointIndexByTime(time)
+function PitchGroup:getPointIndexByTime(time, findLeft)
     local numPoints = #self.points
 
     if numPoints < 1 then
@@ -201,7 +201,6 @@ function PitchGroup:getPointIndexByTime(time)
     bestGuessIndex = Lua.clamp(bestGuessIndex, 1, numPoints)
 
     local guessPoint = self.points[bestGuessIndex]
-    local prevGuessError = math.abs(guessPoint.relativeTime - time)
     local prevGuessIsLeftOfTime = guessPoint.relativeTime <= time
 
     repeat
@@ -217,7 +216,7 @@ function PitchGroup:getPointIndexByTime(time)
 
             -- You were going left and passed the target.
             else
-                if guessError < prevGuessError then
+                if findLeft then
                     return bestGuessIndex
                 else
                     return bestGuessIndex + 1
@@ -231,8 +230,8 @@ function PitchGroup:getPointIndexByTime(time)
 
             -- You were going right and passed the target.
             else
-                if guessError < prevGuessError then
-                    return guessPoint, bestGuessIndex
+                if not findLeft then
+                    return bestGuessIndex
                 else
                     return bestGuessIndex - 1
                 end
@@ -240,7 +239,6 @@ function PitchGroup:getPointIndexByTime(time)
 
         end
 
-        prevGuessError = guessError
         prevGuessIsLeftOfTime = guessIsLeftOfTime
 
     until bestGuessIndex < 1 or bestGuessIndex > numPoints

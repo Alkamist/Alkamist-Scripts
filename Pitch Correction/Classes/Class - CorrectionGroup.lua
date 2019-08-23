@@ -317,8 +317,8 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
 
     local points = {}
 
-    local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset)
-    local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset)
+    local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
+    local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
 
     for index, point in ipairs(pitchGroup.points) do
         if index >= firstIndex and index <= lastIndex then
