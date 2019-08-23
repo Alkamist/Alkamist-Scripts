@@ -7,7 +7,7 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 -- Pitch correction settings:
 local averageCorrection = 0.0
-local modCorrection = 1.0
+local modCorrection = 0.3
 local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.05
@@ -391,7 +391,7 @@ function CorrectionGroup:correctPitchGroupWithNodes(node, nextNode, nodeIndex, p
 
             point.correctedPitch = point.pitch
 
-            --self:correctPitchDrift(node, nextNode, point, pointGroupIndex, pitchGroup)
+            self:correctPitchDrift(node, nextNode, point, pointGroupIndex, pitchGroup)
             self:correctPitchMod(node, nextNode, point, pointGroupIndex, pitchGroup)
 
             self:insertCorrectedPointToEnvelope(point, pitchGroup)
@@ -433,27 +433,26 @@ end
 function CorrectionGroup:correctPitchGroup(pitchGroup)
     if #self.nodes < 2 then return end
 
-    --for pointIndex, point in ipairs(pitchGroup.points) do
+    for nodeIndex, node in ipairs(self.nodes) do
 
-        --[[if self:pointIsInActiveCorrection(point, pitchGroup) then
+        local prevNode = nil
+        if nodeIndex > 1 then prevNode = self.nodes[nodeIndex - 1] end
 
-            point.correctedPitch = point.pitch
+        local nextNode = nil
+        if nodeIndex < #self.nodes then nextNode = self.nodes[nodeIndex + 1] end
 
-            self:correctPitchDrift(point, pointIndex, pitchGroup)
-            self:correctPitchMod(point, pointIndex, pitchGroup)
+        if prevNode then
+            if not prevNode.isSelected then
+                self:correctPitchGroupWithNodes(prevNode, node, nodeIndex - 1, pitchGroup)
+            end
+        end
 
-            self:insertCorrectedPointToEnvelope(point, pitchGroup)
+        if nextNode then
+            self:correctPitchGroupWithNodes(node, nextNode, nodeIndex, pitchGroup)
+        end
+    end
 
-            self:addZeroPointsToEnvelope(point, pointIndex, pitchGroup)
-
-        end]]--
-    --end
-
-    --self:addEdgePointsToNodes(pitchGroup)
-    --self:addEdgePointsToCorrectionGroup(pitchGroup)
-    --CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
-
-    --reaper.Envelope_SortPoints(pitchGroup.envelope)
+    reaper.Envelope_SortPoints(pitchGroup.envelope)
 end
 
 return CorrectionGroup

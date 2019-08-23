@@ -241,13 +241,11 @@ end
 
 function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
     for groupIndex, group in ipairs(self.pitchGroups) do
-        --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-
         if useSelectedNodes then
-            --reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
             self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
         else
-            --self.correctionGroup:correctPitchGroup(group)
+            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+            self.correctionGroup:correctPitchGroup(group)
         end
     end
 end
@@ -295,11 +293,9 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
 end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
-    --local testTime = reaper.time_precise()
     for groupIndex, group in ipairs(self.pitchGroups) do
         self.correctionGroup:clearSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
     end
-    --msg(reaper.time_precise() - testTime)
 
     for index, node in ipairs(self.selectedNodes) do
         node.time = node.time + mouseTimeChange
@@ -539,7 +535,7 @@ function GUI.PitchEditor:onmousedown()
                 node.isActive = not node.isActive
             end
 
-            self:applyPitchCorrections()
+            --self:applyPitchCorrections()
             self.altOnEditLDown = true
         end
 
@@ -587,7 +583,7 @@ function GUI.PitchEditor:onmousedown()
                 self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
             end
 
-            self:applyPitchCorrections()
+            --self:applyPitchCorrections()
         end
     end
 
@@ -606,7 +602,7 @@ function GUI.PitchEditor:onmouseup()
         end
     end
 
-    self:applyPitchCorrections()
+    --self:applyPitchCorrections()
     reaper.UpdateArrange()
 
     self.lWasDragged = false
