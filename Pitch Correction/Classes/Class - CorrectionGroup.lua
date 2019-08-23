@@ -283,7 +283,7 @@ function CorrectionGroup:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGro
     local prevNode = nil
     if nodeIndex > 1 then prevNode = self.nodes[nodeIndex - 1] end
 
-    if nodeTime >= 0.0 and nodeTime <= pitchGroup.length and node.isSelected then
+    if nodeTime >= 0.0 and nodeTime <= pitchGroup.length then
 
         if not node.isActive then
             reaper.InsertEnvelopePoint(pitchGroup.envelope, (nodeTime - 0.00001) * pitchGroup.playrate, 0.0, 0, 0, false, true)
@@ -312,18 +312,24 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
     if not node.isActive then return {} end
     if not nextNode      then return {} end
 
-    local points = {}
+    if node.time >= pitchGroup.editOffset and node.time <= pitchGroup.editOffset + pitchGroup.length then
 
-    local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
-    local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
+        local points = {}
 
-    for index, point in ipairs(pitchGroup.points) do
-        if index >= firstIndex and index <= lastIndex then
-            table.insert(points, point)
+        local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
+        local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
+
+        for index, point in ipairs(pitchGroup.points) do
+            if index >= firstIndex and index <= lastIndex then
+                table.insert(points, point)
+            end
         end
+
+        return points, firstIndex, lastIndex
+
     end
 
-    return points, firstIndex, lastIndex
+    return {}, 0, 0
 end
 
 function CorrectionGroup:addEdgePointsToCorrectionGroup(pitchGroup)
@@ -387,11 +393,11 @@ function CorrectionGroup:correctPitchGroupWithNodes(node, nextNode, nodeIndex, p
 
             self:insertCorrectedPointToEnvelope(point, pitchGroup)
 
-            --self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
+            self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
         end
     end
 
-    --self:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGroup)
+    self:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGroup)
 end
 
 function CorrectionGroup:correctPitchGroupWithSelectedNodes(selectedNodes, selectedNodesStartingIndex, pitchGroup)
@@ -409,7 +415,7 @@ function CorrectionGroup:correctPitchGroupWithSelectedNodes(selectedNodes, selec
 
         if prevNode then
             if not prevNode.isSelected then
-                --self:correctPitchGroupWithNodes(prevNode, node, nodeFullIndex - 1, pitchGroup)
+                self:correctPitchGroupWithNodes(prevNode, node, nodeFullIndex - 1, pitchGroup)
             end
         end
 
