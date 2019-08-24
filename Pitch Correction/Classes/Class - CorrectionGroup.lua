@@ -6,7 +6,6 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 
 -- Pitch correction settings:
-local averageCorrection = 0.0
 local modCorrection = 1.0
 local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.17
@@ -248,7 +247,7 @@ function CorrectionGroup:addZeroPointsToEnvelope(node, nextNode, point, pointInd
     end
 
     if zeroPointThreshold then
-        local scaledZeroPointThreshold = zeroPointThreshold / point.markerRate
+        local scaledZeroPointThreshold = zeroPointThreshold / (point.markerRate * pitchGroup.playrate)
 
         if timeToPrevPoint >= scaledZeroPointThreshold or pointIndex == 1 then
             local zeroPointTime = pitchGroup.playrate * (point.relativeTime - zeroPointSpacing)

@@ -968,12 +968,12 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         if self:lineXIsOnScreen(groupPixelStart, groupPixelEnd) then
             local drawThreshold = 2.5 * group.minTimePerPoint
 
-            local previousPointTime = nil
+            local previousPoint = nil
             local previousPointX = nil
             local previousPointY = nil
 
             for pointIndex, point in ipairs(group.points) do
-                previousPointTime = previousPointTime or point.relativeTime
+                previousPoint = previousPoint or point
 
                 local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.envelopeTime, 44100, 0)
 
@@ -985,7 +985,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
                 previousPointX = previousPointX or pointX
                 previousPointY = previousPointY or pointY
 
-                if point.relativeTime - previousPointTime > drawThreshold then
+                if point.time - previousPoint.time > drawThreshold then
                     previousPointX = pointX
                     previousPointY = pointY
                 end
@@ -994,7 +994,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
                     gfx.line(previousPointX, previousPointY, pointX, pointY, true)
                 end
 
-                previousPointTime = point.relativeTime
+                previousPoint = point
                 previousPointX = pointX
                 previousPointY = pointY
             end

@@ -320,9 +320,15 @@ function PitchGroup:loadSavedPoints()
         rate = 1.0
     } )
 
+    --msg(leftBoundIndex)
+    --msg(rightBoundIndex)
+
     -------------------------------------------------------
 
     for index, marker in ipairs(tempMarkers) do
+        --msg(marker.pos)
+        --msg(marker.srcPos)
+
         local nextMarker = nil
         if index < #tempMarkers then
             nextMarker = tempMarkers[index + 1]
