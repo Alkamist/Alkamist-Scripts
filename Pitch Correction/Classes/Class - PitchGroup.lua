@@ -175,12 +175,16 @@ function PitchGroup:setItem(item)
     self.take = reaper.GetActiveTake(self.item)
     self.takeName = reaper.GetTakeName(self.take)
     self.takeGUID = reaper.BR_GetMediaItemTakeGUID(self.take)
+    self.takeSource = reaper.GetMediaItemTake_Source(self.take)
     self.length = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
     self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime = self.leftTime + self.length
     self.playrate = reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
     self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")-- / reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
     self.envelope = self:getEnvelope()
+
+    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
+
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
     self.points = self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
@@ -281,46 +285,26 @@ function PitchGroup:loadSavedPoints()
 
     local savedPoints = {}
 
-    if #self.stretchMarkers > 0 then
-        local leftBound = self.startOffset
-        local rightBound = self.startOffset + self.stretchMarkers[1].pos
+    local tempStartMarkerIndex = reaper.SetTakeStretchMarker(self.take, -1, 0.0)
+    local tempEndMarkerIndex = reaper.SetTakeStretchMarker(self.take, -1, self.length)
 
-        if leftBound < rightBound then
-            local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound, 1.0)
+    local tempMarkers = Reaper.getStretchMarkers(self.take)
 
-            for pointIndex, point in ipairs(newPoints) do
-                table.insert(savedPoints, point)
-            end
+    for index, marker in ipairs(tempMarkers) do
+        local nextMarker = nil
+        if index < #tempMarkers then
+            nextMarker = tempMarkers[index + 1]
+        end
+
+        local newPoints = self:getPointsFromDataString(extState, marker, nextMarker)
+
+        for pointIndex, point in ipairs(newPoints) do
+            table.insert(savedPoints, point)
         end
     end
 
-    for index, marker in ipairs(self.stretchMarkers)do
-        local leftBound = marker.pos
-        local rightBound = self.length
-        if index < #self.stretchMarkers then
-            rightBound = self.stretchMarkers[index + 1].pos
-        end
-
-        local srcLeftBound = marker.srcPos
-        local srcRightBound = 1000
-        if index < #self.stretchMarkers then
-            srcRightBound = self.stretchMarkers[index + 1].srcPos
-        end
-
-        if rightBound > 0.0 then
-            leftBound = math.max(leftBound, 0.0)
-
-            if leftBound < self.length then
-                rightBound = math.min(rightBound, self.length)
-
-                local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound, srcLeftBound, srcRightBound, marker.rate)
-
-                for pointIndex, point in ipairs(newPoints) do
-                    table.insert(savedPoints, point)
-                end
-            end
-        end
-    end
+    reaper.DeleteTakeStretchMarkers(self.take, tempStartMarkerIndex)
+    reaper.DeleteTakeStretchMarkers(self.take, tempEndMarkerIndex)
 
     return savedPoints
 end
@@ -380,46 +364,53 @@ function PitchGroup.getGroupsFromDataString(dataString)
     return outputGroups
 end
 
-function PitchGroup:getPointsFromString(pointString, leftBound, srcLeftBound, markerRate)
+function PitchGroup:getPointsFromString(pointString, marker)
     local points = {}
 
     for line in pointString:gmatch("[^\r\n]+") do
         local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-        local scaledPointTime = leftBound + (pointTime - srcLeftBound) / markerRate
-        msg(scaledPointTime)
+        local scaledPointTime = marker.pos + (pointTime - marker.srcPos) / marker.rate
 
-        table.insert(points, {
+        if scaledPointTime >= 0.0 and scaledPointTime <= self.length then
 
-            time =  pointTime,
-            pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
-            rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
-            relativeTime = scaledPointTime,
-            envelopeTime = scaledPointTime
+            table.insert(points, {
 
-        } )
+                time =  pointTime,
+                pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
+                rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
+                relativeTime = scaledPointTime,
+                envelopeTime = scaledPointTime
+
+            } )
+
+        end
 
     end
-    msg("-")
 
     return points
 end
 
-function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, rightBound, srcLeftBound, srcRightBound, markerRate)
+function PitchGroup:getPointsFromDataString(dataString, marker, nextMarker)
     local pointString = ""
 
     for line in dataString:gmatch("[^\r\n]+") do
 
         local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
+        local leftBound = marker.srcPos
+
+        local rightBound = self.length
+        if nextMarker then rightBound = nextMarker.srcPos end
+
         if pointTime then
-            if pointTime >= srcLeftBound and pointTime <= srcRightBound then
+            if pointTime >= leftBound and pointTime <= rightBound then
                 pointString = pointString .. line .. "\n"
             end
         end
 
     end
 
-    return self:getPointsFromString(pointString, leftBound, srcLeftBound, markerRate)
+    return self:getPointsFromString(pointString, marker)
 end
 
 function PitchGroup:getDataString()
