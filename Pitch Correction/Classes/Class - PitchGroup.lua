@@ -300,10 +300,13 @@ function PitchGroup:loadSavedPoints()
     end
     leftBoundIndex = leftBoundIndex or 1
 
+    local leftRate = 1.0
+    if leftBoundIndex > 1 then leftRate = tempMarkers[leftBoundIndex - 1].rate end
+
     table.insert(tempMarkers, leftBoundIndex, {
         pos = 0.0,
         srcPos = leftBound,
-        rate = 1.0
+        rate = leftRate
     } )
 
     local rightBoundIndex = nil
