@@ -180,7 +180,7 @@ function PitchGroup:setItem(item)
     self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime = self.leftTime + self.length
     self.playrate = reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
-    self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")-- / reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
+    self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")
     self.envelope = self:getEnvelope()
 
     _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
@@ -371,14 +371,14 @@ function PitchGroup:getPointsFromString(pointString, marker)
         local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
         local scaledPointTime = marker.pos + (pointTime - marker.srcPos) / marker.rate
 
-        if scaledPointTime >= 0.0 and scaledPointTime <= self.length then
+        if scaledPointTime >= 0.0 and scaledPointTime <= self.length * self.playrate then
 
             table.insert(points, {
 
                 time =  pointTime,
                 pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
                 rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
-                relativeTime = scaledPointTime,
+                relativeTime = scaledPointTime / self.playrate,
                 envelopeTime = scaledPointTime
 
             } )
@@ -399,7 +399,7 @@ function PitchGroup:getPointsFromDataString(dataString, marker, nextMarker)
 
         local leftBound = marker.srcPos
 
-        local rightBound = self.length
+        local rightBound = self.takeSourceLength
         if nextMarker then rightBound = nextMarker.srcPos end
 
         if pointTime then
