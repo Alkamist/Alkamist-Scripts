@@ -285,10 +285,42 @@ function PitchGroup:loadSavedPoints()
 
     local savedPoints = {}
 
-    local tempStartMarkerIndex = reaper.SetTakeStretchMarker(self.take, -1, 0.0)
-    local tempEndMarkerIndex = reaper.SetTakeStretchMarker(self.take, -1, self.length)
+    local tempMarkers = Lua.copyTable(self.stretchMarkers)
 
-    local tempMarkers = Reaper.getStretchMarkers(self.take)
+    local leftBound = Reaper.getSourcePosition(self.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(self.take, self.length)
+
+    --------------- Insert boundary markers ---------------
+
+    local leftBoundIndex = nil
+    for index, marker in ipairs(tempMarkers) do
+        if marker.srcPos > leftBound then
+            leftBoundIndex = leftBoundIndex or index
+        end
+    end
+    leftBoundIndex = leftBoundIndex or 1
+
+    table.insert(tempMarkers, leftBoundIndex, {
+        pos = 0.0,
+        srcPos = leftBound,
+        rate = 1.0
+    } )
+
+    local rightBoundIndex = nil
+    for index, marker in ipairs(tempMarkers) do
+        if marker.srcPos > rightBound then
+            rightBoundIndex = rightBoundIndex or index
+        end
+    end
+    rightBoundIndex = rightBoundIndex or #tempMarkers + 1
+
+    table.insert(tempMarkers, rightBoundIndex, {
+        pos = self.length * self.playrate,
+        srcPos = rightBound,
+        rate = 1.0
+    } )
+
+    -------------------------------------------------------
 
     for index, marker in ipairs(tempMarkers) do
         local nextMarker = nil
@@ -302,9 +334,6 @@ function PitchGroup:loadSavedPoints()
             table.insert(savedPoints, point)
         end
     end
-
-    reaper.DeleteTakeStretchMarkers(self.take, tempStartMarkerIndex)
-    reaper.DeleteTakeStretchMarkers(self.take, tempEndMarkerIndex)
 
     return savedPoints
 end

@@ -113,4 +113,16 @@ function Reaper.getStretchMarkers(take)
     return stretchMarkers
 end
 
+function Reaper.getSourcePosition(take, time)
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+
+    local tempMarkerIndex = reaper.SetTakeStretchMarker(take, -1, time * playrate)
+
+    local _, pos, srcPos = reaper.GetTakeStretchMarker(take, tempMarkerIndex)
+
+    reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
+
+    return srcPos
+end
+
 return Reaper
