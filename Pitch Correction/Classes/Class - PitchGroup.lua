@@ -320,15 +320,9 @@ function PitchGroup:loadSavedPoints()
         rate = 1.0
     } )
 
-    --msg(leftBoundIndex)
-    --msg(rightBoundIndex)
-
     -------------------------------------------------------
 
     for index, marker in ipairs(tempMarkers) do
-        --msg(marker.pos)
-        --msg(marker.srcPos)
-
         local nextMarker = nil
         if index < #tempMarkers then
             nextMarker = tempMarkers[index + 1]
@@ -402,9 +396,19 @@ end
 function PitchGroup:getPointsFromString(pointString, marker)
     local points = {}
 
+    local startOffset = self.startOffset
+    local scaleRate = 1.0
+    local startPos = 0.0
+
+    if marker then
+        startOffset = marker.srcPos
+        scaleRate = marker.rate
+        startPos = marker.pos
+    end
+
     for line in pointString:gmatch("[^\r\n]+") do
         local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-        local scaledPointTime = marker.pos + (pointTime - marker.srcPos) / marker.rate
+        local scaledPointTime = startPos + (pointTime - startOffset) / scaleRate
 
         if scaledPointTime >= 0.0 and scaledPointTime <= self.length * self.playrate then
 
@@ -415,7 +419,7 @@ function PitchGroup:getPointsFromString(pointString, marker)
                 rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
                 relativeTime = scaledPointTime / self.playrate,
                 envelopeTime = scaledPointTime,
-                markerRate = marker.rate
+                markerRate = scaleRate
 
             } )
 
