@@ -281,17 +281,16 @@ function PitchGroup:loadSavedPoints()
 
     local savedPoints = {}
 
-    --local leftBound = self.startOffset
-
     if #self.stretchMarkers > 0 then
         local leftBound = self.startOffset
         local rightBound = self.startOffset + self.stretchMarkers[1].pos
 
         if leftBound < rightBound then
-            msg(leftBound)
-            msg(rightBound)
-            msg(1.0)
-            msg("-")
+            local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound, 1.0)
+
+            for pointIndex, point in ipairs(newPoints) do
+                table.insert(savedPoints, point)
+            end
         end
     end
 
@@ -302,24 +301,25 @@ function PitchGroup:loadSavedPoints()
             rightBound = self.stretchMarkers[index + 1].pos
         end
 
+        local srcLeftBound = marker.srcPos
+        local srcRightBound = 1000
+        if index < #self.stretchMarkers then
+            srcRightBound = self.stretchMarkers[index + 1].srcPos
+        end
+
         if rightBound > 0.0 then
             leftBound = math.max(leftBound, 0.0)
 
             if leftBound < self.length then
                 rightBound = math.min(rightBound, self.length)
 
-                msg(leftBound)
-                msg(rightBound)
-                msg(marker.rate)
-                msg("-")
+                local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound, srcLeftBound, srcRightBound, marker.rate)
+
+                for pointIndex, point in ipairs(newPoints) do
+                    table.insert(savedPoints, point)
+                end
             end
         end
-
-        --local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound)
-
-        --for pointIndex, point in ipairs(newPoints) do
-        --    table.insert(savedPoints, point)
-        --end
     end
 
     return savedPoints
@@ -380,29 +380,31 @@ function PitchGroup.getGroupsFromDataString(dataString)
     return outputGroups
 end
 
-function PitchGroup:getPointsFromString(pointString)
+function PitchGroup:getPointsFromString(pointString, leftBound, srcLeftBound, markerRate)
     local points = {}
 
     for line in pointString:gmatch("[^\r\n]+") do
         local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-        local scaledPointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") ) / self.playrate
+        local scaledPointTime = leftBound + (pointTime - srcLeftBound) / markerRate
+        msg(scaledPointTime)
 
         table.insert(points, {
 
-            time =  scaledPointTime,
+            time =  pointTime,
             pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
             rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
-            relativeTime = scaledPointTime - self.startOffset / self.playrate,
-            envelopeTime = pointTime - self.startOffset
+            relativeTime = scaledPointTime,
+            envelopeTime = scaledPointTime
 
         } )
 
     end
+    msg("-")
 
     return points
 end
 
-function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, rightBound)
+function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, rightBound, srcLeftBound, srcRightBound, markerRate)
     local pointString = ""
 
     for line in dataString:gmatch("[^\r\n]+") do
@@ -410,14 +412,14 @@ function PitchGroup:getPointsFromDataStringWithinRange(dataString, leftBound, ri
         local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
 
         if pointTime then
-            if pointTime >= leftBound and pointTime <= rightBound then
+            if pointTime >= srcLeftBound and pointTime <= srcRightBound then
                 pointString = pointString .. line .. "\n"
             end
         end
 
     end
 
-    return self:getPointsFromString(pointString)
+    return self:getPointsFromString(pointString, leftBound, srcLeftBound, markerRate)
 end
 
 function PitchGroup:getDataString()

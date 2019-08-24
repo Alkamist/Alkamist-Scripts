@@ -396,7 +396,7 @@ function CorrectionGroup:correctPitchGroupWithNodes(node, nextNode, nodeIndex, p
 
             self:insertCorrectedPointToEnvelope(point, pitchGroup)
 
-            self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
+            --self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
         end
     end
 
