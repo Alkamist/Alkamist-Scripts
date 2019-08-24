@@ -179,7 +179,7 @@ function PitchGroup:setItem(item)
     self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime = self.leftTime + self.length
     self.playrate = reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
-    self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")
+    self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")-- / reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
     self.envelope = self:getEnvelope()
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
     self.points = self:loadSavedPoints()
@@ -280,7 +280,7 @@ function PitchGroup:loadSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
 
     local leftBound = self.startOffset
-    local rightBound = leftBound + self.length
+    local rightBound = leftBound + self.length * self.playrate
 
     return self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound)
 end

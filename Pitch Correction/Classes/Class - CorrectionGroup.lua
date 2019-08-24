@@ -318,25 +318,25 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
     if not nextNode           then return {}, 0, 0 end
     if #pitchGroup.points < 1 then return {}, 0, 0 end
 
-    if node.time >= pitchGroup.editOffset and node.time <= pitchGroup.editOffset + pitchGroup.length then
+    local timeStart = pitchGroup.editOffset
+    local timeEnd = timeStart + pitchGroup.length
 
-        if  pitchGroup:timeIsWithinPitchContent(node.time - pitchGroup.editOffset)
-        or pitchGroup:timeIsWithinPitchContent(nextNode.time - pitchGroup.editOffset) then
+    if node.time >= timeStart     and node.time <= timeEnd
+    or nextNode.time >= timeStart and nextNode.time <= timeEnd
+    or node.time <= timeStart     and nextNode.time >= timeEnd then
 
-            local points = {}
+        local points = {}
 
-            local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
-            local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
+        local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
+        local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
 
-            for index, point in ipairs(pitchGroup.points) do
-                if index >= firstIndex and index <= lastIndex then
-                    table.insert(points, point)
-                end
+        for index, point in ipairs(pitchGroup.points) do
+            if index >= firstIndex and index <= lastIndex then
+                table.insert(points, point)
             end
-
-            return points, firstIndex, lastIndex
-
         end
+
+        return points, firstIndex, lastIndex
 
     end
 
