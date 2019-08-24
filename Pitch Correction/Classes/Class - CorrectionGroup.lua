@@ -91,7 +91,6 @@ function CorrectionGroup:loadSavedCorrections(pitchGroup)
     local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
     local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
-    --local loadedNodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
     local loadedNodes = self:getSavedNodesInRange(pitchGroup, leftBound, rightBound)
 
     local stretchMarkerIndex = 1
@@ -143,9 +142,7 @@ function CorrectionGroup:saveCorrections(pitchGroup)
     local correctionString = ""
 
     for index, node in ipairs(saveGroup.nodes) do
-        local nodeTime = node.saveTime or node.time + pitchGroup.startOffset
-
-        correctionString = correctionString .. string.format("    %f %f %f %f\n", nodeTime,
+        correctionString = correctionString .. string.format("    %f %f %f %f\n", node.time,
                                                                                   node.pitch,
                                                                                   node.isSelected and 1 or 0,
                                                                                   node.isActive and 1 or 0)
