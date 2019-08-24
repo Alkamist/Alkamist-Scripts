@@ -248,14 +248,15 @@ function CorrectionGroup:addZeroPointsToEnvelope(node, nextNode, point, pointInd
     end
 
     if zeroPointThreshold then
-        if timeToPrevPoint >= zeroPointThreshold or pointIndex == 1 then
+        local scaledZeroPointThreshold = zeroPointThreshold / point.markerRate
+
+        if timeToPrevPoint >= scaledZeroPointThreshold or pointIndex == 1 then
             local zeroPointTime = pitchGroup.playrate * (point.relativeTime - zeroPointSpacing)
             reaper.DeleteEnvelopePointRange(pitchGroup.envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPointTime, 0, 0, 0, false, true)
         end
 
-
-        if timeToNextPoint >= zeroPointThreshold or pointIndex == #pitchGroup.points then
+        if timeToNextPoint >= scaledZeroPointThreshold or pointIndex == #pitchGroup.points then
             local zeroPointTime = pitchGroup.playrate * (point.relativeTime + zeroPointSpacing)
             reaper.DeleteEnvelopePointRange(pitchGroup.envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPointTime, 0, 0, 0, false, true)
@@ -396,7 +397,7 @@ function CorrectionGroup:correctPitchGroupWithNodes(node, nextNode, nodeIndex, p
 
             self:insertCorrectedPointToEnvelope(point, pitchGroup)
 
-            --self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
+            self:addZeroPointsToEnvelope(node, nextNode, point, pointGroupIndex, firstPointIndex, lastPointIndex, pitchGroup)
         end
     end
 

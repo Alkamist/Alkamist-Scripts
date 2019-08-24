@@ -408,7 +408,8 @@ function PitchGroup:getPointsFromString(pointString, marker)
                 pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
                 rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
                 relativeTime = scaledPointTime / self.playrate,
-                envelopeTime = scaledPointTime
+                envelopeTime = scaledPointTime,
+                markerRate = marker.rate
 
             } )
 
