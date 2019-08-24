@@ -103,6 +103,7 @@ function CorrectionGroup:loadSavedCorrections(pitchGroup)
         local marker = pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex - 1]
 
         node.time = (marker.pos + (node.saveTime - marker.srcPos) / marker.rate) / pitchGroup.playrate
+        node.time = node.time + pitchGroup.editOffset
 
         table.insert(self.nodes, node)
     end
