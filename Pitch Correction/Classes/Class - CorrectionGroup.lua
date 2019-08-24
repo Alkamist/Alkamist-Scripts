@@ -1,6 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local Lua = require "Various Functions.Lua Functions"
+local Reaper = require "Various Functions.Reaper Functions"
 local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 
@@ -27,6 +28,8 @@ function CorrectionGroup:new(o)
 
     return o
 end
+
+
 
 function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections")
@@ -61,7 +64,7 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
                         pitch =      nodePitch,
                         isSelected = nodeIsSelected,
                         isActive =   nodeIsActive,
-                        saveTime = rawNodeTime
+                        saveTime =   rawNodeTime
                     } )
 
                 end
@@ -72,7 +75,7 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
                     pitch =      nodePitch,
                     isSelected = nodeIsSelected,
                     isActive =   nodeIsActive,
-                    saveTime = rawNodeTime
+                    saveTime =   rawNodeTime
                 } )
             end
 
@@ -85,9 +88,23 @@ function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
 end
 
 function CorrectionGroup:loadSavedCorrections(pitchGroup)
-    local loadedNodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
+    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
+    --local loadedNodes = self:getSavedNodesInRange(pitchGroup, pitchGroup.startOffset, pitchGroup.startOffset + pitchGroup.length)
+    local loadedNodes = self:getSavedNodesInRange(pitchGroup, leftBound, rightBound)
+
+    local stretchMarkerIndex = 1
     for index, node in ipairs(loadedNodes) do
+
+        while node.saveTime >= pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex].srcPos do
+            stretchMarkerIndex = stretchMarkerIndex + 1
+        end
+
+        local marker = pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex - 1]
+
+        node.time = (marker.pos + (node.saveTime - marker.srcPos) / marker.rate) / pitchGroup.playrate
+
         table.insert(self.nodes, node)
     end
 
@@ -113,6 +130,8 @@ function CorrectionGroup:saveCorrections(pitchGroup)
         newNode.time = newNode.time - pitchGroup.editOffset
 
         if newNode.time >= 0.0 and newNode.time <= pitchGroup.length then
+            newNode.time = Reaper.getSourcePosition( pitchGroup.take, newNode.time )
+
             table.insert(saveGroup.nodes, newNode)
         end
     end

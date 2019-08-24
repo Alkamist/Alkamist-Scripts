@@ -320,6 +320,8 @@ function PitchGroup:loadSavedPoints()
         rate = 1.0
     } )
 
+    self.stretchMarkersWithBoundaries = tempMarkers
+
     -------------------------------------------------------
 
     for index, marker in ipairs(tempMarkers) do
