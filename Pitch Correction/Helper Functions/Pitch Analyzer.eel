@@ -255,4 +255,4 @@ function calculatePitchDataAndWriteToExtState()
     SetExtState("Alkamist_PitchCorrection", "PITCHDATA", #pitchData, 0)
 );
 
-calculatePitchDataAndWriteToExtState()
+calculatePitchDataAndWriteToExtState();

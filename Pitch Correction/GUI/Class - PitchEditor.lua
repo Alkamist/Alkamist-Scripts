@@ -274,7 +274,11 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
     -- If holding control when adding a new node, activate the previous node so it connects.
     if gfx.mouse_cap & 4 == 4 then
         if newNodeIndex > 1 then
-            self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
+            local prevNode = self.correctionGroup.nodes[newNodeIndex - 1]
+            prevNode.isActive = true
+            self:selectNode(prevNode)
+            self:applyPitchCorrections(true)
+            self:unselectNode(prevNode)
         end
     end
 
@@ -290,6 +294,8 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
     self:selectNode(self.editNode)
 
     self:updateExtremeSelectedNodes()
+
+    self:applyPitchCorrections(true)
 end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
@@ -525,6 +531,8 @@ function GUI.PitchEditor:onmousedown()
             self:unselectAllCorrectionNodes()
         end
 
+        self:selectNode(self.editNode)
+
         -- Holding alt.
         if gfx.mouse_cap & 16 == 16 then
             if not self.editNode.isSelected then
@@ -535,7 +543,7 @@ function GUI.PitchEditor:onmousedown()
                 node.isActive = not node.isActive
             end
 
-            --self:applyPitchCorrections()
+            self:applyPitchCorrections(true)
             self.altOnEditLDown = true
         end
 
@@ -546,7 +554,6 @@ function GUI.PitchEditor:onmousedown()
             end
         end
 
-        self:selectNode(self.editNode)
         self:updateExtremeSelectedNodes()
 
     else
@@ -583,7 +590,7 @@ function GUI.PitchEditor:onmousedown()
                 self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
             end
 
-            --self:applyPitchCorrections()
+            self:applyPitchCorrections(true)
         end
     end
 
