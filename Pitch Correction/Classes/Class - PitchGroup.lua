@@ -279,10 +279,50 @@ end
 function PitchGroup:loadSavedPoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
 
-    local leftBound = self.startOffset
-    local rightBound = leftBound + self.length * self.playrate
+    local savedPoints = {}
 
-    return self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound)
+    --local leftBound = self.startOffset
+
+    if #self.stretchMarkers > 0 then
+        local leftBound = self.startOffset
+        local rightBound = self.startOffset + self.stretchMarkers[1].pos
+
+        if leftBound < rightBound then
+            msg(leftBound)
+            msg(rightBound)
+            msg(1.0)
+            msg("-")
+        end
+    end
+
+    for index, marker in ipairs(self.stretchMarkers)do
+        local leftBound = marker.pos
+        local rightBound = self.length
+        if index < #self.stretchMarkers then
+            rightBound = self.stretchMarkers[index + 1].pos
+        end
+
+        if rightBound > 0.0 then
+            leftBound = math.max(leftBound, 0.0)
+
+            if leftBound < self.length then
+                rightBound = math.min(rightBound, self.length)
+
+                msg(leftBound)
+                msg(rightBound)
+                msg(marker.rate)
+                msg("-")
+            end
+        end
+
+        --local newPoints = self:getPointsFromDataStringWithinRange(extState, leftBound, rightBound)
+
+        --for pointIndex, point in ipairs(newPoints) do
+        --    table.insert(savedPoints, point)
+        --end
+    end
+
+    return savedPoints
 end
 
 function PitchGroup.getGroupsFromDataString(dataString)

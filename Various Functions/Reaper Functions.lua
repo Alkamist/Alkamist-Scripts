@@ -101,6 +101,15 @@ function Reaper.getStretchMarkers(take)
         }
     end
 
+    for index, marker in ipairs(stretchMarkers) do
+        local markerRate = 1.0
+        if index < #stretchMarkers then
+            markerRate = (stretchMarkers[index + 1].srcPos - marker.srcPos) / (stretchMarkers[index + 1].pos - marker.pos)
+        end
+
+        marker.rate = markerRate
+    end
+
     return stretchMarkers
 end
 
