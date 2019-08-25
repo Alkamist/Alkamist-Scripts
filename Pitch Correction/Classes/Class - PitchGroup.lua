@@ -156,6 +156,8 @@ function PitchGroup:getEnvelope()
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.take, "Pitch")
     end
 
+    Reaper.reaperCMD("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+
     return pitchEnvelope
 end
 

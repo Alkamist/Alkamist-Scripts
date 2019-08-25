@@ -66,6 +66,10 @@ local menu_functions = {
 
     pastePitchCorrections =  function()
         elms.pitch_editor:pasteNodes()
+    end,
+
+    applyAllPitchCorrections =  function()
+        elms.pitch_editor:applyPitchCorrections()
     end
 
 }
@@ -103,7 +107,8 @@ elms.menus = {
 
             options = {
                 { "Copy Pitch Corrections",  menu_functions.copyPitchCorrections },
-                { "Paste Pitch Corrections", menu_functions.pastePitchCorrections }
+                { "Paste Pitch Corrections", menu_functions.pastePitchCorrections },
+                { "Apply All Pitch Corrections", menu_functions.applyAllPitchCorrections }
             }
         },
 

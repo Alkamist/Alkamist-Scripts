@@ -166,6 +166,10 @@ function CorrectionGroup:saveCorrections(pitchGroup)
         return value.time >= 0.0 and value.time <= pitchGroup.length
     end)
 
+    for index, node in ipairs(saveGroup.nodes) do
+        node.time = Reaper.getSourcePosition( pitchGroup.take, node.time )
+    end
+
     self:fillCorrectionGroupWithSaveNodes(saveGroup, self.nodes, pitchGroup)
 
     local saveString = self:getSaveStringFromGroup(saveGroup)
