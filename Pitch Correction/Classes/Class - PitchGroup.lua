@@ -166,7 +166,9 @@ function PitchGroup.getPitchGroupsFromItems(items)
 
     for index, item in pairs(items) do
         if reaper.ValidatePtr(item, "MediaItem*") then
-            table.insert( pitchGroups, PitchGroup:new( { item = item } ) )
+            if Reaper.getItemType(item) == "audio" then
+                table.insert( pitchGroups, PitchGroup:new( { item = item } ) )
+            end
         end
     end
 
@@ -174,7 +176,7 @@ function PitchGroup.getPitchGroupsFromItems(items)
 end
 
 function PitchGroup:setItem(item)
-    if Reaper.getItemType(item) == "midi" then return end
+    if Reaper.getItemType(item) ~= "audio" then return end
 
     self.item = item
     self.take = reaper.GetActiveTake(self.item)
