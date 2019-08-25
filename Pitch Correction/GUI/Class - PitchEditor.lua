@@ -94,6 +94,16 @@ function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     reaper.UpdateArrange()
 end
 
+function GUI.PitchEditor:clearAllCorrectionNodes()
+    self.selectedNodes = {}
+
+    Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
+        local value = t[i]
+
+        return true
+    end)
+end
+
 function GUI.PitchEditor:updateSelectedNodeList()
     self.selectedNodes = {}
 
@@ -370,6 +380,8 @@ function GUI.PitchEditor:setItems(items)
 end
 
 function GUI.PitchEditor:setItemsToSelectedItems()
+    self:clearAllCorrectionNodes()
+
     local itemsAreSelectedOnMultipleTracks = false
     local numSelectedItems = reaper.CountSelectedMediaItems(0)
     local selectedItems = {}

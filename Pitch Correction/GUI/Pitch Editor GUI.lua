@@ -56,6 +56,10 @@ local menu_functions = {
         elms.pitch_editor:savePitchCorrections()
     end,
 
+    loadSelectedItems =  function()
+        elms.pitch_editor:setItemsToSelectedItems()
+    end,
+
     copyPitchCorrections = function()
         elms.pitch_editor:copySelectedCorrectionNodes()
     end,
@@ -90,6 +94,7 @@ elms.menus = {
 
             options = {
                 { "Save Pitch Corrections",  menu_functions.savePitchCorrections },
+                { "Load Selected Items",     menu_functions.loadSelectedItems },
                 { "Analyze Pitch Content",   menu_functions.analyzePitchGroups }
             }
         },
