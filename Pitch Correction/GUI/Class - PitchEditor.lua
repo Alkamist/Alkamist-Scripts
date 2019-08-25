@@ -57,9 +57,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     object.x = object.x or x
     object.y = object.y or y
 
-    object.w = GUI.w - 4
-    object.h = GUI.h - object.y - 2
-
     object.mousePrev = {
         x = 0,
         y = 0
@@ -529,6 +526,8 @@ end
 ------------------ Events ------------------
 
 function GUI.PitchEditor:init()
+    self:onresize()
+
     self:initDragZoomAndScroll()
 
     self:setItemsToSelectedItems()
@@ -864,8 +863,8 @@ function GUI.PitchEditor:onr_drag()
 end
 
 function GUI.PitchEditor:onresize()
-    self.w = GUI.cur_w - 4
-    self.h = GUI.cur_h - self.y - 2
+    self.w = GUI.cur_w or GUI.w
+    self.h = GUI.cur_h or GUI.h - self.y - 2
 
     self:redraw()
 end

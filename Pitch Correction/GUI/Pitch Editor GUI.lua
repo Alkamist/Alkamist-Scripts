@@ -29,12 +29,16 @@ pdSettings.lowRMSLimitdB = -60
 
 
 
-local guiWidth = 1200
-local guiHeight = 700
+local guiDock, guiX, guiY, guiW, guiH = GUI.load_window_state("Alkamist_PitchCorrection", "windowState")
 
 GUI.name = "Alkamist Pitch Correction"
-GUI.x, GUI.y = 500, 100
-GUI.w, GUI.h = guiWidth, guiHeight
+GUI.dock = tonumber(guiDock) or 0
+GUI.x = tonumber(guiX) or 500
+GUI.y = tonumber(guiY) or 100
+GUI.w = tonumber(guiW) or 1200
+GUI.h = tonumber(guiH) or 700
+
+
 
 local fonts = GUI.get_OS_fonts()
 
@@ -67,7 +71,7 @@ local menu_functions = {
 elms.pitch_editor = {
     type = "PitchEditor",
     z = 3,
-    x = 2,
+    x = 0,
     y = 52,
     w = 0,
     h = 0,
@@ -123,6 +127,8 @@ local function mainLoop()
     if GUI.char == 32 then
         reaper.Main_OnCommandEx(40044, 0, 0)
     end
+
+    GUI.save_window_state("Alkamist_PitchCorrection", "windowState")
 end
 
 GUI.Init()
