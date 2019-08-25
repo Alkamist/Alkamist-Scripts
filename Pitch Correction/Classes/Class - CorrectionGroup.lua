@@ -31,69 +31,6 @@ end
 
 
 
-function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections")
-
-    return self:getNodesFromSaveString(extState, pitchGroup, leftTime, rightTime)
-end
-
-function CorrectionGroup:loadSavedCorrections(pitchGroup)
-    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
-    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
-
-
-    local loadedNodes = self:getSavedNodesInRange(pitchGroup, leftBound, rightBound)
-
-    local stretchMarkerIndex = 1
-    for index, node in ipairs(loadedNodes) do
-
-        while node.saveTime >= pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex].srcPos do
-            stretchMarkerIndex = stretchMarkerIndex + 1
-        end
-
-        local marker = pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex - 1]
-
-        node.time = (marker.pos + (node.saveTime - marker.srcPos) / marker.rate) / pitchGroup.playrate
-        node.time = node.time + pitchGroup.editOffset
-
-        table.insert(self.nodes, node)
-    end
-
-    self:sort()
-end
-
-function CorrectionGroup:fillCorrectionGroupWithSaveNodes(group, nodes, pitchGroup)
-    for index, node in ipairs(nodes) do
-        local newNode = Lua.copyTable(node)
-        newNode.time = newNode.time - pitchGroup.editOffset
-
-        if newNode.time >= 0.0 and newNode.time <= pitchGroup.length then
-            newNode.time = Reaper.getSourcePosition( pitchGroup.take, newNode.time )
-
-            table.insert(group.nodes, newNode)
-        end
-    end
-
-    group:sort()
-end
-
-function CorrectionGroup:getSaveStringFromGroup(group)
-    local correctionString = ""
-
-    for index, node in ipairs(group.nodes) do
-        correctionString = correctionString .. string.format("    %f %f %f %f\n", node.time,
-                                                                                  node.pitch,
-                                                                                  node.isSelected and 1 or 0,
-                                                                                  node.isActive and 1 or 0)
-    end
-
-    local saveString = "<NODES\n" ..
-                            correctionString ..
-                        ">\n"
-
-    return saveString
-end
-
 function CorrectionGroup:getNodesFromSaveString(saveString, pitchGroup, leftTime, rightTime)
     local outputNodes = {}
 
@@ -152,25 +89,81 @@ function CorrectionGroup:getNodesFromSaveString(saveString, pitchGroup, leftTime
     return outputNodes
 end
 
+function CorrectionGroup:getSavedNodesInRange(pitchGroup, leftTime, rightTime)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", pitchGroup.takeName .. "_corrections")
+
+    return self:getNodesFromSaveString(extState, pitchGroup, leftTime, rightTime)
+end
+
+function CorrectionGroup:loadSavedCorrections(pitchGroup)
+    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
+
+
+    local loadedNodes = self:getSavedNodesInRange(pitchGroup, leftBound, rightBound)
+
+    local stretchMarkerIndex = 1
+    for index, node in ipairs(loadedNodes) do
+
+        while node.saveTime >= pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex].srcPos do
+            stretchMarkerIndex = stretchMarkerIndex + 1
+        end
+
+        local marker = pitchGroup.stretchMarkersWithBoundaries[stretchMarkerIndex - 1]
+
+        node.time = (marker.pos + (node.saveTime - marker.srcPos) / marker.rate) / pitchGroup.playrate
+        node.time = node.time + pitchGroup.editOffset
+
+        table.insert(self.nodes, node)
+    end
+
+    self:sort()
+end
+
+function CorrectionGroup:getSaveStringFromGroup(group)
+    local correctionString = ""
+
+    for index, node in ipairs(group.nodes) do
+        correctionString = correctionString .. string.format("    %f %f %f %f\n", node.time,
+                                                                                  node.pitch,
+                                                                                  node.isSelected and 1 or 0,
+                                                                                  node.isActive and 1 or 0)
+    end
+
+    local saveString = "<NODES\n" ..
+                            correctionString ..
+                        ">\n"
+
+    return saveString
+end
+
 function CorrectionGroup:saveCorrections(pitchGroup)
     local saveGroup = CorrectionGroup:new()
     saveGroup.nodes = self:getSavedNodesInRange(pitchGroup)
 
-    for index, node in ipairs(saveGroup.nodes) do
-        node.time = node.time - pitchGroup.editOffset
-    end
+    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
     Lua.arrayRemove(saveGroup.nodes, function(t, i)
         local value = t[i]
 
-        return value.time >= 0.0 and value.time <= pitchGroup.length
+        return value.saveTime >= leftBound and value.saveTime <= rightBound
     end)
 
     for index, node in ipairs(saveGroup.nodes) do
-        node.time = Reaper.getSourcePosition( pitchGroup.take, node.time )
+        node.time = node.saveTime
     end
 
-    self:fillCorrectionGroupWithSaveNodes(saveGroup, self.nodes, pitchGroup)
+    for index, node in ipairs(self.nodes) do
+        local newNode = Lua.copyTable(node)
+        newNode.time = Reaper.getSourcePosition( pitchGroup.take, node.time )
+
+        if newNode.time >= leftBound and newNode.time <= rightBound then
+            table.insert(saveGroup.nodes, newNode)
+        end
+    end
+
+    saveGroup:sort()
 
     local saveString = self:getSaveStringFromGroup(saveGroup)
 
