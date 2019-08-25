@@ -97,6 +97,32 @@ function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     reaper.UpdateArrange()
 end
 
+function GUI.PitchEditor:updateSelectedNodeList()
+    self.selectedNodes = {}
+
+    for index, node in ipairs(self.correctionGroup.nodes) do
+        if node.isSelected then
+            node.isSelected = false
+            self:selectNode(node)
+        end
+    end
+
+    self:updateExtremeSelectedNodes()
+end
+
+function GUI.PitchEditor:copySelectedCorrectionNodes()
+    CorrectionGroup:copyNodes(self.selectedNodes)
+end
+
+function GUI.PitchEditor:pasteNodes()
+    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+    self.correctionGroup:pasteNodes(mouseTime)
+
+    self:updateSelectedNodeList()
+    self:updateExtremeSelectedNodes()
+    self:applyPitchCorrections(true)
+end
+
 function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
     if nodes == nil then return nil end
     if nodes[index] == nil then return nil end
@@ -867,6 +893,16 @@ GUI.PitchEditor.keys = {
 
     end,
 
+    -- C -- Copy
+    [3] = function(self)
+
+        -- Holding control.
+        if gfx.mouse_cap & 4 == 4 then
+            self:copySelectedCorrectionNodes()
+        end
+
+    end,
+
     -- S -- Save
     [19] = function(self)
 
@@ -875,6 +911,16 @@ GUI.PitchEditor.keys = {
             for groupIndex, group in ipairs(self.pitchGroups) do
                 self.correctionGroup:saveCorrections(group)
             end
+        end
+
+    end,
+
+    -- V -- Paste
+    [22] = function(self)
+
+        -- Holding control.
+        if gfx.mouse_cap & 4 == 4 then
+            self:pasteNodes()
         end
 
     end
