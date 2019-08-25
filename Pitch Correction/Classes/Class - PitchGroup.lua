@@ -176,6 +176,7 @@ function PitchGroup:setItem(item)
     self.takeName = reaper.GetTakeName(self.take)
     self.takeGUID = reaper.BR_GetMediaItemTakeGUID(self.take)
     self.takeSource = reaper.GetMediaItemTake_Source(self.take)
+    self.takeFileName = Lua.getFileName( reaper.GetMediaSourceFileName(self.takeSource, "") )
     self.length = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
     self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime = self.leftTime + self.length
@@ -266,7 +267,7 @@ end
 
 
 function PitchGroup:savePoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
 
     local prevPitchGroups = PitchGroup.getGroupsFromDataString(extState)
     local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
@@ -277,11 +278,11 @@ function PitchGroup:savePoints()
         saveString = saveString .. group:getDataString()
     end
 
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeName, saveString)
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)
 end
 
 function PitchGroup:loadSavedPoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeName)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
 
     local savedPoints = {}
 

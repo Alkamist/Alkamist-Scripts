@@ -109,4 +109,8 @@ function Lua.arrayRemove(t, fnRemove)
     return t;
 end
 
+function Lua.getFileName(url)
+  return url:match("[^/\\]+$")
+end
+
 return Lua
