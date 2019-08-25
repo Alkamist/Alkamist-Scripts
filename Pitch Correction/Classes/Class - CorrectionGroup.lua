@@ -176,12 +176,8 @@ end
 function CorrectionGroup:copyNodes(nodes)
     local copyGroup = CorrectionGroup:new()
 
-    local firstNodeSpacing = nil
     for index, node in ipairs(nodes) do
-        firstNodeSpacing = firstNodeSpacing or node.time
-
         local newNode = Lua.copyTable(node)
-        newNode.time = newNode.time - firstNodeSpacing
 
         table.insert(copyGroup.nodes, newNode)
     end
@@ -195,8 +191,14 @@ function CorrectionGroup:pasteNodes(offset)
     local pasteString = reaper.GetExtState("Alkamist_PitchCorrection", "clipboard")
     local pastedNodes = self:getNodesFromSaveString(pasteString)
 
+    local firstNodeSpacing = nil
     for index, node in ipairs(pastedNodes) do
-        node.time = node.time + offset
+        firstNodeSpacing = firstNodeSpacing or node.time
+
+        if offset then
+            node.time = node.time - firstNodeSpacing + offset
+        end
+
         node.isSelected = true
         table.insert( self.nodes, node )
     end

@@ -114,13 +114,20 @@ function GUI.PitchEditor:copySelectedCorrectionNodes()
     CorrectionGroup:copyNodes(self.selectedNodes)
 end
 
-function GUI.PitchEditor:pasteNodes()
-    local mouseTime = self:getTimeFromPixels(GUI.mouse.x)
+function GUI.PitchEditor:pasteNodes(useMouseTime)
+    local mouseTime = nil
+    if useMouseTime then mouseTime = self:getTimeFromPixels(GUI.mouse.x) end
     self.correctionGroup:pasteNodes(mouseTime)
 
     self:updateSelectedNodeList()
     self:updateExtremeSelectedNodes()
     self:applyPitchCorrections(true)
+end
+
+function GUI.PitchEditor:savePitchCorrections()
+    for groupIndex, group in ipairs(self.pitchGroups) do
+        self.correctionGroup:saveCorrections(group)
+    end
 end
 
 function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
@@ -690,6 +697,8 @@ function GUI.PitchEditor:ondrag()
 end
 
 function GUI.PitchEditor:onmousem_down()
+    self.focus = true
+
     if GUI.IsInside(self) then
         self.mouseXPreDrag = GUI.mouse.x
         self.scrollXPreDrag = self.scrollX
@@ -795,6 +804,8 @@ function GUI.PitchEditor:onm_drag()
 end
 
 function GUI.PitchEditor:onmouser_down()
+    self.focus = true
+
     if GUI.IsInside(self) then
         self.boxSelect = { x1 = GUI.mouse.x, y1 = GUI.mouse.y, x2 = GUI.mouse.x, y2 = GUI.mouse.y }
     end
@@ -908,9 +919,7 @@ GUI.PitchEditor.keys = {
 
         -- Holding control.
         if gfx.mouse_cap & 4 == 4 then
-            for groupIndex, group in ipairs(self.pitchGroups) do
-                self.correctionGroup:saveCorrections(group)
-            end
+            self:savePitchCorrections()
         end
 
     end,
@@ -920,7 +929,7 @@ GUI.PitchEditor.keys = {
 
         -- Holding control.
         if gfx.mouse_cap & 4 == 4 then
-            self:pasteNodes()
+            self:pasteNodes(true)
         end
 
     end

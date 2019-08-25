@@ -11,6 +11,7 @@ require "Pitch Correction.GUI.Class - PitchEditor"
 GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
 GUI.req("Classes/Class - Textbox.lua")()
+GUI.req("Classes/Class - Menubar.lua")()
 
 -- If any of the requested libraries weren't found, abort the script.
 if missing_lib then return 0 end
@@ -39,36 +40,29 @@ local fonts = GUI.get_OS_fonts()
 
 local elms = {}
 
-local function analyze_button_click()
-    elms.pitch_editor:analyzePitchGroups()
-end
 
 
+local menu_functions = {
 
-elms.tabs = {
-    type = "Tabs",
-    z = 20,
-    x = 0,
-    y = 0,
-    tab_w = 64,
-    tab_h = 20,
-    opts = "Editor,Options",
-    pad = 16
+    analyzePitchGroups = function()
+        elms.pitch_editor:analyzePitchGroups()
+    end,
+
+    savePitchCorrections =  function()
+        elms.pitch_editor:savePitchCorrections()
+    end,
+
+    copyPitchCorrections = function()
+        elms.pitch_editor:copySelectedCorrectionNodes()
+    end,
+
+    pastePitchCorrections =  function()
+        elms.pitch_editor:pasteNodes()
+    end
+
 }
 
-GUI.colors["analyze_button"] = {155, 32, 32, 255}
-elms.analyze_button = {
-    type = "Button",
-    z = 3,
-    x = 2,
-    y = 22,
-    w = 64,
-    h = 24,
-    col_fill = "analyze_button",
-    caption = "Analyze",
-    func = analyze_button_click,
-    tooltip = "Analyzes the selected audio to get pitch info."
-}
+
 
 elms.pitch_editor = {
     type = "PitchEditor",
@@ -80,77 +74,56 @@ elms.pitch_editor = {
     pdSettings = pdSettings
 }
 
+elms.menus = {
+    type = "Menubar",
+    z = 3,
+    x = 0,
+    y = 0,
 
+    menus = {
 
--------------- Settings: --------------
+        { title = "File",
 
-local function createTextboxSetting(title, caption, startingValue, settingNumber)
-    local pdSettingsFont = {fonts.mono, 12}
+            options = {
+                { "Save Pitch Corrections",  menu_functions.savePitchCorrections },
+                { "Analyze Pitch Content",   menu_functions.analyzePitchGroups }
+            }
+        },
 
-    local pdSettingsZLayer = 4
-    local pdSettingsXPos = 170
-    local pdSettingsStartingHeight = 25
-    local pdSettingsWidth = 60
-    local pdSettingsHeight = 17
-    local pdSettingsCaptionPadding = 4
-    local pdSettingsVerticalPadding = 1
+        { title = "Edit",
 
-    local pdSettingsYPos = pdSettingsStartingHeight + (settingNumber - 1) * (pdSettingsVerticalPadding + pdSettingsHeight)
+            options = {
+                { "Copy Pitch Corrections",  menu_functions.copyPitchCorrections },
+                { "Paste Pitch Corrections", menu_functions.pastePitchCorrections }
+            }
+        },
 
-    elms[title] = {
-        type = "Textbox",
-        z = pdSettingsZLayer,
-        x = pdSettingsXPos,
-        y = pdSettingsYPos,
-        w = pdSettingsWidth,
-        h = pdSettingsHeight,
-        caption = caption,
-        pad = pdSettingsCaptionPadding,
-        retval = startingValue,
-        font_b = pdSettingsFont
+        { title = "View",
+
+            options = {
+                { "Empty",  function() return 0 end }
+            }
+        },
+
+        { title = "Options",
+
+            options = {
+                { "Empty",  function() return 0 end }
+            }
+        }
     }
-end
-
-local settingNumber = 1
-createTextboxSetting("maxLength", "Max item length (seconds):", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("windowStep", "Window step (seconds):", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("overlap", "Overlap:", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("minFreq", "Minimum frequency (Hz):", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("maxFreq", "Maximum frequency (Hz):", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("YINThresh", "YIN threshold:", 59, settingNumber);
-settingNumber = settingNumber + 1;
-
-createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB):", 59, settingNumber);
-settingNumber = settingNumber + 1;
+}
 
 
 
 GUI.CreateElms(elms)
 
-local previousSelectedItem = nil
 local function mainLoop()
     -- Allow space to play the project.
     if GUI.char == 32 then
         reaper.Main_OnCommandEx(40044, 0, 0)
     end
 end
-
-GUI.elms.tabs:update_sets(
-    --  Tab     Layers
-    {   [1] =   {3},
-        [2] =   {4},
-    }
-)
 
 GUI.Init()
 
