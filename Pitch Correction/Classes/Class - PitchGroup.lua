@@ -18,6 +18,9 @@ function PitchGroup:new(o)
     end
 
     o.editOffset = o.editOffset or 0.0
+    o.points = o.points or {}
+    o.stretchMarkers = o.stretchMarkers or {}
+    o.stretchMarkersWithBoundaries = o.stretchMarkersWithBoundaries or {}
 
     return o
 end
