@@ -67,7 +67,7 @@ local(i rmin return_ind return_ind) (
         i += 1;
     );
 
-    minLook + parab(return_ind)-istart;
+    minLook + parab(return_ind) - istart;
 );
 
 function lim(val, min0, max0)(

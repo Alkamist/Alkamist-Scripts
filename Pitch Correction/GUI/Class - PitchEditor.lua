@@ -895,6 +895,33 @@ function GUI.PitchEditor:ontype()
     self:redraw()
 end
 
+function GUI.PitchEditor:onwheel(inc)
+    local wheelSens = 0.27
+
+    local scrollXMax = 1.0 - self.w / (self.w * self.zoomX)
+    local scrollYMax = 1.0 - self.h / (self.h * self.zoomY)
+
+    -- Holding control.
+    if gfx.mouse_cap & 4 == 4 then
+        local targetMouseYRatio = self.scrollY + GUI.mouse.y / (self.h * self.zoomY)
+
+        self.zoomY = self.zoomY + inc * self.zoomY * wheelSens
+        self.zoomY = GUI.clamp(self.zoomY, 1.0, 100.0)
+
+        self.scrollY = targetMouseYRatio - GUI.mouse.y / (self.h * self.zoomY)
+        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
+
+    else
+        local targetMouseXRatio = self.scrollX + GUI.mouse.x / (self.w * self.zoomX)
+
+        self.zoomX = self.zoomX + inc * self.zoomX * wheelSens
+        self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
+
+        self.scrollX = targetMouseXRatio - GUI.mouse.x / (self.w * self.zoomX)
+        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
+    end
+end
+
 GUI.PitchEditor.keys = {
 
     [GUI.chars.DELETE] = function(self)
