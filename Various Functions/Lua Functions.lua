@@ -113,4 +113,9 @@ function Lua.getFileName(url)
   return url:match("[^/\\]+$")
 end
 
+function Lua.frequencyToNote(frequency)
+    local note = 69 + 12 * math.log(frequency / 440) / math.log(2);
+    return math.min( math.max(note, 0), 127 )
+end
+
 return Lua

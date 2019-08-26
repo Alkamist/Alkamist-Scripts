@@ -7,8 +7,8 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 
 -- Pitch correction settings:
-local modCorrection = 0.3
-local driftCorrection = 1.0
+local modCorrection = 1.0
+local driftCorrection = 0.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.09
 local zeroPointSpacing = 0.01
@@ -325,19 +325,6 @@ function CorrectionGroup:addZeroPointsToEnvelope(node, nextNode, point, pointInd
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPointTime, 0, 0, 0, false, true)
         end
     end
-end
-
-function CorrectionGroup.addEdgePointsToPitchContent(pitchGroup)
-    local leftEdgeTime = pitchGroup.playrate * (pitchGroup.points[1].time - pitchGroup.startOffset - edgePointSpacing * 0.5)
-    local rightEdgeTime = pitchGroup.playrate * (pitchGroup.points[#pitchGroup.points].time - pitchGroup.startOffset + edgePointSpacing * 0.5)
-
-    local scaledEdgepointSpacing = edgePointSpacing * 0.5 * pitchGroup.playrate
-
-    reaper.DeleteEnvelopePointRange(pitchGroup.envelope, leftEdgeTime - scaledEdgepointSpacing, leftEdgeTime + scaledEdgepointSpacing)
-    reaper.DeleteEnvelopePointRange(pitchGroup.envelope, rightEdgeTime - scaledEdgepointSpacing, rightEdgeTime + scaledEdgepointSpacing)
-
-    reaper.InsertEnvelopePoint(pitchGroup.envelope, leftEdgeTime, 0, 0, 0, false, true)
-    reaper.InsertEnvelopePoint(pitchGroup.envelope, rightEdgeTime, 0, 0, 0, false, true)
 end
 
 function CorrectionGroup:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGroup)
