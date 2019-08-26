@@ -65,7 +65,7 @@ function Reaper.itemIsValid(item)
 end
 
 function Reaper.setItemSelected(item, selected)
-    if itemIsValid(item) then
+    if Reaper.itemIsValid(item) then
         reaper.SetMediaItemSelected(item, selected)
     end
 end
@@ -82,9 +82,9 @@ end
 
 function Reaper.restoreSelectedItems(items)
     if items ~= nil then
-        reaperCMD(40289) -- unselect all items
+        Reaper.reaperCMD(40289) -- unselect all items
         for i = 1, #items do
-            setItemSelected(items[i], true)
+            Reaper.setItemSelected(items[i], true)
         end
     end
 end
@@ -123,6 +123,24 @@ function Reaper.getSourcePosition(take, time)
     reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
 
     return srcPos
+end
+
+local uiEnabled = true
+function Reaper.setUIRefresh(enable)
+    -- Enable UI refresh.
+    if enable then
+        if not uiEnabled then
+            reaper.PreventUIRefresh(-1)
+            uiEnabled = true
+        end
+
+    -- Disable UI refresh.
+    else
+        if uiEnabled then
+            reaper.PreventUIRefresh(1)
+            uiEnabled = false
+        end
+    end
 end
 
 return Reaper

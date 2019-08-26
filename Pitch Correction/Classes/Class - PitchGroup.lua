@@ -169,20 +169,6 @@ function PitchGroup:getEnvelope()
     return pitchEnvelope
 end
 
-function PitchGroup.getPitchGroupsFromItems(items)
-    local pitchGroups = {}
-
-    for index, item in pairs(items) do
-        if reaper.ValidatePtr(item, "MediaItem*") then
-            if Reaper.getItemType(item) == "audio" then
-                table.insert( pitchGroups, PitchGroup:new( { item = item } ) )
-            end
-        end
-    end
-
-    return pitchGroups
-end
-
 function PitchGroup:setItem(item)
     if Reaper.getItemType(item) ~= "audio" then return end
 
@@ -197,6 +183,7 @@ function PitchGroup:setItem(item)
     self.rightTime = self.leftTime + self.length
     self.playrate = reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
     self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")
+
     self.envelope = self:getEnvelope()
 
     _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
@@ -281,6 +268,33 @@ end
 
 
 
+function PitchGroup.getPitchGroupsFromItems(items)
+    local pitchGroups = {}
+
+    Reaper.setUIRefresh(false)
+
+    local selectedItems = Reaper.getSelectedItems()
+    Reaper.reaperCMD(40289) -- Unselect all items
+
+    for index, item in pairs(items) do
+        if reaper.ValidatePtr(item, "MediaItem*") then
+            if Reaper.getItemType(item) == "audio" then
+                Reaper.setItemSelected(item, true)
+
+                table.insert( pitchGroups, PitchGroup:new( { item = item } ) )
+
+                Reaper.setItemSelected(item, false)
+            end
+        end
+    end
+
+    Reaper.restoreSelectedItems(selectedItems)
+
+    Reaper.setUIRefresh(true)
+
+    return pitchGroups
+end
+
 function PitchGroup:savePoints()
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
 
@@ -356,6 +370,14 @@ function PitchGroup:loadSavedPoints()
         end
     end
 
+    --local startTime = reaper.time_precise()
+    --local lines = {}
+    --local lineIndex = 1
+    --for line in extState:gmatch("[^\r\n]+") do
+    --    lines[lineIndex] = line
+    --    lineIndex = lineIndex + 1
+    --end
+    --msg(reaper.time_precise() - startTime)
     return savedPoints
 end
 
