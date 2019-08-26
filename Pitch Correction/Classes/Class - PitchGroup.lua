@@ -53,29 +53,6 @@ function PitchGroup:getMinTimePerPoint()
     return minTimePerPoint
 end
 
-
-function PitchGroup:getFrequency(time)
-    numChannels = reaper.GetMediaSourceNumChannels( reaper.GetMediaItemTake_Source(self.take) )
-
-    samplesPerChannel = 1
-    buf = reaper.new_array(samplesPerChannel * 3 * numChannels)
-    rv = reaper.GetMediaItemTake_Peaks(self.take, 1000.0, self.leftTime - self.startOffset + time, numChannels, samplesPerChannel, 115, buf)
-
-    local frequency = 0
-    local tonality = 0
-
-    if rv & (1 << 24) and (rv & 0xfffff) > 0 then
-
-          spl = buf[numChannels * samplesPerChannel * 2 + 1]
-
-          frequency = spl & 0x7fff
-          tonality = (spl >> 15) / 16384.0
-
-    end
-
-    return frequency
-end
-
 function PitchGroup:analyze(settings)
     local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
 
@@ -90,44 +67,17 @@ function PitchGroup:analyze(settings)
         return true
     end)
 
-    local pointSpacing = 0.02
-    local numLoops = math.ceil((self.length + self.startOffset) / pointSpacing)
+    self.points = {}
 
-    local minNote = Lua.frequencyToNote(40)
-    local maxNote = Lua.frequencyToNote(1000)
+    PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
+    Reaper.reaperCMD(analyzerID)
 
-    for i = 1, numLoops do
-        local pointTime = i * pointSpacing
-        local scaledPointTime = pointTime - self.startOffset
-        local note = Lua.frequencyToNote( self:getFrequency(pointTime) )
+    local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
-        if note >= minNote and note <= maxNote then
-            table.insert(self.points, {
-
-                time =  pointTime,
-                pitch = note,
-                rms =   1.0,
-                relativeTime = scaledPointTime / self.playrate,
-                envelopeTime = scaledPointTime,
-                markerRate = 1.0
-
-            } )
-        end
-    end
-
+    self.points = self:getPointsFromString(analysisString)
     self.minTimePerPoint = self:getMinTimePerPoint()
+
     self:savePoints()
-
-
-    --PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
-    --Reaper.reaperCMD(analyzerID)
-
-    --local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
-
-    --self.points = self:getPointsFromString(analysisString)
-    --self.minTimePerPoint = self:getMinTimePerPoint()
-
-    --self:savePoints()
 end
 
 function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
