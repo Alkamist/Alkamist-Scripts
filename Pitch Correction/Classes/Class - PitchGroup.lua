@@ -194,6 +194,7 @@ function PitchGroup:setItem(item)
     _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
 
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
+    self:generateBoundaryMarkers()
     self.points = self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
@@ -300,31 +301,11 @@ function PitchGroup.getPitchGroupsFromItems(items)
     return pitchGroups
 end
 
-function PitchGroup:savePoints()
-    local prevPitchGroups = self.data:getPitchGroups()
-
-    for index, group in ipairs(prevPitchGroups) do
-        group = PitchGroup:new(group)
-    end
-
-    local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
-
-    local saveString = ""
-
-    for index, group in ipairs(combinedGroups) do
-        saveString = saveString .. group:getDataString()
-    end
-
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)
-end
-
-function PitchGroup:loadSavedPoints()
+function PitchGroup:generateBoundaryMarkers()
     local tempMarkers = Lua.copyTable(self.stretchMarkers)
 
     local leftBound = Reaper.getSourcePosition(self.take, 0.0)
     local rightBound = Reaper.getSourcePosition(self.take, self.length)
-
-    --------------- Insert boundary markers ---------------
 
     local leftBoundIndex = nil
     for index, marker in ipairs(tempMarkers) do
@@ -358,9 +339,27 @@ function PitchGroup:loadSavedPoints()
     } )
 
     self.stretchMarkersWithBoundaries = tempMarkers
+end
 
-    -------------------------------------------------------
+function PitchGroup:savePoints()
+    local prevPitchGroups = self.data:getPitchGroups()
 
+    for index, group in ipairs(prevPitchGroups) do
+        group = PitchGroup:new(group)
+    end
+
+    local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
+
+    local saveString = ""
+
+    for index, group in ipairs(combinedGroups) do
+        saveString = saveString .. group:getDataString()
+    end
+
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)
+end
+
+function PitchGroup:loadSavedPoints()
     local savedPoints = {}
 
     local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
