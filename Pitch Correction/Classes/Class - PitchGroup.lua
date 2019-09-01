@@ -2,6 +2,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Lua = require "Various Functions.Lua Functions"
 local Reaper = require "Various Functions.Reaper Functions"
+local FileManager = require "Pitch Correction.Classes.Class - FileManager"
 
 
 
@@ -72,9 +73,13 @@ function PitchGroup:analyze(settings)
     PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
     Reaper.reaperCMD(analyzerID)
 
-    local analysisString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+    local analysisString = "<PITCHDATA " .. string.format("%f %f\n", self.startOffset, self.startOffset + self.length) ..
+                                reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA") ..
+                            ">\n"
 
-    self.points = self:getPointsFromString(analysisString)
+    local tempData = FileManager:new( { data = analysisString } )
+
+    self.points = tempData:getPitchPoints(self)
     self.minTimePerPoint = self:getMinTimePerPoint()
 
     self:savePoints()
@@ -296,9 +301,12 @@ function PitchGroup.getPitchGroupsFromItems(items)
 end
 
 function PitchGroup:savePoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
+    local prevPitchGroups = self.data:getPitchGroups()
 
-    local prevPitchGroups = PitchGroup.getGroupsFromDataString(extState)
+    for index, group in ipairs(prevPitchGroups) do
+        group = PitchGroup:new(group)
+    end
+
     local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
 
     local saveString = ""
@@ -311,10 +319,6 @@ function PitchGroup:savePoints()
 end
 
 function PitchGroup:loadSavedPoints()
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
-
-    local savedPoints = {}
-
     local tempMarkers = Lua.copyTable(self.stretchMarkers)
 
     local leftBound = Reaper.getSourcePosition(self.take, 0.0)
@@ -357,143 +361,14 @@ function PitchGroup:loadSavedPoints()
 
     -------------------------------------------------------
 
-    for index, marker in ipairs(tempMarkers) do
-        local nextMarker = nil
-        if index < #tempMarkers then
-            nextMarker = tempMarkers[index + 1]
-        end
+    local savedPoints = {}
 
-        local newPoints = self:getPointsFromDataString(extState, marker, nextMarker)
+    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
+    self.data = FileManager:new( { data = extState } )
 
-        for pointIndex, point in ipairs(newPoints) do
-            table.insert(savedPoints, point)
-        end
-    end
+    savedPoints = self.data:getPitchPoints(self, tempMarkers)
 
-    --local startTime = reaper.time_precise()
-    --local lines = {}
-    --local lineIndex = 1
-    --for line in extState:gmatch("[^\r\n]+") do
-    --    lines[lineIndex] = line
-    --    lineIndex = lineIndex + 1
-    --end
-    --msg(reaper.time_precise() - startTime)
     return savedPoints
-end
-
-function PitchGroup.getGroupsFromDataString(dataString)
-    local outputGroups = {}
-    local groupIndex = 1
-    local searchIndex = 1
-    local recordPointData = false
-
-    repeat
-
-        local line = string.match(dataString, "([^\r\n]+)", searchIndex)
-        if line == nil then break end
-
-        if line:match("<PITCHDATA") then
-            local leftBound =  tonumber( line:match("<PITCHDATA ([%.%-%d]+) [%.%-%d]+") )
-            local rightBound = tonumber( line:match("<PITCHDATA [%.%-%d]+ ([%.%-%d]+)") )
-
-            outputGroups[groupIndex] = PitchGroup:new( {
-
-                startOffset = leftBound,
-                length = rightBound - leftBound,
-                points = {}
-
-            } )
-
-            recordPointData = true
-        end
-
-        if line:match(">") and recordPointData then
-            recordPointData = false
-            groupIndex = groupIndex + 1
-        end
-
-        if recordPointData then
-            local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-
-            if pointTime then
-                local pointPitch = tonumber( line:match("    [%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") )
-                local pointRMS =   tonumber( line:match("    [%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") )
-
-                table.insert(outputGroups[groupIndex].points, {
-
-                    time = pointTime,
-                    pitch = pointPitch,
-                    rms = pointRMS
-
-                })
-            end
-        end
-
-        searchIndex = searchIndex + string.len(line) + 1
-
-    until false
-
-    return outputGroups
-end
-
-function PitchGroup:getPointsFromString(pointString, marker)
-    local points = {}
-
-    local startOffset = self.startOffset
-    local scaleRate = 1.0
-    local startPos = 0.0
-
-    if marker then
-        startOffset = marker.srcPos
-        scaleRate = marker.rate
-        startPos = marker.pos
-    end
-
-    for line in pointString:gmatch("[^\r\n]+") do
-        local pointTime = tonumber( line:match("([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-        local scaledPointTime = startPos + (pointTime - startOffset) / scaleRate
-
-        if scaledPointTime >= 0.0 and scaledPointTime <= self.length * self.playrate then
-
-            table.insert(points, {
-
-                time =  pointTime,
-                pitch = tonumber( line:match("[%.%-%d]+ ([%.%-%d]+) [%.%-%d]+") ),
-                rms =   tonumber( line:match("[%.%-%d]+ [%.%-%d]+ ([%.%-%d]+)") ),
-                relativeTime = scaledPointTime / self.playrate,
-                envelopeTime = scaledPointTime,
-                markerRate = scaleRate
-
-            } )
-
-        end
-
-    end
-
-    return points
-end
-
-function PitchGroup:getPointsFromDataString(dataString, marker, nextMarker)
-    local pointString = ""
-
-    for line in dataString:gmatch("[^\r\n]+") do
-
-        local pointTime = tonumber( line:match("    ([%.%-%d]+) [%.%-%d]+ [%.%-%d]+") )
-
-        local leftBound = marker.srcPos
-
-        local rightBound = self.takeSourceLength
-        if nextMarker then rightBound = nextMarker.srcPos end
-
-        if pointTime then
-            if pointTime >= leftBound and pointTime <= rightBound then
-                pointString = pointString .. line .. "\n"
-            end
-        end
-
-    end
-
-    return self:getPointsFromString(pointString, marker)
 end
 
 function PitchGroup:getDataString()

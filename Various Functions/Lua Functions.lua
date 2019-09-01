@@ -118,4 +118,14 @@ function Lua.frequencyToNote(frequency)
     return math.min( math.max(note, 0), 127 )
 end
 
+function Lua.rangesOverlap(range1, range2)
+    local range1IsInsideRange2 = range1.left >= range2.left and range1.left <= range2.right
+                              or range1.right >= range2.left and range1.right <= range2.right
+
+    local range2IsInsideRange1 = range2.left >= range1.left and range2.left <= range1.right
+                              or range2.right >= range1.left and range2.right <= range1.right
+
+    return range1IsInsideRange2 or range2IsInsideRange1
+end
+
 return Lua
