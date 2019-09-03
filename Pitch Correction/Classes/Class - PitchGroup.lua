@@ -197,6 +197,11 @@ function PitchGroup:setItem(item)
     self:generateBoundaryMarkers()
     self.points = self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
+
+    --local startTime = reaper.time_precise()
+    --FileManager.loadPitchGroup(self.takeFileName .. ".pitch")
+    --FileManager.savePitchGroup(self)
+    --msg(reaper.time_precise() - startTime)
 end
 
 function PitchGroup:timeIsWithinPitchContent(time)
@@ -374,10 +379,12 @@ function PitchGroup:getDataString()
     local pitchString = ""
 
     for pointIndex, point in ipairs(self.points) do
-        pitchString = pitchString .. string.format("    %f %f %f\n", point.time, point.pitch, point.rms)
+        pitchString = pitchString .. tostring(point.time) .. " " ..
+                                     tostring(point.pitch) .. " " ..
+                                     tostring(point.rms) .. "\n"
     end
 
-    local dataString = "<PITCHDATA " .. string.format("%f %f\n", self.startOffset, self.startOffset + self.length) ..
+    local dataString = "<PITCHDATA " .. tostring(self.startOffset) .. " " .. tostring(self.startOffset + self.length) .. "\n" ..
                             pitchString ..
                         ">\n"
 

@@ -113,6 +113,11 @@ function Lua.getFileName(url)
   return url:match("[^/\\]+$")
 end
 
+-- Returns the Path, Filename, and Extension as 3 values
+function Lua.splitFileName(url)
+    return string.match(url, "(.-)([^\\]-([^\\%.]+))$")
+end
+
 function Lua.frequencyToNote(frequency)
     local note = 69 + 12 * math.log(frequency / 440) / math.log(2);
     return math.min( math.max(note, 0), 127 )

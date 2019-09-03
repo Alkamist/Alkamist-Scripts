@@ -1,7 +1,8 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
-local Lua = require "Various Functions.Lua Functions"
+local Lua =    require "Various Functions.Lua Functions"
 local Reaper = require "Various Functions.Reaper Functions"
+require "Various Functions.Table IO"
 
 
 
@@ -22,47 +23,6 @@ function FileManager:new(o)
 end
 
 
-
-function FileManager:getValues(line)
-    local values = {}
-
-    for value in string.gmatch(line, "[%.%-%d]+") do
-        table.insert( values, tonumber(value) )
-    end
-
-    return values
-end
-
-function FileManager:getDataFromHeader(headerTitle, headerNumber, timeRange)
-    local lineNumber = self.headerLineNumbers[headerTitle][headerNumber] + 1
-
-    local valueChunks = {}
-
-    repeat
-
-        local line = self.lines[lineNumber]
-        if line:sub(1, 1) == ">" then break end
-
-        if timeRange then
-            local timeValue = tonumber( line:match("([%.%-%d]+)") )
-
-            if timeValue then
-                if timeRange.left and timeRange.right then
-                    if timeValue >= timeRange.left and timeValue <= timeRange.right then
-                        table.insert(valueChunks, self:getValues(line))
-                    end
-                end
-            end
-        else
-            table.insert(valueChunks, self:getValues(line))
-        end
-
-        lineNumber = lineNumber + 1
-
-    until false
-
-    return valueChunks
-end
 
 function FileManager:documentData()
     self.lines = {}
@@ -210,6 +170,171 @@ function FileManager:getPitchGroups()
     end
 
     return pitchGroups
+end
+
+function FileManager:getDataFromHeader(headerTitle, headerNumber, timeRange)
+    local lineNumber = self.headerLineNumbers[headerTitle][headerNumber] + 1
+
+    local valueChunks = {}
+
+    repeat
+
+        local line = self.lines[lineNumber]
+        if line:sub(1, 1) == ">" then break end
+
+        if timeRange then
+            local timeValue = tonumber( line:match("([%.%-%d]+)") )
+
+            if timeValue then
+                if timeRange.left and timeRange.right then
+                    if timeValue >= timeRange.left and timeValue <= timeRange.right then
+                        table.insert(valueChunks, self:getValues(line))
+                    end
+                end
+            end
+        else
+            table.insert(valueChunks, self:getValues(line))
+        end
+
+        lineNumber = lineNumber + 1
+
+    until false
+
+    return valueChunks
+end
+
+
+
+function FileManager:getValues(line)
+    local values = {}
+
+    for value in string.gmatch(line, "[%.%-%d]+") do
+        table.insert( values, tonumber(value) )
+    end
+
+    return values
+end
+
+function FileManager.fileExists(fileName)
+    local f = io.open(fileName, "rb")
+    if f then f:close() end
+    return f ~= nil
+end
+
+function FileManager.getFileLines(fileName)
+    if not FileManager.fileExists(fileName) then return {} end
+
+    local lines = {}
+
+    for line in io.lines(fileName) do
+        lines[#lines + 1] = line
+    end
+
+    return lines
+end
+
+
+
+function FileManager.savePitchGroup(pitchGroup)
+    local fullFileName = reaper.GetProjectPath("") .. "\\" ..
+                         pitchGroup.takeFileName .. ".pitch"
+
+    local file, err = io.open(fullFileName, "w")
+
+
+    local pitchString = ""
+    local pitchKeyString = ""
+
+    for pointIndex, point in ipairs(pitchGroup.points) do
+
+        for key, value in pairs(pitchGroup.points[1]) do
+            if pointIndex == 1 then
+                pitchKeyString = pitchKeyString .. key .. " "
+            end
+
+            pitchString = pitchString .. tostring(point[key]) .. " "
+        end
+
+        pitchString = pitchString .. "\n"
+
+    end
+
+
+    local saveString = "LEFTBOUND " .. tostring(pitchGroup.startOffset) .. "\n" ..
+
+                       "RIGHTBOUND " .. tostring(pitchGroup.startOffset + pitchGroup.length) .. "\n" ..
+
+                       "<PITCH " .. pitchKeyString .. "\n" ..
+                           pitchString ..
+                       ">\n"
+
+
+    file:write(saveString)
+end
+
+function FileManager.loadPitchGroup(fileName)
+    local fullFileName = reaper.GetProjectPath("") .. "\\" .. fileName
+
+    local lines = FileManager.getFileLines(fullFileName)
+
+    local pitchGroup = {}
+
+    local headerLeft = nil
+    local headerRight = nil
+    local keys = {}
+    local recordPoints = false
+    local pointIndex = 1
+
+    for lineNumber, line in ipairs(lines) do
+
+        headerLeft = headerLeft or tonumber( line:match("LEFTBOUND ([%.%-%d]+)") )
+        headerRight = headerRight or tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") )
+
+        if headerLeft and headerRight and not pitchGroup.startOffset then
+
+            pitchGroup = {
+
+                startOffset = headerLeft,
+                length = headerRight - headerLeft,
+                points = {}
+
+            }
+
+        end
+
+        if pitchGroup.startOffset then
+
+            if line:match("<PITCH") then
+                recordPoints = true
+                pointIndex = 1
+
+                for key in string.gmatch(line, " (%a+)") do
+                    table.insert(keys, key)
+                end
+            end
+
+            if line:match(">") then
+                recordPoints = false
+                keys = {}
+            end
+
+            if recordPoints then
+
+                pitchGroup.points[pointIndex] = {}
+                local lineValues = FileManager:getValues(line)
+
+                if #lineValues >= #keys then
+                    for index, key in ipairs(keys) do
+                        pitchGroup.points[pointIndex][key] = lineValues[index]
+                    end
+
+                    pointIndex = pointIndex + 1
+                end
+            end
+        end
+    end
+
+    return pitchGroup
 end
 
 return FileManager
