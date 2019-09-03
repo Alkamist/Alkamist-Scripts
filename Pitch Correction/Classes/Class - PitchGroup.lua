@@ -54,37 +54,6 @@ function PitchGroup:getMinTimePerPoint()
     return minTimePerPoint
 end
 
-function PitchGroup:analyze(settings)
-    local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
-
-    if not analyzerID then
-        reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
-        return 0
-    end
-
-    Lua.arrayRemove(self.points, function(t, i)
-        local value = t[i]
-
-        return true
-    end)
-
-    self.points = {}
-
-    PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
-    Reaper.reaperCMD(analyzerID)
-
-    local analysisString = "<PITCHDATA " .. string.format("%f %f\n", self.startOffset, self.startOffset + self.length) ..
-                                reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA") ..
-                            ">\n"
-
-    local tempData = FileManager:new( { data = analysisString } )
-
-    self.points = tempData:getPitchPoints(self)
-    self.minTimePerPoint = self:getMinTimePerPoint()
-
-    self:savePoints()
-end
-
 function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
     local favoredLeftBound = favoredGroup.startOffset
     local favoredRightBound = favoredLeftBound + favoredGroup.length
@@ -197,11 +166,6 @@ function PitchGroup:setItem(item)
     self:generateBoundaryMarkers()
     self.points = self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
-
-    --local startTime = reaper.time_precise()
-    --FileManager.loadPitchGroup(self.takeFileName .. ".pitch")
-    --FileManager.savePitchGroup(self)
-    --msg(reaper.time_precise() - startTime)
 end
 
 function PitchGroup:timeIsWithinPitchContent(time)
@@ -346,8 +310,37 @@ function PitchGroup:generateBoundaryMarkers()
     self.stretchMarkersWithBoundaries = tempMarkers
 end
 
+
+
+function PitchGroup:analyze(settings)
+    local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
+
+    if not analyzerID then
+        reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
+        return 0
+    end
+
+    Lua.arrayRemove(self.points, function(t, i)
+        local value = t[i]
+
+        return true
+    end)
+
+    self.points = {}
+
+    PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
+    Reaper.reaperCMD(analyzerID)
+
+    self.points = FileManager.getPitchPointsFromExtState(self)
+    self.minTimePerPoint = self:getMinTimePerPoint()
+
+    self:savePoints()
+end
+
+
 function PitchGroup:savePoints()
-    local prevPitchGroups = self.data:getPitchGroups()
+    FileManager.savePitchGroup(self)
+    --[[local prevPitchGroups = self.data:getPitchGroups()
 
     for index, group in ipairs(prevPitchGroups) do
         group = PitchGroup:new(group)
@@ -361,34 +354,15 @@ function PitchGroup:savePoints()
         saveString = saveString .. group:getDataString()
     end
 
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)
+    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)]]--
 end
 
 function PitchGroup:loadSavedPoints()
-    local savedPoints = {}
+    --local savedPoints = {}
+    --self.data = FileManager:new( { data = extState } )
+    --savedPoints = self.data:getPitchPoints(self, tempMarkers)
 
-    local _, extState = reaper.GetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName)
-    self.data = FileManager:new( { data = extState } )
-
-    savedPoints = self.data:getPitchPoints(self, tempMarkers)
-
-    return savedPoints
-end
-
-function PitchGroup:getDataString()
-    local pitchString = ""
-
-    for pointIndex, point in ipairs(self.points) do
-        pitchString = pitchString .. tostring(point.time) .. " " ..
-                                     tostring(point.pitch) .. " " ..
-                                     tostring(point.rms) .. "\n"
-    end
-
-    local dataString = "<PITCHDATA " .. tostring(self.startOffset) .. " " .. tostring(self.startOffset + self.length) .. "\n" ..
-                            pitchString ..
-                        ">\n"
-
-    return dataString
+    return FileManager.loadPitchGroup(self.takeFileName .. ".pitch").points
 end
 
 return PitchGroup

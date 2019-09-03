@@ -196,8 +196,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
                 frequency > 0 && strlen(#pitchData) < 64000 ?
                 (
 
-                    str_insert(#pitchData, "    ",                                       strlen(#pitchData));
-
                     str_insert(#pitchData, sprintf(#, "%f", seekPosition + startOffset), strlen(#pitchData));
                     str_insert(#pitchData, " ",                                          strlen(#pitchData));
 
