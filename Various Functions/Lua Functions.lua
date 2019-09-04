@@ -133,4 +133,32 @@ function Lua.rangesOverlap(range1, range2)
     return range1IsInsideRange2 or range2IsInsideRange1
 end
 
+function Lua.getStringValues(str)
+    local values = {}
+
+    for value in string.gmatch(str, "[%.%-%d]+") do
+        table.insert( values, tonumber(value) )
+    end
+
+    return values
+end
+
+function Lua.fileExists(fileName)
+    local f = io.open(fileName, "rb")
+    if f then f:close() end
+    return f ~= nil
+end
+
+function Lua.getFileLines(fileName)
+    if not Lua.fileExists(fileName) then return {} end
+
+    local lines = {}
+
+    for line in io.lines(fileName) do
+        lines[#lines + 1] = line
+    end
+
+    return lines
+end
+
 return Lua
