@@ -140,7 +140,7 @@ function Reaper.getRealPosition(take, sourceTime)
 
     local stretchMarkers = Reaper.getStretchMarkers(take)
 
-    local markerIndex = 1
+    local markerIndex = 0
 
     for index, marker in ipairs(stretchMarkers) do
         if sourceTime < marker.srcPos then
@@ -148,6 +148,8 @@ function Reaper.getRealPosition(take, sourceTime)
             break
         end
     end
+
+    if markerIndex == 0 then return sourceTime end
 
     local activeMarker = stretchMarkers[markerIndex]
 

@@ -150,7 +150,6 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
                         end
 
                         if point.sourceTime >= leftBound and point.sourceTime <= rightBound then
-                            pitchGroup.points[pointIndex] = {}
                             pitchGroup.points[pointIndex] = point
                             pitchGroup.points[pointIndex].time = Reaper.getRealPosition(pitchGroup.take, pitchGroup.points[pointIndex].sourceTime)
 
