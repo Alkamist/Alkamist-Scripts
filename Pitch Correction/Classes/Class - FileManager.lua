@@ -56,8 +56,7 @@ function FileManager.getPitchPointsFromExtState(pitchGroup)
             time = pointTime,
             sourceTime = sourceTime,
             pitch = values[2],
-            rms = values[3],
-            markerRate = 1.0
+            rms = values[3]
 
         }
 
@@ -110,13 +109,13 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
     local recordPoints = false
     local pointIndex = 1
 
-    local leftBound = pitchGroup.startOffset
-    local rightBound = pitchGroup.startOffset + pitchGroup.length
+    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
     for lineNumber, line in ipairs(lines) do
 
-        headerLeft = headerLeft or Reaper.getRealPosition(pitchGroup.take, tonumber( line:match("LEFTBOUND ([%.%-%d]+)") ) )
-        headerRight = headerRight or Reaper.getRealPosition(pitchGroup.take, tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") ) )
+        headerLeft = headerLeft or tonumber( line:match("LEFTBOUND ([%.%-%d]+)") )
+        headerRight = headerRight or tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") )
 
         if headerLeft and headerRight then
 
@@ -141,17 +140,22 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
 
                 if recordPoints then
 
-                    pitchGroup.points[pointIndex] = {}
                     local lineValues = FileManager.getValues(line)
 
                     if #lineValues >= #keys then
+                        local point = {}
+
                         for index, key in ipairs(keys) do
-                            pitchGroup.points[pointIndex][key] = lineValues[index]
+                            point[key] = lineValues[index]
                         end
 
-                        pitchGroup.points[pointIndex].time = Reaper.getRealPosition(pitchGroup.take, pitchGroup.points[pointIndex].sourceTime)
+                        if point.sourceTime >= leftBound and point.sourceTime <= rightBound then
+                            pitchGroup.points[pointIndex] = {}
+                            pitchGroup.points[pointIndex] = point
+                            pitchGroup.points[pointIndex].time = Reaper.getRealPosition(pitchGroup.take, pitchGroup.points[pointIndex].sourceTime)
 
-                        pointIndex = pointIndex + 1
+                            pointIndex = pointIndex + 1
+                        end
                     end
                 end
             end
