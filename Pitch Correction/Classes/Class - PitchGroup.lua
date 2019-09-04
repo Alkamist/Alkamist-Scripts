@@ -70,13 +70,12 @@ function PitchGroup:getMinSourceTimePerPoint()
     return minSourceTimePerPoint
 end
 
-
 function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
     local favoredLeftBound = favoredGroup.startOffset
-    local favoredRightBound = favoredLeftBound + favoredGroup.length
+    local favoredRightBound = favoredGroup.startOffset + favoredGroup.length
 
     local secondaryLeftBound = secondaryGroup.startOffset
-    local secondaryRightBound = secondaryLeftBound + secondaryGroup.length
+    local secondaryRightBound = secondaryGroup.startOffset + secondaryGroup.length
 
     local groupsAreOverlapping = favoredLeftBound >= secondaryLeftBound and favoredLeftBound <= secondaryRightBound
                               or favoredRightBound >= secondaryLeftBound and favoredRightBound <= secondaryRightBound
@@ -97,13 +96,13 @@ function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
         local favoredPointsWereInserted = false
         for secondaryIndex, secondaryPoint in ipairs(secondaryGroup.points) do
 
-            if secondaryPoint.time < favoredLeftBound or secondaryPoint.time > favoredRightBound then
+            if secondaryPoint.sourceTime < favoredLeftBound or secondaryPoint.sourceTime > favoredRightBound then
                 table.insert(outputGroup.points, secondaryPoint)
             end
 
             if not favoredPointsWereInserted then
 
-                if secondaryPoint.time >= favoredLeftBound then
+                if secondaryPoint.sourceTime >= favoredLeftBound then
 
                     for favoredIndex, favoredPoint in ipairs(favoredGroup.points) do
                         table.insert(outputGroup.points, favoredPoint)
@@ -357,30 +356,20 @@ function PitchGroup:analyze(settings)
 end
 
 function PitchGroup:savePoints()
-    FileManager.savePitchGroup(self)
-
-    --[[local prevPitchGroups = self.data:getPitchGroups()
+    local prevPitchGroups = FileManager.loadAllPitchGroups(self.takeFileName .. ".pitch")
 
     for index, group in ipairs(prevPitchGroups) do
-        group = PitchGroup:new(group)
+        group.takeFileName = self.takeFileName
     end
 
     local combinedGroups = PitchGroup.getCombinedGroups(Lua.copyTable(self), prevPitchGroups)
 
-    local saveString = ""
-
     for index, group in ipairs(combinedGroups) do
-        saveString = saveString .. group:getDataString()
+        FileManager.savePitchGroup(group)
     end
-
-    reaper.SetProjExtState(0, "Alkamist_PitchCorrection", self.takeFileName, saveString)]]--
 end
 
 function PitchGroup:loadSavedPoints()
-    --local savedPoints = {}
-    --self.data = FileManager:new( { data = extState } )
-    --savedPoints = self.data:getPitchPoints(self, tempMarkers)
-
     FileManager.loadPitchPoints(self.takeFileName .. ".pitch", self)
 end
 

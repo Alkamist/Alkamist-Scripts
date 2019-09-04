@@ -70,7 +70,7 @@ function FileManager.savePitchGroup(pitchGroup)
     local fullFileName = reaper.GetProjectPath("") .. "\\" ..
                          pitchGroup.takeFileName .. ".pitch"
 
-    local file, err = io.open(fullFileName, "w")
+    local file, err = io.open(fullFileName, "a")
 
 
 
@@ -117,6 +117,13 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
         headerLeft = headerLeft or tonumber( line:match("LEFTBOUND ([%.%-%d]+)") )
         headerRight = headerRight or tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") )
 
+        if line:match(">") then
+            recordPoints = false
+            headerLeft = nil
+            headerRight = nil
+            keys = {}
+        end
+
         if headerLeft and headerRight then
 
             if Lua.rangesOverlap( { left = headerLeft, right = headerRight },
@@ -124,18 +131,10 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
 
                 if line:match("<PITCH") then
                     recordPoints = true
-                    pointIndex = 1
 
                     for key in string.gmatch(line, " (%a+)") do
                         table.insert(keys, key)
                     end
-                end
-
-                if line:match(">") then
-                    recordPoints = false
-                    headerLeft = nil
-                    headerRight = nil
-                    keys = {}
                 end
 
                 if recordPoints then
@@ -160,6 +159,77 @@ function FileManager.loadPitchPoints(fileName, pitchGroup)
             end
         end
     end
+end
+
+function FileManager.loadAllPitchGroups(fileName)
+    local fullFileName = reaper.GetProjectPath("") .. "\\" .. fileName
+
+    local lines = FileManager.getFileLines(fullFileName)
+
+    local pitchGroups = {}
+
+    local headerLeft = nil
+    local headerRight = nil
+    local keys = {}
+    local recordPoints = false
+    local pointIndex = 1
+    local groupIndex = 1
+
+    for lineNumber, line in ipairs(lines) do
+
+        headerLeft = headerLeft or tonumber( line:match("LEFTBOUND ([%.%-%d]+)") )
+        headerRight = headerRight or tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") )
+
+        if headerLeft and headerRight then
+
+            if line:match("<PITCH") then
+                pitchGroups[groupIndex] = {
+
+                    startOffset = headerLeft,
+                    length = headerRight - headerLeft,
+                    points = {}
+
+                }
+
+                recordPoints = true
+                pointIndex = 1
+
+                for key in string.gmatch(line, " (%a+)") do
+                    table.insert(keys, key)
+                end
+            end
+
+            if line:match(">") then
+                groupIndex = groupIndex + 1
+                recordPoints = false
+                headerLeft = nil
+                headerRight = nil
+                keys = {}
+            end
+
+            if recordPoints then
+
+                local lineValues = FileManager.getValues(line)
+
+                if #lineValues >= #keys then
+                    local point = {}
+
+                    for index, key in ipairs(keys) do
+                        point[key] = lineValues[index]
+                    end
+
+                    local currentPoint = pitchGroups[groupIndex].points[pointIndex]
+
+                    currentPoint = point
+                    currentPoint.time = currentPoint.sourceTime
+
+                    pointIndex = pointIndex + 1
+                end
+            end
+        end
+    end
+
+    return pitchGroups
 end
 
 return FileManager
