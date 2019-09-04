@@ -54,6 +54,23 @@ function PitchGroup:getMinTimePerPoint()
     return minTimePerPoint
 end
 
+function PitchGroup:getMinSourceTimePerPoint()
+    local prevPoint = nil
+    local minSourceTimePerPoint = self.takeSourceLength
+
+    for index, point in ipairs(self.points) do
+        if prevPoint then
+            local timeFromLastPoint = point.sourceTime - prevPoint.sourceTime
+            minSourceTimePerPoint = math.min(minSourceTimePerPoint, timeFromLastPoint)
+        end
+
+        prevPoint = point
+    end
+
+    return minSourceTimePerPoint
+end
+
+
 function PitchGroup.getCombinedGroup(favoredGroup, secondaryGroup)
     local favoredLeftBound = favoredGroup.startOffset
     local favoredRightBound = favoredLeftBound + favoredGroup.length
@@ -166,6 +183,7 @@ function PitchGroup:setItem(item)
     self:generateBoundaryMarkers()
     self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
+    self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 end
 
 function PitchGroup:timeIsWithinPitchContent(time)
@@ -333,6 +351,7 @@ function PitchGroup:analyze(settings)
 
     self.points = FileManager.getPitchPointsFromExtState(self)
     self.minTimePerPoint = self:getMinTimePerPoint()
+    self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 
     self:savePoints()
 end

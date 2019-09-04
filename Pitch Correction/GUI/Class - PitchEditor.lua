@@ -1020,7 +1020,7 @@ function GUI.PitchEditor:drawPitchLines()
         local groupPixelEnd = self:getPixelsFromTime(group.editOffset + group.length)
 
         if self:lineXIsOnScreen(groupPixelStart, groupPixelEnd) then
-            local drawThreshold = 2.5 * group.minTimePerPoint
+            local drawThreshold = 2.5 * group.minSourceTimePerPoint
 
             local previousPoint = nil
             local previousPointX = nil
@@ -1037,7 +1037,7 @@ function GUI.PitchEditor:drawPitchLines()
                 previousPointX = previousPointX or pointX
                 previousPointY = previousPointY or pointY
 
-                if point.time - previousPoint.time > drawThreshold then
+                if point.sourceTime - previousPoint.sourceTime > drawThreshold then
                     previousPointX = pointX
                     previousPointY = pointY
                 end
@@ -1066,7 +1066,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
         local groupPixelEnd = self:getPixelsFromTime(group.editOffset + group.length)
 
         if self:lineXIsOnScreen(groupPixelStart, groupPixelEnd) then
-            local drawThreshold = 2.5 * group.minTimePerPoint
+            local drawThreshold = 2.5 * group.minSourceTimePerPoint
 
             local previousPoint = nil
             local previousPointX = nil
@@ -1085,7 +1085,7 @@ function GUI.PitchEditor:drawPreviewPitchLines()
                 previousPointX = previousPointX or pointX
                 previousPointY = previousPointY or pointY
 
-                if point.time - previousPoint.time > drawThreshold then
+                if point.sourceTime - previousPoint.sourceTime > drawThreshold then
                     previousPointX = pointX
                     previousPointY = pointY
                 end
