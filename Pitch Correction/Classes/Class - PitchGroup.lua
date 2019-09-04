@@ -14,14 +14,14 @@ function PitchGroup:new(o)
     setmetatable(o, self)
     self.__index = self
 
-    if o.item then
-        o:setItem(o.item)
-    end
-
     o.editOffset = o.editOffset or 0.0
     o.points = o.points or {}
     o.stretchMarkers = o.stretchMarkers or {}
     o.stretchMarkersWithBoundaries = o.stretchMarkersWithBoundaries or {}
+
+    if o.item then
+        o:setItem(o.item)
+    end
 
     return o
 end
@@ -164,14 +164,14 @@ function PitchGroup:setItem(item)
 
     self.stretchMarkers = Reaper.getStretchMarkers(self.take)
     self:generateBoundaryMarkers()
-    self.points = self:loadSavedPoints()
+    self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
 end
 
 function PitchGroup:timeIsWithinPitchContent(time)
     if #self.points < 1 then return end
 
-    return time >= self.points[1].relativeTime and time <= self.points[#self.points].relativeTime
+    return time >= self.points[1].time and time <= self.points[#self.points].time
 end
 
 function PitchGroup:getPointIndexByTime(time, findLeft)
@@ -183,19 +183,19 @@ function PitchGroup:getPointIndexByTime(time, findLeft)
 
     local firstPoint = self.points[1]
     local lastPoint = self.points[numPoints]
-    local totalTime = lastPoint.relativeTime - firstPoint.relativeTime
+    local totalTime = lastPoint.time - firstPoint.time
 
     local bestGuessIndex = math.floor(numPoints * time / totalTime)
     bestGuessIndex = Lua.clamp(bestGuessIndex, 1, numPoints)
 
     local guessPoint = self.points[bestGuessIndex]
-    local prevGuessIsLeftOfTime = guessPoint.relativeTime <= time
+    local prevGuessIsLeftOfTime = guessPoint.time <= time
 
     repeat
         guessPoint = self.points[bestGuessIndex]
 
-        local guessError = math.abs(guessPoint.relativeTime - time)
-        local guessIsLeftOfTime = guessPoint.relativeTime <= time
+        local guessError = math.abs(guessPoint.time - time)
+        local guessIsLeftOfTime = guessPoint.time <= time
 
         if guessIsLeftOfTime then
             -- You are going right and the target is still to the right.
@@ -337,9 +337,9 @@ function PitchGroup:analyze(settings)
     self:savePoints()
 end
 
-
 function PitchGroup:savePoints()
     FileManager.savePitchGroup(self)
+
     --[[local prevPitchGroups = self.data:getPitchGroups()
 
     for index, group in ipairs(prevPitchGroups) do
@@ -362,7 +362,7 @@ function PitchGroup:loadSavedPoints()
     --self.data = FileManager:new( { data = extState } )
     --savedPoints = self.data:getPitchPoints(self, tempMarkers)
 
-    return FileManager.loadPitchGroup(self.takeFileName .. ".pitch").points
+    FileManager.loadPitchPoints(self.takeFileName .. ".pitch", self)
 end
 
 return PitchGroup

@@ -263,7 +263,7 @@ function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pi
 
             if driftPointIsInCorrectionRadius and self:pointIsAffectedByNode(node, nextNode, driftPoint, pitchGroup) then
 
-                local targetPitch = self:getPitch(driftPoint.relativeTime, node, nextNode, pitchGroup)
+                local targetPitch = self:getPitch(driftPoint.time, node, nextNode, pitchGroup)
 
                 if targetPitch then
                     driftAverage = driftAverage + driftPoint.pitch - targetPitch
@@ -285,7 +285,7 @@ function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pi
 end
 
 function CorrectionGroup:correctPitchMod(node, nextNode, point, pointIndex, pitchGroup)
-    local targetPitch = self:getPitch(point.relativeTime, node, nextNode, pitchGroup)
+    local targetPitch = self:getPitch(point.time, node, nextNode, pitchGroup)
     if not targetPitch then return end
 
     local modDeviation = point.correctedPitch - targetPitch
@@ -301,26 +301,26 @@ function CorrectionGroup:addZeroPointsToEnvelope(node, nextNode, point, pointInd
     local timeToNextPoint = 0.0
 
     if pointIndex > 1 then
-        prevPointTime = pitchGroup.points[pointIndex - 1].relativeTime
-        timeToPrevPoint = point.relativeTime - prevPointTime
+        prevPointTime = pitchGroup.points[pointIndex - 1].time
+        timeToPrevPoint = point.time - prevPointTime
     end
 
     if pointIndex < #pitchGroup.points then
-        nextPointTime = pitchGroup.points[pointIndex + 1].relativeTime
-        timeToNextPoint = nextPointTime - point.relativeTime
+        nextPointTime = pitchGroup.points[pointIndex + 1].time
+        timeToNextPoint = nextPointTime - point.time
     end
 
     if zeroPointThreshold then
         local scaledZeroPointThreshold = zeroPointThreshold / (point.markerRate * pitchGroup.playrate)
 
         if timeToPrevPoint >= scaledZeroPointThreshold or pointIndex == 1 then
-            local zeroPointTime = pitchGroup.playrate * (point.relativeTime - zeroPointSpacing)
+            local zeroPointTime = pitchGroup.playrate * (point.time - zeroPointSpacing)
             reaper.DeleteEnvelopePointRange(pitchGroup.envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPointTime, 0, 0, 0, false, true)
         end
 
         if timeToNextPoint >= scaledZeroPointThreshold or pointIndex == #pitchGroup.points then
-            local zeroPointTime = pitchGroup.playrate * (point.relativeTime + zeroPointSpacing)
+            local zeroPointTime = pitchGroup.playrate * (point.time + zeroPointSpacing)
             reaper.DeleteEnvelopePointRange(pitchGroup.envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
             reaper.InsertEnvelopePoint(pitchGroup.envelope, zeroPointTime, 0, 0, 0, false, true)
         end
@@ -353,14 +353,14 @@ function CorrectionGroup:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGro
 end
 
 function CorrectionGroup:insertCorrectedPointToEnvelope(point, pitchGroup)
-    reaper.InsertEnvelopePoint(pitchGroup.envelope, point.relativeTime * pitchGroup.playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
+    reaper.InsertEnvelopePoint(pitchGroup.envelope, point.time * pitchGroup.playrate, point.correctedPitch - point.pitch, 0, 0, false, true)
 end
 
 function CorrectionGroup:pointIsAffectedByNode(node, nextNode, point, pitchGroup)
     local nodeTime = node.time - pitchGroup.editOffset
     local nextNodeTime = nextNode.time - pitchGroup.editOffset
 
-    return point.relativeTime >= nodeTime and point.relativeTime <= nextNodeTime
+    return point.time >= nodeTime and point.time <= nextNodeTime
 end
 
 function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)

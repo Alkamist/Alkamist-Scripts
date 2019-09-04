@@ -48,16 +48,15 @@ function FileManager.getPitchPointsFromExtState(pitchGroup)
 
         local values = FileManager.getValues(line)
 
-        local pointTime = values[1]
-        local scaledPointTime = pointTime - pitchGroup.startOffset
+        local pointTime = values[1] - pitchGroup.startOffset
+        local sourceTime = Reaper.getSourcePosition(pitchGroup.take, pointTime)
 
         local point = {
 
             time = pointTime,
+            sourceTime = sourceTime,
             pitch = values[2],
             rms = values[3],
-            relativeTime = scaledPointTime,
-            envelopeTime = scaledPointTime,
             markerRate = 1.0
 
         }
@@ -75,21 +74,14 @@ function FileManager.savePitchGroup(pitchGroup)
     local file, err = io.open(fullFileName, "w")
 
 
+
+    local pitchKeyString = "sourceTime pitch rms"
     local pitchString = ""
-    local pitchKeyString = ""
 
     for pointIndex, point in ipairs(pitchGroup.points) do
-
-        for key, value in pairs(pitchGroup.points[1]) do
-            if pointIndex == 1 then
-                pitchKeyString = pitchKeyString .. key .. " "
-            end
-
-            pitchString = pitchString .. tostring(point[key]) .. " "
-        end
-
-        pitchString = pitchString .. "\n"
-
+        pitchString = pitchString .. tostring(point.sourceTime) .. " " ..
+                                     tostring(point.pitch) .. " " ..
+                                     tostring(point.rms) .. "\n"
     end
 
 
@@ -98,19 +90,19 @@ function FileManager.savePitchGroup(pitchGroup)
                        "RIGHTBOUND " .. tostring(pitchGroup.startOffset + pitchGroup.length) .. "\n" ..
 
                        "<PITCH " .. pitchKeyString .. "\n" ..
-                           pitchString ..
+                       pitchString ..
                        ">\n"
 
 
     file:write(saveString)
 end
 
-function FileManager.loadPitchGroup(fileName)
+function FileManager.loadPitchPoints(fileName, pitchGroup)
     local fullFileName = reaper.GetProjectPath("") .. "\\" .. fileName
 
     local lines = FileManager.getFileLines(fullFileName)
 
-    local pitchGroup = { points = {} }
+    pitchGroup.points = {}
 
     local headerLeft = nil
     local headerRight = nil
@@ -118,51 +110,53 @@ function FileManager.loadPitchGroup(fileName)
     local recordPoints = false
     local pointIndex = 1
 
+    local leftBound = pitchGroup.startOffset
+    local rightBound = pitchGroup.startOffset + pitchGroup.length
+
     for lineNumber, line in ipairs(lines) do
 
-        headerLeft = headerLeft or tonumber( line:match("LEFTBOUND ([%.%-%d]+)") )
-        headerRight = headerRight or tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") )
+        headerLeft = headerLeft or Reaper.getRealPosition(pitchGroup.take, tonumber( line:match("LEFTBOUND ([%.%-%d]+)") ) )
+        headerRight = headerRight or Reaper.getRealPosition(pitchGroup.take, tonumber( line:match("RIGHTBOUND ([%.%-%d]+)") ) )
 
-        if headerLeft and headerRight and not pitchGroup.startOffset then
+        if headerLeft and headerRight then
 
-            pitchGroup.startOffset = headerLeft
-            pitchGroup.length = headerRight - headerLeft
+            if Lua.rangesOverlap( { left = headerLeft, right = headerRight },
+                                  { left = leftBound, right = rightBound } ) then
 
-        end
+                if line:match("<PITCH") then
+                    recordPoints = true
+                    pointIndex = 1
 
-        if pitchGroup.startOffset then
-
-            if line:match("<PITCH") then
-                recordPoints = true
-                pointIndex = 1
-
-                for key in string.gmatch(line, " (%a+)") do
-                    table.insert(keys, key)
-                end
-            end
-
-            if line:match(">") then
-                recordPoints = false
-                keys = {}
-            end
-
-            if recordPoints then
-
-                pitchGroup.points[pointIndex] = {}
-                local lineValues = FileManager.getValues(line)
-
-                if #lineValues >= #keys then
-                    for index, key in ipairs(keys) do
-                        pitchGroup.points[pointIndex][key] = lineValues[index]
+                    for key in string.gmatch(line, " (%a+)") do
+                        table.insert(keys, key)
                     end
+                end
 
-                    pointIndex = pointIndex + 1
+                if line:match(">") then
+                    recordPoints = false
+                    headerLeft = nil
+                    headerRight = nil
+                    keys = {}
+                end
+
+                if recordPoints then
+
+                    pitchGroup.points[pointIndex] = {}
+                    local lineValues = FileManager.getValues(line)
+
+                    if #lineValues >= #keys then
+                        for index, key in ipairs(keys) do
+                            pitchGroup.points[pointIndex][key] = lineValues[index]
+                        end
+
+                        pitchGroup.points[pointIndex].time = Reaper.getRealPosition(pitchGroup.take, pitchGroup.points[pointIndex].sourceTime)
+
+                        pointIndex = pointIndex + 1
+                    end
                 end
             end
         end
     end
-
-    return pitchGroup
 end
 
 return FileManager

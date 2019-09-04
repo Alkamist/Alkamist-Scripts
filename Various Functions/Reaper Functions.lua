@@ -97,23 +97,33 @@ function Reaper.getStretchMarkers(take)
 
         stretchMarkers[i] = {
             pos = pos,
-            srcPos = srcPos
+            srcPos = srcPos,
+            slope = reaper.GetTakeStretchMarkerSlope(take, i - 1)
         }
     end
 
     for index, marker in ipairs(stretchMarkers) do
         local markerRate = 1.0
+        local markerLength = 0
         if index < #stretchMarkers then
-            markerRate = (stretchMarkers[index + 1].srcPos - marker.srcPos) / (stretchMarkers[index + 1].pos - marker.pos)
+            local nextMarker = stretchMarkers[index + 1]
+
+            markerLength = nextMarker.pos - marker.pos
+            markerSourceLength = nextMarker.srcPos - marker.srcPos
+            markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
         end
 
         marker.rate = markerRate
+        marker.length = markerLength
+        marker.srcLength = markerSourceLength
     end
 
     return stretchMarkers
 end
 
 function Reaper.getSourcePosition(take, time)
+    if time == nil then return nil end
+
     local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
 
     local tempMarkerIndex = reaper.SetTakeStretchMarker(take, -1, time * playrate)
@@ -123,6 +133,30 @@ function Reaper.getSourcePosition(take, time)
     reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
 
     return srcPos
+end
+
+function Reaper.getRealPosition(take, sourceTime)
+    if sourceTime == nil then return nil end
+
+    local stretchMarkers = Reaper.getStretchMarkers(take)
+
+    local markerIndex = 1
+
+    for index, marker in ipairs(stretchMarkers) do
+        if sourceTime < marker.srcPos then
+            markerIndex = index - 1
+            break
+        end
+    end
+
+    local activeMarker = stretchMarkers[markerIndex]
+
+    local relativeSourcePosition = sourceTime - activeMarker.srcPos
+    local effectiveRate =  activeMarker.rate + relativeSourcePosition * activeMarker.slope
+    local scaledOffset = relativeSourcePosition / effectiveRate
+    local realTime = activeMarker.pos + scaledOffset
+
+    return realTime
 end
 
 local uiEnabled = true

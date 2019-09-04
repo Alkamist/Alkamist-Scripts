@@ -1031,7 +1031,7 @@ function GUI.PitchEditor:drawPitchLines()
 
                 local pitchValue = point.pitch
 
-                local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
+                local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset) - self.x
                 local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
                 previousPointX = previousPointX or pointX
@@ -1075,11 +1075,11 @@ function GUI.PitchEditor:drawPreviewPitchLines()
             for pointIndex, point in ipairs(group.points) do
                 previousPoint = previousPoint or point
 
-                local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.envelopeTime, 44100, 0)
+                local _, envelopeValue = reaper.Envelope_Evaluate(group.envelope, point.time * group.playrate, 44100, 0)
 
                 local pitchValue = point.pitch + envelopeValue
 
-                local pointX = self:getPixelsFromTime(group.leftTime + point.relativeTime - groupsTimeOffset) - self.x
+                local pointX = self:getPixelsFromTime(group.leftTime + point.time - groupsTimeOffset) - self.x
                 local pointY = self:getPixelsFromPitch(pitchValue) - self.y
 
                 previousPointX = previousPointX or pointX
