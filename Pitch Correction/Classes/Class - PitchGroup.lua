@@ -15,8 +15,6 @@ function PitchGroup:new(o)
 
     o.editOffset = o.editOffset or 0.0
     o.points = o.points or {}
-    o.stretchMarkers = o.stretchMarkers or {}
-    o.stretchMarkersWithBoundaries = o.stretchMarkersWithBoundaries or {}
 
     if o.item then
         o:setItem(o.item)
@@ -173,14 +171,12 @@ function PitchGroup:setItem(item)
     self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime = self.leftTime + self.length
     self.playrate = reaper.GetMediaItemTakeInfo_Value(self.take, "D_PLAYRATE")
-    self.startOffset = reaper.GetMediaItemTakeInfo_Value(self.take, "D_STARTOFFS")
+    self.startOffset = Reaper.getSourceOffset(self.take)
 
     self.envelope = self:getEnvelope()
 
     _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
 
-    self.stretchMarkers = Reaper.getStretchMarkers(self.take)
-    self:generateBoundaryMarkers()
     self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
     self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
@@ -287,48 +283,6 @@ function PitchGroup.getPitchGroupsFromItems(items)
 
     return pitchGroups
 end
-
-function PitchGroup:generateBoundaryMarkers()
-    local tempMarkers = Lua.copyTable(self.stretchMarkers)
-
-    local leftBound = Reaper.getSourcePosition(self.take, 0.0)
-    local rightBound = Reaper.getSourcePosition(self.take, self.length)
-
-    local leftBoundIndex = nil
-    for index, marker in ipairs(tempMarkers) do
-        if marker.srcPos > leftBound then
-            leftBoundIndex = leftBoundIndex or index
-        end
-    end
-    leftBoundIndex = leftBoundIndex or 1
-
-    local leftRate = 1.0
-    if leftBoundIndex > 1 then leftRate = tempMarkers[leftBoundIndex - 1].rate end
-
-    table.insert(tempMarkers, leftBoundIndex, {
-        pos = 0.0,
-        srcPos = leftBound,
-        rate = leftRate
-    } )
-
-    local rightBoundIndex = nil
-    for index, marker in ipairs(tempMarkers) do
-        if marker.srcPos > rightBound then
-            rightBoundIndex = rightBoundIndex or index
-        end
-    end
-    rightBoundIndex = rightBoundIndex or #tempMarkers + 1
-
-    table.insert(tempMarkers, rightBoundIndex, {
-        pos = self.length * self.playrate,
-        srcPos = rightBound,
-        rate = 1.0
-    } )
-
-    self.stretchMarkersWithBoundaries = tempMarkers
-end
-
-
 
 function PitchGroup.getPitchPointsFromExtState(pitchGroup)
     local pointString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")

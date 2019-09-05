@@ -135,13 +135,21 @@ function Reaper.getSourcePosition(take, time)
     return srcPos
 end
 
+function Reaper.getSourceOffset(take)
+    return Reaper.getSourcePosition(take, 0.0)
+end
+
 function Reaper.getRealPosition(take, sourceTime)
     if sourceTime == nil then return nil end
 
-    local startOffset = reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
+    local startOffset = Reaper.getSourceOffset(take)
     local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
 
     local stretchMarkers = Reaper.getStretchMarkers(take)
+
+    if #stretchMarkers < 1 then
+        return (sourceTime - startOffset) / playrate
+    end
 
     local markerIndex = 0
 
@@ -150,17 +158,29 @@ function Reaper.getRealPosition(take, sourceTime)
             markerIndex = index - 1
             break
         end
+
+        if index == #stretchMarkers then
+            markerIndex = index
+        end
     end
 
     if markerIndex == 0 then
-        return ( sourceTime - reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS") ) / playrate
+        return (sourceTime - startOffset) / playrate
     end
 
     local activeMarker = stretchMarkers[markerIndex]
 
     local relativeSourcePosition = sourceTime - activeMarker.srcPos
-    local effectiveMarkerRate =  activeMarker.rate + relativeSourcePosition * activeMarker.slope
-    local scaledOffset = relativeSourcePosition / effectiveMarkerRate
+
+    local actualSlope = 0.0
+    if activeMarker.srcLength > 0 and activeMarker.length > 0 then
+        actualSlope = (activeMarker.srcLength / activeMarker.length - activeMarker.rate) / (0.5 * activeMarker.srcLength)
+    end
+
+    local currentMarkerRate = activeMarker.rate + relativeSourcePosition * actualSlope
+    local averageMarkerRate = (activeMarker.rate + currentMarkerRate) * 0.5
+    local scaledOffset = relativeSourcePosition / averageMarkerRate
+
     local realTime = activeMarker.pos + scaledOffset
 
     return realTime / playrate
