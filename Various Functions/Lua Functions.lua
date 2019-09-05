@@ -161,4 +161,14 @@ function Lua.getFileLines(fileName)
     return lines
 end
 
+function Lua.getStringLines(inputString)
+    local lines = {}
+
+    for line in inputString:gmatch("([^\r\n]+)") do
+        table.insert(lines, line)
+    end
+
+    return lines
+end
+
 return Lua

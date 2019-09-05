@@ -37,6 +37,58 @@ function CorrectionGroup:updateSourceTimes(pitchGroup)
     end
 end
 
+function CorrectionGroup:getNodesFromSaveString(saveString)
+    local nodes = {}
+
+    local lines = Lua.getStringLines(saveString)
+
+    local keys = {}
+    local recordPoints = false
+    local nodeIndex = 1
+
+    for lineNumber, line in ipairs(lines) do
+
+        if line:match(">") then
+            recordPoints = false
+            keys = {}
+        end
+
+        if line:match("<CORRECTION") then
+            recordPoints = true
+
+            for key in string.gmatch(line, " (%a+)") do
+                table.insert(keys, key)
+            end
+        end
+
+        if recordPoints then
+
+            local lineValues = Lua.getStringValues(line)
+
+            if #lineValues >= #keys then
+                local node = {}
+
+                for index, key in ipairs(keys) do
+                    if key == "isActive" or key == "isSelected" then
+                        node[key] = lineValues[index] > 0
+                    else
+                        node[key] = lineValues[index]
+                    end
+                end
+
+                nodes[nodeIndex] = node
+                nodes[nodeIndex].time = nodes[nodeIndex].sourceTime
+
+                nodeIndex = nodeIndex + 1
+            end
+        end
+    end
+
+    table.sort(nodes, function(a, b) return a.sourceTime < b.sourceTime end)
+
+    return nodes
+end
+
 function CorrectionGroup:loadSavedCorrections(pitchGroup)
     local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
 
@@ -96,7 +148,7 @@ function CorrectionGroup:loadSavedCorrections(pitchGroup)
     self:sort()
 end
 
-function CorrectionGroup.getSaveString(correctionGroup, pitchGroup)
+function CorrectionGroup.getSaveString(correctionGroup)
     local pitchKeyString = "sourceTime pitch isActive isSelected"
     local pitchString = ""
 
@@ -107,27 +159,23 @@ function CorrectionGroup.getSaveString(correctionGroup, pitchGroup)
                                      tostring(node.isSelected and 1 or 0) .. "\n"
     end
 
-    return "LEFTBOUND " .. tostring(pitchGroup.startOffset) .. "\n" ..
+    local correctionString = "<CORRECTION " .. pitchKeyString .. "\n" ..
+                             pitchString ..
+                             ">\n"
 
-           "RIGHTBOUND " .. tostring(pitchGroup.startOffset + pitchGroup.length) .. "\n" ..
-
-           "<CORRECTION " .. pitchKeyString .. "\n" ..
-           pitchString ..
-           ">\n"
+    return correctionString
 end
 
 function CorrectionGroup:saveCorrections(pitchGroup)
     self:updateSourceTimes(pitchGroup)
 
-    local saveString = CorrectionGroup.getSaveString(self, pitchGroup)
+    local saveString = CorrectionGroup.getSaveString(self)
 
     local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
     local file, err = io.open(fullFileName, "w")
 
     file:write(saveString)
 end
-
-
 
 function CorrectionGroup:copyNodes(nodes)
     local copyGroup = CorrectionGroup:new()
@@ -138,13 +186,14 @@ function CorrectionGroup:copyNodes(nodes)
         table.insert(copyGroup.nodes, newNode)
     end
 
-    local copyString = self:getSaveString(copyGroup)
+    local copyString = CorrectionGroup.getSaveString(copyGroup)
 
     reaper.SetExtState("Alkamist_PitchCorrection", "clipboard", copyString, true)
 end
 
 function CorrectionGroup:pasteNodes(offset)
     local pasteString = reaper.GetExtState("Alkamist_PitchCorrection", "clipboard")
+
     local pastedNodes = self:getNodesFromSaveString(pasteString)
 
     local firstNodeSpacing = nil
