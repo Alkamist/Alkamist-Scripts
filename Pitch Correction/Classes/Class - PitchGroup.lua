@@ -384,9 +384,6 @@ function PitchGroup:analyze(settings)
 end
 
 function PitchGroup.getSaveString(pitchGroup)
-    local fullFileName = reaper.GetProjectPath("") .. "\\" ..
-                         pitchGroup.takeFileName .. ".pitch"
-
     local pitchKeyString = "sourceTime pitch rms"
     local pitchString = ""
 
