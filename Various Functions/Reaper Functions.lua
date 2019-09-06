@@ -111,6 +111,10 @@ function Reaper.getStretchMarkers(take)
             markerLength = nextMarker.pos - marker.pos
             markerSourceLength = nextMarker.srcPos - marker.srcPos
             markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
+        else
+            markerLength = 0.0
+            markerSourceLength = 0.0
+            markerRate = 1.0
         end
 
         marker.rate = markerRate
