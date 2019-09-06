@@ -171,4 +171,15 @@ function Lua.getStringLines(inputString)
     return lines
 end
 
+function Lua.getFileString(fileName)
+    if not Lua.fileExists(fileName) then return nil end
+
+    local file = io.open(fileName, "rb")
+
+    local fileString = file:read("*all")
+    file:close()
+
+    return fileString
+end
+
 return Lua

@@ -39,14 +39,13 @@ function CorrectionGroup:updateSourceTimes(pitchGroup)
     end
 end
 
-function CorrectionGroup:getNodesFromSaveString(saveString)
+function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBound)
     local nodes = {}
 
     local lines = Lua.getStringLines(saveString)
 
     local keys = {}
     local recordPoints = false
-    local nodeIndex = 1
 
     for lineNumber, line in ipairs(lines) do
 
@@ -78,10 +77,18 @@ function CorrectionGroup:getNodesFromSaveString(saveString)
                     end
                 end
 
-                nodes[nodeIndex] = node
-                nodes[nodeIndex].time = nodes[nodeIndex].sourceTime
+                if leftBound and rightBound then
 
-                nodeIndex = nodeIndex + 1
+                    if node.sourceTime >= leftBound and node.sourceTime <= rightBound then
+
+                        table.insert(nodes, node)
+                        nodes[#nodes].time = nodes[#nodes].sourceTime
+                    end
+
+                else
+                    table.insert(nodes, node)
+                    nodes[#nodes].time = nodes[#nodes].sourceTime
+                end
             end
         end
     end
@@ -91,66 +98,38 @@ function CorrectionGroup:getNodesFromSaveString(saveString)
     return nodes
 end
 
-function CorrectionGroup:loadSavedCorrections(pitchGroup)
+function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
     local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
-
-    local lines = Lua.getFileLines(fullFileName)
-
-    local headerLeft = nil
-    local headerRight = nil
-    local keys = {}
-    local recordPoints = false
 
     local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
     local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
-    for lineNumber, line in ipairs(lines) do
+    local loadedNodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName), leftBound, rightBound)
 
-        if line:match(">") then
-            recordPoints = false
-            keys = {}
-        end
-
-        if line:match("<CORRECTION") then
-            recordPoints = true
-
-            for key in string.gmatch(line, " (%a+)") do
-                table.insert(keys, key)
-            end
-        end
-
-        if recordPoints then
-
-            local lineValues = Lua.getStringValues(line)
-
-            if #lineValues >= #keys then
-                local node = {}
-
-                for index, key in ipairs(keys) do
-                    if key == "isActive" or key == "isSelected" then
-                        node[key] = lineValues[index] > 0
-                    else
-                        node[key] = lineValues[index]
-                    end
-                end
-
-                if node.sourceTime >= leftBound and node.sourceTime <= rightBound then
-                    table.insert(self.nodes, node)
-                    self.nodes[#self.nodes].time = Reaper.getRealPosition(pitchGroup.take, self.nodes[#self.nodes].sourceTime) + pitchGroup.editOffset
-                end
-            end
-        end
+    for index, node in ipairs(loadedNodes) do
+        node.time = node.time - pitchGroup.startOffset + pitchGroup.editOffset
     end
 
-    self:sort()
+    self.nodes = loadedNodes
 end
 
-function CorrectionGroup.getSaveString(correctionGroup, pitchGroup)
+function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
     local pitchKeyString = "sourceTime pitch isActive isSelected"
     local pitchString = ""
 
     for pointIndex, node in ipairs(correctionGroup.nodes) do
-        if node.time >= pitchGroup.editOffset and node.time <= pitchGroup.editOffset + pitchGroup.length then
+
+        if leftBound and rightBound then
+
+            if node.time >= leftBound and node.time <= rightBound then
+
+                pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
+                                             tostring(node.pitch) .. " " ..
+                                             tostring(node.isActive and 1 or 0) .. " " ..
+                                             tostring(node.isSelected and 1 or 0) .. "\n"
+            end
+
+        else
             pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
                                          tostring(node.pitch) .. " " ..
                                          tostring(node.isActive and 1 or 0) .. " " ..
@@ -165,15 +144,44 @@ function CorrectionGroup.getSaveString(correctionGroup, pitchGroup)
     return correctionString
 end
 
+function CorrectionGroup:getNodesWithinPitchGroup(pitchGroup)
+    local outputNodes = {}
+
+    for index, node in ipairs(self.nodes) do
+
+        if node.time >= pitchGroup.editOffset and node.time <= pitchGroup.editOffset + pitchGroup.length then
+
+            local newNode = Lua.copyTable(node)
+
+            table.insert(outputNodes, newNode)
+        end
+    end
+
+    return outputNodes
+end
+
 function CorrectionGroup:saveCorrections(pitchGroup)
+    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
+
+    local previousCorrections = CorrectionGroup:new()
+    previousCorrections.nodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName))
+
+    for index, correction in ipairs(previousCorrections.nodes) do
+        correction.time = correction.time - pitchGroup.startOffset
+    end
+
     self:updateSourceTimes(pitchGroup)
 
-    local saveString = CorrectionGroup.getSaveString(self, pitchGroup)
+    local currentCorrections = CorrectionGroup:new()
+    currentCorrections.nodes = self:getNodesWithinPitchGroup(pitchGroup)
 
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
-    local file, err = io.open(fullFileName, "w")
+    local saveString = CorrectionGroup.getSaveString(currentCorrections, pitchGroup)
+    msg(CorrectionGroup.getSaveString(previousCorrections, pitchGroup))
 
-    file:write(saveString)
+    --local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
+    --local file, err = io.open(fullFileName, "w")
+
+    --file:write(saveString)
 end
 
 function CorrectionGroup:copyNodes(nodes)
@@ -181,6 +189,7 @@ function CorrectionGroup:copyNodes(nodes)
 
     for index, node in ipairs(nodes) do
         local newNode = Lua.copyTable(node)
+        newNode.sourceTime = newNode.time
 
         table.insert(copyGroup.nodes, newNode)
     end
@@ -204,7 +213,7 @@ function CorrectionGroup:pasteNodes(offset)
         end
 
         node.isSelected = true
-        table.insert( self.nodes, node )
+        table.insert(self.nodes, node)
     end
 
     self:sort()

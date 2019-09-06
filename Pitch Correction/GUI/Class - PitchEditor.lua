@@ -371,7 +371,7 @@ function GUI.PitchEditor:setItems(items)
 
     for groupIndex, group in ipairs(self.pitchGroups) do
         group.editOffset = group.leftTime - self:getTimeLeftBound()
-        self.correctionGroup:loadSavedCorrections(group)
+        self.correctionGroup:loadCorrectionsFromPitchGroup(group)
     end
 
     self:applyPitchCorrections()
