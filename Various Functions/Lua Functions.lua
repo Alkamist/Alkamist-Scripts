@@ -162,6 +162,8 @@ function Lua.getFileLines(fileName)
 end
 
 function Lua.getStringLines(inputString)
+    if type(inputString) ~= "string" then return {} end
+
     local lines = {}
 
     for line in inputString:gmatch("([^\r\n]+)") do
