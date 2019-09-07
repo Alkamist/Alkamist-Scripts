@@ -110,7 +110,9 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
         node.time = node.time - pitchGroup.startOffset + pitchGroup.editOffset
     end
 
-    self.nodes = loadedNodes
+    for index, node in ipairs(loadedNodes) do
+        table.insert(self.nodes, node)
+    end
 end
 
 function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
@@ -160,6 +162,24 @@ function CorrectionGroup:getNodesWithinPitchGroup(pitchGroup)
     return outputNodes
 end
 
+function CorrectionGroup:spliceInCorrections(correctionGroup, pitchGroup)
+    local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
+
+    Lua.arrayRemove(self.nodes, function(t, i)
+        local value = t[i]
+
+        return value.sourceTime >= leftBound and
+               value.sourceTime <= rightBound
+    end)
+
+    for index, correction in ipairs(correctionGroup.nodes) do
+        table.insert(self.nodes, correction)
+    end
+
+    table.sort(self.nodes, function(a, b) return a.sourceTime < b.sourceTime end)
+end
+
 function CorrectionGroup:saveCorrections(pitchGroup)
     local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
 
@@ -175,13 +195,14 @@ function CorrectionGroup:saveCorrections(pitchGroup)
     local currentCorrections = CorrectionGroup:new()
     currentCorrections.nodes = self:getNodesWithinPitchGroup(pitchGroup)
 
-    local saveString = CorrectionGroup.getSaveString(currentCorrections, pitchGroup)
-    msg(CorrectionGroup.getSaveString(previousCorrections, pitchGroup))
+    previousCorrections:spliceInCorrections(currentCorrections, pitchGroup)
 
-    --local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
-    --local file, err = io.open(fullFileName, "w")
+    local saveString = CorrectionGroup.getSaveString(previousCorrections, pitchGroup)
 
-    --file:write(saveString)
+    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
+    local file, err = io.open(fullFileName, "w")
+
+    file:write(saveString)
 end
 
 function CorrectionGroup:copyNodes(nodes)
