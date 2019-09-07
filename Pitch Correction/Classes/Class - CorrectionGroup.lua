@@ -99,7 +99,8 @@ function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBoun
 end
 
 function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
+    local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
+    local fullFileName = pathName .. "\\" .. pitchGroup.takeName .. ".correction"
 
     local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
     local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
@@ -178,7 +179,10 @@ function CorrectionGroup:spliceInCorrections(correctionGroup, pitchGroup)
 end
 
 function CorrectionGroup:saveCorrections(pitchGroup)
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
+    local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
+    local fullFileName = pathName .. "\\" .. pitchGroup.takeName .. ".correction"
+
+    reaper.RecursiveCreateDirectory(pathName, 0)
 
     local previousCorrections = CorrectionGroup:new()
     previousCorrections.nodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName))
@@ -196,9 +200,9 @@ function CorrectionGroup:saveCorrections(pitchGroup)
 
     local saveString = CorrectionGroup.getSaveString(previousCorrections, pitchGroup)
 
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. pitchGroup.takeName .. ".correction"
-    local file, err = io.open(fullFileName, "w")
 
+
+    local file, err = io.open(fullFileName, "w")
     file:write(saveString)
 end
 

@@ -358,7 +358,12 @@ function PitchGroup.getSaveString(pitchGroup)
 end
 
 function PitchGroup:savePoints()
-    local prevPitchGroups = PitchGroup.loadAllPitchGroups(self.takeFileName .. ".pitch")
+    local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.takeName .. ".pitch"
+
+    reaper.RecursiveCreateDirectory(pathName, 0)
+
+    local prevPitchGroups = PitchGroup.loadAllPitchGroups(fullFileName)
 
     for index, group in ipairs(prevPitchGroups) do
         group.takeFileName = self.takeFileName
@@ -373,14 +378,14 @@ function PitchGroup:savePoints()
     end
 
 
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. self.takeFileName .. ".pitch"
-    local file, err = io.open(fullFileName, "w")
 
+    local file, err = io.open(fullFileName, "w")
     file:write(saveString)
 end
 
 function PitchGroup:loadSavedPoints()
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. self.takeFileName .. ".pitch"
+    local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.takeName .. ".pitch"
 
     local lines = Lua.getFileLines(fullFileName)
 
@@ -447,9 +452,7 @@ function PitchGroup:loadSavedPoints()
 end
 
 function PitchGroup.loadAllPitchGroups(fileName)
-    local fullFileName = reaper.GetProjectPath("") .. "\\" .. fileName
-
-    local lines = Lua.getFileLines(fullFileName)
+    local lines = Lua.getFileLines(fileName)
 
     local pitchGroups = {}
 
