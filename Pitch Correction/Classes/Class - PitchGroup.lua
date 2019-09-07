@@ -359,7 +359,7 @@ end
 
 function PitchGroup:savePoints()
     local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.takeName .. ".pitch"
+    local fullFileName = pathName .. "\\" .. self.takeFileName .. ".pitch"
 
     reaper.RecursiveCreateDirectory(pathName, 0)
 
@@ -385,7 +385,7 @@ end
 
 function PitchGroup:loadSavedPoints()
     local pathName = reaper.GetProjectPath("") .. "\\Alkamist_PitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.takeName .. ".pitch"
+    local fullFileName = pathName .. "\\" .. self.takeFileName .. ".pitch"
 
     local lines = Lua.getFileLines(fullFileName)
 
