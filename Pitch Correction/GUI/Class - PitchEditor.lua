@@ -533,6 +533,18 @@ function GUI.PitchEditor:updateExtremeSelectedNodes()
     end
 end
 
+function GUI.PitchEditor:clampScroll()
+    local scrollXMax = 1.0 - self.w / (self.w * self.zoomX)
+    local scrollYMax = 1.0 - self.h / (self.h * self.zoomY)
+
+    self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
+    self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
+end
+
+function GUI.PitchEditor:clampZoom()
+    self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
+    self.zoomY = GUI.clamp(self.zoomY, 1.0, 100.0)
+end
 
 
 ------------------ Events ------------------
@@ -747,9 +759,6 @@ function GUI.PitchEditor:onm_drag()
     local zoomXSens = 4.0
     local zoomYSens = 4.0
 
-    local scrollXMax = 1.0 - w / (w * self.zoomX)
-    local scrollYMax = 1.0 - h / (h * self.zoomY)
-
     -- Allow toggling shift on and off while middle dragging to switch between zooming
     -- and drag scrolling.
     if gfx.mouse_cap & 8 == 8 and self.mouse_cap_prev & 8 == 0 then
@@ -781,30 +790,29 @@ function GUI.PitchEditor:onm_drag()
     if self.shouldDragScroll then
         -- Horizontal scroll:
         self.scrollX = self.scrollX - (GUI.mouse.x - self.mousePrev.x) / (w * self.zoomX)
-        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
 
         -- Vertical scroll:
         self.scrollY = self.scrollY - (GUI.mouse.y - self.mousePrev.y) / (h * self.zoomY)
-        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
+
+        self:clampScroll()
     end
 
     -- Handle zooming.
     if self.shouldZoom then
         -- Horizontal zoom:
         self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
-        self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
 
         local targetMouseXRatio = self.scrollXPreDrag + self.mouseXPreDrag / (w * self.zoomXPreDrag)
         self.scrollX = targetMouseXRatio - self.mouseXPreDrag / (w * self.zoomX)
-        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
 
         -- Vertical zoom:
         self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
-        self.zoomY = GUI.clamp(self.zoomY, 1.0, 100.0)
 
         local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
         self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
-        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
+
+        self:clampZoom()
+        self:clampScroll()
     end
 
     self.mousePrev.x = GUI.mouse.x
@@ -906,20 +914,17 @@ function GUI.PitchEditor:onwheel(inc)
         local targetMouseYRatio = self.scrollY + GUI.mouse.y / (self.h * self.zoomY)
 
         self.zoomY = self.zoomY + inc * self.zoomY * wheelSens
-        self.zoomY = GUI.clamp(self.zoomY, 1.0, 100.0)
-
         self.scrollY = targetMouseYRatio - GUI.mouse.y / (self.h * self.zoomY)
-        self.scrollY = GUI.clamp(self.scrollY, 0.0, scrollYMax)
 
     else
         local targetMouseXRatio = self.scrollX + GUI.mouse.x / (self.w * self.zoomX)
 
         self.zoomX = self.zoomX + inc * self.zoomX * wheelSens
-        self.zoomX = GUI.clamp(self.zoomX, 1.0, 100.0)
-
         self.scrollX = targetMouseXRatio - GUI.mouse.x / (self.w * self.zoomX)
-        self.scrollX = GUI.clamp(self.scrollX, 0.0, scrollXMax)
     end
+
+    self:clampZoom()
+    self:clampScroll()
 end
 
 GUI.PitchEditor.keys = {
