@@ -107,10 +107,7 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
     local loadedNodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName), leftBound, rightBound)
 
     for index, node in ipairs(loadedNodes) do
-        node.time = node.time - pitchGroup.startOffset + pitchGroup.editOffset
-    end
-
-    for index, node in ipairs(loadedNodes) do
+        node.time = Reaper.getRealPosition(pitchGroup.take, node.sourceTime) + pitchGroup.editOffset
         table.insert(self.nodes, node)
     end
 end
