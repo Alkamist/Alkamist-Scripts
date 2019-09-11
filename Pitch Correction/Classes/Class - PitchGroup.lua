@@ -152,6 +152,7 @@ function PitchGroup:setItem(item)
     if Reaper.getItemType(item) ~= "audio" then return end
 
     self.item = item
+    self.track = reaper.GetMediaItem_Track(item)
     self.take = reaper.GetActiveTake(self.item)
     self.takeName = reaper.GetTakeName(self.take)
     self.takeGUID = reaper.BR_GetMediaItemTakeGUID(self.take)
@@ -284,7 +285,7 @@ function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
-function PitchGroup.getPitchPointsFromExtState(pitchGroup)
+function PitchGroup.getPitchPointsFromExtState(pitchGroup, analysisTake)
     local pointString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
     local pitchPoints = {}
@@ -294,7 +295,7 @@ function PitchGroup.getPitchPointsFromExtState(pitchGroup)
         local values = Lua.getStringValues(line)
 
         local pointTime = values[1] - pitchGroup.startOffset
-        local sourceTime = Reaper.getSourcePosition(pitchGroup.take, pointTime)
+        local sourceTime = Reaper.getSourcePosition(analysisTake, pointTime)
 
         local point = {
 
@@ -327,14 +328,31 @@ function PitchGroup:analyze(settings)
 
     self.points = {}
 
-    PitchGroup.prepareExtStateForPitchDetection(self.takeGUID, settings)
+    local leftBound = Reaper.getSourcePosition(self.take, 0.0)
+    local rightBound = Reaper.getSourcePosition(self.take, self.length)
+    local analysisLength = rightBound - leftBound
+
+    local analysisItem = reaper.AddMediaItemToTrack(self.track)
+    local analysisTake = reaper.AddTakeToMediaItem(analysisItem)
+
+    reaper.SetMediaItemTake_Source(analysisTake, self.takeSource)
+    reaper.SetMediaItemTakeInfo_Value(analysisTake, "D_STARTOFFS", leftBound)
+    reaper.SetMediaItemInfo_Value(analysisItem, "D_LENGTH", analysisLength)
+    reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
+
+    local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
+
+    PitchGroup.prepareExtStateForPitchDetection(analysisTakeGUID, settings)
     Reaper.reaperCMD(analyzerID)
 
-    self.points = PitchGroup.getPitchPointsFromExtState(self)
+    self.points = PitchGroup.getPitchPointsFromExtState(self, analysisTake)
+    self:savePoints()
+
+    self:loadSavedPoints()
     self.minTimePerPoint = self:getMinTimePerPoint()
     self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 
-    self:savePoints()
+    reaper.DeleteTrackMediaItem(self.track, analysisItem)
 end
 
 function PitchGroup.getSaveString(pitchGroup)

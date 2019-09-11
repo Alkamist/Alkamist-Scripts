@@ -428,6 +428,8 @@ function GUI.PitchEditor:analyzePitchGroups()
     for groupIndex, group in ipairs(self.pitchGroups) do
         group:analyze(self.pdSettings)
     end
+
+    self:setItemsToSelectedItems()
 end
 
 function GUI.PitchEditor:getSnappedPitch(pitch)
