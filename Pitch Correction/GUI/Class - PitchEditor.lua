@@ -33,6 +33,8 @@ GUI.colors["play_cursor"] = {255, 255, 255, 40}
 GUI.colors["correction"] = {65, 210, 240, 255}
 GUI.colors["correction_inactive"] = {232, 30, 105, 255}
 
+GUI.colors["item_edges"] = {255, 255, 255, 25}
+
 GUI.colors["box_select"] = {255, 255, 255, 150}
 
 local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -997,13 +999,11 @@ function GUI.PitchEditor:drawUI()
     gfx.setimgdim(self.uiBuffer, self.w, self.h)
     gfx.dest = self.uiBuffer
 
-    --GUI.color("elm_bg")
-    --gfx.rect(0, 0, self.w, self.h, 1)
-
     self:drawKeyBackgrounds()
     self:drawKeyLines()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
+    self:drawItemEdges()
     self:drawCorrectionGroup()
     self:drawEditCursor()
     self:drawBoxSelect()
@@ -1148,6 +1148,23 @@ function GUI.PitchEditor:drawKeyLines()
 
             gfx.a = 1.0
         end
+    end
+end
+
+function GUI.PitchEditor:drawItemEdges()
+    for index, group in ipairs(self.pitchGroups) do
+        local leftBoundTime = group.editOffset
+        local rightBoundTime = leftBoundTime + group.length
+
+        local leftBoundPixels = self:getPixelsFromTime(leftBoundTime) - self.x
+        local rightBoundPixels = self:getPixelsFromTime(rightBoundTime) - self.x
+
+        GUI.color("item_edges")
+
+        gfx.line(leftBoundPixels, 0, leftBoundPixels, self.h, false)
+        gfx.line(rightBoundPixels, 0, rightBoundPixels, self.h, false)
+
+        gfx.a = 1.0
     end
 end
 
