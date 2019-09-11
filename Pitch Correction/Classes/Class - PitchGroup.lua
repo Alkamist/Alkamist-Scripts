@@ -25,16 +25,6 @@ end
 
 
 
-function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
-    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
-end
-
 function PitchGroup:getMinTimePerPoint()
     local prevPoint = nil
     local minTimePerPoint = self.length
@@ -282,6 +272,16 @@ function PitchGroup.getPitchGroupsFromItems(items)
     Reaper.setUIRefresh(true)
 
     return pitchGroups
+end
+
+function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
 end
 
 function PitchGroup.getPitchPointsFromExtState(pitchGroup)

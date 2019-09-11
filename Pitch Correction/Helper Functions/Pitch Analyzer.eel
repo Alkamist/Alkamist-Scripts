@@ -145,7 +145,7 @@ local(maxLook minLook dpos cmndpos i freq) (
 );
 
 function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSlimit lowRMSlimitdB overlap YINthresh)
-local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSource accessor bufferSize seekPosition length rms trig_note i_com)
+local(item take startOffset sourceSampleRate numStretchMarkers itemSource accessor bufferSize seekPosition length rms)
 (
     #pitchData = "";
 
@@ -157,7 +157,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
 
         length = GetMediaItemInfo_Value(item, "D_LENGTH");
         startOffset = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
-        playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
         numStretchMarkers = GetTakeNumStretchMarkers(take);
         itemSource = GetMediaItemTake_Source(take);
         sourceSampleRate = GetMediaSourceSampleRate(itemSource);
@@ -169,12 +168,10 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
         seekPosition = 0;
         spos = 0;
         memset(0,0, bufferSize); // clear samplebuffer
-        i_com = 1;
 
         accessor = CreateTakeAudioAccessor(take);
 
         while (
-            trig_note = 0;
             GetAudioAccessorSamples(accessor, sourceSampleRate, 1, seekPosition, bufferSize, spos);
 
             // Get RMS
@@ -187,7 +184,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
             last_rms = rms;
 
             // Perform Pitch detection
-            f_com = 0;
             rms > lowRMSlimit ? (
                 frequency = getFrequency(spos, sourceSampleRate, bufferSize, maxlen, windowStep, minF, maxF, YINthresh);
                 note = 69 + 12 * log(frequency / 440) / log(2);
@@ -210,8 +206,6 @@ local(item take startOffset sourceSampleRate numStretchMarkers playrate itemSour
                 );
             );
 
-            lastf_com = f_com;
-            i_com = i_com + 1;
             seekPosition += windowStep / overlap;
             seekPosition < length - windowStep;
         );
