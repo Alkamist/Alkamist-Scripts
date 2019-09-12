@@ -7,8 +7,6 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 
 
 -- Pitch correction settings:
-local modCorrection = 0.3
-local driftCorrection = 1.0
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.09
 local zeroPointSpacing = 0.01
@@ -22,6 +20,8 @@ function CorrectionGroup:new(o)
     o = o or {}
 
     o.nodes = o.nodes or {}
+    o.modCorrection = o.modCorrection or 0.2
+    o.driftCorrection = o.driftCorrection or 1.0
 
     setmetatable(o, self)
     self.__index = self
@@ -262,6 +262,9 @@ function CorrectionGroup:sort()
 end
 
 function CorrectionGroup:addNode(newNode)
+    newNode.modCorrection = newNode.modCorrection or 0.2
+    newNode.driftCorrection = newNode.driftCorrection or 1.0
+
     table.insert(self.nodes, newNode)
     self:sort()
 
@@ -333,7 +336,7 @@ function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pi
         driftAverage = driftAverage / numDriftPoints
     end
 
-    local pitchCorrection = -driftAverage * driftCorrection
+    local pitchCorrection = -driftAverage * node.driftCorrection
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end
@@ -343,7 +346,7 @@ function CorrectionGroup:correctPitchMod(node, nextNode, point, pointIndex, pitc
     if not targetPitch then return end
 
     local modDeviation = point.correctedPitch - targetPitch
-    local pitchCorrection = -modDeviation * modCorrection
+    local pitchCorrection = -modDeviation * node.modCorrection
 
     point.correctedPitch = point.correctedPitch + pitchCorrection
 end

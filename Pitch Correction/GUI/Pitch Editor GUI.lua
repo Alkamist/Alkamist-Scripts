@@ -12,6 +12,7 @@ GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
 GUI.req("Classes/Class - Textbox.lua")()
 GUI.req("Classes/Class - Menubar.lua")()
+GUI.req("Classes/Class - Knob.lua")()
 
 -- If any of the requested libraries weren't found, abort the script.
 if missing_lib then return 0 end
@@ -86,6 +87,39 @@ elms.pitch_editor = {
     pdSettings = pdSettings
 }
 
+local knobsX = 10
+local knobsY = 25
+local knobSize = 22
+local knobPadding = 10
+
+elms.mod_knob = {
+    type = "Knob",
+    z = 3,
+    x = knobsX,
+    y = knobsY,
+    w = knobSize,
+    h = knobSize,
+    min = 0.0,
+    max = 1.0,
+    default = 20,
+    inc = 0.01,
+    tooltip = "Mod Correction"
+}
+
+elms.drift_knob = {
+    type = "Knob",
+    z = 3,
+    x = knobsX + knobSize + knobPadding,
+    y = knobsY,
+    w = knobSize,
+    h = knobSize,
+    min = 0.0,
+    max = 1.0,
+    default = 100,
+    inc = 0.01,
+    tooltip = "Drift Correction"
+}
+
 elms.menus = {
     type = "Menubar",
     z = 3,
@@ -131,6 +165,39 @@ elms.menus = {
 
 
 GUI.CreateElms(elms)
+
+
+
+local function changeCorrectionParams()
+    local params = {
+        modCorrection = elms.mod_knob:val(),
+        driftCorrection = elms.drift_knob:val()
+    }
+
+    elms.pitch_editor:changeSelectedNodesParams(params)
+end
+
+function elms.mod_knob:ondrag()
+    GUI.Knob.ondrag(self)
+    changeCorrectionParams()
+end
+
+function elms.mod_knob:ondoubleclick()
+    GUI.Knob.ondoubleclick(self)
+    changeCorrectionParams()
+end
+
+function elms.drift_knob:ondrag()
+    GUI.Knob.ondrag(self)
+    changeCorrectionParams()
+end
+
+function elms.drift_knob:ondoubleclick()
+    GUI.Knob.ondoubleclick(self)
+    changeCorrectionParams()
+end
+
+
 
 local function mainLoop()
     -- Allow space to play the project.

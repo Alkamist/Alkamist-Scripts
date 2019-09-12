@@ -83,6 +83,19 @@ end
 
 ------------------ Helper Functions ------------------
 
+function GUI.PitchEditor:changeSelectedNodesParams(params)
+    if not params.modCorrection then params.modCorrection = 0.0 end
+    if not params.driftCorrection then params.driftCorrection = 0.0 end
+
+    for index, node in ipairs(self.selectedNodes) do
+        node.modCorrection = params.modCorrection
+        node.driftCorrection = params.driftCorrection
+    end
+
+    self:applyPitchCorrections(true)
+    reaper.UpdateArrange()
+end
+
 function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     self.selectedNodes = {}
 
