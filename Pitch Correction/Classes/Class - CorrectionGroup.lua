@@ -114,24 +114,38 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
 end
 
 function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
-    local pitchKeyString = "sourceTime pitch isActive isSelected"
+    local pitchKeyString = "sourceTime pitch modCorrection driftCorrection isActive isSelected"
     local pitchString = ""
 
     for pointIndex, node in ipairs(correctionGroup.nodes) do
 
+        if not node.pitch then node.pitch = 0.0 end
+        if not node.modCorrection then node.modCorrection = 0.0 end
+        if not node.driftCorrection then node.driftCorrection = 0.0 end
+        if not node.isActive then node.isActive = false end
+        if not node.isSelected then node.isSelected = false end
+
         if leftBound and rightBound then
+
+            if not node.sourceTime then node.sourceTime = leftBound end
 
             if node.time >= leftBound and node.time <= rightBound then
 
                 pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
                                              tostring(node.pitch) .. " " ..
+                                             tostring(node.modCorrection) .. " " ..
+                                             tostring(node.driftCorrection) .. " " ..
                                              tostring(node.isActive and 1 or 0) .. " " ..
                                              tostring(node.isSelected and 1 or 0) .. "\n"
             end
 
         else
+            if not node.sourceTime then node.sourceTime = 0.0 end
+
             pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
                                          tostring(node.pitch) .. " " ..
+                                         tostring(node.modCorrection) .. " " ..
+                                         tostring(node.driftCorrection) .. " " ..
                                          tostring(node.isActive and 1 or 0) .. " " ..
                                          tostring(node.isSelected and 1 or 0) .. "\n"
         end
