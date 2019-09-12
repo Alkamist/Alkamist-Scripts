@@ -33,7 +33,8 @@ GUI.colors["play_cursor"] = {255, 255, 255, 40}
 GUI.colors["correction"] = {65, 210, 240, 255}
 GUI.colors["correction_inactive"] = {232, 30, 105, 255}
 
-GUI.colors["item_edges"] = {255, 255, 255, 25}
+GUI.colors["item_inside"] = {255, 255, 255, 2}
+GUI.colors["item_edges"] = {255, 255, 255, 11}
 
 GUI.colors["box_select"] = {255, 255, 255, 150}
 
@@ -1001,9 +1002,9 @@ function GUI.PitchEditor:drawUI()
 
     self:drawKeyBackgrounds()
     self:drawKeyLines()
+    self:drawItemEdges()
     self:drawPitchLines()
     self:drawPreviewPitchLines()
-    self:drawItemEdges()
     self:drawCorrectionGroup()
     self:drawEditCursor()
     self:drawBoxSelect()
@@ -1159,13 +1160,19 @@ function GUI.PitchEditor:drawItemEdges()
         local leftBoundPixels = self:getPixelsFromTime(leftBoundTime) - self.x
         local rightBoundPixels = self:getPixelsFromTime(rightBoundTime) - self.x
 
+        local boxWidth = rightBoundPixels - leftBoundPixels
+        local boxHeight = self.h - self.y - 1
+
+        GUI.color("item_inside")
+
+        gfx.rect(leftBoundPixels + 1, 2, boxWidth - 1, boxHeight - 1, 1)
+
         GUI.color("item_edges")
 
-        gfx.line(leftBoundPixels, 0, leftBoundPixels, self.h, false)
-        gfx.line(rightBoundPixels, 0, rightBoundPixels, self.h, false)
-
-        gfx.a = 1.0
+        gfx.rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
+
+    gfx.a = 1.0
 end
 
 function GUI.PitchEditor:drawCorrectionGroup()
