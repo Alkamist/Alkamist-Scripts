@@ -391,7 +391,8 @@ function CorrectionGroup:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGro
     local prevNode = nil
     if nodeIndex > 1 then prevNode = self.nodes[nodeIndex - 1] end
 
-    if nodeTime >= 0.0 and nodeTime <= pitchGroup.length then
+    if nodeTime >= 0.0 and nodeTime <= pitchGroup.length
+    or nextNodeTime >= 0.0 and nextNodeTime <= pitchGroup.length  then
 
         if node.isActive and nodeIndex == 1 then
             reaper.InsertEnvelopePoint(pitchGroup.envelope, (nodeTime + 0.00001) * pitchGroup.playrate, 0.0, 0, 0, false, true)
@@ -440,7 +441,9 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
 
         for index, point in ipairs(pitchGroup.points) do
             if index >= firstIndex and index <= lastIndex then
-                table.insert(points, point)
+                if self:pointIsAffectedByNode(node, nextNode, point, pitchGroup) then
+                    table.insert(points, point)
+                end
             end
         end
 
