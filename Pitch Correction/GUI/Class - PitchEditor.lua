@@ -360,8 +360,10 @@ function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     end
 
     for index, node in ipairs(self.selectedNodes) do
-        node.time = node.time + mouseTimeChange
-        node.pitch = node.pitch + mousePitchChange
+        if not node.isBoundaryNode then
+            node.time = node.time + mouseTimeChange
+            node.pitch = node.pitch + mousePitchChange
+        end
     end
 
     self.correctionGroup:sort()
@@ -1222,7 +1224,11 @@ function GUI.PitchEditor:drawCorrectionGroup()
 
             if not node.isActive then GUI.color("correction_inactive") end
 
-            gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, node.isSelected, true)
+            if node.isBoundaryNode then
+                gfx.rect(rightTimePixels - circleRadii, rightPitchPixels - circleRadii, circleRadii * 2, circleRadii * 2, false)
+            else
+                gfx.circle(rightTimePixels, rightPitchPixels, circleRadii, node.isSelected, true)
+            end
 
         end
 

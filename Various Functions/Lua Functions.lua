@@ -91,22 +91,27 @@ function Lua.minDistanceBetweenPointAndLineSegment(x, y, x1, y1, x2, y2)
 end
 
 function Lua.arrayRemove(t, fnRemove)
-    local j, n = 1, #t;
+    local j, n = 1, #t
 
     for i = 1, n do
+
         if not fnRemove(t, i, j) then
+
             -- Move i's kept value to j's position, if it's not already there.
-            if (i ~= j) then
-                t[j] = t[i];
-                t[i] = nil;
+            if i ~= j then
+                t[j] = t[i]
+                t[i] = nil
             end
-            j = j + 1; -- Increment position of where we'll place the next kept value.
+
+            -- Increment position of where we'll place the next kept value.
+            j = j + 1
+
         else
-            t[i] = nil;
+            t[i] = nil
         end
     end
 
-    return t;
+    return t
 end
 
 function Lua.getFileName(url)

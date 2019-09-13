@@ -37,7 +37,7 @@ function CorrectionGroup:updateSourceTimes(pitchGroup)
     end
 end
 
-function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBound)
+function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBound, pitchGroup)
     local nodes = {}
 
     local lines = Lua.getStringLines(saveString)
@@ -68,6 +68,7 @@ function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBoun
                 local node = {}
 
                 for index, key in ipairs(keys) do
+
                     if key == "isActive" or key == "isSelected" then
                         node[key] = lineValues[index] > 0
                     else
@@ -75,23 +76,77 @@ function CorrectionGroup:getNodesFromSaveString(saveString, leftBound, rightBoun
                     end
                 end
 
+                table.insert(nodes, node)
+
                 if leftBound and rightBound then
 
-                    if node.sourceTime >= leftBound and node.sourceTime <= rightBound then
-
-                        table.insert(nodes, node)
-                        nodes[#nodes].time = nodes[#nodes].sourceTime
+                    if node.sourceTime < leftBound or node.sourceTime > rightBound then
+                        nodes[#nodes].isBoundaryNode = true
                     end
-
-                else
-                    table.insert(nodes, node)
-                    nodes[#nodes].time = nodes[#nodes].sourceTime
                 end
+
+                nodes[#nodes].time = nodes[#nodes].sourceTime
             end
         end
     end
 
     table.sort(nodes, function(a, b) return a.sourceTime < b.sourceTime end)
+
+    if leftBound and rightBound and pitchGroup then
+        -- Remove all boundary nodes except for the closest ones to the boundaries.
+        -- Also move the immediate boundary nodes to the exact boundaries and linearly
+        -- interpolate the pitch.
+        local prevNode = nil
+        Lua.arrayRemove(nodes, function(t, i)
+            local node = t[i]
+            local nextNode = t[i + 1]
+
+            local removeNode = false
+
+            if prevNode then
+                if node.sourceTime > rightBound then
+                    if prevNode.isBoundaryNode then
+                        removeNode = true
+
+                    elseif not prevNode.isActive then
+                        removeNode = true
+
+                    else
+                        prevNode.time = Reaper.getRealPosition(pitchGroup.take, prevNode.sourceTime) + pitchGroup.editOffset
+                        node.time = Reaper.getRealPosition(pitchGroup.take, node.sourceTime) + pitchGroup.editOffset
+                        node.pitch = self:getPitch(pitchGroup.editOffset + pitchGroup.length, prevNode, node)
+
+                        node.sourceTime = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
+                        node.isActive = false
+                    end
+                end
+            end
+
+            if nextNode then
+                if node.sourceTime < leftBound then
+                    if nextNode.isBoundaryNode then
+                        removeNode = true
+
+                    elseif not node.isActive then
+                        removeNode = true
+
+                    else
+                        node.time = Reaper.getRealPosition(pitchGroup.take, node.sourceTime) + pitchGroup.editOffset
+                        nextNode.time = Reaper.getRealPosition(pitchGroup.take, nextNode.sourceTime) + pitchGroup.editOffset
+                        node.pitch = self:getPitch(pitchGroup.editOffset, node, nextNode)
+
+                        node.sourceTime = Reaper.getSourcePosition(pitchGroup.take, 0.0)
+                    end
+                end
+            end
+
+            prevNode = node
+
+            return removeNode
+        end)
+
+        table.sort(nodes, function(a, b) return a.sourceTime < b.sourceTime end)
+    end
 
     return nodes
 end
@@ -103,7 +158,7 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
     local leftBound = Reaper.getSourcePosition(pitchGroup.take, 0.0)
     local rightBound = Reaper.getSourcePosition(pitchGroup.take, pitchGroup.length)
 
-    local loadedNodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName), leftBound, rightBound)
+    local loadedNodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName), leftBound, rightBound, pitchGroup)
 
     for index, node in ipairs(loadedNodes) do
         if not node.sourceTime then node.sourceTime = leftBound end
@@ -124,17 +179,30 @@ function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
 
     for pointIndex, node in ipairs(correctionGroup.nodes) do
 
-        if not node.pitch then node.pitch = 0.0 end
-        if not node.modCorrection then node.modCorrection = 0.2 end
-        if not node.driftCorrection then node.driftCorrection = 1.0 end
-        if not node.isActive then node.isActive = false end
-        if not node.isSelected then node.isSelected = false end
+        if not node.isBoundaryNode then
 
-        if leftBound and rightBound then
+            if not node.pitch then node.pitch = 0.0 end
+            if not node.modCorrection then node.modCorrection = 0.2 end
+            if not node.driftCorrection then node.driftCorrection = 1.0 end
+            if not node.isActive then node.isActive = false end
+            if not node.isSelected then node.isSelected = false end
 
-            if not node.sourceTime then node.sourceTime = leftBound end
+            if leftBound and rightBound then
 
-            if node.time >= leftBound and node.time <= rightBound then
+                if not node.sourceTime then node.sourceTime = leftBound end
+
+                if node.time >= leftBound and node.time <= rightBound then
+
+                    pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
+                                                 tostring(node.pitch) .. " " ..
+                                                 tostring(node.modCorrection) .. " " ..
+                                                 tostring(node.driftCorrection) .. " " ..
+                                                 tostring(node.isActive and 1 or 0) .. " " ..
+                                                 tostring(node.isSelected and 1 or 0) .. "\n"
+                end
+
+            else
+                if not node.sourceTime then node.sourceTime = 0.0 end
 
                 pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
                                              tostring(node.pitch) .. " " ..
@@ -144,15 +212,6 @@ function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
                                              tostring(node.isSelected and 1 or 0) .. "\n"
             end
 
-        else
-            if not node.sourceTime then node.sourceTime = 0.0 end
-
-            pitchString = pitchString .. tostring(node.sourceTime) .. " " ..
-                                         tostring(node.pitch) .. " " ..
-                                         tostring(node.modCorrection) .. " " ..
-                                         tostring(node.driftCorrection) .. " " ..
-                                         tostring(node.isActive and 1 or 0) .. " " ..
-                                         tostring(node.isSelected and 1 or 0) .. "\n"
         end
     end
 
@@ -286,11 +345,9 @@ function CorrectionGroup:getNodeIndex(inputNode)
     return nil
 end
 
-function CorrectionGroup:getPitch(time, node, nextNode, pitchGroup)
-    local relativeTime = time + pitchGroup.editOffset
-
+function CorrectionGroup:getPitch(time, node, nextNode)
     if node and nextNode then
-        local timeRatio = (relativeTime - node.time) / (nextNode.time - node.time)
+        local timeRatio = (time - node.time) / (nextNode.time - node.time)
         local pitch = node.pitch + (nextNode.pitch - node.pitch) * timeRatio
 
         return pitch
@@ -325,7 +382,7 @@ function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pi
 
             if driftPointIsInCorrectionRadius and self:pointIsAffectedByNode(node, nextNode, driftPoint, pitchGroup) then
 
-                local targetPitch = self:getPitch(driftPoint.time, node, nextNode, pitchGroup)
+                local targetPitch = self:getPitch(driftPoint.time + pitchGroup.editOffset, node, nextNode)
 
                 if targetPitch then
                     driftAverage = driftAverage + driftPoint.pitch - targetPitch
@@ -347,7 +404,7 @@ function CorrectionGroup:correctPitchDrift(node, nextNode, point, pointIndex, pi
 end
 
 function CorrectionGroup:correctPitchMod(node, nextNode, point, pointIndex, pitchGroup)
-    local targetPitch = self:getPitch(point.time, node, nextNode, pitchGroup)
+    local targetPitch = self:getPitch(point.time + pitchGroup.editOffset, node, nextNode)
     if not targetPitch then return end
 
     local modDeviation = point.correctedPitch - targetPitch
