@@ -20,8 +20,6 @@ function CorrectionGroup:new(o)
     o = o or {}
 
     o.nodes = o.nodes or {}
-    o.modCorrection = o.modCorrection or 0.2
-    o.driftCorrection = o.driftCorrection or 1.0
 
     setmetatable(o, self)
     self.__index = self
@@ -108,6 +106,13 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
     local loadedNodes = self:getNodesFromSaveString(Lua.getFileString(fullFileName), leftBound, rightBound)
 
     for index, node in ipairs(loadedNodes) do
+        if not node.sourceTime then node.sourceTime = leftBound end
+        if not node.pitch then node.pitch = 0.0 end
+        if not node.modCorrection then node.modCorrection = 0.2 end
+        if not node.driftCorrection then node.driftCorrection = 1.0 end
+        if not node.isActive then node.isActive = false end
+        if not node.isSelected then node.isSelected = false end
+
         node.time = Reaper.getRealPosition(pitchGroup.take, node.sourceTime) + pitchGroup.editOffset
         table.insert(self.nodes, node)
     end
@@ -120,8 +125,8 @@ function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
     for pointIndex, node in ipairs(correctionGroup.nodes) do
 
         if not node.pitch then node.pitch = 0.0 end
-        if not node.modCorrection then node.modCorrection = 0.0 end
-        if not node.driftCorrection then node.driftCorrection = 0.0 end
+        if not node.modCorrection then node.modCorrection = 0.2 end
+        if not node.driftCorrection then node.driftCorrection = 1.0 end
         if not node.isActive then node.isActive = false end
         if not node.isSelected then node.isSelected = false end
 
