@@ -822,14 +822,14 @@ function GUI.PitchEditor:onm_drag()
         -- Horizontal zoom:
         self.zoomX = self.zoomX * (1.0 + zoomXSens * (GUI.mouse.x - self.mousePrev.x) / w)
 
-        local targetMouseXRatio = self.scrollXPreDrag + self.mouseXPreDrag / (w * self.zoomXPreDrag)
-        self.scrollX = targetMouseXRatio - self.mouseXPreDrag / (w * self.zoomX)
+        local targetMouseXRatio = self.scrollXPreDrag + (self.mouseXPreDrag - self.x) / (w * self.zoomXPreDrag)
+        self.scrollX = targetMouseXRatio - (self.mouseXPreDrag - self.x) / (w * self.zoomX)
 
         -- Vertical zoom:
         self.zoomY = self.zoomY * (1.0 + zoomYSens * (GUI.mouse.y - self.mousePrev.y) / h)
 
-        local targetMouseYRatio = self.scrollYPreDrag + self.mouseYPreDrag / (h * self.zoomYPreDrag)
-        self.scrollY = targetMouseYRatio - self.mouseYPreDrag / (h * self.zoomY)
+        local targetMouseYRatio = self.scrollYPreDrag + (self.mouseYPreDrag - self.y) / (h * self.zoomYPreDrag)
+        self.scrollY = targetMouseYRatio - (self.mouseYPreDrag - self.y) / (h * self.zoomY)
 
         self:clampZoom()
         self:clampScroll()
@@ -931,16 +931,16 @@ function GUI.PitchEditor:onwheel(inc)
 
     -- Holding control.
     if gfx.mouse_cap & 4 == 4 then
-        local targetMouseYRatio = self.scrollY + GUI.mouse.y / (self.h * self.zoomY)
+        local targetMouseYRatio = self.scrollY + (GUI.mouse.y - self.y) / (self.h * self.zoomY)
 
         self.zoomY = self.zoomY + inc * self.zoomY * wheelSens
-        self.scrollY = targetMouseYRatio - GUI.mouse.y / (self.h * self.zoomY)
+        self.scrollY = targetMouseYRatio - (GUI.mouse.y - self.y) / (self.h * self.zoomY)
 
     else
-        local targetMouseXRatio = self.scrollX + GUI.mouse.x / (self.w * self.zoomX)
+        local targetMouseXRatio = self.scrollX + (GUI.mouse.x - self.x) / (self.w * self.zoomX)
 
         self.zoomX = self.zoomX + inc * self.zoomX * wheelSens
-        self.scrollX = targetMouseXRatio - GUI.mouse.x / (self.w * self.zoomX)
+        self.scrollX = targetMouseXRatio - (GUI.mouse.x - self.x) / (self.w * self.zoomX)
     end
 
     self:clampZoom()
