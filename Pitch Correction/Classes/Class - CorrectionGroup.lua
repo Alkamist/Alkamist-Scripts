@@ -502,7 +502,7 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
         local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
         local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
 
-        for index, point in next, pitchGroup.points, firstIndex do
+        for index, point in next, pitchGroup.points, (firstIndex - 1) do
             if index > lastIndex then break end
 
             if self:pointIsAffectedByNode(node, nextNode, point, pitchGroup) then
