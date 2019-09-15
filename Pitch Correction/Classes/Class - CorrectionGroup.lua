@@ -20,6 +20,7 @@ function CorrectionGroup:new(o)
     o = o or {}
 
     o.nodes = o.nodes or {}
+    o.defaults = o.defaults or {}
 
     setmetatable(o, self)
     self.__index = self
@@ -163,8 +164,8 @@ function CorrectionGroup:loadCorrectionsFromPitchGroup(pitchGroup)
     for index, node in ipairs(loadedNodes) do
         if not node.sourceTime then node.sourceTime = leftBound end
         if not node.pitch then node.pitch = 0.0 end
-        if not node.modCorrection then node.modCorrection = 0.2 end
-        if not node.driftCorrection then node.driftCorrection = 1.0 end
+        if not node.modCorrection then node.modCorrection = self.defaults.modCorrection or 0.2 end
+        if not node.driftCorrection then node.driftCorrection = self.defaults.driftCorrection or 1.0 end
         if not node.isActive then node.isActive = false end
         if not node.isSelected then node.isSelected = false end
 
@@ -182,8 +183,8 @@ function CorrectionGroup.getSaveString(correctionGroup, leftBound, rightBound)
         if not node.isBoundaryNode then
 
             if not node.pitch then node.pitch = 0.0 end
-            if not node.modCorrection then node.modCorrection = 0.2 end
-            if not node.driftCorrection then node.driftCorrection = 1.0 end
+            if not node.modCorrection then node.modCorrection = self.defaults.modCorrection or 0.2 end
+            if not node.driftCorrection then node.driftCorrection = self.defaults.driftCorrection or 1.0 end
             if not node.isActive then node.isActive = false end
             if not node.isSelected then node.isSelected = false end
 
@@ -326,8 +327,8 @@ function CorrectionGroup:sort()
 end
 
 function CorrectionGroup:addNode(newNode)
-    newNode.modCorrection = newNode.modCorrection or 0.2
-    newNode.driftCorrection = newNode.driftCorrection or 1.0
+    newNode.modCorrection = newNode.modCorrection or self.defaults.modCorrection or 0.2
+    newNode.driftCorrection = newNode.driftCorrection or self.defaults.driftCorrection or 1.0
 
     table.insert(self.nodes, newNode)
     self:sort()

@@ -177,26 +177,42 @@ local function changeCorrectionParams()
     elms.pitch_editor:changeSelectedNodesParams(params)
 end
 
+local function changeCorrectionDefaults()
+    elms.pitch_editor.correctionGroup.defaults.modCorrection = elms.mod_knob:val()
+    elms.pitch_editor.correctionGroup.defaults.driftCorrection = elms.drift_knob:val()
+end
+
 function elms.mod_knob:ondrag()
     GUI.Knob.ondrag(self)
     changeCorrectionParams()
+    changeCorrectionDefaults()
 end
 
 function elms.mod_knob:ondoubleclick()
     GUI.Knob.ondoubleclick(self)
     changeCorrectionParams()
+    changeCorrectionDefaults()
 end
 
 function elms.drift_knob:ondrag()
     GUI.Knob.ondrag(self)
     changeCorrectionParams()
+    changeCorrectionDefaults()
 end
 
 function elms.drift_knob:ondoubleclick()
     GUI.Knob.ondoubleclick(self)
     changeCorrectionParams()
+    changeCorrectionDefaults()
 end
 
+
+function elms.pitch_editor:selectNode(node)
+    GUI.PitchEditor.selectNode(self, node)
+
+    elms.mod_knob:val(node.modCorrection / elms.mod_knob.inc)
+    elms.drift_knob:val(node.driftCorrection / elms.drift_knob.inc)
+end
 
 
 local function mainLoop()
