@@ -499,17 +499,24 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
 
         local points = {}
 
-        local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
-        local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
+        --local firstIndex = pitchGroup:getPointIndexByTime(node.time - pitchGroup.editOffset, false)
+        --local lastIndex = pitchGroup:getPointIndexByTime(nextNode.time - pitchGroup.editOffset, true)
+
+        local firstIndex = #pitchGroup.points
+        local lastIndex = 1
 
         for index, point in ipairs(pitchGroup.points) do
-            if index >= firstIndex and index <= lastIndex then
+            --if index >= firstIndex and index <= lastIndex then
                 if self:pointIsAffectedByNode(node, nextNode, point, pitchGroup) then
                     table.insert(points, point)
-                end
-            end
-        end
 
+                    firstIndex = math.min(firstIndex, index)
+                    lastIndex = math.max(lastIndex, index)
+                end
+            --end
+        end
+        --msg(firstIndex)
+        --msg(lastIndex)
         return points, firstIndex, lastIndex
 
     end
@@ -517,12 +524,12 @@ function CorrectionGroup:getPointsAffectedByNode(node, nextNode, pitchGroup)
     return {}, 0, 0
 end
 
-function CorrectionGroup:clearSelectedNodes(selectedNodes, selectedNodesStartingIndex, pitchGroup)
+function CorrectionGroup:clearSelectedNodes(selectedNodes, pitchGroup)
     if #self.nodes < 2 then return end
 
     for nodeIndex, node in ipairs(selectedNodes) do
 
-        local nodeFullIndex = selectedNodesStartingIndex + nodeIndex - 1
+        local nodeFullIndex = self:getNodeIndex(node)
 
         local prevNode = nil
         if nodeFullIndex > 1 then prevNode = self.nodes[nodeFullIndex - 1] end
@@ -577,12 +584,12 @@ function CorrectionGroup:correctPitchGroupWithNodes(node, nextNode, nodeIndex, p
     self:addEdgePointsToNode(node, nextNode, nodeIndex, pitchGroup)
 end
 
-function CorrectionGroup:correctPitchGroupWithSelectedNodes(selectedNodes, selectedNodesStartingIndex, pitchGroup)
+function CorrectionGroup:correctPitchGroupWithSelectedNodes(selectedNodes, pitchGroup)
     if #self.nodes < 2 then return end
 
     for nodeIndex, node in ipairs(selectedNodes) do
 
-        local nodeFullIndex = selectedNodesStartingIndex + nodeIndex - 1
+        local nodeFullIndex = self:getNodeIndex(node)
 
         local prevNode = nil
         if nodeFullIndex > 1 then prevNode = self.nodes[nodeFullIndex - 1] end

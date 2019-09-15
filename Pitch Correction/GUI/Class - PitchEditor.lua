@@ -257,8 +257,6 @@ function GUI.PitchEditor:selectNode(node)
             table.insert(self.selectedNodes, node)
 
             table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
-
-            self.selectedNodesStartingIndex = self.correctionGroup:getNodeIndex(self.selectedNodes[1])
         end
     end
 end
@@ -275,12 +273,7 @@ function GUI.PitchEditor:unselectNode(node)
             end)
 
             if #self.selectedNodes > 0 then
-
                 table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
-                self.selectedNodesStartingIndex = self.correctionGroup:getNodeIndex(self.selectedNodes[1])
-
-            else
-                self.selectedNodesStartingIndex = 0
             end
         end
     end
@@ -298,7 +291,7 @@ end
 function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
     for groupIndex, group in ipairs(self.pitchGroups) do
         if useSelectedNodes then
-            self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
+            self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, group)
         else
             reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
             self.correctionGroup:correctPitchGroup(group)
@@ -356,7 +349,7 @@ end
 
 function GUI.PitchEditor:handleNodeEditing(mouseTimeChange, mousePitchChange)
     for groupIndex, group in ipairs(self.pitchGroups) do
-        self.correctionGroup:clearSelectedNodes(self.selectedNodes, self.selectedNodesStartingIndex, group)
+        self.correctionGroup:clearSelectedNodes(self.selectedNodes, group)
     end
 
     for index, node in ipairs(self.selectedNodes) do
