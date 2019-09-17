@@ -13,6 +13,7 @@ GUI.req("Classes/Class - Tabs.lua")()
 GUI.req("Classes/Class - Textbox.lua")()
 GUI.req("Classes/Class - Menubar.lua")()
 GUI.req("Classes/Class - Knob.lua")()
+GUI.req("Classes/Class - Window.lua")()
 
 -- If any of the requested libraries weren't found, abort the script.
 if missing_lib then return 0 end
@@ -71,6 +72,10 @@ local menu_functions = {
 
     applyAllPitchCorrections =  function()
         elms.pitch_editor:applyPitchCorrections()
+    end,
+
+    openSettingsMenu =  function()
+        elms.pitch_settings:open()
     end
 
 }
@@ -133,7 +138,8 @@ elms.menus = {
             options = {
                 { "Save Pitch Corrections",  menu_functions.savePitchCorrections },
                 { "Load Selected Items",     menu_functions.loadSelectedItems },
-                { "Analyze Pitch Content",   menu_functions.analyzePitchGroups }
+                { "Analyze Pitch Content",   menu_functions.analyzePitchGroups },
+                { "Open Pitch Detection Settings",   menu_functions.openSettingsMenu }
             }
         },
 
@@ -144,9 +150,9 @@ elms.menus = {
                 { "Paste Pitch Corrections", menu_functions.pastePitchCorrections },
                 { "Apply All Pitch Corrections", menu_functions.applyAllPitchCorrections }
             }
-        },
+        }--,
 
-        { title = "View",
+        --[[{ title = "View",
 
             options = {
                 { "Empty",  function() return 0 end }
@@ -158,13 +164,108 @@ elms.menus = {
             options = {
                 { "Empty",  function() return 0 end }
             }
-        }
+        }]]--
     }
 }
 
 
 
+local function createTextboxSetting(title, caption, startingValue, settingNumber)
+    local pdSettingsFont = {fonts.mono, 12}
+
+    local pdSettingsZLayer = 9
+    local pdSettingsXPos = 6
+    local pdSettingsStartingHeight = 6
+    local pdSettingsWidth = 60
+    local pdSettingsHeight = 17
+    local pdSettingsCaptionPadding = 4
+    local pdSettingsVerticalPadding = 1
+
+    local pdSettingsYPos = pdSettingsStartingHeight + (settingNumber - 1) * (pdSettingsVerticalPadding + pdSettingsHeight)
+
+    elms[title] = {
+        type = "Textbox",
+        z = pdSettingsZLayer,
+        x = pdSettingsXPos,
+        y = pdSettingsYPos,
+        w = pdSettingsWidth,
+        h = pdSettingsHeight,
+        caption = caption,
+        pad = pdSettingsCaptionPadding,
+        retval = startingValue,
+        font_b = pdSettingsFont,
+        cap_pos = "right",
+        x_offset = pdSettingsXPos,
+        y_offset = pdSettingsYPos
+    }
+end
+
+local settingNumber = 1
+
+createTextboxSetting("windowStep", "Window step (seconds)", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("overlap", "Overlap", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("minFreq", "Minimum frequency (Hz)", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("maxFreq", "Maximum frequency (Hz)", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("YINThresh", "YIN threshold", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB)", 59, settingNumber);
+settingNumber = settingNumber + 1;
+
+
+elms.pitch_settings = {
+    type = "Window",
+    z = 10,
+    x = 1,
+    y = 1,
+    w = 300,
+    h = 300,
+    caption = "Pitch Detection Settings",
+    z_set = { 9, 10 }
+}
+
+GUI.elms_hide[10] = true
+GUI.elms_hide[9] = true
+
+
+
 GUI.CreateElms(elms)
+
+
+
+function elms.pitch_settings:onopen()
+    GUI.elms.windowStep.x = self.x + GUI.elms.windowStep.x_offset
+    GUI.elms.windowStep.y = self.y + self.title_height + GUI.elms.windowStep.y_offset
+    GUI.elms.windowStep:redraw()
+
+    GUI.elms.overlap.x = self.x + GUI.elms.overlap.x_offset
+    GUI.elms.overlap.y = self.y + self.title_height + GUI.elms.overlap.y_offset
+    GUI.elms.overlap:redraw()
+
+    GUI.elms.minFreq.x = self.x + GUI.elms.minFreq.x_offset
+    GUI.elms.minFreq.y = self.y + self.title_height + GUI.elms.minFreq.y_offset
+    GUI.elms.minFreq:redraw()
+
+    GUI.elms.maxFreq.x = self.x + GUI.elms.maxFreq.x_offset
+    GUI.elms.maxFreq.y = self.y + self.title_height + GUI.elms.maxFreq.y_offset
+    GUI.elms.maxFreq:redraw()
+
+    GUI.elms.YINThresh.x = self.x + GUI.elms.YINThresh.x_offset
+    GUI.elms.YINThresh.y = self.y + self.title_height + GUI.elms.YINThresh.y_offset
+    GUI.elms.YINThresh:redraw()
+
+    GUI.elms.lowRMSLimitdB.x = self.x + GUI.elms.lowRMSLimitdB.x_offset
+    GUI.elms.lowRMSLimitdB.y = self.y + self.title_height + GUI.elms.lowRMSLimitdB.y_offset
+    GUI.elms.lowRMSLimitdB:redraw()
+end
 
 
 
