@@ -51,7 +51,7 @@ local elms = {}
 local menu_functions = {
 
     analyzePitchGroups = function()
-        elms.pitch_editor:analyzePitchGroups()
+        elms.pitch_editor:analyzePitchGroups(pdSettings)
     end,
 
     savePitchCorrections =  function()
@@ -202,22 +202,22 @@ end
 
 local settingNumber = 1
 
-createTextboxSetting("windowStep", "Window step (seconds)", 59, settingNumber);
+createTextboxSetting("windowStep", "Window step (seconds)", pdSettings.windowStep, settingNumber);
 settingNumber = settingNumber + 1;
 
-createTextboxSetting("overlap", "Overlap", 59, settingNumber);
+createTextboxSetting("overlap", "Overlap", pdSettings.overlap, settingNumber);
 settingNumber = settingNumber + 1;
 
-createTextboxSetting("minFreq", "Minimum frequency (Hz)", 59, settingNumber);
+createTextboxSetting("minFreq", "Minimum frequency (Hz)", pdSettings.minimumFrequency, settingNumber);
 settingNumber = settingNumber + 1;
 
-createTextboxSetting("maxFreq", "Maximum frequency (Hz)", 59, settingNumber);
+createTextboxSetting("maxFreq", "Maximum frequency (Hz)", pdSettings.maximumFrequency, settingNumber);
 settingNumber = settingNumber + 1;
 
-createTextboxSetting("YINThresh", "YIN threshold", 59, settingNumber);
+createTextboxSetting("YINThresh", "YIN threshold", pdSettings.YINThresh, settingNumber);
 settingNumber = settingNumber + 1;
 
-createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB)", 59, settingNumber);
+createTextboxSetting("lowRMSLimitdB", "Low RMS limit (dB)", pdSettings.lowRMSLimitdB, settingNumber);
 settingNumber = settingNumber + 1;
 
 
@@ -321,6 +321,14 @@ local function mainLoop()
     if GUI.char == 32 then
         reaper.Main_OnCommandEx(40044, 0, 0)
     end
+
+    -- Update the pitch detection settings that get passed to the editor.
+    pdSettings.windowStep = GUI.elms.windowStep:val()
+    pdSettings.overlap = GUI.elms.overlap:val()
+    pdSettings.minimumFrequency = GUI.elms.minFreq:val()
+    pdSettings.maximumFrequency = GUI.elms.maxFreq:val()
+    pdSettings.YINThresh = GUI.elms.YINThresh:val()
+    pdSettings.lowRMSLimitdB = GUI.elms.lowRMSLimitdB:val()
 
     GUI.save_window_state("Alkamist_PitchCorrection", "windowState")
 end

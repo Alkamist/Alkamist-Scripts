@@ -435,9 +435,9 @@ function GUI.PitchEditor:initDragZoomAndScroll()
     self.mouse_cap_prev = self.mouse_cap_prev or gfx.mouse_cap
 end
 
-function GUI.PitchEditor:analyzePitchGroups()
+function GUI.PitchEditor:analyzePitchGroups(pdSettings)
     for groupIndex, group in ipairs(self.pitchGroups) do
-        group:analyze(self.pdSettings)
+        group:analyze(pdSettings)
     end
 
     self:setItemsToSelectedItems()
