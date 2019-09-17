@@ -19,15 +19,38 @@ GUI.req("Classes/Class - Window.lua")()
 if missing_lib then return 0 end
 
 
+local function getExtStateSetting(section, key, default)
+    if reaper.HasExtState(section, key) then
+        return tonumber( reaper.GetExtState(section, key) )
+    end
+
+    return default
+end
+
+local function getPitchSettings()
+    local settings = {}
+
+    settings.windowStep = getExtStateSetting("Alkamist_PitchCorrection", "WINDOWSTEP", 0.04)
+    settings.overlap = getExtStateSetting("Alkamist_PitchCorrection", "OVERLAP", 2.0)
+    settings.minimumFrequency = getExtStateSetting("Alkamist_PitchCorrection", "MINFREQ", 80)
+    settings.maximumFrequency = getExtStateSetting("Alkamist_PitchCorrection", "MAXFREQ", 1000)
+    settings.YINThresh = getExtStateSetting("Alkamist_PitchCorrection", "YINTHRESH", 0.2)
+    settings.lowRMSLimitdB = getExtStateSetting("Alkamist_PitchCorrection", "LOWRMSLIMDB", -60)
+
+    return settings
+end
+
+local function savePitchSettings(settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, true)
+end
 
 -- Pitch detection settings:
-local pdSettings = {}
-pdSettings.windowStep = 0.04
-pdSettings.overlap = 2.0
-pdSettings.minimumFrequency = 80
-pdSettings.maximumFrequency = 500
-pdSettings.YINThresh = 0.2
-pdSettings.lowRMSLimitdB = -60
+local pdSettings = getPitchSettings()
 
 
 
@@ -329,6 +352,8 @@ local function mainLoop()
     pdSettings.maximumFrequency = GUI.elms.maxFreq:val()
     pdSettings.YINThresh = GUI.elms.YINThresh:val()
     pdSettings.lowRMSLimitdB = GUI.elms.lowRMSLimitdB:val()
+
+    savePitchSettings(pdSettings)
 
     GUI.save_window_state("Alkamist_PitchCorrection", "windowState")
 end

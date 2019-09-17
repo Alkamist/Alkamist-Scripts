@@ -277,12 +277,12 @@ end
 
 function PitchGroup.prepareExtStateForPitchDetection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, true)
 end
 
 function PitchGroup.getPitchPointsFromExtState(pitchGroup, analysisTake)
