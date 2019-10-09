@@ -61,9 +61,25 @@ function TimeSeries.loadFromString(saveString, loadMembers)
             local valueIndex = 1
             for value in string.gmatch(line, "[%.%-%d]+") do
                 local valueName = nameKeys[valueIndex]
-                point[valueName] = value
+
+                -- Only insert the value into the point if it is one of the load members.
+                for _, member in pairs(loadMembers) do
+                    if valueName == member.name then
+                        point[valueName] = value
+                        break
+                    end
+                end
+
                 valueIndex = valueIndex + 1
             end
+
+            -- Set any load members that weren't present to the defaults.
+            for _, member in pairs(loadMembers) do
+                if point[member.name] == nil then
+                    point[member.name] = member.default
+                end
+            end
+
             table.insert(points, point)
         end
     end
