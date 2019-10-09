@@ -1,4 +1,4 @@
-local TimeSeries = require "TimeSeries"
+local TimeSeries = require "Time Series"
 
 local PitchCorrection = {}
 

@@ -1,5 +1,3 @@
--------------- General Lua Functions --------------
-
 local Lua = {}
 
 function Lua.clamp(number, low, high)
