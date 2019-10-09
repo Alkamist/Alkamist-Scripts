@@ -564,11 +564,8 @@ end
 
 function GUI.PitchEditor:init()
     self:onresize()
-
     self:initDragZoomAndScroll()
-
     self:setItemsToSelectedItems()
-
     self:drawUI()
 end
 

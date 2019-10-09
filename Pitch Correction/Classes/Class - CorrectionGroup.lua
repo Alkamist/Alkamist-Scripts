@@ -10,7 +10,6 @@ local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
 local driftCorrectionSpeed = 0.17
 local zeroPointThreshold = 0.09
 local zeroPointSpacing = 0.01
-local edgePointSpacing = 0.01
 
 
 
