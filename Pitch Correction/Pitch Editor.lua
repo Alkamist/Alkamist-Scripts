@@ -6,14 +6,10 @@ if not GUI then
     return 0
 end
 
-
 local Lua = require "Various Functions.Lua Functions"
-local PitchGroup = require "Pitch Correction.Classes.Class - PitchGroup"
-local CorrectionGroup = require "Pitch Correction.Classes.Class - CorrectionGroup"
+local PitchCorrection = require "Pitch Correction.Pitch Correction"
 
 local mousePitchCorrectionPixelTolerance = 8
-
-
 
 GUI.colors["white_keys"] = {112, 112, 112, 255}
 GUI.colors["black_keys"] = {81, 81, 81, 255}
@@ -65,12 +61,10 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
         y = 0
     }
 
-    object.correctionGroup = CorrectionGroup:new()
+    object.correctionNodes = {}
     object.selectedNodes = {}
 
-    object.pitchGroups = {}
     object.focus = true
-
     GUI.redraw_z[z] = true
 
     setmetatable(object, self)
@@ -99,9 +93,8 @@ end
 function GUI.PitchEditor:deleteSelectedCorrectionNodes()
     self.selectedNodes = {}
 
-    Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
+    Lua.arrayRemove(self.correctionNodes, function(t, i)
         local value = t[i]
-
         return value.isSelected
     end)
 
@@ -113,9 +106,8 @@ end
 function GUI.PitchEditor:clearAllCorrectionNodes()
     self.selectedNodes = {}
 
-    Lua.arrayRemove(self.correctionGroup.nodes, function(t, i)
+    Lua.arrayRemove(self.correctionNodes, function(t, i)
         local value = t[i]
-
         return true
     end)
 end
@@ -123,7 +115,7 @@ end
 function GUI.PitchEditor:updateSelectedNodeList()
     self.selectedNodes = {}
 
-    for index, node in ipairs(self.correctionGroup.nodes) do
+    for index, node in ipairs(self.correctionNodes) do
         if node.isSelected then
             node.isSelected = false
             self:selectNode(node)
@@ -134,23 +126,23 @@ function GUI.PitchEditor:updateSelectedNodeList()
 end
 
 function GUI.PitchEditor:copySelectedCorrectionNodes()
-    CorrectionGroup:copyNodes(self.selectedNodes)
+    --CorrectionGroup:copyNodes(self.selectedNodes)
 end
 
 function GUI.PitchEditor:pasteNodes(useMouseTime)
-    local mouseTime = nil
-    if useMouseTime then mouseTime = self:getTimeFromPixels(GUI.mouse.x) end
-    self.correctionGroup:pasteNodes(mouseTime)
+    --local mouseTime = nil
+    --if useMouseTime then mouseTime = self:getTimeFromPixels(GUI.mouse.x) end
+    --self.correctionGroup:pasteNodes(mouseTime)
 
-    self:updateSelectedNodeList()
-    self:updateExtremeSelectedNodes()
-    self:applyPitchCorrections(true)
+    --self:updateSelectedNodeList()
+    --self:updateExtremeSelectedNodes()
+    --self:applyPitchCorrections(true)
 end
 
 function GUI.PitchEditor:savePitchCorrections()
-    for groupIndex, group in ipairs(self.pitchGroups) do
-        self.correctionGroup:saveCorrections(group)
-    end
+    --for groupIndex, group in ipairs(self.pitchGroups) do
+    --    self.correctionGroup:saveCorrections(group)
+    --end
 end
 
 function GUI.PitchEditor:getMouseDistanceToCorrectionNode(index, nodes)
@@ -188,8 +180,8 @@ function GUI.PitchEditor:getCorrectionNodeUnderMouse()
 
     local correctionDistances = {}
 
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        correctionDistances[index] = self:getMouseDistanceToCorrectionNode(index, self.correctionGroup.nodes)
+    for index, node in ipairs(self.correctionNodes) do
+        correctionDistances[index] = self:getMouseDistanceToCorrectionNode(index, self.correctionNodes)
     end
 
     local smallestDistanceIndex = nil
@@ -204,7 +196,7 @@ function GUI.PitchEditor:getCorrectionNodeUnderMouse()
     if smallestDistanceIndex == nil then return nil end
 
     if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance then
-        return self.correctionGroup.nodes[smallestDistanceIndex]
+        return self.correctionNodes[smallestDistanceIndex]
     end
 
     return nil
@@ -216,8 +208,8 @@ function GUI.PitchEditor:getLineUnderMouse()
 
     local correctionDistances = {}
 
-    for index, node in ipairs(self.correctionGroup.nodes) do
-        correctionDistances[index] = self:getMouseDistanceToLine(index, self.correctionGroup.nodes)
+    for index, node in ipairs(self.correctionNodes) do
+        correctionDistances[index] = self:getMouseDistanceToLine(index, self.correctionNodes)
     end
 
     local smallestDistanceIndex = nil
@@ -232,10 +224,10 @@ function GUI.PitchEditor:getLineUnderMouse()
     if smallestDistanceIndex == nil then return nil end
 
     if correctionDistances[smallestDistanceIndex] <= mousePitchCorrectionPixelTolerance
-    and self.correctionGroup.nodes[smallestDistanceIndex].isActive then
+    and self.correctionNodes[smallestDistanceIndex].isActive then
 
-        return { node1 = self.correctionGroup.nodes[smallestDistanceIndex],
-                 node2 = self.correctionGroup.nodes[smallestDistanceIndex + 1]
+        return { node1 = self.correctionNodes[smallestDistanceIndex],
+                 node2 = self.correctionNodes[smallestDistanceIndex + 1]
         }
     end
 
@@ -243,7 +235,7 @@ function GUI.PitchEditor:getLineUnderMouse()
 end
 
 function GUI.PitchEditor:unselectAllCorrectionNodes()
-    for index, node in ipairs(self.correctionGroup.nodes) do
+    for index, node in ipairs(self.correctionNodes) do
         self:unselectNode(node)
     end
 
@@ -255,8 +247,7 @@ function GUI.PitchEditor:selectNode(node)
         if not node.isSelected then
             node.isSelected = true
             table.insert(self.selectedNodes, node)
-
-            table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+            TimeSeries.sort(self.selectedNodes)
         end
     end
 end
@@ -268,12 +259,11 @@ function GUI.PitchEditor:unselectNode(node)
 
             Lua.arrayRemove(self.selectedNodes, function(t, i)
                 local value = t[i]
-
                 return value == node
             end)
 
             if #self.selectedNodes > 0 then
-                table.sort(self.selectedNodes, function(a, b) return a.time < b.time end)
+                TimeSeries.sort(self.selectedNodes)
             end
         end
     end
@@ -282,21 +272,20 @@ end
 function GUI.PitchEditor:setNodeSelected(node, selected)
     if selected then
         self:selectNode(node)
-
     else
         self:unselectNode(node)
     end
 end
 
 function GUI.PitchEditor:applyPitchCorrections(useSelectedNodes)
-    for groupIndex, group in ipairs(self.pitchGroups) do
-        if useSelectedNodes then
-            self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, group)
-        else
-            reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
-            self.correctionGroup:correctPitchGroup(group)
-        end
-    end
+    --for groupIndex, group in ipairs(self.pitchGroups) do
+    --    if useSelectedNodes then
+    --        self.correctionGroup:correctPitchGroupWithSelectedNodes(self.selectedNodes, group)
+    --    else
+    --        reaper.DeleteEnvelopePointRange(group.envelope, 0.0, group.length * group.playrate)
+    --        self.correctionGroup:correctPitchGroup(group)
+    --    end
+    --end
 end
 
 function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
@@ -323,7 +312,7 @@ function GUI.PitchEditor:handleNodeCreation(mouseTime, mousePitch)
     -- If holding control when adding a new node, activate the previous node so it connects.
     if gfx.mouse_cap & 4 == 4 then
         if newNodeIndex > 1 then
-            local prevNode = self.correctionGroup.nodes[newNodeIndex - 1]
+            local prevNode = self.correctionNodes[newNodeIndex - 1]
             prevNode.isActive = true
             self:selectNode(prevNode)
             self:applyPitchCorrections(true)
@@ -653,7 +642,7 @@ function GUI.PitchEditor:onmousedown()
             local newNodeIndex = self.correctionGroup:getNodeIndex(self.editNode)
 
             if newNodeIndex > 1 then
-                self.correctionGroup.nodes[newNodeIndex - 1].isActive = true
+                self.correctionNodes[newNodeIndex - 1].isActive = true
             end
 
             self:applyPitchCorrections(true)
@@ -849,7 +838,7 @@ function GUI.PitchEditor:onmouser_up()
         local bottomPitch = self:getPitchFromPixels( math.max(self.boxSelect.y1, self.boxSelect.y2) )
         local topPitch = self:getPitchFromPixels( math.min(self.boxSelect.y1, self.boxSelect.y2) )
 
-        for index, node in ipairs(self.correctionGroup.nodes) do
+        for index, node in ipairs(self.correctionNodes) do
             local nodeIsInBoxSelection = node.time >= leftTime and node.time <= rightTime
                                      and node.pitch >= bottomPitch and node.pitch <= topPitch
 
@@ -1187,7 +1176,7 @@ function GUI.PitchEditor:drawCorrectionGroup()
 
     local prevNode = nil
 
-    for index, node in ipairs(self.correctionGroup.nodes) do
+    for index, node in ipairs(self.correctionNodes) do
         prevNode = prevNode or node
 
         local leftTimePixels = self:getPixelsFromTime(prevNode.time) - x

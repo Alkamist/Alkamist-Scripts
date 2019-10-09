@@ -130,4 +130,10 @@ function TimeSeries.getPointsInTimeRange(timeRange, points)
     return pointsInTimeRange
 end
 
+function TimeSeries.sort(points)
+    table.sort(points, function(a, b)
+        return a.time < b.time
+    end)
+end
+
 return TimeSeries
