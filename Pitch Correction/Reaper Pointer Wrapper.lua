@@ -22,7 +22,6 @@ end
 function ReaperPointerWrapper:getter(shouldRefresh, memberName, getterFunction)
     if self[memberName] == nil or shouldRefresh then
         if self:isValid() then
-            msg("refreshed")
             self[memberName] = getterFunction()
         end
     end

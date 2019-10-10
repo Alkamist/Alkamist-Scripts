@@ -39,7 +39,7 @@ local function getTakePitchEnvelope(MediaTake)
 end
 
 local function getTakeSourceLength(MediaTake)
-    local _, _, takeSourceLength = reaper.PCM_Source_GetSectionInfo(MediaTake.pointer)
+    local _, _, takeSourceLength = reaper.PCM_Source_GetSectionInfo(MediaTake:getSource())
     return takeSourceLength
 end
 
@@ -61,9 +61,9 @@ end
 
 function MediaTake:getSourcePosition(time)
     if time == nil then return nil end
-    local tempMarkerIndex = reaper.SetTakeStretchMarker(self:getTake(), -1, time * self:getPlayrate())
-    local _, pos, srcPos = reaper.GetTakeStretchMarker(self:getTake(), tempMarkerIndex)
-    reaper.DeleteTakeStretchMarkers(self:getTake(), tempMarkerIndex)
+    local tempMarkerIndex = reaper.SetTakeStretchMarker(self.pointer, -1, time * self:getPlayrate())
+    local _, pos, srcPos = reaper.GetTakeStretchMarker(self.pointer, tempMarkerIndex)
+    reaper.DeleteTakeStretchMarkers(self.pointer, tempMarkerIndex)
     return srcPos
 end
 
