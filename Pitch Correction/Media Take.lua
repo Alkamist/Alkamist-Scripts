@@ -2,47 +2,6 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Reaper = require "Pitch Correction.Reaper Functions"
 local ReaperPointerWrapper = require "Pitch Correction.Reaper Pointer Wrapper"
 
------------------- Private Functions ------------------
-
-local function getTakeType(MediaTake)
-    if reaper.TakeIsMIDI(MediaTake.pointer) then
-        return "midi"
-    end
-
-    return "audio"
-end
-
-local function getTakeName(MediaTake)
-    if MediaTake:getType() == "empty" then
-        return reaper.ULT_GetMediaItemNote(MediaTake:getItem())
-    end
-
-    return reaper.GetTakeName(MediaTake.pointer)
-end
-
-local function getTakeFileName(MediaTake)
-    local url = reaper.GetMediaSourceFileName(MediaTake:getSource(), "")
-    return url:match("[^/\\]+$")
-end
-
-local function getTakePitchEnvelope(MediaTake)
-    local pitchEnvelope = reaper.GetTakeEnvelopeByName(MediaTake.pointer, "Pitch")
-
-    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        Reaper.mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
-        pitchEnvelope = reaper.GetTakeEnvelopeByName(MediaTake.pointer, "Pitch")
-    end
-
-    Reaper.mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
-
-    return pitchEnvelope
-end
-
-local function getTakeSourceLength(MediaTake)
-    local _, _, takeSourceLength = reaper.PCM_Source_GetSectionInfo(MediaTake:getSource())
-    return takeSourceLength
-end
-
 ------------------ Media Take ------------------
 
 local MediaTake = setmetatable({}, { __index = ReaperPointerWrapper })
@@ -74,12 +33,18 @@ end
 
 function MediaTake:getType(shouldRefresh)
     return self:getter(shouldRefresh, "type",
-                       function() return getTakeType(self) end)
+                       function()
+                           if reaper.TakeIsMIDI(self.pointer) then
+                               return "midi"
+                           end
+
+                           return "audio"
+                       end)
 end
 
 function MediaTake:getName(shouldRefresh)
     return self:getter(shouldRefresh, "name",
-                       function() return getTakeName(self) end)
+                       function() return reaper.GetTakeName(self.pointer) end)
 end
 
 function MediaTake:getGUID(shouldRefresh)
@@ -94,17 +59,34 @@ end
 
 function MediaTake:getFileName(shouldRefresh)
     return self:getter(shouldRefresh, "fileName",
-                       function() return getTakeFileName(self) end)
+                       function()
+                           local url = reaper.GetMediaSourceFileName(self:getSource(), "")
+                           return url:match("[^/\\]+$")
+                       end)
 end
 
 function MediaTake:getSourceLength(shouldRefresh)
     return self:getter(shouldRefresh, "sourceLength",
-                       function() return getTakeSourceLength(self) end)
+                       function()
+                           local _, _, takeSourceLength = reaper.PCM_Source_GetSectionInfo(self:getSource())
+                           return takeSourceLength
+                       end)
 end
 
 function MediaTake:getPitchEnvelope(shouldRefresh)
     return self:getter(shouldRefresh, "pitchEnvelope",
-                       function() return getTakePitchEnvelope(self) end)
+                       function()
+                           local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
+
+                           if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
+                               Reaper.mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
+                               pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
+                           end
+
+                           Reaper.mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+
+                           return pitchEnvelope
+                       end)
 end
 
 function MediaTake:getPlayrate(shouldRefresh)

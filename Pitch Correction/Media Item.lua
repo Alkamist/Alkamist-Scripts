@@ -61,4 +61,14 @@ function MediaItem:isEmpty(shouldRefresh)
                        function() return self:getActiveTake():getType() == nil end)
 end
 
+function MediaItem:getName(shouldRefresh)
+    return self:getter(shouldRefresh, "name",
+                       function()
+                           if self:getActiveTake():getType() == nil then
+                               return reaper.ULT_GetMediaItemNote(self.pointer)
+                           end
+                           return self:getActiveTake():getName()
+                       end)
+end
+
 return MediaItem

@@ -12,6 +12,7 @@ msg("length: " .. tostring(test1:getLength()))
 msg("leftTime: " .. tostring(test1:getLeftTime()))
 msg("rightTime: " .. tostring(test1:getRightTime()))
 msg("isEmpty: " .. tostring(test1:isEmpty()))
+msg("name: " .. tostring(test1:getName()))
 
 msg("")
 
