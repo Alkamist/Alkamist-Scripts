@@ -29,8 +29,10 @@ end
 function MediaItem:getActiveTake(shouldRefresh)
     return self:getter(shouldRefresh, "activeTake",
                        function()
-                           return MediaTake:new( { take = reaper.GetActiveTake(self.pointer),
-                                                   item = self } )
+                           return MediaTake:new( {
+                               take = reaper.GetActiveTake(self.pointer),
+                               item = self
+                            } )
                        end)
 end
 
@@ -52,6 +54,11 @@ end
 function MediaItem:getRightTime(shouldRefresh)
     return self:getter(shouldRefresh, "rightTime",
                        function() return self:getLeftTime() + self:getLength() end)
+end
+
+function MediaItem:isEmpty(shouldRefresh)
+    return self:getter(shouldRefresh, "isEmptyType",
+                       function() return self:getActiveTake():getType() == nil end)
 end
 
 return MediaItem
