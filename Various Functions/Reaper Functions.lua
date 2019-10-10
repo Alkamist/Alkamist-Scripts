@@ -14,6 +14,14 @@ function Reaper.reaperCMD(id)
     end
 end
 
+function Reaper.mainCommand(id)
+    if type(id) == "string" then
+        reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
+    else
+        reaper.Main_OnCommand(id, 0)
+    end
+end
+
 function Reaper.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
     local file = io.open(kbini, 'r')
