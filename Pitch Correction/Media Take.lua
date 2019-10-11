@@ -2,6 +2,18 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Reaper = require "Pitch Correction.Reaper Functions"
 local ReaperPointerWrapper = require "Pitch Correction.Reaper Pointer Wrapper"
 
+------------------ Private Functions ------------------
+
+local function prepareExtStateForPitchDetection(takeGUID, settings)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID", takeGUID, false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP", settings.windowStep, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ", settings.minimumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ", settings.maximumFrequency, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, true)
+    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, true)
+end
+
 ------------------ Media Take ------------------
 
 local MediaTake = setmetatable({}, { __index = ReaperPointerWrapper })
@@ -13,10 +25,11 @@ function MediaTake:new(object)
 end
 
 function MediaTake:init()
-    self.pointer = self.take
     self.pointerType = "MediaItem_Take*"
     ReaperPointerWrapper.init(self)
 end
+
+------------------ Getters ------------------
 
 function MediaTake:getSourcePosition(time)
     if time == nil then return nil end
@@ -178,6 +191,41 @@ end
 function MediaTake:getStartOffset(shouldRefresh)
     return self:getter(shouldRefresh, "startOffset",
                        function() return self:getSourcePosition(0.0) end)
+end
+
+function MediaTake:getPitchPoints(shouldRefresh)
+    return self:getter(shouldRefresh, "pitchPoints",
+
+        function()
+            local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
+            local leftBound = self:getStartOffset()
+            local rightBound = self:getSourcePosition(self:getLength())
+            local analysisLength = rightBound - leftBound
+            local analysisItem = self:getItem():getTrack():addMediaItem()
+            local analysisTake = analysisItem:addTake()
+            analysisTake:setSource(self:getSource())
+            analysisTake:setStartOffset(leftBound)
+            analysisItem:setLength(analysisLength)
+            analysisItem:setShouldLoop(false)
+
+            prepareExtStateForPitchDetection(analysisTake:getGUID(), settings)
+            Reaper.mainCMD(analyzerID)
+            local points = PitchGroup.getPitchPointsFromExtState(self, analysisTake)
+            reaper.DeleteTrackMediaItem(self:getItem():getTrack(), analysisItem)
+
+            return points
+
+    end)
+end
+
+------------------ Setters ------------------
+
+function MediaTake:setSource(source)
+    reaper.SetMediaItemTake_Source(self.pointer, source)
+end
+
+function MediaTake:setStartOffset(startOffset)
+    reaper.SetMediaItemTakeInfo_Value(self.pointer, "D_STARTOFFS", startOffset)
 end
 
 return MediaTake

@@ -37,6 +37,7 @@ function Reaper.getEELCommandID(name)
         end
     end
 
+    reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
     return nil
 end
 
