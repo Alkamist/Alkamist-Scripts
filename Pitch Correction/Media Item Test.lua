@@ -3,24 +3,33 @@ function msg(m)
 end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
-local ReaperItem = require "Pitch Correction.Reaper Wrappers.ReaperItem"
+--local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
+--local ReaperItem = require "Pitch Correction.Reaper Wrappers.ReaperItem"
+--
+--local selectedMediaItems = AlkWrap.getSelectedItems(1)
+--
+--for _, item in ipairs(selectedMediaItems) do
+--    local test = ReaperItem:new{ pointer = item }
+--    local test2 = ReaperItem:new{ pointer = item }
+--
+--    msg("pointer: " .. tostring(test.pointer))
+--    msg("pointerType: " .. tostring(test.pointerType))
+--    msg("length: " .. tostring(test.length))
+--    msg("leftEdge: " .. tostring(test.leftEdge))
+--    msg("rightEdge: " .. tostring(test.rightEdge))
+--    msg("loops: " .. tostring(test.loops))
+--
+--    test.length = 20.0
+--    test.leftEdge = 1.0
+--    test.rightEdge = 15.0
+--    test.loops = true
+--end
 
-local selectedMediaItems = AlkWrap.getSelectedItems(1)
+local AlkAPI = require "Pitch Correction.Alkamist API"
 
-for _, item in ipairs(selectedMediaItems) do
-    local test = ReaperItem:new{ pointer = item }
-    local test2 = ReaperItem:new{ pointer = item }
+local items = AlkAPI.getSelectedItems()
 
-    msg("pointer: " .. tostring(test.pointer))
-    msg("pointerType: " .. tostring(test.pointerType))
-    msg("length: " .. tostring(test.length))
-    msg("leftEdge: " .. tostring(test.leftEdge))
-    msg("rightEdge: " .. tostring(test.rightEdge))
-    msg("loops: " .. tostring(test.loops))
-
-    test.length = 20.0
-    test.leftEdge = 1.0
-    test.rightEdge = 15.0
-    test.loops = true
+for _, item in ipairs(items) do
+    item.length = 20
+    msg(item.length)
 end

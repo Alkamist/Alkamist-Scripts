@@ -9,13 +9,11 @@ local ReaperTrack_mt = {
 
     -- Getters
     __index = function(tbl, key)
-        if key == "length" then return AlkWrap.getItemLength(tbl.pointer) end
         return ReaperTrack[key]
     end,
 
     -- Setters
     __newindex = function(tbl, key, value)
-        if key == "length" then return AlkWrap.setItemLength(tbl.pointer, value) end
         rawset(tbl, key, value)
     end
 
