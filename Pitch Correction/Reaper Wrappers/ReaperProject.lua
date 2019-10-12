@@ -1,11 +1,11 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 
-local MediaItem = {
-    pointerType = "MediaItem*"
+local ReaperProject = {
+    pointerType = "ReaProject*"
 }
 
-local MediaItem_mt = {
+local ReaperProject_mt = {
 
     -- Getters
     __index = function(tbl, key)
@@ -13,7 +13,7 @@ local MediaItem_mt = {
         if key == "leftEdge" then return AlkWrap.getItemLeftEdge(tbl.pointer) end
         if key == "rightEdge" then return AlkWrap.getItemRightEdge(tbl.pointer) end
         if key == "loops" then return AlkWrap.getItemLoops(tbl.pointer) end
-        return MediaItem[key]
+        return ReaperProject[key]
     end,
 
     -- Setters
@@ -27,10 +27,10 @@ local MediaItem_mt = {
 
 }
 
-function MediaItem:new(object)
+function ReaperProject:new(object)
     local object = object or {}
-    setmetatable(object, MediaItem_mt)
+    setmetatable(object, ReaperProject_mt)
     return object
 end
 
-return MediaItem
+return ReaperProject

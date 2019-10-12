@@ -62,7 +62,7 @@ function AlkWrap.updateArrange()
     reaper.UpdateArrange()
 end
 
--------------------- Media Items --------------------
+-------------------- MediaItem* --------------------
 
 -- Getters.
 function AlkWrap.getNumSelectedItems(projectIndex)
@@ -117,7 +117,7 @@ function AlkWrap.setItemLoops(item, value)
     return reaper.SetMediaItemInfo_Value(item, "B_LOOPSRC", value and 1 or 0)
 end
 
--------------------- Media Takes --------------------
+-------------------- MediaItem_Take* --------------------
 
 -- Getters.
 function AlkWrap.getTakeName(take)
@@ -256,7 +256,7 @@ function AlkWrap.setTakeStartOffset(take, value)
     reaper.SetMediaItemTakeInfo_Value(take, "D_STARTOFFS", value)
 end
 
--------------------- PCM Source --------------------
+-------------------- PCM_Source* --------------------
 
 -- Getters.
 function AlkWrap.getSourceFileName(source)

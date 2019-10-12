@@ -1,17 +1,18 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 
-local MediaTake = {
-    pointerType = "MediaTake*"
+local ReaperTake = {
+    pointerType = "MediaItem_Take*"
 }
 
-local MediaTake_mt = {
+local ReaperTake_mt = {
 
     -- Getters
     __index = function(tbl, key)
         if key == "name" then return AlkWrap.getTakeName(tbl.pointer) end
         if key == "type" then return AlkWrap.getTakeType(tbl.pointer) end
         if key == "GUID" then return AlkWrap.getTakeGUID(tbl.pointer) end
-        return MediaTake[key]
+        return ReaperTake[key]
     end,
 
     -- Setters
@@ -22,10 +23,10 @@ local MediaTake_mt = {
 
 }
 
-function MediaTake:new(object)
+function ReaperTake:new(object)
     local object = object or {}
-    setmetatable(object, MediaTake_mt)
+    setmetatable(object, ReaperTake_mt)
     return object
 end
 
-return MediaTake
+return ReaperTake
