@@ -18,10 +18,11 @@ local MediaItem_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
-        if key == "length" then AlkWrap.setItemLength(tbl.pointer, value) end
-        if key == "leftEdge" then AlkWrap.setItemLeftEdge(tbl.pointer, value) end
-        if key == "rightEdge" then AlkWrap.setItemRightEdge(tbl.pointer, value) end
-        if key == "loops" then AlkWrap.setItemLoops(tbl.pointer, value) end
+        if key == "length" then return AlkWrap.setItemLength(tbl.pointer, value) end
+        if key == "leftEdge" then return AlkWrap.setItemLeftEdge(tbl.pointer, value) end
+        if key == "rightEdge" then return AlkWrap.setItemRightEdge(tbl.pointer, value) end
+        if key == "loops" then return AlkWrap.setItemLoops(tbl.pointer, value) end
+        rawset(tbl, key, value)
     end
 
 }

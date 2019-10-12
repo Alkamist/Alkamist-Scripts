@@ -6,9 +6,10 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 local MediaItem = require "Pitch Correction.Media Item"
 
-local selectedMediaItems = AlkWrap.getSelectedMediaItems(1)
+local selectedMediaItems = AlkWrap.getSelectedItems(1)
 for _, item in ipairs(selectedMediaItems) do
     local test = MediaItem:new{ pointer = item }
+    local test2 = MediaItem:new{ pointer = item }
 
     msg("pointer: " .. tostring(test.pointer))
     msg("pointerType: " .. tostring(test.pointerType))
@@ -17,10 +18,10 @@ for _, item in ipairs(selectedMediaItems) do
     msg("rightEdge: " .. tostring(test.rightEdge))
     msg("loops: " .. tostring(test.loops))
 
-    --test.length = 20.0
-    --test.leftEdge = 1.0
-    --test.rightEdge = 3.0
-    --test.loops = true
+    test.length = 20.0
+    test.leftEdge = 1.0
+    test.rightEdge = 15.0
+    test.loops = true
 end
 
 --local test1 = selectedMediaItems[1]
