@@ -28,8 +28,8 @@ end
 
 ------------------ Getters ------------------
 
-function MediaItem:getActiveTake(shouldRefresh)
-    return self:getter(shouldRefresh, "activeTake",
+function MediaItem:getActiveTake(refresh)
+    return self:getter(refresh, "activeTake",
                        function()
                            return MediaTake:new{
                                pointer = reaper.GetActiveTake(self.pointer),
@@ -38,33 +38,33 @@ function MediaItem:getActiveTake(shouldRefresh)
                        end)
 end
 
-function MediaItem:getTrack(shouldRefresh)
-    return self:getter(shouldRefresh, "track",
+function MediaItem:getTrack(refresh)
+    return self:getter(refresh, "track",
                        function() return Track:new{ pointer = reaper.GetMediaItem_Track(self.pointer) } end)
 end
 
-function MediaItem:getLength(shouldRefresh)
-    return self:getter(shouldRefresh, "length",
+function MediaItem:getLength(refresh)
+    return self:getter(refresh, "length",
                        function() return reaper.GetMediaItemInfo_Value(self.pointer, "D_LENGTH") end)
 end
 
-function MediaItem:getLeftTime(shouldRefresh)
-    return self:getter(shouldRefresh, "leftTime",
+function MediaItem:getLeftTime(refresh)
+    return self:getter(refresh, "leftTime",
                        function() return reaper.GetMediaItemInfo_Value(self.pointer, "D_POSITION") end)
 end
 
-function MediaItem:getRightTime(shouldRefresh)
-    return self:getter(shouldRefresh, "rightTime",
+function MediaItem:getRightTime(refresh)
+    return self:getter(refresh, "rightTime",
                        function() return self:getLeftTime() + self:getLength() end)
 end
 
-function MediaItem:isEmpty(shouldRefresh)
-    return self:getter(shouldRefresh, "isEmptyType",
+function MediaItem:isEmpty(refresh)
+    return self:getter(refresh, "isEmptyType",
                        function() return self:getActiveTake():getType() == nil end)
 end
 
-function MediaItem:getName(shouldRefresh)
-    return self:getter(shouldRefresh, "name",
+function MediaItem:getName(refresh)
+    return self:getter(refresh, "name",
                        function()
                            if self:getActiveTake():getType() == nil then
                                return reaper.ULT_GetMediaItemNote(self.pointer)

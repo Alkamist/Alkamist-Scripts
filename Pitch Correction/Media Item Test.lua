@@ -3,9 +3,11 @@ function msg(m)
 end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Alk = require "Pitch Correction.Media Item"
+local Alk = require "Pitch Correction.Alkamist API"
 
-local test1 = MediaItem:newFromSelectedIndex(1)
+--local selectedMediaItems = Alk.getSelectedMediaItems()
+--local test1 = selectedMediaItems[1]
+
 --msg("pointer: " .. tostring(test1.pointer))
 --msg("track: " .. tostring(test1:getTrack()))
 --msg("length: " .. tostring(test1:getLength()))
@@ -27,3 +29,9 @@ local test1 = MediaItem:newFromSelectedIndex(1)
 --msg("pitchEnvelope: " .. tostring(testTake1:getPitchEnvelope()))
 --msg("playrate: " .. tostring(testTake1:getPlayrate()))
 --msg("startOffset: " .. tostring(testTake1:getStartOffset()))
+
+local currentProject = Rpr.project(0)
+
+for index, item in ipairs(currentProject.selectedItems) do
+    item.pitch = 24.0 * math.random() - 12.0
+end

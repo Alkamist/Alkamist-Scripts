@@ -120,13 +120,13 @@ function MediaTake:getRealPosition(sourceTime)
     return realTime / self:getPlayrate()
 end
 
-function MediaTake:getItem(shouldRefresh)
-    return self:getter(shouldRefresh, "item",
+function MediaTake:getItem(refresh)
+    return self:getter(refresh, "item",
                        function() return reaper.GetMediaItemTake_Item(self.pointer) end)
 end
 
-function MediaTake:getType(shouldRefresh)
-    return self:getter(shouldRefresh, "type",
+function MediaTake:getType(refresh)
+    return self:getter(refresh, "type",
                        function()
                            if reaper.TakeIsMIDI(self.pointer) then
                                return "midi"
@@ -136,39 +136,39 @@ function MediaTake:getType(shouldRefresh)
                        end)
 end
 
-function MediaTake:getName(shouldRefresh)
-    return self:getter(shouldRefresh, "name",
+function MediaTake:getName(refresh)
+    return self:getter(refresh, "name",
                        function() return reaper.GetTakeName(self.pointer) end)
 end
 
-function MediaTake:getGUID(shouldRefresh)
-    return self:getter(shouldRefresh, "GUID",
+function MediaTake:getGUID(refresh)
+    return self:getter(refresh, "GUID",
                        function() return reaper.BR_GetMediaItemTakeGUID(self.pointer) end)
 end
 
-function MediaTake:getSource(shouldRefresh)
-    return self:getter(shouldRefresh, "source",
+function MediaTake:getSource(refresh)
+    return self:getter(refresh, "source",
                        function() return reaper.GetMediaItemTake_Source(self.pointer) end)
 end
 
-function MediaTake:getFileName(shouldRefresh)
-    return self:getter(shouldRefresh, "fileName",
+function MediaTake:getFileName(refresh)
+    return self:getter(refresh, "fileName",
                        function()
                            local url = reaper.GetMediaSourceFileName(self:getSource(), "")
                            return url:match("[^/\\]+$")
                        end)
 end
 
-function MediaTake:getSourceLength(shouldRefresh)
-    return self:getter(shouldRefresh, "sourceLength",
+function MediaTake:getSourceLength(refresh)
+    return self:getter(refresh, "sourceLength",
                        function()
                            local _, _, takeSourceLength = reaper.PCM_Source_GetSectionInfo(self:getSource())
                            return takeSourceLength
                        end)
 end
 
-function MediaTake:getPitchEnvelope(shouldRefresh)
-    return self:getter(shouldRefresh, "pitchEnvelope",
+function MediaTake:getPitchEnvelope(refresh)
+    return self:getter(refresh, "pitchEnvelope",
                        function()
                            local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
 
@@ -183,18 +183,18 @@ function MediaTake:getPitchEnvelope(shouldRefresh)
                        end)
 end
 
-function MediaTake:getPlayrate(shouldRefresh)
-    return self:getter(shouldRefresh, "playrate",
+function MediaTake:getPlayrate(refresh)
+    return self:getter(refresh, "playrate",
                        function() return reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE") end)
 end
 
-function MediaTake:getStartOffset(shouldRefresh)
-    return self:getter(shouldRefresh, "startOffset",
+function MediaTake:getStartOffset(refresh)
+    return self:getter(refresh, "startOffset",
                        function() return self:getSourcePosition(0.0) end)
 end
 
-function MediaTake:getPitchPoints(shouldRefresh)
-    return self:getter(shouldRefresh, "pitchPoints",
+function MediaTake:getPitchPoints(refresh)
+    return self:getter(refresh, "pitchPoints",
 
         function()
             local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
