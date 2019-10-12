@@ -62,6 +62,15 @@ function AlkWrap.updateArrange()
     reaper.UpdateArrange()
 end
 
+-------------------- MediaTrack* --------------------
+
+-- Getters.
+function AlkWrap.getTrackNumber(track)
+    return reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+end
+
+-- Setters.
+
 -------------------- MediaItem* --------------------
 
 -- Getters.
@@ -90,17 +99,20 @@ end
 function AlkWrap.getItemLoops(item)
     return reaper.GetMediaItemInfo_Value(item, "B_LOOPSRC") > 0
 end
-function AlkWrap.getActiveTake(item)
+function AlkWrap.getItemActiveTake(item)
     return reaper.GetActiveTake(item)
 end
 function AlkWrap.itemIsEmpty(item)
-    return AlkWrap.getTakeType(AlkWrap.getActiveTake(item)) == nil
+    return AlkWrap.getTakeType(AlkWrap.getItemActiveTake(item)) == nil
 end
 function AlkWrap.getItemName(item)
     if AlkWrap.itemIsEmpty(item) then
         return reaper.ULT_GetMediaItemNote(item)
     end
-    return AlkWrap.getTakeName(AlkWrap.getActiveTake(item))
+    return AlkWrap.getTakeName(AlkWrap.getItemActiveTake(item))
+end
+function AlkWrap.getItemTrack(item)
+    return reaper.GetMediaItemTrack(item)
 end
 
 -- Setters.
@@ -131,6 +143,9 @@ function AlkWrap.getTakeType(take)
 end
 function AlkWrap.getTakeGUID(take)
     return reaper.BR_GetMediaItemTakeGUID(take)
+end
+function AlkWrap.getTakeItem(take)
+    return reaper.GetMediaItemTake_Item(take)
 end
 function AlkWrap.getTakeSource(take)
     return reaper.GetMediaItemTake_Source(take)

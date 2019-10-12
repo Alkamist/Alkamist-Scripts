@@ -30,6 +30,8 @@ local AlkAPI = require "Pitch Correction.Alkamist API"
 local items = AlkAPI.getSelectedItems()
 
 for _, item in ipairs(items) do
-    item.length = 20
-    msg(item.length)
+    --item.length = 20
+    --msg(item.length)
+
+    msg(item.track.number)
 end

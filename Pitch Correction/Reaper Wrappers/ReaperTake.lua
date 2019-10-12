@@ -12,6 +12,7 @@ local ReaperTake_mt = {
         if key == "name" then return AlkWrap.getTakeName(tbl.pointer) end
         if key == "type" then return AlkWrap.getTakeType(tbl.pointer) end
         if key == "GUID" then return AlkWrap.getTakeGUID(tbl.pointer) end
+        if key == "item" then return tbl.factory.createNew("ReaperItem", AlkWrap.getTakeItem(tbl.pointer)) end
         return ReaperTake[key]
     end,
 

@@ -13,6 +13,8 @@ local ReaperItem_mt = {
         if key == "leftEdge" then return AlkWrap.getItemLeftEdge(tbl.pointer) end
         if key == "rightEdge" then return AlkWrap.getItemRightEdge(tbl.pointer) end
         if key == "loops" then return AlkWrap.getItemLoops(tbl.pointer) end
+        if key == "activeTake" then return tbl.factory.createNew("ReaperTake", AlkWrap.getItemActiveTake(tbl.pointer)) end
+        if key == "track" then return tbl.factory.createNew("ReaperTrack", AlkWrap.getItemTrack(tbl.pointer)) end
         return ReaperItem[key]
     end,
 

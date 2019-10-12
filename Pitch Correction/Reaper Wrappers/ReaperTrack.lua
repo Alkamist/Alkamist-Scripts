@@ -9,6 +9,7 @@ local ReaperTrack_mt = {
 
     -- Getters
     __index = function(tbl, key)
+        if key == "number" then return AlkWrap.getTrackNumber(tbl.pointer) end
         return ReaperTrack[key]
     end,
 
