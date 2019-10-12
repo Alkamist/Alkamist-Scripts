@@ -1,6 +1,31 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Reaper = require "Pitch Correction.Reaper Functions"
-local ReaperPointerWrapper = require "Pitch Correction.Reaper Pointer Wrapper"
+local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
+
+local MediaTake = {
+    pointerType = "MediaTake*"
+}
+
+local MediaTake_mt = {
+
+    -- Getters
+    __index = function(tbl, key)
+        if key == "name" then return AlkWrap.getTakeName(tbl.pointer) end
+        if key == "type" then return AlkWrap.getTakeType(tbl.pointer) end
+        if key == "GUID" then return AlkWrap.getTakeGUID(tbl.pointer) end
+        return MediaTake[key]
+    end,
+
+    -- Setters
+    __newindex = function(tbl, key, value)
+        if key == "name" then AlkWrap.setTakeName(tbl.pointer, value) end
+    end
+
+}
+
+function MediaTake:new(object)
+    local object = object or {}
+    setmetatable(object, MediaTake_mt)
+    return object
+end
 
 ------------------ Private Functions ------------------
 
@@ -12,21 +37,6 @@ local function prepareExtStateForPitchDetection(takeGUID, settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH", settings.YINThresh, true)
     reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP", settings.overlap, true)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB, true)
-end
-
------------------- Media Take ------------------
-
-local MediaTake = setmetatable({}, { __index = ReaperPointerWrapper })
-function MediaTake:new(object)
-    local object = object or {}
-    setmetatable(object, { __index = self })
-    object:init()
-    return object
-end
-
-function MediaTake:init()
-    self.pointerType = "MediaItem_Take*"
-    ReaperPointerWrapper.init(self)
 end
 
 ------------------ Getters ------------------

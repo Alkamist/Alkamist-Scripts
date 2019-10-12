@@ -19,12 +19,12 @@ function ReaperPointerWrapper:isValid()
     return self.pointer ~= nil and reaper.ValidatePtr(self.pointer, self.pointerType)
 end
 
-function ReaperPointerWrapper:getter(shouldRefresh, memberName, getterFunction)
-    if self[memberName] == nil or shouldRefresh then
-        if self:isValid() then
-            self[memberName] = getterFunction()
-        end
+function ReaperPointerWrapper:getter(memberName, getterFunction)
+    if self:isValid() then
+        self[memberName] = getterFunction()
+        return self[memberName]
     end
+    self[memberName] = nil
     return self[memberName]
 end
 
