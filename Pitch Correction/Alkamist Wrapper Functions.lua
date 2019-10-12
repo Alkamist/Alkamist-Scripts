@@ -1,5 +1,64 @@
 local AlkWrap = {}
 
+-------------------- General Functions --------------------
+
+function AlkWrap.mainCommand(id)
+    if type(id) == "string" then
+        reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
+        return
+    end
+    reaper.Main_OnCommand(id, 0)
+end
+function AlkWrap.getEELCommandID(name)
+    local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
+    local file = io.open(kbini, 'r')
+
+    local content = nil
+    if file then
+        content = file:read('a')
+        file:close()
+    end
+
+    if content then
+        local nameString = nil
+        for line in content:gmatch('[^\r\n]+') do
+            if line:match(name) then
+                nameString = line:match('SCR %d+ %d+ ([%a%_%d]+)')
+                break
+            end
+        end
+
+        local commandID = nil
+        if nameString then
+            commandID = reaper.NamedCommandLookup('_' .. nameString)
+        end
+
+        if commandID and commandID ~= 0 then
+            return commandID
+        end
+    end
+
+    reaper.MB(name .. " not found!", "Error!", 0)
+    return nil
+end
+local uiEnabled = true
+function AlkWrap.setUIRefresh(enable)
+    -- Enable UI refresh.
+    if enable then
+        if not uiEnabled then
+            reaper.PreventUIRefresh(-1)
+            uiEnabled = true
+        end
+
+    -- Disable UI refresh.
+    else
+        if uiEnabled then
+            reaper.PreventUIRefresh(1)
+            uiEnabled = false
+        end
+    end
+end
+
 -------------------- Media Items --------------------
 
 function AlkWrap.getNumSelectedMediaItems(projectIndex)
@@ -73,6 +132,25 @@ function AlkWrap.getTakeSource(take)
 end
 function AlkWrap.getTakePlayrate(take)
     return reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+end
+function AlkWrap.getTakePitchEnvelope(take)
+    return reaper.GetTakeEnvelopeByName(take, "Pitch")
+end
+function AlkWrap.createAndGetTakePitchEnvelope(take)
+    local pitchEnvelope = AlkWrap.getTakePitchEnvelope(take)
+    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
+        AlkWrap.mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
+        pitchEnvelope = AlkWrap.getTakePitchEnvelope(take)
+    end
+    AlkWrap.mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+    return pitchEnvelope
+end
+function AlkWrap.getTakeSourcePosition(take, time)
+    if time == nil then return nil end
+    local tempMarkerIndex = reaper.SetTakeStretchMarker(take, -1, time * AlkWrap.getTakePlayrate(take))
+    local _, _, sourcePosition = reaper.GetTakeStretchMarker(take, tempMarkerIndex)
+    reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
+    return sourcePosition
 end
 
 
