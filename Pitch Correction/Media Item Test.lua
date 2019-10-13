@@ -31,7 +31,13 @@ local items = AlkAPI.getSelectedItems()
 
 for _, item in ipairs(items) do
     --item.length = 20
-    --msg(item.length)
-
-    msg(item.track.number)
+    msg(item.length)
 end
+
+local tracks = AlkAPI.getSelectedTracks()
+
+for _, track in ipairs(tracks) do
+    msg(track.number)
+end
+
+

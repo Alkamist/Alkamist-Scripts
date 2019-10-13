@@ -65,8 +65,23 @@ end
 -------------------- MediaTrack* --------------------
 
 -- Getters.
+function AlkWrap.isTrack(pointer)
+    return pointer ~= nil and reaper.ValidatePtr(pointer, "MediaTrack*")
+end
 function AlkWrap.getTrackNumber(track)
     return reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+end
+function AlkWrap.getNumTracks(projectNumber)
+    return reaper.CountTracks(projectNumber - 1)
+end
+function AlkWrap.getTrack(projectNumber, index)
+    return reaper.GetTrack(projectNumber - 1, index - 1)
+end
+function AlkWrap.getNumSelectedTracks(projectNumber)
+    return reaper.CountSelectedTracks(projectNumber - 1)
+end
+function AlkWrap.getSelectedTrack(projectNumber, index)
+    return reaper.GetSelectedTrack(projectNumber - 1, index - 1)
 end
 
 -- Setters.
@@ -74,18 +89,20 @@ end
 -------------------- MediaItem* --------------------
 
 -- Getters.
-function AlkWrap.getNumSelectedItems(projectIndex)
-    return reaper.CountSelectedMediaItems(projectIndex - 1)
+function AlkWrap.isItem(pointer)
+    return pointer ~= nil and reaper.ValidatePtr(pointer, "MediaItem*")
 end
-function AlkWrap.getSelectedItem(projectIndex, index)
-    return reaper.GetSelectedMediaItem(projectIndex - 1, index - 1)
+function AlkWrap.getNumItems(projectNumber)
+    return reaper.CountMediaItems(projectNumber - 1)
 end
-function AlkWrap.getSelectedItems(projectIndex)
-    local selectedItems = {}
-    for index = 1, AlkWrap.getNumSelectedItems(projectIndex) do
-        table.insert(selectedItems, AlkWrap.getSelectedItem(projectIndex, index))
-    end
-    return selectedItems
+function AlkWrap.getItem(projectNumber, index)
+    return reaper.GetMediaItem(projectNumber - 1, index - 1)
+end
+function AlkWrap.getNumSelectedItems(projectNumber)
+    return reaper.CountSelectedMediaItems(projectNumber - 1)
+end
+function AlkWrap.getSelectedItem(projectNumber, index)
+    return reaper.GetSelectedMediaItem(projectNumber - 1, index - 1)
 end
 function AlkWrap.getItemLength(item)
     return reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
