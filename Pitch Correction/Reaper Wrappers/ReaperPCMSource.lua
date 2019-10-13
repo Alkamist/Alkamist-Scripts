@@ -1,8 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local ReaperPCMSource = {
-    pointerType = "PCM_source*",
-    name = "ReaperPCMSource"
+    pointerType = "PCM_source*"
 }
 
 local ReaperPCMSource_mt = {

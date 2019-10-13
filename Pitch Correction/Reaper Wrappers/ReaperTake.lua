@@ -1,8 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
 local ReaperTake = {
-    pointerType = "MediaItem_Take*",
-    name = "ReaperTake"
+    pointerType = "MediaItem_Take*"
 }
 
 local ReaperTake_mt = {
