@@ -62,39 +62,9 @@ function AlkWrap.updateArrange()
     reaper.UpdateArrange()
 end
 
--------------------- MediaTrack* --------------------
-
--- Getters.
-function AlkWrap.getNumTracks(projectNumber)
-    return reaper.CountTracks(projectNumber - 1)
-end
-function AlkWrap.getTrack(projectNumber, index)
-    return reaper.GetTrack(projectNumber - 1, index - 1)
-end
-function AlkWrap.getNumSelectedTracks(projectNumber)
-    return reaper.CountSelectedTracks(projectNumber - 1)
-end
-function AlkWrap.getSelectedTrack(projectNumber, index)
-    return reaper.GetSelectedTrack(projectNumber - 1, index - 1)
-end
-
--- Setters.
-
 -------------------- MediaItem* --------------------
 
 -- Getters.
-function AlkWrap.getNumItems(projectNumber)
-    return reaper.CountMediaItems(projectNumber - 1)
-end
-function AlkWrap.getItem(projectNumber, index)
-    return reaper.GetMediaItem(projectNumber - 1, index - 1)
-end
-function AlkWrap.getNumSelectedItems(projectNumber)
-    return reaper.CountSelectedMediaItems(projectNumber - 1)
-end
-function AlkWrap.getSelectedItem(projectNumber, index)
-    return reaper.GetSelectedMediaItem(projectNumber - 1, index - 1)
-end
 function AlkWrap.itemIsEmpty(item)
     return AlkWrap.getTakeType(AlkWrap.getItemActiveTake(item)) == nil
 end

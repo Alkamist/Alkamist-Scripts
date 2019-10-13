@@ -29,20 +29,23 @@ local AlkAPI = require "Pitch Correction.Alkamist API"
 
 local items = AlkAPI.get("items")
 
-for _, item in ipairs(items) do
-    --item.length = 20
-    msg(item.length)
-    msg(item.leftEdge)
-    msg(item.rightEdge)
-    msg(item.loops)
-    msg(item.activeTake)
-    msg(item.track.number)
-end
-
---local tracks = AlkAPI.get("tracks")
---
---for _, track in ipairs(tracks) do
---    msg(track.number)
+--for _, item in ipairs(items) do
+--    --item.length = 20
+--    msg(item.length)
+--    msg(item.leftEdge)
+--    msg(item.rightEdge)
+--    msg(item.loops)
+--    msg(item.activeTake)
+--    msg(item.track.number)
 --end
+--
+--local selectedItem5 = AlkAPI.get("selectedItem", 3)
+--msg(selectedItem5.leftEdge)
+
+local tracks = AlkAPI.get("selectedTracks")
+
+for _, track in ipairs(tracks) do
+    msg(track.number)
+end
 
 

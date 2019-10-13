@@ -9,15 +9,20 @@ WrapperTypes.ReaperItem = require "Pitch Correction.Reaper Wrappers.ReaperItem"
 WrapperTypes.ReaperTake = require "Pitch Correction.Reaper Wrappers.ReaperTake"
 WrapperTypes.ReaperPCMSource = require "Pitch Correction.Reaper Wrappers.ReaperPCMSource"
 
-local ReaperWrapperFactory = {}
+local ReaperWrapperFactory = {
+    types = WrapperTypes
+}
+
+for _, type in pairs(ReaperWrapperFactory.types) do
+    type.factory = ReaperWrapperFactory
+end
 
 ReaperWrapperFactory.createNew = function(pointer, projectNumber)
     if projectNumber == nil then projectNumber = 1 end
-    for _, wrapperType in pairs(WrapperTypes) do
+    for _, wrapperType in pairs(ReaperWrapperFactory.types) do
         if wrapperType.isValid(pointer, projectNumber) then
             return wrapperType:new{
-                pointer = pointer,
-                factory = ReaperWrapperFactory
+                pointer = pointer
             }
         end
     end

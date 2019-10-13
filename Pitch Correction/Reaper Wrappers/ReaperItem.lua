@@ -13,8 +13,8 @@ local ReaperItem_mt = {
         if key == "leftEdge" then return reaper.GetMediaItemInfo_Value(tbl.pointer, "D_POSITION") end
         if key == "rightEdge" then return tbl.leftEdge + tbl.length end
         if key == "loops" then return reaper.GetMediaItemInfo_Value(tbl.pointer, "B_LOOPSRC") > 0 end
-        if key == "activeTake" then return tbl.factory.createNew("ReaperTake", reaper.GetActiveTake(tbl.pointer)) end
-        if key == "track" then return tbl.factory.createNew("ReaperTrack", reaper.GetMediaItemTrack(tbl.pointer)) end
+        if key == "activeTake" then return tbl.factory.createNew(reaper.GetActiveTake(tbl.pointer)) end
+        if key == "track" then return tbl.factory.createNew(reaper.GetMediaItemTrack(tbl.pointer)) end
         return ReaperItem[key]
     end,
 
@@ -37,6 +37,38 @@ end
 
 function ReaperItem.isValid(pointer, projectNumber)
     return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperItem.pointerType)
+end
+
+function ReaperItem.getCount(projectNumber)
+    return reaper.CountMediaItems(projectNumber - 1)
+end
+
+function ReaperItem.getSelectedCount(projectNumber)
+    return reaper.CountSelectedMediaItems(projectNumber - 1)
+end
+
+function ReaperItem.getFromNumber(number, projectNumber)
+    return ReaperItem.factory.createNew(reaper.GetMediaItem(projectNumber - 1, number - 1))
+end
+
+function ReaperItem.getFromSelectedNumber(number, projectNumber)
+    return ReaperItem.factory.createNew(reaper.GetSelectedMediaItem(projectNumber - 1, number - 1))
+end
+
+function ReaperItem.getAll(projectNumber)
+    local output = {}
+    for index = 1, ReaperItem.getCount(projectNumber) do
+        table.insert(output, ReaperItem.getFromNumber(index, projectNumber))
+    end
+    return output
+end
+
+function ReaperItem.getSelected(projectNumber)
+    local output = {}
+    for index = 1, ReaperItem.getSelectedCount(projectNumber) do
+        table.insert(output, ReaperItem.getFromSelectedNumber(index, projectNumber))
+    end
+    return output
 end
 
 return ReaperItem
