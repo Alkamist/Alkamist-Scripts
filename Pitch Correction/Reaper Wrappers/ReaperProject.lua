@@ -1,49 +1,44 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperProject = {
-    pointerType = "ReaProject*"
-}
+local ReaperProject = { pointerType = "ReaProject*" }
+setmetatable(ReaperProject, { __index = ReaperPointerWrapper })
 
-local ReaperProject_mt = {
+ReaperProject._members = {
+    { key = "name",
+        getter = function(self) return reaper.GetProjectName(self.pointer, "") end },
 
-    -- Getters
-    __index = function(tbl, key)
-        if key == "name" then return reaper.GetProjectName(tbl.pointer, "") end
-        if key == "itemCount" then return reaper.CountMediaItems(tbl.pointer) end
-        if key == "selectedItemCount" then return reaper.CountSelectedMediaItems(tbl.pointer) end
-        if key == "items" then return tbl:getItems() end
-        if key == "selectedItems" then return tbl:getSelectedItems() end
-        if key == "trackCount" then return reaper.CountTracks(tbl.pointer) end
-        if key == "selectedTrackCount" then return reaper.CountSelectedTracks(tbl.pointer) end
-        if key == "tracks" then return tbl:getTracks() end
-        if key == "selectedTracks" then return tbl:getSelectedTracks() end
-        return ReaperProject[key]
-    end,
+    { key = "itemCount",
+        getter = function(self) return reaper.CountMediaItems(self.pointer) end },
 
-    -- Setters
-    __newindex = function(tbl, key, value)
-        if key == "name" then return end
-        if key == "itemCount" then return end
-        if key == "selectedItemCount" then return end
-        if key == "items" then return end
-        if key == "selectedItems" then return end
-        if key == "trackCount" then return end
-        if key == "selectedTrackCount" then return end
-        if key == "tracks" then return end
-        if key == "selectedTracks" then return end
-        rawset(tbl, key, value)
-    end
+    { key = "selectedItemCount",
+        getter = function(self) return reaper.CountSelectedMediaItems(self.pointer) end },
 
+    { key = "items",
+        getter = function(self) return self:getItems() end },
+
+    { key = "selectedItems",
+        getter = function(self) return self:getSelectedItems() end },
+
+    { key = "trackCount",
+        getter = function(self) return reaper.CountTracks(self.pointer) end },
+
+    { key = "selectedTrackCount",
+        getter = function(self) return reaper.CountSelectedTracks(self.pointer) end },
+
+    { key = "tracks",
+        getter = function(self) return self:getTracks() end },
+
+    { key = "selectedTracks",
+        getter = function(self) return self:getSelectedTracks() end },
 }
 
 function ReaperProject:new(object)
     local object = object or {}
-    setmetatable(object, ReaperProject_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperProject:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr(self.pointer, self.pointerType)
 end
 
 function ReaperProject:getItem(itemNumber)

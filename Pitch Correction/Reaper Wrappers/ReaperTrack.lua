@@ -1,35 +1,20 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperTrack = {
-    pointerType = "MediaTrack*"
-}
+local ReaperTrack = { pointerType = "MediaTrack*" }
+setmetatable(ReaperTrack, { __index = ReaperPointerWrapper })
 
-local ReaperTrack_mt = {
-
-    -- Getters
-    __index = function(tbl, key)
-        if key == "project" then return tbl.factory.createNew(reaper.GetMediaTrackInfo_Value(tbl.pointer, "P_PROJECT")) end
-        if key == "number" then return reaper.GetMediaTrackInfo_Value(tbl.pointer, "IP_TRACKNUMBER") end
-        return ReaperTrack[key]
-    end,
-
-    -- Setters
-    __newindex = function(tbl, key, value)
-        if key == "project" then return end
-        if key == "number" then return end
-        rawset(tbl, key, value)
-    end
-
+ReaperTrack._members = {
+    { key = "number",
+        getter = function(self) return reaper.GetMediaTrackInfo_Value(self.pointer, "IP_TRACKNUMBER") end },
 }
 
 function ReaperTrack:new(object)
     local object = object or {}
-    setmetatable(object, ReaperTrack_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperTrack:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
 end
 
 return ReaperTrack

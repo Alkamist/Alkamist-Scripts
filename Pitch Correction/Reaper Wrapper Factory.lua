@@ -10,10 +10,14 @@ local wrapperStorageList = {}
 
 function ReaperWrapperFactory.createNew(pointer, project)
     if pointer == nil then return nil end
+    if project == nil then project = reaper.EnumProjects(-1, "") end
     for _, wrapperType in pairs(ReaperWrapperFactory.types) do
         if reaper.ValidatePtr2(project, pointer, wrapperType.pointerType) then
             if wrapperStorageList[tostring(pointer)] == nil then
-                wrapperStorageList[tostring(pointer)] = wrapperType:new{ pointer = pointer }
+                wrapperStorageList[tostring(pointer)] = wrapperType:new{
+                    pointer = pointer,
+                    project = project
+                }
             end
             return wrapperStorageList[tostring(pointer)]
         end

@@ -1,55 +1,55 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Factory = require "Pitch Correction.Reaper Wrapper Factory"
 
-local AlkAPI = {}
+local Alk = {}
 
 -- Project can be omitted for current project.
-function AlkAPI.wrap(pointer, project)
+function Alk.wrap(pointer, project)
     return Factory.createNew(pointer, project)
 end
 
 -- 0 for current project.
-function AlkAPI.getProject(projectNumber)
+function Alk.getProject(projectNumber)
     if projectNumber == nil then projectNumber = 0 end
     local projectPointer, projectFilename = reaper.EnumProjects(projectNumber - 1, "")
-    return AlkAPI.wrap(projectPointer)
+    return Alk.wrap(projectPointer)
 end
 
-function AlkAPI.getItem(itemNumber, projectNumber)
-    return AlkAPI.getProject(projectNumber):getItem(itemNumber)
+function Alk.getItem(itemNumber, projectNumber)
+    return Alk.getProject(projectNumber):getItem(itemNumber)
 end
 
-function AlkAPI.getItems(projectNumber)
-    return AlkAPI.getProject(projectNumber).items
+function Alk.getItems(projectNumber)
+    return Alk.getProject(projectNumber).items
 end
 
-function AlkAPI.getSelectedItem(itemNumber, projectNumber)
-    return AlkAPI.getProject(projectNumber):getSelectedItem(itemNumber)
+function Alk.getSelectedItem(itemNumber, projectNumber)
+    return Alk.getProject(projectNumber):getSelectedItem(itemNumber)
 end
 
-function AlkAPI.getSelectedItems(projectNumber)
-    return AlkAPI.getProject(projectNumber).selectedItems
+function Alk.getSelectedItems(projectNumber)
+    return Alk.getProject(projectNumber).selectedItems
 end
 
-function AlkAPI.getTrack(trackNumber, projectNumber)
-    return AlkAPI.getProject(projectNumber):getTrack(trackNumber)
+function Alk.getTrack(trackNumber, projectNumber)
+    return Alk.getProject(projectNumber):getTrack(trackNumber)
 end
 
-function AlkAPI.getTracks(projectNumber)
-    return AlkAPI.getProject(projectNumber).tracks
+function Alk.getTracks(projectNumber)
+    return Alk.getProject(projectNumber).tracks
 end
 
-function AlkAPI.getSelectedTrack(trackNumber, projectNumber)
-    return AlkAPI.getProject(projectNumber):getSelectedTrack(trackNumber)
+function Alk.getSelectedTrack(trackNumber, projectNumber)
+    return Alk.getProject(projectNumber):getSelectedTrack(trackNumber)
 end
 
-function AlkAPI.getSelectedTracks(projectNumber)
-    return AlkAPI.getProject(projectNumber).selectedTracks
+function Alk.getSelectedTracks(projectNumber)
+    return Alk.getProject(projectNumber).selectedTracks
 end
 
 --------------------- General API ---------------------
 
-function AlkAPI.mainCommand(id)
+function Alk.mainCommand(id)
     if type(id) == "string" then
         reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
         return
@@ -57,7 +57,7 @@ function AlkAPI.mainCommand(id)
     reaper.Main_OnCommand(id, 0)
 end
 
-function AlkAPI.getEELCommandID(name)
+function Alk.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
     local file = io.open(kbini, 'r')
 
@@ -91,7 +91,7 @@ function AlkAPI.getEELCommandID(name)
 end
 
 local uiEnabled = true
-function AlkAPI.setUIRefresh(enable)
+function Alk.setUIRefresh(enable)
     -- Enable UI refresh.
     if enable then
         if not uiEnabled then
@@ -108,8 +108,8 @@ function AlkAPI.setUIRefresh(enable)
     end
 end
 
-function AlkAPI.updateArrange()
+function Alk.updateArrange()
     reaper.UpdateArrange()
 end
 
-return AlkAPI
+return Alk

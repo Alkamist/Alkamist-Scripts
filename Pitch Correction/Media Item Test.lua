@@ -25,15 +25,27 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 --    test.loops = true
 --end
 
-local AlkAPI = require "Pitch Correction.Alkamist API"
+local Alk = require "Pitch Correction.Alkamist API"
 
-msg(AlkAPI.getProject(0).name)
---msg(AlkAPI.getProject(0).itemCount)
---msg(AlkAPI.getProject(0).selectedItemCount)
-
---local items = AlkAPI.getItems()
+--local test = Alk.getProject()
+--msg(test:isValid())
+--msg(test.name)
+--Alk.getProject(0).name = 5
+--msg(test.name)
+--msg(test.itemCount)
+--msg(test.items)
+--msg(test.selectedItemCount)
+--msg(test.selectedItems)
+--msg(test.trackCount)
+--msg(test.tracks)
+--msg(test.selectedTrackCount)
+--msg(test.selectedTracks)
+--msg("")
+--
+--local items = Alk.getItems()
 --for _, item in ipairs(items) do
---    --item.length = 20
+--    item.length = 20
+--    item.leftEdge = 5
 --    msg(item.length)
 --    msg(item.leftEdge)
 --    msg(item.rightEdge)
@@ -42,22 +54,23 @@ msg(AlkAPI.getProject(0).name)
 --    msg(item.track.number)
 --end
 
-msg(AlkAPI.getItem(1))
-msg(AlkAPI.getSelectedItem(3))
-msg(AlkAPI.getSelectedItem(3))
-msg(AlkAPI.getSelectedItem(3))
-msg(AlkAPI.getSelectedItem(3))
-
-msg(AlkAPI.getTrack(1))
-msg(AlkAPI.getSelectedTrack(3))
-msg(AlkAPI.getSelectedTrack(3))
-msg(AlkAPI.getSelectedTrack(3))
-msg(AlkAPI.getSelectedTrack(3))
+--msg(Alk.getItem(1))
+--msg(Alk.getSelectedItem(3))
+--msg(Alk.getSelectedItem(3))
+--msg(Alk.getSelectedItem(3))
+--msg(Alk.getSelectedItem(3))
+--
+--msg(Alk.getTrack(1))
+--msg(Alk.getSelectedTrack(3))
+--msg(Alk.getSelectedTrack(3))
+--msg(Alk.getSelectedTrack(3))
+--msg(Alk.getSelectedTrack(3))
 --
 --
---local tracks = AlkAPI.getTracks()
---for _, track in ipairs(tracks) do
---    msg(track.number)
---end
+local tracks = Alk.getTracks()
+for _, track in ipairs(tracks) do
+    msg(track.project)
+    msg(track.number)
+end
 
 

@@ -1,45 +1,39 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperItem = {
-    pointerType = "MediaItem*"
-}
+local ReaperItem = { pointerType = "MediaItem*" }
+setmetatable(ReaperItem, { __index = ReaperPointerWrapper })
 
-local ReaperItem_mt = {
+ReaperItem._members = {
+    { key = "length",
+        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "D_LENGTH") end,
+        setter = function(self, value) reaper.SetMediaItemLength(self.pointer, value, false) end },
 
-    -- Getters
-    __index = function(tbl, key)
-        if key == "project" then return tbl.factory.createNew(reaper.GetItemProjectContext(tbl.pointer)) end
-        if key == "length" then return reaper.GetMediaItemInfo_Value(tbl.pointer, "D_LENGTH") end
-        if key == "leftEdge" then return reaper.GetMediaItemInfo_Value(tbl.pointer, "D_POSITION") end
-        if key == "rightEdge" then return tbl.leftEdge + tbl.length end
-        if key == "loops" then return reaper.GetMediaItemInfo_Value(tbl.pointer, "B_LOOPSRC") > 0 end
-        if key == "activeTake" then return tbl.factory.createNew(reaper.GetActiveTake(tbl.pointer)) end
-        if key == "track" then return tbl.factory.createNew(reaper.GetMediaItemTrack(tbl.pointer)) end
-        return ReaperItem[key]
-    end,
+    { key = "leftEdge",
+        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "D_POSITION") end,
+        setter = function(self, value) reaper.SetMediaItemPosition(self.pointer, value, false) end },
 
-    -- Setters
-    __newindex = function(tbl, key, value)
-        if key == "project" then return end
-        if key == "length" then reaper.SetMediaItemLength(tbl.pointer, value, false); return end
-        if key == "leftEdge" then reaper.SetMediaItemPosition(tbl.pointer, value, false); return end
-        if key == "rightEdge" then tbl.leftEdge = math.max(0.0, value - tbl.length); return end
-        if key == "loops" then reaper.SetMediaItemInfo_Value(tbl.pointer, "B_LOOPSRC", value and 1 or 0); return end
-        if key == "activeTake" then return end
-        if key == "track" then return end
-        rawset(tbl, key, value)
-    end
+    { key = "rightEdge",
+        getter = function(self) return self.leftEdge + self.length end,
+        setter = function(self, value) self.leftEdge = math.max(0.0, value - self.length) end },
 
+    { key = "loops",
+        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "B_LOOPSRC") > 0 end,
+        setter = function(self, value) reaper.SetMediaItemInfo_Value(self.pointer, "B_LOOPSRC", value and 1 or 0) end },
+
+    { key = "activeTake",
+        getter = function(self) return self.factory.createNew(reaper.GetActiveTake(self.pointer)) end },
+
+    { key = "track",
+        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTrack(self.pointer)) end },
 }
 
 function ReaperItem:new(object)
     local object = object or {}
-    setmetatable(object, ReaperItem_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperItem:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
 end
 
 return ReaperItem
