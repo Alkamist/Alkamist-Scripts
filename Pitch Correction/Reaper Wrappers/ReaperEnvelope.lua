@@ -1,14 +1,16 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 
 local ReaperEnvelope = {
-    pointerType = "ReaProject*"
+    pointerType = "TrackEnvelope*",
+    name = "ReaperEnvelope"
 }
 
 local ReaperEnvelope_mt = {
 
     -- Getters
     __index = function(tbl, key)
+        if key == "track" then return tbl.factory.createNew(tbl:getTrack()) end
+        if key == "project" then return tbl.track.project end
         return ReaperEnvelope[key]
     end,
 
@@ -25,8 +27,13 @@ function ReaperEnvelope:new(object)
     return object
 end
 
-function ReaperEnvelope.isValid(pointer, projectNumber)
-    return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperEnvelope.pointerType)
+function ReaperEnvelope:isValid()
+    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
+end
+
+function ReaperEnvelope:getTrack()
+    local parentTrack, _, _ = reaper.Envelope_GetParentTrack(self.pointer)
+    return parentTrack
 end
 
 return ReaperEnvelope

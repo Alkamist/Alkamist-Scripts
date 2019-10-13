@@ -3,26 +3,48 @@ local Factory = require "Pitch Correction.Reaper Wrapper Factory"
 
 local AlkAPI = {}
 
--- Project number can be omitted for current project.
-function AlkAPI.wrap(pointer, projectNumber)
-    return Factory.createNew(pointer, projectNumber)
+-- Project can be omitted for current project.
+function AlkAPI.wrap(pointer, project)
+    return Factory.createNew(pointer, project)
 end
 
-function AlkAPI.get(typeToGet, typeNumber, projectNumber)
-    if projectNumber == nil then projectNumber = 1 end
-    if typeToGet == "items"          then return Factory.types.ReaperItem.getAll(projectNumber) end
-    if typeToGet == "selectedItems"  then return Factory.types.ReaperItem.getSelected(projectNumber) end
-    if typeToGet == "tracks"         then return Factory.types.ReaperTrack.getAll(projectNumber) end
-    if typeToGet == "selectedTracks" then return Factory.types.ReaperTrack.getSelected(projectNumber) end
+-- 0 for current project.
+function AlkAPI.getProject(projectNumber)
+    if projectNumber == nil then projectNumber = 0 end
+    local projectPointer, projectFilename = reaper.EnumProjects(projectNumber - 1, "")
+    return AlkAPI.wrap(projectPointer)
+end
 
-    if typeToGet == "item"           then return Factory.types.ReaperItem.getFromNumber(typeNumber, projectNumber) end
-    if typeToGet == "selectedItem"   then return Factory.types.ReaperItem.getFromSelectedNumber(typeNumber, projectNumber) end
-    if typeToGet == "track"          then return Factory.types.ReaperTrack.getFromNumber(typeNumber, projectNumber) end
-    if typeToGet == "selectedTrack"  then return Factory.types.ReaperTrack.getFromSelectedNumber(typeNumber, projectNumber) end
+function AlkAPI.getItem(itemNumber, projectNumber)
+    return AlkAPI.getProject(projectNumber):getItem(itemNumber)
+end
 
-    if typeToGet == "project"        then return Factory.types.ReaperProject.getFromNumber(typeNumber, projectNumber) end
-    if typeToGet == "projects"       then return Factory.types.ReaperProject.getAll(typeNumber, projectNumber) end
-    return nil
+function AlkAPI.getItems(projectNumber)
+    return AlkAPI.getProject(projectNumber).items
+end
+
+function AlkAPI.getSelectedItem(itemNumber, projectNumber)
+    return AlkAPI.getProject(projectNumber):getSelectedItem(itemNumber)
+end
+
+function AlkAPI.getSelectedItems(projectNumber)
+    return AlkAPI.getProject(projectNumber).selectedItems
+end
+
+function AlkAPI.getTrack(trackNumber, projectNumber)
+    return AlkAPI.getProject(projectNumber):getTrack(trackNumber)
+end
+
+function AlkAPI.getTracks(projectNumber)
+    return AlkAPI.getProject(projectNumber).tracks
+end
+
+function AlkAPI.getSelectedTrack(trackNumber, projectNumber)
+    return AlkAPI.getProject(projectNumber):getSelectedTrack(trackNumber)
+end
+
+function AlkAPI.getSelectedTracks(projectNumber)
+    return AlkAPI.getProject(projectNumber).selectedTracks
 end
 
 --------------------- General API ---------------------

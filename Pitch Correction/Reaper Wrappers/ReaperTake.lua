@@ -1,18 +1,20 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 
 local ReaperTake = {
-    pointerType = "MediaItem_Take*"
+    pointerType = "MediaItem_Take*",
+    name = "ReaperTake"
 }
 
 local ReaperTake_mt = {
 
     -- Getters
     __index = function(tbl, key)
+        if key == "track" then return tbl.item.track end
+        if key == "project" then return tbl.track.project end
         if key == "name" then return reaper.GetTakeName(tbl.pointer) end
-        if key == "type" then return ReaperTake.getType(tbl.pointer) end
+        if key == "type" then return tbl:getType() end
         if key == "GUID" then return reaper.BR_GetMediaItemTakeGUID(tbl.pointer) end
-        if key == "item" then return tbl.factory.createNew("ReaperItem", reaper.GetMediaItemTake_Item(tbl.pointer)) end
+        if key == "item" then return tbl.factory.createNew(reaper.GetMediaItemTake_Item(tbl.pointer)) end
         return ReaperTake[key]
     end,
 
@@ -30,12 +32,12 @@ function ReaperTake:new(object)
     return object
 end
 
-function ReaperTake.isValid(pointer, projectNumber)
-    return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperTake.pointerType)
+function ReaperTake:isValid()
+    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
 end
 
-function ReaperTake.getType(pointer)
-    if reaper.TakeIsMIDI(pointer) then
+function ReaperTake:getType()
+    if reaper.TakeIsMIDI(self.pointer) then
         return "midi"
     end
     return "audio"

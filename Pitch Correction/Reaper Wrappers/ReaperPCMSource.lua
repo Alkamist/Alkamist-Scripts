@@ -1,8 +1,8 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
 
 local ReaperPCMSource = {
-    pointerType = "ReaProject*"
+    pointerType = "PCM_source*",
+    name = "ReaperPCMSource"
 }
 
 local ReaperPCMSource_mt = {
@@ -25,8 +25,8 @@ function ReaperPCMSource:new(object)
     return object
 end
 
-function ReaperPCMSource.isValid(pointer, projectNumber)
-    return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperPCMSource.pointerType)
+function ReaperPCMSource:isValid()
+    return self.pointer ~= nil and reaper.ValidatePtr(self.pointer, self.pointerType)
 end
 
 return ReaperPCMSource
