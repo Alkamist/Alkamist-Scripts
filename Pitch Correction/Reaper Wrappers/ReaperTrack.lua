@@ -9,7 +9,7 @@ local ReaperTrack_mt = {
 
     -- Getters
     __index = function(tbl, key)
-        if key == "number" then return AlkWrap.getTrackNumber(tbl.pointer) end
+        if key == "number" then return reaper.GetMediaTrackInfo_Value(tbl.pointer, "IP_TRACKNUMBER") end
         return ReaperTrack[key]
     end,
 
@@ -24,6 +24,10 @@ function ReaperTrack:new(object)
     local object = object or {}
     setmetatable(object, ReaperTrack_mt)
     return object
+end
+
+function ReaperTrack.isValid(pointer, projectNumber)
+    return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperTrack.pointerType)
 end
 
 return ReaperTrack

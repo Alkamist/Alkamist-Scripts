@@ -65,12 +65,6 @@ end
 -------------------- MediaTrack* --------------------
 
 -- Getters.
-function AlkWrap.isTrack(pointer)
-    return pointer ~= nil and reaper.ValidatePtr(pointer, "MediaTrack*")
-end
-function AlkWrap.getTrackNumber(track)
-    return reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
-end
 function AlkWrap.getNumTracks(projectNumber)
     return reaper.CountTracks(projectNumber - 1)
 end
@@ -89,9 +83,6 @@ end
 -------------------- MediaItem* --------------------
 
 -- Getters.
-function AlkWrap.isItem(pointer)
-    return pointer ~= nil and reaper.ValidatePtr(pointer, "MediaItem*")
-end
 function AlkWrap.getNumItems(projectNumber)
     return reaper.CountMediaItems(projectNumber - 1)
 end
@@ -104,21 +95,6 @@ end
 function AlkWrap.getSelectedItem(projectNumber, index)
     return reaper.GetSelectedMediaItem(projectNumber - 1, index - 1)
 end
-function AlkWrap.getItemLength(item)
-    return reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-end
-function AlkWrap.getItemLeftEdge(item)
-    return reaper.GetMediaItemInfo_Value(item, "D_POSITION")
-end
-function AlkWrap.getItemRightEdge(item)
-    return AlkWrap.getItemLeftEdge(item) + AlkWrap.getItemLength(item)
-end
-function AlkWrap.getItemLoops(item)
-    return reaper.GetMediaItemInfo_Value(item, "B_LOOPSRC") > 0
-end
-function AlkWrap.getItemActiveTake(item)
-    return reaper.GetActiveTake(item)
-end
 function AlkWrap.itemIsEmpty(item)
     return AlkWrap.getTakeType(AlkWrap.getItemActiveTake(item)) == nil
 end
@@ -128,42 +104,10 @@ function AlkWrap.getItemName(item)
     end
     return AlkWrap.getTakeName(AlkWrap.getItemActiveTake(item))
 end
-function AlkWrap.getItemTrack(item)
-    return reaper.GetMediaItemTrack(item)
-end
-
--- Setters.
-function AlkWrap.setItemLength(item, value)
-    return reaper.SetMediaItemLength(item, value, false)
-end
-function AlkWrap.setItemLeftEdge(item, value)
-    return reaper.SetMediaItemPosition(item, value, false)
-end
-function AlkWrap.setItemRightEdge(item, value)
-    return AlkWrap.setItemLeftEdge(item, math.max(0.0, value - AlkWrap.getItemLength(item)))
-end
-function AlkWrap.setItemLoops(item, value)
-    return reaper.SetMediaItemInfo_Value(item, "B_LOOPSRC", value and 1 or 0)
-end
 
 -------------------- MediaItem_Take* --------------------
 
 -- Getters.
-function AlkWrap.getTakeName(take)
-    return reaper.GetTakeName(take)
-end
-function AlkWrap.getTakeType(take)
-    if reaper.TakeIsMIDI(take) then
-        return "midi"
-    end
-    return "audio"
-end
-function AlkWrap.getTakeGUID(take)
-    return reaper.BR_GetMediaItemTakeGUID(take)
-end
-function AlkWrap.getTakeItem(take)
-    return reaper.GetMediaItemTake_Item(take)
-end
 function AlkWrap.getTakeSource(take)
     return reaper.GetMediaItemTake_Source(take)
 end
@@ -278,9 +222,6 @@ function AlkWrap.getTakeRealTime(take, sourceTime)
 end
 
 -- Setters.
-function AlkWrap.setTakeName(take, value)
-    reaper.GetSetMediaItemTakeInfo_String(take, "P_NAME", "", true)
-end
 function AlkWrap.setTakeSource(take, value)
     reaper.SetMediaItemTake_Source(take, value)
 end

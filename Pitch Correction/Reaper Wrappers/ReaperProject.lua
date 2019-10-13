@@ -25,4 +25,8 @@ function ReaperProject:new(object)
     return object
 end
 
+function ReaperProject.isValid(pointer, projectNumber)
+    return pointer ~= nil and reaper.ValidatePtr2(projectNumber - 1, pointer, ReaperProject.pointerType)
+end
+
 return ReaperProject
