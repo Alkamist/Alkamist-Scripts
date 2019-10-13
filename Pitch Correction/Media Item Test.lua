@@ -27,8 +27,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local AlkAPI = require "Pitch Correction.Alkamist API"
 
-local items = AlkAPI.get("items")
-
+--local items = AlkAPI.get("items")
+--
 --for _, item in ipairs(items) do
 --    --item.length = 20
 --    msg(item.length)
@@ -39,13 +39,18 @@ local items = AlkAPI.get("items")
 --    msg(item.track.number)
 --end
 --
---local selectedItem5 = AlkAPI.get("selectedItem", 3)
---msg(selectedItem5.leftEdge)
+local selectedItem3 = AlkAPI.get("selectedItem", 3)
+local selectedItem1 = AlkAPI.get("selectedItem", 1)
+msg(selectedItem3)
+msg(AlkAPI.get("selectedItem", 3))
+msg(AlkAPI.get("selectedItem", 3))
+msg(AlkAPI.get("selectedItem", 3))
+msg(AlkAPI.get("selectedItem", 3))
 
-local tracks = AlkAPI.get("selectedTracks")
-
-for _, track in ipairs(tracks) do
-    msg(track.number)
-end
+--local tracks = AlkAPI.get("selectedTracks")
+--
+--for _, track in ipairs(tracks) do
+--    msg(track.number)
+--end
 
 
