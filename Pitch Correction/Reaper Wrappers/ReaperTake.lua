@@ -20,7 +20,12 @@ local ReaperTake_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
+        if key == "track" then return end
+        if key == "project" then return end
         if key == "name" then reaper.GetSetMediaItemTakeInfo_String(tbl.pointer, "P_NAME", "", true); return end
+        if key == "type" then return end
+        if key == "GUID" then return end
+        if key == "item" then return end
         rawset(tbl, key, value)
     end
 

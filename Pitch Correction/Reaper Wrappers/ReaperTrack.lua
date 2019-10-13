@@ -16,6 +16,8 @@ local ReaperTrack_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
+        if key == "project" then return end
+        if key == "number" then return end
         rawset(tbl, key, value)
     end
 

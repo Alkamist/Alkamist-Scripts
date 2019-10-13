@@ -23,6 +23,15 @@ local ReaperProject_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
+        if key == "name" then return end
+        if key == "itemCount" then return end
+        if key == "selectedItemCount" then return end
+        if key == "items" then return end
+        if key == "selectedItems" then return end
+        if key == "trackCount" then return end
+        if key == "selectedTrackCount" then return end
+        if key == "tracks" then return end
+        if key == "selectedTracks" then return end
         rawset(tbl, key, value)
     end
 

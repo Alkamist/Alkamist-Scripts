@@ -27,6 +27,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local AlkAPI = require "Pitch Correction.Alkamist API"
 
+msg(AlkAPI.getProject(0).name)
 --msg(AlkAPI.getProject(0).itemCount)
 --msg(AlkAPI.getProject(0).selectedItemCount)
 

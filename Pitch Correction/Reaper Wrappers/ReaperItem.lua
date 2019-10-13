@@ -21,10 +21,13 @@ local ReaperItem_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
+        if key == "project" then return end
         if key == "length" then reaper.SetMediaItemLength(tbl.pointer, value, false); return end
         if key == "leftEdge" then reaper.SetMediaItemPosition(tbl.pointer, value, false); return end
         if key == "rightEdge" then tbl.leftEdge = math.max(0.0, value - tbl.length); return end
         if key == "loops" then reaper.SetMediaItemInfo_Value(tbl.pointer, "B_LOOPSRC", value and 1 or 0); return end
+        if key == "activeTake" then return end
+        if key == "track" then return end
         rawset(tbl, key, value)
     end
 

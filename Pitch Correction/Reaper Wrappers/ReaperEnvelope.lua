@@ -16,6 +16,8 @@ local ReaperEnvelope_mt = {
 
     -- Setters
     __newindex = function(tbl, key, value)
+        if key == "track" then return end
+        if key == "project" then return end
         rawset(tbl, key, value)
     end
 
