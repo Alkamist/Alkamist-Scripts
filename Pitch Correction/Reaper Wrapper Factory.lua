@@ -17,20 +17,28 @@ local wrapperStorageList = {}
 
 for _, type in pairs(ReaperWrapperFactory.types) do
     type.factory = ReaperWrapperFactory
-    wrapperStorageList[type.pointerType] = {}
 end
 
-ReaperWrapperFactory.createNew = function(pointer, projectNumber)
+function ReaperWrapperFactory.createNew(pointer, projectNumber)
     if projectNumber == nil then projectNumber = 1 end
     for _, wrapperType in pairs(ReaperWrapperFactory.types) do
         if wrapperType.isValid(pointer, projectNumber) then
-            if wrapperStorageList[wrapperType.pointerType][tostring(pointer)] == nil then
-                wrapperStorageList[wrapperType.pointerType][tostring(pointer)] = wrapperType:new{ pointer = pointer }
+            if wrapperStorageList[tostring(pointer)] == nil then
+                wrapperStorageList[tostring(pointer)] = wrapperType:new{ pointer = pointer }
             end
-            return wrapperStorageList[wrapperType.pointerType][tostring(pointer)]
+            return wrapperStorageList[tostring(pointer)]
         end
     end
     return nil
+end
+
+function ReaperWrapperFactory.removePointer(pointer, projectNumber)
+    if projectNumber == nil then projectNumber = 1 end
+    for _, wrapperType in pairs(ReaperWrapperFactory.types) do
+        if wrapperStorageList[tostring(pointer)] ~= nil then
+            wrapperStorageList[tostring(pointer)] = nil
+        end
+    end
 end
 
 return ReaperWrapperFactory
