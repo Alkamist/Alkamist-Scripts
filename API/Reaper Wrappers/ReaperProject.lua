@@ -49,15 +49,15 @@ end
 
 function ReaperProject:wrapPointer(pointer, wrapperType, storageKey)
     if pointer == nil then return nil end
+    -- This is slower but safer.
+    --if self:validatePointer(pointer, wrapperType.pointerType) == false then return nil end
     self.wrappers = self.wrappers or {}
     self.wrappers[storageKey] = self.wrappers[storageKey] or {}
     local pointerStr = tostring(pointer)
-    --if self:validatePointer(pointer, wrapperType.pointerType) then
     self.wrappers[storageKey][pointerStr] = self.wrappers[storageKey][pointerStr] or wrapperType:new{
         pointer = pointer,
         project = self
     }
-    --end
     return self.wrappers[storageKey][pointerStr]
 end
 function ReaperProject:wrapTrack(pointer) return self:wrapPointer(pointer, ReaperTrack, "tracks") end
