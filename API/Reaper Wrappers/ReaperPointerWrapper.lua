@@ -28,7 +28,7 @@ function ReaperPointerWrapper:init()
 end
 
 function ReaperPointerWrapper:isValid()
-    return self.pointer ~= nil and self.project:validatePointer(self.pointer, self.pointerType)
+    return self.project:validatePointer(self.pointer, self.pointerType)
 end
 
 function ReaperPointerWrapper:getIterator(getterFn, countFn)
