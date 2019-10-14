@@ -22,10 +22,10 @@ ReaperItem._members = {
         setter = function(self, value) reaper.SetMediaItemInfo_Value(self.pointer, "B_LOOPSRC", value and 1 or 0) end },
 
     { key = "activeTake",
-        getter = function(self) return self.factory.createNew(reaper.GetActiveTake(self.pointer)) end },
+        getter = function(self) return self.factory.createNew(reaper.GetActiveTake(self.pointer), self.project) end },
 
     { key = "track",
-        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTrack(self.pointer)) end },
+        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTrack(self.pointer), self.project) end },
 
     { key = "isEmpty",
         getter = function(self) return self.activeTake.type == nil end },

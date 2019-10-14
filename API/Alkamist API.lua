@@ -1,19 +1,14 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Factory = require "API.Reaper Wrappers.Reaper Wrapper Factory"
+local Factory = require "API.Reaper Wrappers.ReaperWrapperFactory"
 
 local Alk = {}
 setmetatable(Alk, Alk)
 
--- Project can be omitted for current project.
-function Alk.wrap(pointer, project)
-    return Factory.createNew(pointer, project)
-end
-
 -- 0 for current project.
 local function getProject(projectNumber)
     if projectNumber == nil then projectNumber = 0 end
-    local projectPointer, projectFilename = reaper.EnumProjects(projectNumber - 1, "")
-    return Alk.wrap(projectPointer)
+    local projectPointer = reaper.EnumProjects(projectNumber - 1, "")
+    return Factory.createNew(projectPointer)
 end
 
 Alk.__index = function(tbl, key)
@@ -50,14 +45,6 @@ Alk.__index = function(tbl, key)
 end
 
 --------------------- General API ---------------------
-
-function Alk.mainCommand(id)
-    if type(id) == "string" then
-        reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
-        return
-    end
-    reaper.Main_OnCommand(id, 0)
-end
 
 function Alk.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'

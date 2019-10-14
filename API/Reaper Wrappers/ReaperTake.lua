@@ -19,7 +19,7 @@ ReaperTake._members = {
         getter = function(self) return reaper.BR_GetMediaItemTakeGUID(self.pointer) end },
 
     { key = "item",
-        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTake_Item(self.pointer)) end },
+        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTake_Item(self.pointer), self.project) end },
 
     { key = "source",
         getter = function(self) return reaper.GetMediaItemTake_Source(self.pointer) end,
@@ -155,13 +155,11 @@ end
 
 function ReaperTake:createAndGetPitchEnvelope()
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
-    msg(pitchEnvelope)
-    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        reaper.Main_OnCommand(reaper.NamedCommandLookup("_S&M_TAKEENV10"), 0) -- Show and unbypass take pitch envelope
+    if not pitchEnvelope or not reaper.ValidatePtr2(self.project.pointer, pitchEnvelope, "TrackEnvelope*") then
+        self.project:mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
     end
-    --AlkWrap.mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
-    return self.factory.createNew(pitchEnvelope)
+    return self.factory.createNew(pitchEnvelope, self.project)
 end
 
 return ReaperTake

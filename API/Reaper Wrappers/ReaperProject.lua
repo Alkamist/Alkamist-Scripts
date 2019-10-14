@@ -31,7 +31,16 @@ end
 
 --------------------- Unique Functions  ---------------------
 
---
+function ReaperProject:mainCommand(id, flag)
+    local flag = flag or 0
+    local id = id
+    if type(id) == "string" then id = reaper.NamedCommandLookup(id) end
+    reaper.Main_OnCommandEx(id, flag, self.pointer)
+end
+
+function ReaperProject:validatePointer(pointer, pointerType)
+    return reaper.ValidatePtr2(self.pointer, pointer, pointerType)
+end
 
 --------------------- Member Helper Functions  ---------------------
 
@@ -52,19 +61,19 @@ function ReaperProject:getSelectedTrackCount()
 end
 
 function ReaperProject:getItem(itemNumber)
-    return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1))
+    return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1), self)
 end
 
 function ReaperProject:getSelectedItem(itemNumber)
-    return self.factory.createNew(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1))
+    return self.factory.createNew(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1), self)
 end
 
 function ReaperProject:getTrack(trackNumber)
-    return self.factory.createNew(reaper.GetTrack(self.pointer, trackNumber - 1))
+    return self.factory.createNew(reaper.GetTrack(self.pointer, trackNumber - 1), self)
 end
 
 function ReaperProject:getSelectedTrack(trackNumber)
-    return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1))
+    return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1), self)
 end
 
 function ReaperProject:getItems()
