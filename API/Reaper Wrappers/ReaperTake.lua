@@ -19,7 +19,7 @@ ReaperTake._members = {
         getter = function(self) return reaper.BR_GetMediaItemTakeGUID(self.pointer) end },
 
     { key = "item",
-        getter = function(self) return self.factory.createNew(reaper.GetMediaItemTake_Item(self.pointer), self.project) end },
+        getter = function(self) return self.project:wrapItem(reaper.GetMediaItemTake_Item(self.pointer)) end },
 
     { key = "source",
         getter = function(self) return reaper.GetMediaItemTake_Source(self.pointer) end,
@@ -159,7 +159,7 @@ function ReaperTake:createAndGetPitchEnvelope()
         self.project:mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
     end
-    return self.factory.createNew(pitchEnvelope, self.project)
+    return self.project:wrapEnvelope(pitchEnvelope, self.project)
 end
 
 return ReaperTake

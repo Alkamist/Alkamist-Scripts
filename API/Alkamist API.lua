@@ -1,19 +1,26 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Factory = require "API.Reaper Wrappers.ReaperWrapperFactory"
+local ReaperProject = require "API.Reaper Wrappers.ReaperProject"
 
 local Alk = {}
 setmetatable(Alk, Alk)
 
+local storedProjects = {}
 -- 0 for current project.
-local function getProject(projectNumber)
+
+local function wrapProject(projectNumber)
     if projectNumber == nil then projectNumber = 0 end
     local projectPointer = reaper.EnumProjects(projectNumber - 1, "")
-    return Factory.createNew(projectPointer)
+    if projectPointer then
+        local projectStr = tostring(projectPointer)
+        storedProjects[projectStr] = storedProjects[projectStr] or ReaperProject:new{ pointer = pointer }
+        return storedProjects[projectStr]
+    end
+    return {}
 end
 
 local projectsTable = {
     __index = function(tbl, key)
-        return getProject(key)
+        return wrapProject(key)
     end,
 
     __len = function(tbl)
@@ -32,19 +39,19 @@ Alk.__index = function(tbl, key)
     end
 
     if key == "items" then
-        return getProject(0).items
+        return wrapProject(0).items
     end
 
     if key == "selectedItems" then
-        return getProject(0).selectedItems
+        return wrapProject(0).selectedItems
     end
 
     if key == "tracks" then
-        return getProject(0).tracks
+        return wrapProject(0).tracks
     end
 
     if key == "selectedTracks" then
-        return getProject(0).selectedTracks
+        return wrapProject(0).selectedTracks
     end
 end
 

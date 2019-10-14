@@ -44,7 +44,7 @@ end
 
 function ReaperEnvelope:getTrack()
     local parentTrack, _, _ = reaper.Envelope_GetParentTrack(self.pointer)
-    return self.factory.createNew(parentTrack, self.project)
+    return self.project:wrapTrack(parentTrack)
 end
 
 function ReaperEnvelope:getName()
@@ -83,7 +83,7 @@ end
 
 function ReaperEnvelope:getTake()
     local take, _, _ = reaper.Envelope_GetParentTake(self.pointer)
-    return self.factory.createNew(take, self.project)
+    return self.project:wrapTake(take)
 end
 
 function ReaperEnvelope:getFXNumber()

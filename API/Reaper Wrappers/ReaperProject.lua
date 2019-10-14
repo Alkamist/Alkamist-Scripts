@@ -1,5 +1,10 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
+local ReaperTrack = require "API.Reaper Wrappers.ReaperTrack"
+local ReaperEnvelope = require "API.Reaper Wrappers.ReaperEnvelope"
+local ReaperItem = require "API.Reaper Wrappers.ReaperItem"
+local ReaperTake = require "API.Reaper Wrappers.ReaperTake"
+local ReaperPCMSource = require "API.Reaper Wrappers.ReaperPCMSource"
 
 local ReaperProject = { pointerType = "ReaProject*" }
 setmetatable(ReaperProject, { __index = ReaperPointerWrapper })
@@ -42,6 +47,25 @@ function ReaperProject:validatePointer(pointer, pointerType)
     return reaper.ValidatePtr2(self.pointer, pointer, pointerType)
 end
 
+function ReaperProject:wrapPointer(pointer, wrapperType, storageKey)
+    self.wrappers = self.wrappers or {}
+    self.wrappers[storageKey] = self.wrappers[storageKey] or {}
+    local pointerStr = tostring(pointer)
+    if self:validatePointer(pointer, wrapperType.pointerType) then
+        self.wrappers[storageKey][pointerStr] = self.wrappers[storageKey][pointerStr] or wrapperType:new{
+            pointer = pointer,
+            project = self
+        }
+        return self.wrappers[storageKey][pointerStr]
+    end
+    return nil
+end
+function ReaperProject:wrapTrack(pointer) return self:wrapPointer(pointer, ReaperTrack, "tracks") end
+function ReaperProject:wrapItem(pointer) return self:wrapPointer(pointer, ReaperItem, "items") end
+function ReaperProject:wrapTake(pointer) return self:wrapPointer(pointer, ReaperTake, "takes") end
+function ReaperProject:wrapEnvelope(pointer) return self:wrapPointer(pointer, ReaperEnvelope, "envelopes") end
+function ReaperProject:wrapPCMSource(pointer) return self:wrapPointer(pointer, ReaperPCMSource, "PCMSources") end
+
 --------------------- Member Helper Functions  ---------------------
 
 function ReaperProject:getItemCount()
@@ -61,19 +85,19 @@ function ReaperProject:getSelectedTrackCount()
 end
 
 function ReaperProject:getItem(itemNumber)
-    return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1), self)
+    return self:wrapItem(reaper.GetMediaItem(self.pointer, itemNumber - 1))
 end
 
 function ReaperProject:getSelectedItem(itemNumber)
-    return self.factory.createNew(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1), self)
+    return self:wrapItem(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1))
 end
 
 function ReaperProject:getTrack(trackNumber)
-    return self.factory.createNew(reaper.GetTrack(self.pointer, trackNumber - 1), self)
+    return self:wrapTrack(reaper.GetTrack(self.pointer, trackNumber - 1))
 end
 
 function ReaperProject:getSelectedTrack(trackNumber)
-    return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1), self)
+    return self:wrapTrack(reaper.GetSelectedTrack(self.pointer, trackNumber - 1))
 end
 
 function ReaperProject:getItems()

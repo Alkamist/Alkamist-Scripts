@@ -6,7 +6,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Alk = require "API.Alkamist API"
 
 --Alk.selectedItems[1].activeTake.pitchEnvelope.isVisible = false
---msg(Alk.projects[1])
+--msg(Alk.items[2].length)
+--msg(Alk.projects[0])
 --msg(Alk.projects[2])
 --msg(Alk.projects[1])
 --msg(Alk.projects[2])
@@ -15,12 +16,12 @@ local Alk = require "API.Alkamist API"
 --    msg(#project.items)
 --end
 
---msg(#Alk.items)
---msg(#Alk.selectedItems)
---msg(#Alk.tracks)
---msg(#Alk.selectedTracks)
+msg(#Alk.items)
+msg(#Alk.selectedItems)
+msg(#Alk.tracks)
+msg(#Alk.selectedTracks)
 
---insideTime = nil
+--insideTime = 0
 local startTime = reaper.time_precise()
 for _, item in ipairs(Alk.items) do
     --local test1 = item.length
@@ -32,6 +33,7 @@ for _, item in ipairs(Alk.items) do
 end
 local time1 = reaper.time_precise() - startTime
 
+--msg(insideTime)
 --msg(insideTime / time1)
 
 startTime = reaper.time_precise()
