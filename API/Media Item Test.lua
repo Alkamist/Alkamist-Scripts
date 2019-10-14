@@ -7,9 +7,11 @@ local Alk = require "API.Alkamist API"
 
 --Alk.selectedItems[1].activeTake.pitchEnvelope.isVisible = true
 
---for _, project in ipairs(Alk.projects) do
---    msg(#project.items)
---end
+msg(#Alk.projects)
+
+for _, project in ipairs(Alk.projects) do
+    msg(#project.items)
+end
 
 msg(#Alk.items)
 msg(#Alk.selectedItems)
