@@ -1,5 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
+local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 
 local ReaperItem = { pointerType = "MediaItem*" }
 setmetatable(ReaperItem, { __index = ReaperPointerWrapper })
@@ -26,6 +26,12 @@ ReaperItem._members = {
 
     { key = "track",
         getter = function(self) return self.factory.createNew(reaper.GetMediaItemTrack(self.pointer)) end },
+
+    { key = "isEmpty",
+        getter = function(self) return self.activeTake.type == nil end },
+
+    { key = "name",
+        getter = function(self) return self:getName() end },
 }
 
 function ReaperItem:new(object)
@@ -34,6 +40,13 @@ function ReaperItem:new(object)
     setmetatable(object, object)
     ReaperPointerWrapper.init(object)
     return object
+end
+
+function ReaperItem:getName()
+    if self.isEmpty then
+        return reaper.ULT_GetMediaItemNote(self.pointer)
+    end
+    return self.activeTake.name
 end
 
 return ReaperItem

@@ -1,5 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
+local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 
 local ReaperProject = { pointerType = "ReaProject*" }
 setmetatable(ReaperProject, { __index = ReaperPointerWrapper })

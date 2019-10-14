@@ -1,5 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Factory = require "Pitch Correction.Reaper Wrapper Factory"
+local Factory = require "API.Reaper Wrappers.Reaper Wrapper Factory"
 
 local Alk = {}
 

@@ -25,7 +25,9 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 --    test.loops = true
 --end
 
-local Alk = require "Pitch Correction.Alkamist API"
+local Alk = require "API.Alkamist API"
+
+Alk.getSelectedItem(1).activeTake.pitchEnvelope:hide()
 
 --local test = Alk.getProject()
 --msg(test:isValid())
@@ -67,10 +69,10 @@ local Alk = require "Pitch Correction.Alkamist API"
 --msg(Alk.getSelectedTrack(3))
 --
 --
-local tracks = Alk.getTracks()
-for _, track in ipairs(tracks) do
-    msg(track.project)
-    msg(track.number)
-end
+--local tracks = Alk.getTracks()
+--for _, track in ipairs(tracks) do
+--    msg(track.project)
+--    msg(track.number)
+--end
 
 

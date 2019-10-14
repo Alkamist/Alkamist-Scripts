@@ -1,5 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local WrapperTypes = require "Pitch Correction.Reaper Wrappers.WrapperTypes"
+local WrapperTypes = require "API.Reaper Wrappers.WrapperTypes"
 
 local ReaperWrapperFactory = { types = WrapperTypes }
 for _, type in pairs(ReaperWrapperFactory.types) do
