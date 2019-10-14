@@ -17,4 +17,9 @@ function ReaperTrack:new(object)
     return object
 end
 
+--------------------- Unique Functions  ---------------------
+
+
+--------------------- Member Helper Functions  ---------------------
+
 return ReaperTrack

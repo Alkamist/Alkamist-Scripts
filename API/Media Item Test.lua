@@ -27,7 +27,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Alk = require "API.Alkamist API"
 
-Alk.getSelectedItem(1).activeTake.pitchEnvelope:hide()
+Alk.getSelectedItem(1).activeTake.pitchEnvelope:show()
 
 --local test = Alk.getProject()
 --msg(test:isValid())

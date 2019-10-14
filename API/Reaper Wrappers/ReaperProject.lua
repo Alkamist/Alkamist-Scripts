@@ -41,9 +41,25 @@ function ReaperProject:new(object)
     return object
 end
 
+--------------------- Unique Functions  ---------------------
+
 function ReaperProject:getItem(itemNumber)
     return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1))
 end
+
+function ReaperProject:getSelectedItem(itemNumber)
+    return self.factory.createNew(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1))
+end
+
+function ReaperProject:getTrack(trackNumber)
+    return self.factory.createNew(reaper.GetTrack(self.pointer, trackNumber - 1))
+end
+
+function ReaperProject:getSelectedTrack(trackNumber)
+    return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1))
+end
+
+--------------------- Member Helper Functions  ---------------------
 
 function ReaperProject:getItems()
     local output = {}
@@ -51,10 +67,6 @@ function ReaperProject:getItems()
         table.insert(output, self:getItem(i))
     end
     return output
-end
-
-function ReaperProject:getSelectedItem(itemNumber)
-    return self.factory.createNew(reaper.GetSelectedMediaItem(self.pointer, itemNumber - 1))
 end
 
 function ReaperProject:getSelectedItems()
@@ -65,20 +77,12 @@ function ReaperProject:getSelectedItems()
     return output
 end
 
-function ReaperProject:getTrack(trackNumber)
-    return self.factory.createNew(reaper.GetTrack(self.pointer, trackNumber - 1))
-end
-
 function ReaperProject:getTracks()
     local output = {}
     for i = 1, self.trackCount do
         table.insert(output, self:getTrack(i))
     end
     return output
-end
-
-function ReaperProject:getSelectedTrack(trackNumber)
-    return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1))
 end
 
 function ReaperProject:getSelectedTracks()

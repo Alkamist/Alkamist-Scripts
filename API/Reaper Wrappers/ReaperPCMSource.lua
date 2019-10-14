@@ -20,6 +20,11 @@ function ReaperPCMSource:new(object)
     return object
 end
 
+--------------------- Unique Functions  ---------------------
+
+
+--------------------- Member Helper Functions  ---------------------
+
 function ReaperPCMSource:getFileName()
     local url = reaper.GetMediaSourceFileName(self.pointer, "")
     return url:match("[^/\\]+$")

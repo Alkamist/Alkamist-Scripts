@@ -9,7 +9,16 @@ ReaperEnvelope._members = {
         getter = function(self) return self:getName() end },
 
     { key = "track",
-        getter = function(self) return self.factory.createNew(self:getTrack()) end },
+        getter = function(self) return self:getTrack() end },
+
+    { key = "take",
+        getter = function(self) return self:getTake() end },
+
+    { key = "fxNumber",
+        getter = function(self) return self:getFXNumber() end },
+
+    { key = "parameterNumber",
+        getter = function(self) return self:getParameterNumber() end },
 
     { key = "isVisible",
         getter = function(self) return self:getVisibility() end,
@@ -28,9 +37,14 @@ function ReaperEnvelope:new(object)
     return object
 end
 
+--------------------- Unique Functions  ---------------------
+
+
+--------------------- Member Helper Functions  ---------------------
+
 function ReaperEnvelope:getTrack()
     local parentTrack, _, _ = reaper.Envelope_GetParentTrack(self.pointer)
-    return parentTrack
+    return self.factory.createNew(parentTrack)
 end
 
 function ReaperEnvelope:getName()
@@ -65,6 +79,21 @@ end
 
 function ReaperEnvelope:setVisibility(visibility)
     if visibility then self:show() else self:hide() end
+end
+
+function ReaperEnvelope:getTake()
+    local take, _, _ = reaper.Envelope_GetParentTake(self.pointer)
+    return self.factory.createNew(take)
+end
+
+function ReaperEnvelope:getFXNumber()
+    local _, fxIndex, _ = reaper.Envelope_GetParentTake(self.pointer)
+    return fxIndex + 1
+end
+
+function ReaperEnvelope:getParameterNumber()
+    local _, _, parameterIndex = reaper.Envelope_GetParentTake(self.pointer)
+    return parameterIndex + 1
 end
 
 return ReaperEnvelope

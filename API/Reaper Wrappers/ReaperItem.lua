@@ -42,6 +42,11 @@ function ReaperItem:new(object)
     return object
 end
 
+--------------------- Unique Functions  ---------------------
+
+
+--------------------- Member Helper Functions  ---------------------
+
 function ReaperItem:getName()
     if self.isEmpty then
         return reaper.ULT_GetMediaItemNote(self.pointer)

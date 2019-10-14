@@ -48,51 +48,7 @@ function ReaperTake:new(object)
     return object
 end
 
-function ReaperTake:getType()
-    if reaper.TakeIsMIDI(self.pointer) then
-        return "midi"
-    end
-    return "audio"
-end
-
-function ReaperTake:getStretchMarkers()
-    local stretchMarkers = {}
-    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(self.pointer)
-    for i = 1, numStretchMarkers do
-        local _, time, sourceTime = reaper.GetTakeStretchMarker(self.pointer, i - 1)
-
-        stretchMarkers[i] = {
-            time = time,
-            sourceTime = sourceTime,
-            slope = reaper.GetTakeStretchMarkerSlope(self.pointer, i - 1),
-            rate = 1.0,
-            length = 0.0,
-            sourceLength = 0.0
-        }
-    end
-
-    for index, marker in ipairs(stretchMarkers) do
-        local markerRate = 1.0
-        local markerLength = 0.0
-        if index < #stretchMarkers then
-            local nextMarker = stretchMarkers[index + 1]
-
-            markerLength = nextMarker.time - marker.time
-            markerSourceLength = nextMarker.sourceTime - marker.sourceTime
-            markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
-        else
-            markerLength = 0.0
-            markerSourceLength = 0.0
-            markerRate = 1.0
-        end
-
-        marker.rate = markerRate
-        marker.length = markerLength
-        marker.sourceLength = markerSourceLength
-    end
-
-    return stretchMarkers
-end
+--------------------- Unique Functions  ---------------------
 
 function ReaperTake:getSourceTime(realTime)
     if time == nil then return nil end
@@ -149,8 +105,57 @@ function ReaperTake:getRealTime(sourceTime)
     return realTime / playrate
 end
 
+--------------------- Member Helper Functions  ---------------------
+
+function ReaperTake:getType()
+    if reaper.TakeIsMIDI(self.pointer) then
+        return "midi"
+    end
+    return "audio"
+end
+
+function ReaperTake:getStretchMarkers()
+    local stretchMarkers = {}
+    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(self.pointer)
+    for i = 1, numStretchMarkers do
+        local _, time, sourceTime = reaper.GetTakeStretchMarker(self.pointer, i - 1)
+
+        stretchMarkers[i] = {
+            time = time,
+            sourceTime = sourceTime,
+            slope = reaper.GetTakeStretchMarkerSlope(self.pointer, i - 1),
+            rate = 1.0,
+            length = 0.0,
+            sourceLength = 0.0
+        }
+    end
+
+    for index, marker in ipairs(stretchMarkers) do
+        local markerRate = 1.0
+        local markerLength = 0.0
+        if index < #stretchMarkers then
+            local nextMarker = stretchMarkers[index + 1]
+
+            markerLength = nextMarker.time - marker.time
+            markerSourceLength = nextMarker.sourceTime - marker.sourceTime
+            markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
+        else
+            markerLength = 0.0
+            markerSourceLength = 0.0
+            markerRate = 1.0
+        end
+
+        marker.rate = markerRate
+        marker.length = markerLength
+        marker.sourceLength = markerSourceLength
+    end
+
+    return stretchMarkers
+end
+
 function ReaperTake:createAndGetPitchEnvelope()
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
+    msg(pitchEnvelope)
     if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
         reaper.Main_OnCommand(reaper.NamedCommandLookup("_S&M_TAKEENV10"), 0) -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
