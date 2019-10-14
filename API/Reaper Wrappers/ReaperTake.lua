@@ -155,7 +155,7 @@ end
 
 function ReaperTake:createAndGetPitchEnvelope()
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
-    if not pitchEnvelope or not reaper.ValidatePtr2(self.project.pointer, pitchEnvelope, "TrackEnvelope*") then
+    if not pitchEnvelope or not self.project:validatePointer(pitchEnvelope, "TrackEnvelope*") then
         self.project:mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
     end
