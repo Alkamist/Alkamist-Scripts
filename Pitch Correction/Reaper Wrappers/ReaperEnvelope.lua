@@ -1,35 +1,20 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperEnvelope = {
-    pointerType = "TrackEnvelope*"
-}
+local ReaperEnvelope = { pointerType = "TrackEnvelope*" }
+setmetatable(ReaperEnvelope, { __index = ReaperPointerWrapper })
 
-local ReaperEnvelope_mt = {
-
-    -- Getters
-    __index = function(tbl, key)
-        if key == "track" then return tbl.factory.createNew(tbl:getTrack()) end
-        if key == "project" then return tbl.track.project end
-        return ReaperEnvelope[key]
-    end,
-
-    -- Setters
-    __newindex = function(tbl, key, value)
-        if key == "track" then return end
-        if key == "project" then return end
-        rawset(tbl, key, value)
-    end
-
+ReaperEnvelope._members = {
+    { key = "track",
+        getter = function(self) return tbl.factory.createNew(tbl:getTrack()) end },
 }
 
 function ReaperEnvelope:new(object)
     local object = object or {}
-    setmetatable(object, ReaperEnvelope_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperEnvelope:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
 end
 
 function ReaperEnvelope:getTrack()

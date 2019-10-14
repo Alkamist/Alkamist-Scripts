@@ -1,43 +1,30 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperTake = {
-    pointerType = "MediaItem_Take*"
-}
+local ReaperTake = { pointerType = "MediaItem_Take*" }
+setmetatable(ReaperTake, { __index = ReaperPointerWrapper })
 
-local ReaperTake_mt = {
+ReaperTake._members = {
+    { key = "track",
+        getter = function(self) return tbl.item.track end },
 
-    -- Getters
-    __index = function(tbl, key)
-        if key == "track" then return tbl.item.track end
-        if key == "project" then return tbl.track.project end
-        if key == "name" then return reaper.GetTakeName(tbl.pointer) end
-        if key == "type" then return tbl:getType() end
-        if key == "GUID" then return reaper.BR_GetMediaItemTakeGUID(tbl.pointer) end
-        if key == "item" then return tbl.factory.createNew(reaper.GetMediaItemTake_Item(tbl.pointer)) end
-        return ReaperTake[key]
-    end,
+    { key = "name",
+        getter = function(self) return reaper.GetTakeName(tbl.pointer) end,
+        setter = function(self, value) reaper.GetSetMediaItemTakeInfo_String(tbl.pointer, "P_NAME", "", true) end },
 
-    -- Setters
-    __newindex = function(tbl, key, value)
-        if key == "track" then return end
-        if key == "project" then return end
-        if key == "name" then reaper.GetSetMediaItemTakeInfo_String(tbl.pointer, "P_NAME", "", true); return end
-        if key == "type" then return end
-        if key == "GUID" then return end
-        if key == "item" then return end
-        rawset(tbl, key, value)
-    end
+    { key = "GUID",
+        getter = function(self) return reaper.BR_GetMediaItemTakeGUID(tbl.pointer) end },
 
+    { key = "item",
+        getter = function(self) return tbl.factory.createNew(reaper.GetMediaItemTake_Item(tbl.pointer)) end },
 }
 
 function ReaperTake:new(object)
     local object = object or {}
-    setmetatable(object, ReaperTake_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperTake:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr2(self.project, self.pointer, self.pointerType)
 end
 
 function ReaperTake:getType()

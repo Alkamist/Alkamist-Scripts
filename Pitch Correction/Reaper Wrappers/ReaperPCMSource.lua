@@ -1,31 +1,20 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local ReaperPointerWrapper = require "Pitch Correction.Reaper Wrappers.ReaperPointerWrapper"
 
-local ReaperPCMSource = {
-    pointerType = "PCM_source*"
-}
+local ReaperPCMSource = { pointerType = "PCM_source*" }
+setmetatable(ReaperPCMSource, { __index = ReaperPointerWrapper })
 
-local ReaperPCMSource_mt = {
-
-    -- Getters
-    __index = function(tbl, key)
-        return ReaperPCMSource[key]
-    end,
-
-    -- Setters
-    __newindex = function(tbl, key, value)
-        rawset(tbl, key, value)
-    end
-
+ReaperPCMSource._members = {
+    --{ key = "track",
+    --    getter = function(self) return tbl.item.track end },
 }
 
 function ReaperPCMSource:new(object)
     local object = object or {}
-    setmetatable(object, ReaperPCMSource_mt)
+    object._base = self
+    setmetatable(object, object)
+    ReaperPointerWrapper.init(object)
     return object
-end
-
-function ReaperPCMSource:isValid()
-    return self.pointer ~= nil and reaper.ValidatePtr(self.pointer, self.pointerType)
 end
 
 return ReaperPCMSource
