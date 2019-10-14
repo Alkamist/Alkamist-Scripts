@@ -32,10 +32,17 @@ function ReaperPointerWrapper:isValid()
     return self.pointer ~= nil and reaper.ValidatePtr2(project, self.pointer, self.pointerType)
 end
 
-function ReaperPointerWrapper:getIterator(fn)
+function ReaperPointerWrapper:getIterator(getterFn, countFn)
     local output = {
         __index = function(tbl, key)
-            return fn(self, key)
+            return getterFn(self, key)
+        end,
+
+        __len = function(tbl)
+            if countFn then
+                return countFn(self)
+            end
+            return #tbl
         end
     }
     setmetatable(output, output)

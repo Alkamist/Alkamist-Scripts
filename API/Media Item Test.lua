@@ -7,26 +7,35 @@ local Alk = require "API.Alkamist API"
 
 --Alk.selectedItems[1].activeTake.pitchEnvelope.isVisible = true
 
-for _, item in ipairs(Alk.items) do
-    msg(item.length)
-    msg(item.leftEdge)
-    msg(item.rightEdge)
-    msg(item.loops)
-    msg(item.activeTake)
-    msg(item.track.number)
-end
+--for _, project in ipairs(Alk.projects) do
+--    msg(#project.items)
+--end
 
-for _, item in ipairs(Alk.selectedItems) do
-    msg(item.length)
-    msg(item.leftEdge)
-    msg(item.rightEdge)
-    msg(item.loops)
-    msg(item.activeTake)
-end
+msg(#Alk.items)
+msg(#Alk.selectedItems)
+msg(#Alk.tracks)
+msg(#Alk.selectedTracks)
 
-for _, track in ipairs(Alk.selectedTracks) do
-    msg(track.number)
-end
+--for _, item in ipairs(Alk.items) do
+--    msg(item.length)
+--    msg(item.leftEdge)
+--    msg(item.rightEdge)
+--    msg(item.loops)
+--    msg(item.activeTake)
+--    msg(item.track.number)
+--end
+
+--for _, item in ipairs(Alk.selectedItems) do
+--    msg(item.length)
+--    msg(item.leftEdge)
+--    msg(item.rightEdge)
+--    msg(item.loops)
+--    msg(item.activeTake)
+--end
+--
+--for _, track in ipairs(Alk.selectedTracks) do
+--    msg(track.number)
+--end
 
 
 --msg(proj:isValid())

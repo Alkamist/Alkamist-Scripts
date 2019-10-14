@@ -8,23 +8,11 @@ ReaperProject._members = {
     { key = "name",
         getter = function(self) return reaper.GetProjectName(self.pointer, "") end },
 
-    { key = "itemCount",
-        getter = function(self) return reaper.CountMediaItems(self.pointer) end },
-
-    { key = "selectedItemCount",
-        getter = function(self) return reaper.CountSelectedMediaItems(self.pointer) end },
-
     { key = "items",
         getter = function(self) return self:getItems() end },
 
     { key = "selectedItems",
         getter = function(self) return self:getSelectedItems() end },
-
-    { key = "trackCount",
-        getter = function(self) return reaper.CountTracks(self.pointer) end },
-
-    { key = "selectedTrackCount",
-        getter = function(self) return reaper.CountSelectedTracks(self.pointer) end },
 
     { key = "tracks",
         getter = function(self) return self:getTracks() end },
@@ -47,6 +35,22 @@ end
 
 --------------------- Member Helper Functions  ---------------------
 
+function ReaperProject:getItemCount()
+    return reaper.CountMediaItems(self.pointer)
+end
+
+function ReaperProject:getSelectedItemCount()
+    return reaper.CountSelectedMediaItems(self.pointer)
+end
+
+function ReaperProject:getTrackCount()
+    return reaper.CountTracks(self.pointer)
+end
+
+function ReaperProject:getSelectedTrackCount()
+    return reaper.CountSelectedTracks(self.pointer)
+end
+
 function ReaperProject:getItem(itemNumber)
     return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1))
 end
@@ -64,19 +68,19 @@ function ReaperProject:getSelectedTrack(trackNumber)
 end
 
 function ReaperProject:getItems()
-    return ReaperPointerWrapper.getIterator(self, self.getItem)
+    return ReaperPointerWrapper.getIterator(self, self.getItem, self.getItemCount)
 end
 
 function ReaperProject:getSelectedItems()
-    return ReaperPointerWrapper.getIterator(self, self.getSelectedItem)
+    return ReaperPointerWrapper.getIterator(self, self.getSelectedItem, self.getSelectedItemCount)
 end
 
 function ReaperProject:getTracks()
-    return ReaperPointerWrapper.getIterator(self, self.getTrack)
+    return ReaperPointerWrapper.getIterator(self, self.getTrack, self.getTrackCount)
 end
 
 function ReaperProject:getSelectedTracks()
-    return ReaperPointerWrapper.getIterator(self, self.getSelectedTrack)
+    return ReaperPointerWrapper.getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount)
 end
 
 return ReaperProject
