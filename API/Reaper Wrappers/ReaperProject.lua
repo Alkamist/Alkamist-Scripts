@@ -43,6 +43,10 @@ end
 
 --------------------- Unique Functions  ---------------------
 
+--
+
+--------------------- Member Helper Functions  ---------------------
+
 function ReaperProject:getItem(itemNumber)
     return self.factory.createNew(reaper.GetMediaItem(self.pointer, itemNumber - 1))
 end
@@ -59,38 +63,20 @@ function ReaperProject:getSelectedTrack(trackNumber)
     return self.factory.createNew(reaper.GetSelectedTrack(self.pointer, trackNumber - 1))
 end
 
---------------------- Member Helper Functions  ---------------------
-
 function ReaperProject:getItems()
-    local output = {}
-    for i = 1, self.itemCount do
-        table.insert(output, self:getItem(i))
-    end
-    return output
+    return ReaperPointerWrapper.getIterator(self, self.getItem)
 end
 
 function ReaperProject:getSelectedItems()
-    local output = {}
-    for i = 1, self.selectedItemCount do
-        table.insert(output, self:getItem(i))
-    end
-    return output
+    return ReaperPointerWrapper.getIterator(self, self.getSelectedItem)
 end
 
 function ReaperProject:getTracks()
-    local output = {}
-    for i = 1, self.trackCount do
-        table.insert(output, self:getTrack(i))
-    end
-    return output
+    return ReaperPointerWrapper.getIterator(self, self.getTrack)
 end
 
 function ReaperProject:getSelectedTracks()
-    local output = {}
-    for i = 1, self.selectedTrackCount do
-        table.insert(output, self:getSelectedTrack(i))
-    end
-    return output
+    return ReaperPointerWrapper.getIterator(self, self.getSelectedTrack)
 end
 
 return ReaperProject

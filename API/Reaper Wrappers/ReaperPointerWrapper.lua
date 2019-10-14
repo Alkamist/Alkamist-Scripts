@@ -32,4 +32,14 @@ function ReaperPointerWrapper:isValid()
     return self.pointer ~= nil and reaper.ValidatePtr2(project, self.pointer, self.pointerType)
 end
 
+function ReaperPointerWrapper:getIterator(fn)
+    local output = {
+        __index = function(tbl, key)
+            return fn(self, key)
+        end
+    }
+    setmetatable(output, output)
+    return output
+end
+
 return ReaperPointerWrapper

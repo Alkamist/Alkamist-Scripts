@@ -2,6 +2,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Factory = require "API.Reaper Wrappers.Reaper Wrapper Factory"
 
 local Alk = {}
+setmetatable(Alk, Alk)
 
 -- Project can be omitted for current project.
 function Alk.wrap(pointer, project)
@@ -15,37 +16,52 @@ function Alk.getProject(projectNumber)
     return Alk.wrap(projectPointer)
 end
 
-function Alk.getItem(itemNumber, projectNumber)
-    return Alk.getProject(projectNumber):getItem(itemNumber)
+Alk.__index = function(tbl, key)
+    if key == "items" then
+        return Alk.getProject().items
+    end
+    if key == "selectedItems" then
+        return Alk.getProject().selectedItems
+    end
+    if key == "tracks" then
+        return Alk.getProject().tracks
+    end
+    if key == "selectedTracks" then
+        return Alk.getProject().selectedTracks
+    end
 end
 
-function Alk.getItems(projectNumber)
-    return Alk.getProject(projectNumber).items
-end
-
-function Alk.getSelectedItem(itemNumber, projectNumber)
-    return Alk.getProject(projectNumber):getSelectedItem(itemNumber)
-end
-
-function Alk.getSelectedItems(projectNumber)
-    return Alk.getProject(projectNumber).selectedItems
-end
-
-function Alk.getTrack(trackNumber, projectNumber)
-    return Alk.getProject(projectNumber):getTrack(trackNumber)
-end
-
-function Alk.getTracks(projectNumber)
-    return Alk.getProject(projectNumber).tracks
-end
-
-function Alk.getSelectedTrack(trackNumber, projectNumber)
-    return Alk.getProject(projectNumber):getSelectedTrack(trackNumber)
-end
-
-function Alk.getSelectedTracks(projectNumber)
-    return Alk.getProject(projectNumber).selectedTracks
-end
+--function Alk.getItem(itemNumber, projectNumber)
+--    return Alk.getProject(projectNumber):getItem(itemNumber)
+--end
+--
+--function Alk.getItems(projectNumber)
+--    return Alk.getProject(projectNumber).items
+--end
+--
+--function Alk.getSelectedItem(itemNumber, projectNumber)
+--    return Alk.getProject(projectNumber):getSelectedItem(itemNumber)
+--end
+--
+--function Alk.getSelectedItems(projectNumber)
+--    return Alk.getProject(projectNumber).selectedItems
+--end
+--
+--function Alk.getTrack(trackNumber, projectNumber)
+--    return Alk.getProject(projectNumber):getTrack(trackNumber)
+--end
+--
+--function Alk.getTracks(projectNumber)
+--    return Alk.getProject(projectNumber).tracks
+--end
+--
+--function Alk.getSelectedTrack(trackNumber, projectNumber)
+--    return Alk.getProject(projectNumber):getSelectedTrack(trackNumber)
+--end
+--
+--function Alk.getSelectedTracks(projectNumber)
+--    return Alk.getProject(projectNumber).selectedTracks
+--end
 
 --------------------- General API ---------------------
 

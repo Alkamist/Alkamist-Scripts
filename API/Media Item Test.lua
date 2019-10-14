@@ -3,45 +3,44 @@ function msg(m)
 end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
---local AlkWrap = require "Pitch Correction.Alkamist Wrapper Functions"
---local ReaperItem = require "Pitch Correction.Reaper Wrappers.ReaperItem"
---
---local selectedMediaItems = AlkWrap.getSelectedItems(1)
---
---for _, item in ipairs(selectedMediaItems) do
---    local test = ReaperItem:new{ pointer = item }
---    local test2 = ReaperItem:new{ pointer = item }
---
---    msg("pointer: " .. tostring(test.pointer))
---    msg("pointerType: " .. tostring(test.pointerType))
---    msg("length: " .. tostring(test.length))
---    msg("leftEdge: " .. tostring(test.leftEdge))
---    msg("rightEdge: " .. tostring(test.rightEdge))
---    msg("loops: " .. tostring(test.loops))
---
---    test.length = 20.0
---    test.leftEdge = 1.0
---    test.rightEdge = 15.0
---    test.loops = true
---end
-
 local Alk = require "API.Alkamist API"
 
-Alk.getSelectedItem(1).activeTake.pitchEnvelope:show()
+--Alk.selectedItems[1].activeTake.pitchEnvelope.isVisible = true
 
---local test = Alk.getProject()
---msg(test:isValid())
---msg(test.name)
+for _, item in ipairs(Alk.items) do
+    msg(item.length)
+    msg(item.leftEdge)
+    msg(item.rightEdge)
+    msg(item.loops)
+    msg(item.activeTake)
+    msg(item.track.number)
+end
+
+for _, item in ipairs(Alk.selectedItems) do
+    msg(item.length)
+    msg(item.leftEdge)
+    msg(item.rightEdge)
+    msg(item.loops)
+    msg(item.activeTake)
+end
+
+for _, track in ipairs(Alk.selectedTracks) do
+    msg(track.number)
+end
+
+
+--msg(proj:isValid())
+--msg(proj.name)
 --Alk.getProject(0).name = 5
---msg(test.name)
---msg(test.itemCount)
---msg(test.items)
---msg(test.selectedItemCount)
---msg(test.selectedItems)
---msg(test.trackCount)
---msg(test.tracks)
---msg(test.selectedTrackCount)
---msg(test.selectedTracks)
+--msg(proj.name)
+--msg(proj.itemCount)
+--msg(proj.items)
+--msg(proj.selectedItemCount)
+--msg(proj.selectedItems)
+--msg(proj.trackCount)
+--msg(proj.tracks)
+--msg(proj.selectedTrackCount)
+--msg(proj.selectedTracks)
 --msg("")
 --
 --local items = Alk.getItems()
