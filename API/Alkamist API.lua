@@ -11,36 +11,40 @@ local function getProject(projectNumber)
     return Factory.createNew(projectPointer)
 end
 
+local projectsTable = {
+    __index = function(tbl, key)
+        return getProject(key)
+    end,
+
+    __len = function(tbl)
+        local numProjects = 0
+        for _ in ipairs(Alk.projects) do
+            numProjects = numProjects + 1
+        end
+        return numProjects
+    end
+}
+setmetatable(projectsTable, projectsTable)
+
 Alk.__index = function(tbl, key)
     if key == "projects" then
-        return setmetatable({}, {
-            __index = function(tbl, key)
-                return getProject(key)
-            end,
-            __len = function(tbl)
-                local numProjects = 0
-                for _ in ipairs(Alk.projects) do
-                    numProjects = numProjects + 1
-                end
-                return numProjects
-            end
-        })
+        return projectsTable
     end
 
     if key == "items" then
-        return Alk.projects[0].items
+        return getProject(0).items
     end
 
     if key == "selectedItems" then
-        return Alk.projects[0].selectedItems
+        return getProject(0).selectedItems
     end
 
     if key == "tracks" then
-        return Alk.projects[0].tracks
+        return getProject(0).tracks
     end
 
     if key == "selectedTracks" then
-        return Alk.projects[0].selectedTracks
+        return getProject(0).selectedTracks
     end
 end
 
