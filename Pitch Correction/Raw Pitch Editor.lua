@@ -32,9 +32,13 @@ function PitchEditor:init()
     self:setUpFunctionalIndexes()
 
     self.minKeyHeightToDrawCenterline = self.minKeyHeightToDrawCenterline or 16
-    self.blackKeyColor = {0.2, 0.2, 0.2, 1.0}
-    self.whiteKeyColor = {0.5, 0.5, 0.5, 1.0}
-    self.keyCenterLineColor = {0.7, 0.7, 0.7, 1.0}
+    self.blackKeyColor =      {0.2, 0.2, 0.2, 1.0}
+    self.whiteKeyColor =      {0.5, 0.5, 0.5, 1.0}
+    self.keyCenterLineColor = {1.0, 1.0, 1.0, 0.3}
+    self.itemInsideColor =    {1.0, 1.0, 1.0, 0.1}
+    self.itemEdgeColor =      {1.0, 1.0, 1.0, 0.2}
+    self.editCursorColor =    {1.0, 1.0, 1.0, 0.4}
+    self.playCursorColor =    {1.0, 1.0, 1.0, 0.3}
 
     self.view = {
         zoom = {
@@ -130,5 +134,19 @@ function PitchEditor:drawItemEdges()
         self:rect(leftBoundPixels + 1, 2, boxWidth - 1, boxHeight - 1, 1)
         Alk.setColor(self.itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
+    end
+end
+function PitchEditor:drawEditCursor()
+    local editCursorPosition = reaper.GetCursorPositionEx(0)
+    local editCursorPixels = self:getPixelsFromTime(editCursorPosition - self.leftEdge)
+    local playPosition = reaper.GetPlayPositionEx(0)
+    local playPositionPixels = self:getPixelsFromTime(playPosition - self.leftEdge)
+    Alk.setColor(self.editCursorColor)
+    self:line(editCursorPixels, 0, editCursorPixels, self.pixelHeight, false)
+    local projectPlaystate = reaper.GetPlayStateEx(0)
+    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
+    if projectIsPlaying then
+        Alk.setColor(self.playCursorColor)
+        self:line(playPositionPixels, 0, playPositionPixels, self.pixelHeight, false)
     end
 end
