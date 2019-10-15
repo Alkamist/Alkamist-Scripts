@@ -6,29 +6,29 @@ setmetatable(ReaperItem, { __index = ReaperPointerWrapper })
 
 ReaperItem._members = {
     { key = "length",
-        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "D_LENGTH") end,
-        setter = function(self, value) reaper.SetMediaItemLength(self.pointer, value, false) end },
+        getter = function(self) return self:getLength() end,
+        setter = function(self, value) self:setLength(value) end },
 
     { key = "leftEdge",
-        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "D_POSITION") end,
-        setter = function(self, value) reaper.SetMediaItemPosition(self.pointer, value, false) end },
+        getter = function(self) return self:getLeftEdge() end,
+        setter = function(self, value) self:setLeftEdge(value) end },
 
     { key = "rightEdge",
-        getter = function(self) return self.leftEdge + self.length end,
-        setter = function(self, value) self.leftEdge = math.max(0.0, value - self.length) end },
+        getter = function(self) return self:getRightEdge() end,
+        setter = function(self, value) self:setRightEdge(value) end },
 
     { key = "loops",
-        getter = function(self) return reaper.GetMediaItemInfo_Value(self.pointer, "B_LOOPSRC") > 0 end,
-        setter = function(self, value) reaper.SetMediaItemInfo_Value(self.pointer, "B_LOOPSRC", value and 1 or 0) end },
+        getter = function(self) return self:getLoops() end,
+        setter = function(self, value) self:setLoops(value) end },
 
     { key = "activeTake",
-        getter = function(self) return self.project:wrapTake(reaper.GetActiveTake(self.pointer)) end },
+        getter = function(self) return self:getActiveTake() end },
 
     { key = "track",
-        getter = function(self) return self.project:wrapTrack(reaper.GetMediaItemTrack(self.pointer)) end },
+        getter = function(self) return self:getTrack() end },
 
     { key = "isEmpty",
-        getter = function(self) return self.activeTake.type == nil end },
+        getter = function(self) return self:isTypeEmpty() end },
 
     { key = "name",
         getter = function(self) return self:getName() end },
@@ -46,6 +46,50 @@ end
 
 
 --------------------- Member Helper Functions  ---------------------
+
+function ReaperItem:getLength()
+    return reaper.GetMediaItemInfo_Value(self.pointer, "D_LENGTH")
+end
+
+function ReaperItem:setLength(value)
+    reaper.SetMediaItemLength(self.pointer, value, false)
+end
+
+function ReaperItem:getLeftEdge()
+    return reaper.GetMediaItemInfo_Value(self.pointer, "D_POSITION")
+end
+
+function ReaperItem:setLeftEdge(value)
+    reaper.SetMediaItemPosition(self.pointer, value, false)
+end
+
+function ReaperItem:getRightEdge()
+    return self:getLeftEdge() + self:getLength()
+end
+
+function ReaperItem:setRightEdge(value)
+    self:setLeftEdge(math.max(0.0, value - self:getLength()))
+end
+
+function ReaperItem:getLoops()
+    return reaper.GetMediaItemInfo_Value(self.pointer, "B_LOOPSRC") > 0
+end
+
+function ReaperItem:setLoops(value)
+    reaper.SetMediaItemInfo_Value(self.pointer, "B_LOOPSRC", value and 1 or 0)
+end
+
+function ReaperItem:getActiveTake()
+    return self.project:wrapTake(reaper.GetActiveTake(self.pointer))
+end
+
+function ReaperItem:getTrack()
+    return self.project:wrapTrack(reaper.GetMediaItemTrack(self.pointer))
+end
+
+function ReaperItem:isTypeEmpty()
+    return self:getActiveTake():getType() == nil
+end
 
 function ReaperItem:getName()
     if self.isEmpty then

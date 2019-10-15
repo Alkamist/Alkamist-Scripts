@@ -11,7 +11,7 @@ setmetatable(ReaperProject, { __index = ReaperPointerWrapper })
 
 ReaperProject._members = {
     { key = "name",
-        getter = function(self) return reaper.GetProjectName(self.pointer, "") end },
+        getter = function(self) return self:getName() end },
 
     { key = "items",
         getter = function(self) return self:getItems() end },
@@ -67,6 +67,10 @@ function ReaperProject:wrapEnvelope(pointer) return self:wrapPointer(pointer, Re
 function ReaperProject:wrapPCMSource(pointer) return self:wrapPointer(pointer, ReaperPCMSource, "PCMSources") end
 
 --------------------- Member Helper Functions  ---------------------
+
+function ReaperProject:getName()
+    return reaper.GetProjectName(self.pointer, "")
+end
 
 function ReaperProject:getItemCount()
     return reaper.CountMediaItems(self.pointer)

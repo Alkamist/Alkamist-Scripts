@@ -9,29 +9,29 @@ ReaperTake._members = {
         getter = function(self) return self.item.track end },
 
     { key = "name",
-        getter = function(self) return reaper.GetTakeName(self.pointer) end,
-        setter = function(self, value) reaper.GetSetMediaItemTakeInfo_String(self.pointer, "P_NAME", "", true) end },
+        getter = function(self) return self:getName() end,
+        setter = function(self, value) self:setName(value) end },
 
     { key = "type",
         getter = function(self) return self:getType() end },
 
     { key = "GUID",
-        getter = function(self) return reaper.BR_GetMediaItemTakeGUID(self.pointer) end },
+        getter = function(self) return self:getGUID() end },
 
     { key = "item",
-        getter = function(self) return self.project:wrapItem(reaper.GetMediaItemTake_Item(self.pointer)) end },
+        getter = function(self) return self:getItem() end },
 
     { key = "source",
-        getter = function(self) return reaper.GetMediaItemTake_Source(self.pointer) end,
-        setter = function(self, value) reaper.SetMediaItemTake_Source(self.pointer, value) end },
+        getter = function(self) return self:getSource() end,
+        setter = function(self, value) self:setSource(value) end },
 
     { key = "playrate",
-        getter = function(self) return reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE") end,
-        setter = function(self, value) reaper.SetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE") end },
+        getter = function(self) return self:getPlayrate() end,
+        setter = function(self, value) self:setPlayrate(value) end },
 
     { key = "startOffset",
-        getter = function(self) return self:getSourceTime(0.0) end,
-        setter = function(self, value) reaper.SetMediaItemTakeInfo_Value(self.pointer, "D_STARTOFFS", value) end },
+        getter = function(self) return self:getStartOffset() end,
+        setter = function(self, value) self:setStartOffset(value) end },
 
     { key = "stretchMarkers",
         getter = function(self) return self:getStretchMarkers() end },
@@ -106,6 +106,46 @@ function ReaperTake:getRealTime(sourceTime)
 end
 
 --------------------- Member Helper Functions  ---------------------
+
+function ReaperTake:getName()
+    return reaper.GetTakeName(self.pointer)
+end
+
+function ReaperTake:setName(value)
+    reaper.GetSetMediaItemTakeInfo_String(self.pointer, "P_NAME", "", true)
+end
+
+function ReaperTake:getGUID()
+    return reaper.BR_GetMediaItemTakeGUID(self.pointer)
+end
+
+function ReaperTake:getItem()
+    return self.project:wrapItem(reaper.GetMediaItemTake_Item(self.pointer))
+end
+
+function ReaperTake:getSource()
+    return self.project:wrapPCMSource(reaper.GetMediaItemTake_Source(self.pointer))
+end
+
+function ReaperTake:setSource(value)
+    reaper.SetMediaItemTake_Source(self.pointer, value)
+end
+
+function ReaperTake:getPlayrate()
+    return reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
+end
+
+function ReaperTake:setPlayrate(value)
+    reaper.SetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE", value)
+end
+
+function ReaperTake:getStartOffset()
+    return self:getSourceTime(0.0)
+end
+
+function ReaperTake:setStartOffset(value)
+    reaper.SetMediaItemTakeInfo_Value(self.pointer, "D_STARTOFFS", value)
+end
 
 function ReaperTake:getType()
     if reaper.TakeIsMIDI(self.pointer) then

@@ -6,7 +6,7 @@ setmetatable(ReaperTrack, { __index = ReaperPointerWrapper })
 
 ReaperTrack._members = {
     { key = "number",
-        getter = function(self) return reaper.GetMediaTrackInfo_Value(self.pointer, "IP_TRACKNUMBER") end },
+        getter = function(self) return self:getNumber() end },
 }
 
 function ReaperTrack:new(object)
@@ -21,5 +21,9 @@ end
 
 
 --------------------- Member Helper Functions  ---------------------
+
+function ReaperTrack:getNumber()
+    return reaper.GetMediaTrackInfo_Value(self.pointer, "IP_TRACKNUMBER")
+end
 
 return ReaperTrack
