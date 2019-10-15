@@ -21,6 +21,7 @@ function PitchEditor:new(object)
 end
 
 function PitchEditor:init()
+    self.__index = self._base
     setmetatable(self, self)
     self.xPixelOffset = self.xPixelOffset or 0
     self.yPixelOffset = self.yPixelOffset or 0
@@ -28,17 +29,17 @@ function PitchEditor:init()
     self.pixelHeight = self.pixelHeight or 0
     self.whiteKeys = getWhiteKeys()
     self.pitchHeight = 128
-    self:setItems()
+    self:updateSelectedItems()
     self:setUpFunctionalIndexes()
 
     self.minKeyHeightToDrawCenterline = self.minKeyHeightToDrawCenterline or 16
-    self.blackKeyColor =      {0.2, 0.2, 0.2, 1.0}
-    self.whiteKeyColor =      {0.5, 0.5, 0.5, 1.0}
-    self.keyCenterLineColor = {1.0, 1.0, 1.0, 0.3}
-    self.itemInsideColor =    {1.0, 1.0, 1.0, 0.1}
-    self.itemEdgeColor =      {1.0, 1.0, 1.0, 0.2}
-    self.editCursorColor =    {1.0, 1.0, 1.0, 0.4}
-    self.playCursorColor =    {1.0, 1.0, 1.0, 0.3}
+    self.blackKeyColor = self.blackKeyColor           or {0.25, 0.25, 0.25, 1.0}
+    self.whiteKeyColor = self.whiteKeyColor           or {0.34, 0.34, 0.34, 1.0}
+    self.keyCenterLineColor = self.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
+    self.itemInsideColor = self.itemInsideColor       or {1.0, 1.0, 1.0, 0.5}
+    self.itemEdgeColor = self.itemEdgeColor           or {1.0, 1.0, 1.0, 0.5}
+    self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.5}
+    self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.5}
 
     self.view = {
         zoom = {
@@ -52,7 +53,7 @@ function PitchEditor:init()
     }
 end
 
-function PitchEditor:setItems()
+function PitchEditor:updateSelectedItems()
     local topMostSelectedItemTrackNumber = #Alk.tracks
     for _, item in ipairs(Alk.selectedItems) do
         topMostSelectedItemTrackNumber = math.min(item.track.number, topMostSelectedItemTrackNumber)
@@ -60,11 +61,10 @@ function PitchEditor:setItems()
     self.track = Alk.tracks[topMostSelectedItemTrackNumber]
     self.items = self.track.selectedItems
 end
-
 function PitchEditor:setUpFunctionalIndexes()
     self.__index = function(tbl, key)
         if key == "timeWidth" then return self.items[#self.items].rightEdge - self.items[1].leftEdge end
-        if key == "lefEdge" then return self.items[1].leftEdge end
+        if key == "leftEdge" then return self.items[1].leftEdge end
         return self._base[key]
     end
 end
@@ -96,6 +96,7 @@ end
 function PitchEditor:draw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
+    --self:drawEditCursor()
     gfx.a = 1.0
 end
 function PitchEditor:drawKeyBackgrounds()
@@ -118,29 +119,30 @@ function PitchEditor:drawKeyBackgrounds()
             Alk.setColor(self.keyCenterLineColor)
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
             self:line(0, keyCenterLine, self.pixelWidth, keyCenterLine, false)
-            prevKeyEnd = keyEnd
         end
+
+        prevKeyEnd = keyEnd
     end
 end
 function PitchEditor:drawItemEdges()
     for index, item in ipairs(self.items) do
         local leftBoundTime = item.leftEdge - self.leftEdge
         local rightBoundTime = leftBoundTime + item.length
-        local leftBoundPixels = self:getPixelsFromTime(leftBoundTime)
-        local rightBoundPixels = self:getPixelsFromTime(rightBoundTime)
+        local leftBoundPixels = self:timeToPixels(leftBoundTime)
+        local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
-        local boxHeight = self.pixelHeight - 1
-        Alk.setColor(self.itemInsideColor)
-        self:rect(leftBoundPixels + 1, 2, boxWidth - 1, boxHeight - 1, 1)
+        local boxHeight = self.pixelHeight
+        --Alk.setColor(self.itemInsideColor)
+        --self:rect(leftBoundPixels + 1, 2, boxWidth - 1, boxHeight - 1, 1)
         Alk.setColor(self.itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
 function PitchEditor:drawEditCursor()
     local editCursorPosition = reaper.GetCursorPositionEx(0)
-    local editCursorPixels = self:getPixelsFromTime(editCursorPosition - self.leftEdge)
+    local editCursorPixels = self:timeToPixels(editCursorPosition - self.leftEdge)
     local playPosition = reaper.GetPlayPositionEx(0)
-    local playPositionPixels = self:getPixelsFromTime(playPosition - self.leftEdge)
+    local playPositionPixels = self:timeToPixels(playPosition - self.leftEdge)
     Alk.setColor(self.editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, self.pixelHeight, false)
     local projectPlaystate = reaper.GetPlayStateEx(0)
@@ -150,3 +152,5 @@ function PitchEditor:drawEditCursor()
         self:line(playPositionPixels, 0, playPositionPixels, self.pixelHeight, false)
     end
 end
+
+return PitchEditor

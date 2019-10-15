@@ -8,7 +8,7 @@ end
 loadfile(lib_path .. "Core.lua")()
 
 local Alk = require "API.Alkamist API"
-require "Pitch Correction.Pitch Editor New"
+require "Pitch Correction.PitchEditorGUI"
 GUI.req("Classes/Class - Button.lua")()
 GUI.req("Classes/Class - Tabs.lua")()
 GUI.req("Classes/Class - Textbox.lua")()
@@ -65,43 +65,43 @@ elms.pitchEditor = {
     type = "PitchEditor",
     z = 3,
     x = 0,
-    y = 52,
+    y = 30,
     w = 0,
     h = 0
 }
 
-local knobsX = 10
-local knobsY = 25
-local knobSize = 22
-local knobPadding = 10
-
-elms.modKnob = {
-    type = "Knob",
-    z = 3,
-    x = knobsX,
-    y = knobsY,
-    w = knobSize,
-    h = knobSize,
-    min = 0.0,
-    max = 1.0,
-    default = 20,
-    inc = 0.01,
-    tooltip = "Mod Correction"
-}
-
-elms.driftKnob = {
-    type = "Knob",
-    z = 3,
-    x = knobsX + knobSize + knobPadding,
-    y = knobsY,
-    w = knobSize,
-    h = knobSize,
-    min = 0.0,
-    max = 1.0,
-    default = 100,
-    inc = 0.01,
-    tooltip = "Drift Correction"
-}
+--local knobsX = 10
+--local knobsY = 25
+--local knobSize = 22
+--local knobPadding = 10
+--
+--elms.modKnob = {
+--    type = "Knob",
+--    z = 3,
+--    x = knobsX,
+--    y = knobsY,
+--    w = knobSize,
+--    h = knobSize,
+--    min = 0.0,
+--    max = 1.0,
+--    default = 20,
+--    inc = 0.01,
+--    tooltip = "Mod Correction"
+--}
+--
+--elms.driftKnob = {
+--    type = "Knob",
+--    z = 3,
+--    x = knobsX + knobSize + knobPadding,
+--    y = knobsY,
+--    w = knobSize,
+--    h = knobSize,
+--    min = 0.0,
+--    max = 1.0,
+--    default = 100,
+--    inc = 0.01,
+--    tooltip = "Drift Correction"
+--}
 
 elms.menus = {
     type = "Menubar",
@@ -137,16 +137,16 @@ elms.menus = {
     }
 }
 
-elms.pitchSettings = {
-    type = "Window",
-    z = 10,
-    x = 1,
-    y = 1,
-    w = 300,
-    h = 300,
-    caption = "Pitch Detection Settings",
-    z_set = { 9, 10 }
-}
+--elms.pitchSettings = {
+--    type = "Window",
+--    z = 10,
+--    x = 1,
+--    y = 1,
+--    w = 300,
+--    h = 300,
+--    caption = "Pitch Detection Settings",
+--    z_set = { 9, 10 }
+--}
 
 --local function createTextboxSetting(title, caption, startingValue, settingNumber)
 --    local pdSettingsFont = {fonts.mono, 12}
