@@ -25,59 +25,6 @@ function GUI.PitchEditor:new(name, z, x, y, w, h)
     return object
 end
 
------------------- Helper Functions ------------------
-
---function GUI.PitchEditor:validateItems()
---    self.prevNumSelectedItems = self.prevNumSelectedItems or 0
---    if #Alk.selectedItems ~= self.prevNumSelectedItems then
---        for _, item in ipairs(Alk.items) do
---
---        end
---    end
---    self.prevNumSelectedItems = #Alk.selectedItems
---end
-
-function GUI.PitchEditor:getTimeFromPixels(xPixels, zoom, scroll)
-    local zoom = zoom or self.zoomX
-    local scroll = scroll or self.scrollX
-
-    local relativeX = xPixels - self.x
-    return self:getTimeLength() * (scroll + relativeX / (self.w * zoom))
-end
-
-function GUI.PitchEditor:getPixelsFromTime(time, zoom, scroll)
-    local zoom = zoom or self.zoomX
-    local scroll = scroll or self.scrollX
-
-    return self.x + zoom * self.w * (time / self:getTimeLength() - scroll)
-end
-
-function GUI.PitchEditor:getPitchFromPixels(yPixels, zoom, scroll)
-    local zoom = zoom or self.zoomY
-    local scroll = scroll or self.scrollY
-
-    local relativeY = yPixels - self.y
-    return self:getMaxPitch() * (1.0 - (scroll + relativeY / (self.h * zoom))) - 0.5
-end
-
-function GUI.PitchEditor:getPixelsFromPitch(pitch, zoom, scroll)
-    local zoom = zoom or self.zoomY
-    local scroll = scroll or self.scrollY
-
-    local pitchRatio = 1.0 - (0.5 + pitch) / self.maxPitch
-    return self.y + zoom * self.h * (pitchRatio - scroll)
-end
-
-function GUI.PitchEditor:calculateWhiteKeys()
-    local whiteKeysMultiples = {1, 3, 4, 6, 8, 9, 11}
-    self.whiteKeys = {}
-    for i = 1, 11 do
-        for _, value in ipairs(whiteKeysMultiples) do
-            table.insert(self.whiteKeys, (i - 1) * 12 + value)
-        end
-    end
-end
-
 ------------------ Events ------------------
 
 function GUI.PitchEditor:init()
