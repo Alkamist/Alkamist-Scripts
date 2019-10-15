@@ -5,8 +5,8 @@ local Alk = {}
 setmetatable(Alk, Alk)
 
 local storedProjects = {}
--- 0 for current project.
 
+-- 0 for current project.
 local function wrapProject(projectNumber)
     if projectNumber == nil then projectNumber = 0 end
     local projectPointer = reaper.EnumProjects(projectNumber - 1, "")
@@ -34,25 +34,12 @@ local projectsTable = {
 setmetatable(projectsTable, projectsTable)
 
 Alk.__index = function(tbl, key)
-    if key == "projects" then
-        return projectsTable
-    end
-
-    if key == "items" then
-        return wrapProject(0).items
-    end
-
-    if key == "selectedItems" then
-        return wrapProject(0).selectedItems
-    end
-
-    if key == "tracks" then
-        return wrapProject(0).tracks
-    end
-
-    if key == "selectedTracks" then
-        return wrapProject(0).selectedTracks
-    end
+    if key == "projects"       then return projectsTable end
+    if key == "items"          then return wrapProject(0).items end
+    if key == "selectedItems"  then return wrapProject(0).selectedItems end
+    if key == "tracks"         then return wrapProject(0).tracks end
+    if key == "selectedTracks" then return wrapProject(0).selectedTracks end
+    return Alk[key]
 end
 
 --------------------- General API ---------------------
