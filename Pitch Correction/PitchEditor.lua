@@ -23,10 +23,10 @@ end
 function PitchEditor:init()
     self.__index = self._base
     setmetatable(self, self)
-    self.xPixelOffset = self.xPixelOffset or 0
-    self.yPixelOffset = self.yPixelOffset or 0
-    self.pixelWidth = self.pixelWidth or 0
-    self.pixelHeight = self.pixelHeight or 0
+    self.x = self.x or 0
+    self.y = self.y or 0
+    self.w = self.w or 0
+    self.h = self.h or 0
     self.whiteKeys = getWhiteKeys()
     self.pitchHeight = 128
     self:updateSelectedItems()
@@ -36,10 +36,10 @@ function PitchEditor:init()
     self.blackKeyColor = self.blackKeyColor           or {0.25, 0.25, 0.25, 1.0}
     self.whiteKeyColor = self.whiteKeyColor           or {0.34, 0.34, 0.34, 1.0}
     self.keyCenterLineColor = self.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
-    self.itemInsideColor = self.itemInsideColor       or {1.0, 1.0, 1.0, 0.5}
-    self.itemEdgeColor = self.itemEdgeColor           or {1.0, 1.0, 1.0, 0.5}
-    self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.5}
-    self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.5}
+    self.itemInsideColor = self.itemInsideColor       or {1.0, 1.0, 1.0, 0.02}
+    self.itemEdgeColor = self.itemEdgeColor           or {1.0, 1.0, 1.0, 0.1}
+    self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.4}
+    self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.3}
 
     self.view = {
         zoom = {
@@ -63,40 +63,52 @@ function PitchEditor:updateSelectedItems()
 end
 function PitchEditor:setUpFunctionalIndexes()
     self.__index = function(tbl, key)
-        if key == "timeWidth" then return self.items[#self.items].rightEdge - self.items[1].leftEdge end
-        if key == "leftEdge" then return self.items[1].leftEdge end
+        if key == "timeWidth" then
+            if self.items[1] and self.items[#self.items] then
+                return self.items[#self.items].rightEdge - self.items[1].leftEdge
+            end
+            return 0
+        end
+        if key == "leftEdge" then
+            if self.items[1] then
+                return self.items[1].leftEdge
+            end
+            return 0
+        end
         return self._base[key]
     end
 end
 
 function PitchEditor:pixelsToTime(xPixels)
-    return self.timeWidth * (self.view.scroll.x + xPixels / (self.pixelWidth * self.view.zoom.x))
+    return self.timeWidth * (self.view.scroll.x + xPixels / (self.w * self.view.zoom.x))
 end
 function PitchEditor:timeToPixels(time)
-    return self.view.zoom.x * self.pixelWidth * (time / self.timeWidth - self.view.scroll.x)
+    return self.view.zoom.x * self.w * (time / self.timeWidth - self.view.scroll.x)
 end
 function PitchEditor:pixelsToPitch(yPixels)
-    return self.pitchHeight * (1.0 - (self.view.scroll.y + yPixels / (self.pixelHeight * self.view.zoom.y))) - 0.5
+    return self.pitchHeight * (1.0 - (self.view.scroll.y + yPixels / (self.h * self.view.zoom.y))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
-    return self.view.zoom.y * self.pixelHeight * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.scroll.y)
+    return self.view.zoom.y * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.scroll.y)
 end
 
+---------------------- Drawing Code ----------------------
+
 function PitchEditor:rect(x, y, w, h, filled)
-    gfx.rect(x + self.xPixelOffset, y + self.yPixelOffset, w, h, filled)
+    gfx.rect(x + self.x, y + self.y, w, h, filled)
 end
 function PitchEditor:line(x, y, x2, y2, antiAliased)
-    gfx.line(x + self.xPixelOffset,
-             y + self.yPixelOffset,
-             x2 + self.xPixelOffset,
-             y2 + self.yPixelOffset,
+    gfx.line(x + self.x,
+             y + self.y,
+             x2 + self.x,
+             y2 + self.y,
              antiAliased)
 end
 
 function PitchEditor:draw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
-    --self:drawEditCursor()
+    self:drawEditCursor()
     gfx.a = 1.0
 end
 function PitchEditor:drawKeyBackgrounds()
@@ -110,15 +122,15 @@ function PitchEditor:drawKeyBackgrounds()
                 Alk.setColor(self.whiteKeyColor)
             end
         end
-        self:rect(0, keyEnd, self.pixelWidth, keyHeight + 1, 1)
+        self:rect(0, keyEnd, self.w, keyHeight + 1, 1)
 
         Alk.setColor(self.blackKeyColor)
-        self:line(0, keyEnd, self.pixelWidth, keyEnd, false)
+        self:line(0, keyEnd, self.w, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
             Alk.setColor(self.keyCenterLineColor)
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
-            self:line(0, keyCenterLine, self.pixelWidth, keyCenterLine, false)
+            self:line(0, keyCenterLine, self.w, keyCenterLine, false)
         end
 
         prevKeyEnd = keyEnd
@@ -131,9 +143,9 @@ function PitchEditor:drawItemEdges()
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
-        local boxHeight = self.pixelHeight
-        --Alk.setColor(self.itemInsideColor)
-        --self:rect(leftBoundPixels + 1, 2, boxWidth - 1, boxHeight - 1, 1)
+        local boxHeight = self.h - 2
+        Alk.setColor(self.itemInsideColor)
+        self:rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
         Alk.setColor(self.itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
@@ -144,13 +156,20 @@ function PitchEditor:drawEditCursor()
     local playPosition = reaper.GetPlayPositionEx(0)
     local playPositionPixels = self:timeToPixels(playPosition - self.leftEdge)
     Alk.setColor(self.editCursorColor)
-    self:line(editCursorPixels, 0, editCursorPixels, self.pixelHeight, false)
+    self:line(editCursorPixels, 0, editCursorPixels, self.h, false)
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
     if projectIsPlaying then
         Alk.setColor(self.playCursorColor)
-        self:line(playPositionPixels, 0, playPositionPixels, self.pixelHeight, false)
+        self:line(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
+end
+
+---------------------- Events ----------------------
+
+function PitchEditor:onResize()
+    self.w = gfx.w
+    self.h = gfx.h
 end
 
 return PitchEditor
