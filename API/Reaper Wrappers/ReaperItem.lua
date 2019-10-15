@@ -35,6 +35,10 @@ ReaperItem._members = {
 
     { key = "takes",
         getter = function(self) return self:getTakes() end },
+
+    { key = "isSelected",
+        getter = function(self) return self:getIsSelected() end,
+        setter = function(self, value) self:setSelected(value) end },
 }
 
 function ReaperItem:new(object)
@@ -49,6 +53,14 @@ end
 
 
 --------------------- Member Helper Functions  ---------------------
+
+function ReaperItem:getIsSelected()
+    return reaper.IsMediaItemSelected(self.pointer)
+end
+
+function ReaperItem:setSelected(value)
+    reaper.SetMediaItemSelected(self.pointer, value)
+end
 
 function ReaperItem:getLength()
     return reaper.GetMediaItemInfo_Value(self.pointer, "D_LENGTH")

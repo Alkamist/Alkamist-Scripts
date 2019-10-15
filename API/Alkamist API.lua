@@ -1,11 +1,13 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+function msg(m) reaper.ShowConsoleMsg(tostring(m).."\n") end
 local ReaperProject = require "API.Reaper Wrappers.ReaperProject"
 
 local Alk = {}
 setmetatable(Alk, Alk)
 
-local storedProjects = {}
+--------------------- Object Oriented Wrapper ---------------------
 
+local storedProjects = {}
 -- 0 for current project.
 local function wrapProject(projectNumber)
     if projectNumber == nil then projectNumber = 0 end
@@ -42,7 +44,7 @@ Alk.__index = function(tbl, key)
     return Alk[key]
 end
 
---------------------- General API ---------------------
+--------------------- Reaper Function Wrappers ---------------------
 
 function Alk.getEELCommandID(name)
     local kbini = reaper.GetResourcePath() .. '/reaper-kb.ini'
@@ -97,6 +99,16 @@ end
 
 function Alk.updateArrange()
     reaper.UpdateArrange()
+end
+
+function Alk.setColor(color)
+    gfx.set(color[1], color[2], color[3], color[4])
+end
+
+--------------------- Helpful Lua Functions ---------------------
+
+function Alk.stringLines(str)
+    return str:gmatch("[^\n]+")
 end
 
 return Alk

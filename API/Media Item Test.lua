@@ -5,6 +5,8 @@ end
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require "API.Alkamist API"
 
+--msg(#Alk.tracks[1].selectedItems)
+
 --Alk.selectedItems[1].activeTake.pitchEnvelope.isVisible = false
 --msg(Alk.items[2].length)
 --msg(Alk.projects[0])

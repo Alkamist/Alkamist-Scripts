@@ -1,4 +1,5 @@
-local Lua = require "Various Functions.Lua Functions"
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Alk = require "API.Alkamist API"
 
 local TimeSeries = {}
 function TimeSeries:new(object)
@@ -44,9 +45,10 @@ function TimeSeries:loadFromString(saveString, loadMembers)
     self.points = {}
     local title = ""
     local nameKeys = {}
+    local lineIndex = 0
+    for line in Alk.getStringLines(saveString) do
+        lineIndex = lineIndex + 1
 
-    local lines = Lua.getStringLines(saveString)
-    for lineIndex, line in ipairs(lines) do
         -- The first line is the title and member line.
         if lineIndex == 1 then
             local nameIndex = 1

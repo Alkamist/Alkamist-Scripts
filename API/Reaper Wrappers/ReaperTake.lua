@@ -6,7 +6,7 @@ setmetatable(ReaperTake, { __index = ReaperPointerWrapper })
 
 ReaperTake._members = {
     { key = "track",
-        getter = function(self) return self.item.track end },
+        getter = function(self) return self:getItem():getTrack() end },
 
     { key = "name",
         getter = function(self) return self:getName() end,
