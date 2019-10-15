@@ -32,6 +32,9 @@ ReaperItem._members = {
 
     { key = "name",
         getter = function(self) return self:getName() end },
+
+    { key = "takes",
+        getter = function(self) return self:getTakes() end },
 }
 
 function ReaperItem:new(object)
@@ -96,6 +99,18 @@ function ReaperItem:getName()
         return reaper.ULT_GetMediaItemNote(self.pointer)
     end
     return self.activeTake.name
+end
+
+function ReaperItem:getTakeCount()
+    return reaper.CountTakes(self.pointer)
+end
+
+function ReaperItem:getTake(takeNumber)
+    return self.project:wrapTake(reaper.GetTake(self.pointer, takeNumber - 1))
+end
+
+function ReaperItem:getTakes()
+    return ReaperPointerWrapper.getIterator(self, self.getTake, self.getTakeCount)
 end
 
 return ReaperItem
