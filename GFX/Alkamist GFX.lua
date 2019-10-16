@@ -1,5 +1,28 @@
 local GFX = {}
-
+GFX.runHook = GFX.runHook or function() end
+local function updateVars()
+    GFX.char = GFX.getChar()
+    GFX.x  = gfx.x
+    GFX.y = gfx.y
+    GFX.w = gfx.w
+    GFX.h = gfx.h
+    GFX.mouseX = gfx.mouse_x
+    GFX.mouseY = gfx.mouse_y
+    GFX.mouseCap = gfx.mouse_cap
+    GFX.mouseWheel = gfx.mouse_wheel; gfx.mouse_wheel = 0
+    GFX.mouseHWheel = gfx.mouse_hwheel; gfx.mouse_hwheel = 0
+end
+local function updatePrevVars()
+    GFX.prevX = GFX.x
+    GFX.prevY = GFX.y
+    GFX.prevW = GFX.w
+    GFX.prevH = GFX.h
+    GFX.prevMouseX = GFX.mouseX
+    GFX.prevMouseY = GFX.mouseY
+    GFX.prevMouseCap = GFX.mouseCap
+    GFX.prevMouseWheel = GFX.mouseWheel
+    GFX.prevMouseHWheel = GFX.mouseHWheel
+end
 local function invertTable(tbl)
     local s = {}
     for key, value in pairs(tbl) do
@@ -7,7 +30,6 @@ local function invertTable(tbl)
     end
     return s
 end
-
 local characterTable = {
     ["Close"] = -1,
     ["Enter"] = 13,
@@ -109,7 +131,6 @@ local characterTable = {
     ["Delete"] = 127
 }
 local characterTableInverted = invertTable(characterTable)
-
 function GFX.getChar(char)
     if char then return gfx.getchar(characterTable[char]) end
     return characterTableInverted[gfx.getchar()]
@@ -117,6 +138,41 @@ end
 
 function GFX.setColor(color)
     gfx.set(color[1], color[2], color[3], color[4])
+end
+
+function GFX.init(title, x, y, w, h, dock)
+    gfx.init(title, w, h, dock, x, y)
+    GFX.title = title
+    GFX.x = x
+    GFX.prevX = x
+    GFX.y = y
+    GFX.prevY = y
+    GFX.w = w
+    GFX.prevW = w
+    GFX.h = h
+    GFX.prevH = h
+    GFX.dock = 0
+end
+function GFX.loop()
+    updateVars()
+    if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
+
+    GFX.runHook()
+
+    for _, child in pairs(GFX.children) do
+        if GFX.w ~= GFX.prevW or GFX.h ~= GFX.prevH then
+            child:onResize()
+        end
+        child:draw()
+    end
+
+	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.loop) end
+    gfx.update()
+    updatePrevVars()
+end
+function GFX.run(title, x, y, w, h, dock)
+    GFX.init(title, x, y, w, h, dock)
+    GFX.loop()
 end
 
 return GFX
