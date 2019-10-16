@@ -1,5 +1,6 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require "API.Alkamist API"
+local GFX = require "GFX.Alkamist GFX"
 
 local function getWhiteKeys()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -116,19 +117,19 @@ function PitchEditor:drawKeyBackgrounds()
     for i = 1, self.pitchHeight do
         local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - prevKeyEnd
-        Alk.setColor(self.blackKeyColor)
+        GFX.setColor(self.blackKeyColor)
         for _, value in ipairs(self.whiteKeys) do
             if i == value then
-                Alk.setColor(self.whiteKeyColor)
+                GFX.setColor(self.whiteKeyColor)
             end
         end
         self:rect(0, keyEnd, self.w, keyHeight + 1, 1)
 
-        Alk.setColor(self.blackKeyColor)
+        GFX.setColor(self.blackKeyColor)
         self:line(0, keyEnd, self.w, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
-            Alk.setColor(self.keyCenterLineColor)
+            GFX.setColor(self.keyCenterLineColor)
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
             self:line(0, keyCenterLine, self.w, keyCenterLine, false)
         end
@@ -144,9 +145,9 @@ function PitchEditor:drawItemEdges()
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
         local boxHeight = self.h - 2
-        Alk.setColor(self.itemInsideColor)
+        GFX.setColor(self.itemInsideColor)
         self:rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
-        Alk.setColor(self.itemEdgeColor)
+        GFX.setColor(self.itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
@@ -155,12 +156,12 @@ function PitchEditor:drawEditCursor()
     local editCursorPixels = self:timeToPixels(editCursorPosition - self.leftEdge)
     local playPosition = reaper.GetPlayPositionEx(0)
     local playPositionPixels = self:timeToPixels(playPosition - self.leftEdge)
-    Alk.setColor(self.editCursorColor)
+    GFX.setColor(self.editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, self.h, false)
     local projectPlaystate = reaper.GetPlayStateEx(0)
     local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
     if projectIsPlaying then
-        Alk.setColor(self.playCursorColor)
+        GFX.setColor(self.playCursorColor)
         self:line(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end

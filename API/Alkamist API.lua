@@ -101,10 +101,6 @@ function Alk.updateArrange()
     reaper.UpdateArrange()
 end
 
-function Alk.setColor(color)
-    gfx.set(color[1], color[2], color[3], color[4])
-end
-
 --------------------- Helpful Lua Functions ---------------------
 
 function Alk.stringLines(str)

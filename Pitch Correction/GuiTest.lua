@@ -1,5 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require "API.Alkamist API"
+local GFX = require "GFX.Alkamist GFX"
+
 local PitchEditor = require "Pitch Correction.PitchEditor"
 
 local guiX = 200
@@ -20,7 +22,8 @@ local pitchEditor = PitchEditor:new{
 }
 
 local function Main()
-    local char = gfx.getchar()
+    --local char = gfx.getchar()
+    local char = GFX.getChar()
 
     local numSelectedItems = #Alk.selectedItems
     if #Alk.selectedItems ~= numPrevSelectedItems then
@@ -33,11 +36,11 @@ local function Main()
 
     pitchEditor:draw()
 
-	if char ~= 27 and char ~= -1 then
+	if char ~= "Escape" and char ~= "Close" then
 		reaper.defer(Main)
     end
     -- Allow space to play the project.
-    if char == 32 then
+    if char == "Space" then
         reaper.Main_OnCommandEx(40044, 0, 0)
     end
     gfx.update()
