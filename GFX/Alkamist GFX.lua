@@ -1,7 +1,10 @@
 local Alk = require "API.Alkamist API"
 
 local GFX = {}
+
 GFX.runHook = GFX.runHook or function() end
+GFX.children = GFX.children or {}
+
 local characterTable = {
     ["Close"]     = -1,
     ["Backspace"] = 8,
@@ -189,7 +192,21 @@ for char, charValue in pairs(characterTable) do
     setmetatable(GFX.keys[char], GFX.keys[char])
 end
 
-function GFX.loop()
+function GFX.init(title, x, y, w, h, dock)
+    gfx.init(title, w, h, dock, x, y)
+    GFX.title = title
+    GFX.x = x
+    GFX.prevX = x
+    GFX.y = y
+    GFX.prevY = y
+    GFX.w = w
+    GFX.prevW = w
+    GFX.h = h
+    GFX.prevH = h
+    GFX.dock = 0
+end
+
+function GFX.run()
     -- Update current gfx variables.
     GFX.char =        GFX.getChar()
     GFX.x =           gfx.x
@@ -223,7 +240,7 @@ function GFX.loop()
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
         child:onUpdate()
-        if GFX.wasResized()                 then child:onResize() end
+        if GFX.wasResized()                 then child:onResize(GFX.w - GFX.prevW, GFX.h - GFX.prevH) end
         if GFX.focus == child and GFX.char  then child:onChar(GFX.char) end
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
@@ -246,7 +263,7 @@ function GFX.loop()
     end
 
     -- Keep the loop running.
-	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.loop) end
+	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.run) end
     gfx.update()
 
     -- Update previous gfx variables.
@@ -259,21 +276,6 @@ function GFX.loop()
     GFX.prevMouseCap =    GFX.mouseCap
     GFX.prevMouseWheel =  GFX.mouseWheel
     GFX.prevMouseHWheel = GFX.mouseHWheel
-end
-function GFX.run(title, x, y, w, h, dock)
-    gfx.init(title, w, h, dock, x, y)
-    GFX.title = title
-    GFX.x = x
-    GFX.prevX = x
-    GFX.y = y
-    GFX.prevY = y
-    GFX.w = w
-    GFX.prevW = w
-    GFX.h = h
-    GFX.prevH = h
-    GFX.dock = 0
-
-    GFX.loop()
 end
 
 return GFX

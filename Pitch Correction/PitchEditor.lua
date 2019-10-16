@@ -26,6 +26,8 @@ function PitchEditor:init()
     GFXChild.init(self)
     self.__index = self._base
     setmetatable(self, self)
+    self.w = GFX.w
+    self.h = GFX.h - self.y
     self.whiteKeys = getWhiteKeys()
     self.pitchHeight = 128
     self:updateSelectedItems()
@@ -107,12 +109,12 @@ function PitchEditor:drawKeyBackgrounds()
         self:rect(0, keyEnd, self.w, keyHeight + 1, 1)
 
         GFX.setColor(self.blackKeyColor)
-        self:line(0, keyEnd, self.w, keyEnd, false)
+        self:line(0, keyEnd, self.w - 1, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
             GFX.setColor(self.keyCenterLineColor)
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
-            self:line(0, keyCenterLine, self.w, keyCenterLine, false)
+            self:line(0, keyCenterLine, self.w - 1, keyCenterLine, false)
         end
 
         prevKeyEnd = keyEnd
@@ -151,9 +153,9 @@ end
 
 function PitchEditor:onUpdate()
 end
-function PitchEditor:onResize()
-    self.w = gfx.w
-    self.h = gfx.h
+function PitchEditor:onResize(widthChange, heightChange)
+    self.w = GFX.w
+    self.h = GFX.h - self.y
 end
 function PitchEditor:onChar(char)
     local charFunction = self.onCharFunctions[char]
