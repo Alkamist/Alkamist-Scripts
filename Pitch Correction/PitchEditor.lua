@@ -156,52 +156,42 @@ function PitchEditor:onResize()
     self.h = gfx.h
 end
 function PitchEditor:onChar(char)
-    --if char == "a" then msg(char) end
+    local charFunction = self.onCharFunctions[char]
+    if charFunction then charFunction() end
 end
-function PitchEditor:onMouseEnter()
-    msg("onMouseEnter")
-end
-function PitchEditor:onMouseLeave()
-    msg("onMouseLeave")
-end
-function PitchEditor:onLeftMouseDown()
-    msg("onLeftMouseDown")
-end
-function PitchEditor:onLeftMouseUp()
-    msg("onLeftMouseUp")
-end
-function PitchEditor:onLeftMouseDrag()
-    msg("onLeftMouseDrag")
-end
-function PitchEditor:onMiddleMouseDown()
-    msg("onMiddleMouseDown")
-end
-function PitchEditor:onMiddleMouseUp()
-    msg("onMiddleMouseUp")
-end
-function PitchEditor:onMiddleMouseDrag()
-    msg("onMiddleMouseDrag")
-end
-function PitchEditor:onRightMouseDown()
-    msg("onRightMouseDown")
-end
-function PitchEditor:onRightMouseUp()
-    msg("onRightMouseUp")
-end
-function PitchEditor:onRightMouseDrag()
-    msg("onRightMouseDrag")
-end
-function PitchEditor:onMouseWheel(numTicks)
-    msg("onMouseWheel " .. tostring(numTicks))
-end
-function PitchEditor:onMouseHWheel(numTicks)
-    msg("onMouseHWheel " .. tostring(numTicks))
-end
+function PitchEditor:onMouseEnter() end
+function PitchEditor:onMouseLeave() end
+function PitchEditor:onLeftMouseDown() end
+function PitchEditor:onLeftMouseUp() end
+function PitchEditor:onLeftMouseDrag() end
+function PitchEditor:onMiddleMouseDown() end
+function PitchEditor:onMiddleMouseUp() end
+function PitchEditor:onMiddleMouseDrag() end
+function PitchEditor:onRightMouseDown() end
+function PitchEditor:onRightMouseUp() end
+function PitchEditor:onRightMouseDrag() end
+function PitchEditor:onMouseWheel(numTicks) end
+function PitchEditor:onMouseHWheel(numTicks) end
 function PitchEditor:draw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
     --gfx.a = 1.0
 end
+
+PitchEditor.onCharFunctions = {
+    ["Left"] = function()
+        msg("left")
+    end,
+    ["Right"] = function()
+        msg("right")
+    end,
+    ["Up"] = function()
+        msg("up")
+    end,
+    ["Down"] = function()
+        msg("down")
+    end
+}
 
 return PitchEditor
