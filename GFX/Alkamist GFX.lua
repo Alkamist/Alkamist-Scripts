@@ -148,8 +148,8 @@ local function makeMouseCapState(bitValue)
     return setmetatable({}, {
         __index = function(tbl, key)
             if key == "isPressed" then return GFX.mouseCap & bitValue == bitValue end
-            if key == "wasJustPressed" then return (GFX.mouseCap & bitValue == bitValue) and (GFX.prevMouseCap & bitValue == 0) end
-            if key == "wasJustReleased" then return (GFX.mouseCap & bitValue == 0) and (GFX.prevMouseCap & bitValue == bitValue) end
+            if key == "justPressed" then return (GFX.mouseCap & bitValue == bitValue) and (GFX.prevMouseCap & bitValue == 0) end
+            if key == "justReleased" then return (GFX.mouseCap & bitValue == 0) and (GFX.prevMouseCap & bitValue == bitValue) end
             return tbl[key]
         end
     })
@@ -167,28 +167,28 @@ GFX.mods = {
 }
 GFX.keys = {}
 for char, charValue in pairs(characterTable) do
+    local wasPressedPreviously = nil
     GFX.keys[char] = {
         __index = function(tbl, key)
-            if key == "isPressed" then return GFX.getChar(char) > 0 end
+            if key == "isPressed" then
+                local isPressed = GFX.getChar(char) > 0
+                wasPressedPreviously = isPressed
+                return isPressed
+            end
+            if key == "justPressed" then
+                local wasPressedPreviously = wasPressedPreviously
+                return tbl.isPressed and (not wasPressedPreviously)
+            end
+            if key == "justReleased" then
+                local wasPressedPreviously = wasPressedPreviously
+                return (not tbl.isPressed) and wasPressedPreviously
+            end
             return tbl[key]
         end
     }
     setmetatable(GFX.keys[char], GFX.keys[char])
 end
 
-function GFX.init(title, x, y, w, h, dock)
-    gfx.init(title, w, h, dock, x, y)
-    GFX.title = title
-    GFX.x = x
-    GFX.prevX = x
-    GFX.y = y
-    GFX.prevY = y
-    GFX.w = w
-    GFX.prevW = w
-    GFX.h = h
-    GFX.prevH = h
-    GFX.dock = 0
-end
 function GFX.loop()
     -- Update current gfx variables.
     GFX.char =        GFX.getChar()
@@ -216,8 +216,6 @@ function GFX.loop()
     -- Allow the play key to play the current project.
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    msg(GFX.keys["a"].isPressed)
-
     -- Run the user defined hook function.
     GFX.runHook()
 
@@ -230,9 +228,9 @@ function GFX.loop()
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
         if child:mouseIsInside() then
-            if GFX.mouseButtons.left.wasJustPressed   then child:onLeftMouseDown() end
-            if GFX.mouseButtons.middle.wasJustPressed then child:onMiddleMouseDown() end
-            if GFX.mouseButtons.right.wasJustPressed  then child:onRightMouseDown() end
+            if GFX.mouseButtons.left.justPressed   then child:onLeftMouseDown() end
+            if GFX.mouseButtons.middle.justPressed then child:onMiddleMouseDown() end
+            if GFX.mouseButtons.right.justPressed  then child:onRightMouseDown() end
             if GFX.mouseMoved() then
                 if GFX.mouseButtons.left.isPressed   then child:onLeftMouseDrag() end
                 if GFX.mouseButtons.middle.isPressed then child:onMiddleMouseDrag() end
@@ -241,9 +239,9 @@ function GFX.loop()
             if GFX.mouseWheel > 0 or GFX.mouseWheel < 0   then child:onMouseWheel(GFX.mouseWheel) end
             if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
         end
-        if GFX.mouseButtons.left.wasJustReleased   then child:onLeftMouseUp() end
-        if GFX.mouseButtons.middle.wasJustReleased then child:onMiddleMouseUp() end
-        if GFX.mouseButtons.right.wasJustReleased  then child:onRightMouseUp() end
+        if GFX.mouseButtons.left.justReleased   then child:onLeftMouseUp() end
+        if GFX.mouseButtons.middle.justReleased then child:onMiddleMouseUp() end
+        if GFX.mouseButtons.right.justReleased  then child:onRightMouseUp() end
         child:draw()
     end
 
@@ -263,7 +261,18 @@ function GFX.loop()
     GFX.prevMouseHWheel = GFX.mouseHWheel
 end
 function GFX.run(title, x, y, w, h, dock)
-    GFX.init(title, x, y, w, h, dock)
+    gfx.init(title, w, h, dock, x, y)
+    GFX.title = title
+    GFX.x = x
+    GFX.prevX = x
+    GFX.y = y
+    GFX.prevY = y
+    GFX.w = w
+    GFX.prevW = w
+    GFX.h = h
+    GFX.prevH = h
+    GFX.dock = 0
+
     GFX.loop()
 end
 
