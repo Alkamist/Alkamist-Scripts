@@ -1,6 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require "API.Alkamist API"
 local GFX = require "GFX.Alkamist GFX"
+local GFXChild = require "GFX.GFXChild"
 
 local function getWhiteKeys()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -13,7 +14,7 @@ local function getWhiteKeys()
     return whiteKeys
 end
 
-local PitchEditor = {}
+local PitchEditor = setmetatable({}, { __index = GFXChild })
 function PitchEditor:new(object)
     local object = object or {}
     object._base = self
@@ -22,12 +23,9 @@ function PitchEditor:new(object)
 end
 
 function PitchEditor:init()
+    GFXChild.init(self)
     self.__index = self._base
     setmetatable(self, self)
-    self.x = self.x or 0
-    self.y = self.y or 0
-    self.w = self.w or 0
-    self.h = self.h or 0
     self.whiteKeys = getWhiteKeys()
     self.pitchHeight = 128
     self:updateSelectedItems()
@@ -95,17 +93,6 @@ end
 
 ---------------------- Drawing Code ----------------------
 
-function PitchEditor:rect(x, y, w, h, filled)
-    gfx.rect(x + self.x, y + self.y, w, h, filled)
-end
-function PitchEditor:line(x, y, x2, y2, antiAliased)
-    gfx.line(x + self.x,
-             y + self.y,
-             x2 + self.x,
-             y2 + self.y,
-             antiAliased)
-end
-
 function PitchEditor:drawKeyBackgrounds()
     local prevKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
     for i = 1, self.pitchHeight do
@@ -161,21 +148,7 @@ function PitchEditor:drawEditCursor()
 end
 
 ---------------------- Events ----------------------
-function PitchEditor:pointIsInside(point)
-    return point.x >= self.x and point.x <= self.x + self.w
-       and point.y >= self.y and point.y <= self.y + self.h
-end
-function PitchEditor:mouseIsInside()
-    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
-end
-function PitchEditor:mouseJustEntered()
-    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
-    and (not self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY }) )
-end
-function PitchEditor:mouseJustLeft()
-    return ( not self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY }) )
-       and self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY })
-end
+
 function PitchEditor:onUpdate()
 end
 function PitchEditor:onResize()

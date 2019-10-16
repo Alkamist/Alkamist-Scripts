@@ -189,20 +189,20 @@ function GFX.loop()
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
         if child:mouseIsInside() then
-            if GFX.leftMouseButton.wasJustPressed    then child:onLeftMouseDown() end
-            if GFX.leftMouseButton.wasJustReleased   then child:onLeftMouseUp() end
-            if GFX.middleMouseButton.wasJustPressed  then child:onMiddleMouseDown() end
-            if GFX.middleMouseButton.wasJustReleased then child:onMiddleMouseUp() end
-            if GFX.rightMouseButton.wasJustPressed   then child:onRightMouseDown() end
-            if GFX.rightMouseButton.wasJustReleased  then child:onRightMouseUp() end
+            if GFX.leftMouseButton.wasJustPressed   then child:onLeftMouseDown() end
+            if GFX.middleMouseButton.wasJustPressed then child:onMiddleMouseDown() end
+            if GFX.rightMouseButton.wasJustPressed  then child:onRightMouseDown() end
             if GFX.mouseMoved() then
-                if GFX.leftMouseButton.isPressed     then child:onLeftMouseDrag() end
-                if GFX.middleMouseButton.isPressed   then child:onMiddleMouseDrag() end
-                if GFX.rightMouseButton.isPressed    then child:onRightMouseDrag() end
+                if GFX.leftMouseButton.isPressed   then child:onLeftMouseDrag() end
+                if GFX.middleMouseButton.isPressed then child:onMiddleMouseDrag() end
+                if GFX.rightMouseButton.isPressed  then child:onRightMouseDrag() end
             end
             if GFX.mouseWheel > 0 or GFX.mouseWheel < 0   then child:onMouseWheel(GFX.mouseWheel) end
             if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
         end
+        if GFX.leftMouseButton.wasJustReleased   then child:onLeftMouseUp() end
+        if GFX.middleMouseButton.wasJustReleased then child:onMiddleMouseUp() end
+        if GFX.rightMouseButton.wasJustReleased  then child:onRightMouseUp() end
         child:draw()
     end
 
