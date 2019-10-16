@@ -42,6 +42,7 @@ function GFXChild:mouseJustLeft()
 end
 function GFXChild:onUpdate() end
 function GFXChild:onResize() end
+function GFXChild:onChar(char) end
 function GFXChild:onMouseEnter() end
 function GFXChild:onMouseLeave() end
 function GFXChild:onLeftMouseDown() end

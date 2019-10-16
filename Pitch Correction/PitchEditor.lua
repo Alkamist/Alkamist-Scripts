@@ -155,6 +155,9 @@ function PitchEditor:onResize()
     self.w = gfx.w
     self.h = gfx.h
 end
+function PitchEditor:onChar(char)
+    --if char == "a" then msg(char) end
+end
 function PitchEditor:onMouseEnter()
     msg("onMouseEnter")
 end
