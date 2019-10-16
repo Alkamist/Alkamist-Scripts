@@ -106,12 +106,6 @@ function PitchEditor:line(x, y, x2, y2, antiAliased)
              antiAliased)
 end
 
-function PitchEditor:draw()
-    self:drawKeyBackgrounds()
-    self:drawItemEdges()
-    self:drawEditCursor()
-    gfx.a = 1.0
-end
 function PitchEditor:drawKeyBackgrounds()
     local prevKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
     for i = 1, self.pitchHeight do
@@ -167,10 +161,71 @@ function PitchEditor:drawEditCursor()
 end
 
 ---------------------- Events ----------------------
-
+function PitchEditor:pointIsInside(point)
+    return point.x >= self.x and point.x <= self.x + self.w
+       and point.y >= self.y and point.y <= self.y + self.h
+end
+function PitchEditor:mouseIsInside()
+    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
+end
+function PitchEditor:mouseJustEntered()
+    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
+    and (not self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY }) )
+end
+function PitchEditor:mouseJustLeft()
+    return ( not self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY }) )
+       and self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY })
+end
+function PitchEditor:onUpdate()
+end
 function PitchEditor:onResize()
     self.w = gfx.w
     self.h = gfx.h
+end
+function PitchEditor:onMouseEnter()
+    msg("onMouseEnter")
+end
+function PitchEditor:onMouseLeave()
+    msg("onMouseLeave")
+end
+function PitchEditor:onLeftMouseDown()
+    msg("onLeftMouseDown")
+end
+function PitchEditor:onLeftMouseUp()
+    msg("onLeftMouseUp")
+end
+function PitchEditor:onLeftMouseDrag()
+    msg("onLeftMouseDrag")
+end
+function PitchEditor:onMiddleMouseDown()
+    msg("onMiddleMouseDown")
+end
+function PitchEditor:onMiddleMouseUp()
+    msg("onMiddleMouseUp")
+end
+function PitchEditor:onMiddleMouseDrag()
+    msg("onMiddleMouseDrag")
+end
+function PitchEditor:onRightMouseDown()
+    msg("onRightMouseDown")
+end
+function PitchEditor:onRightMouseUp()
+    msg("onRightMouseUp")
+end
+function PitchEditor:onRightMouseDrag()
+    msg("onRightMouseDrag")
+end
+function PitchEditor:onMouseWheel(numTicks)
+    msg("onMouseWheel " .. tostring(numTicks))
+end
+function PitchEditor:onMouseHWheel(numTicks)
+    msg("onMouseHWheel " .. tostring(numTicks))
+end
+function PitchEditor:draw()
+    self:drawKeyBackgrounds()
+    self:drawItemEdges()
+    self:drawEditCursor()
+    --gfx.a = 1.0
 end
 
 return PitchEditor

@@ -1,12 +1,7 @@
+local Alk = require "API.Alkamist API"
+
 local GFX = {}
 GFX.runHook = GFX.runHook or function() end
-local function invertTable(tbl)
-    local s = {}
-    for key, value in pairs(tbl) do
-      s[value] = key
-    end
-    return s
-end
 local characterTable = {
     ["Close"] = -1,
     ["Enter"] = 13,
@@ -107,7 +102,7 @@ local characterTable = {
     ["~"] = 126,
     ["Delete"] = 127
 }
-local characterTableInverted = invertTable(characterTable)
+local characterTableInverted = Alk.invertTable(characterTable)
 function GFX.getChar(char)
     if char then return gfx.getchar(characterTable[char]) end
     return characterTableInverted[gfx.getchar()]
@@ -121,17 +116,8 @@ function GFX.wasResized()
     return GFX.w ~= GFX.prevW or GFX.h ~= GFX.prevH
 end
 
-function GFX.pointIsInsideChild(point, child)
-    return point.x >= child.x and point.x <= child.x + child.w
-       and point.y >= child.Y and point.y <= child.y + child.h
-end
-function GFX.mouseJustEnteredChild(child)
-    return GFX.pointIsInsideChild({ GFX.mouseX, GFX.mouseY }, child)
-       and ( not GFX.pointIsInsideChild({ GFX.prevMouseX, GFX.prevMouseY }, child) )
-end
-function GFX.mouseJustLeftChild(child)
-    return ( not GFX.pointIsInsideChild({ GFX.mouseX, GFX.mouseY }, child) )
-       and GFX.pointIsInsideChild({ GFX.prevMouseX, GFX.prevMouseY }, child)
+function GFX.mouseMoved()
+    return GFX.mouseX ~= GFX.prevMouseX or GFX.mouseY ~= GFX.prevMouseY
 end
 
 local function makeMouseCapState(bitValue)
@@ -175,8 +161,8 @@ function GFX.loop()
     GFX.mouseX = gfx.mouse_x
     GFX.mouseY = gfx.mouse_y
     GFX.mouseCap = gfx.mouse_cap
-    GFX.mouseWheel = gfx.mouse_wheel; gfx.mouse_wheel = 0
-    GFX.mouseHWheel = gfx.mouse_hwheel; gfx.mouse_hwheel = 0
+    GFX.mouseWheel = math.floor(gfx.mouse_wheel / 120.0); gfx.mouse_wheel = 0
+    GFX.mouseHWheel = math.floor(gfx.mouse_hwheel / 120.0); gfx.mouse_hwheel = 0
 
     -- Initialize previous gfx variables.
     GFX.prevX = GFX.prevX or GFX.x
@@ -192,15 +178,35 @@ function GFX.loop()
     -- Allow the play key to play the current project.
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 
+    -- Run the user defined hook function.
     GFX.runHook()
 
+    -- Go through all of the children and activate their events if needed.
     for _, child in pairs(GFX.children) do
-        if GFX.wasResized() then child:onResize() end
-        --if GFX.mouseJustEnteredChild(child) then child:onMouseEnter() end
-        --if GFX.mouseJustLeftChild(child) then child:onMouseLeave() end
+        GFX.focus = GFX.focus or child
+        child:onUpdate()
+        if GFX.wasResized()                 then child:onResize() end
+        if child:mouseJustEntered()         then child:onMouseEnter() end
+        if child:mouseJustLeft()            then child:onMouseLeave() end
+        if child:mouseIsInside() then
+            if GFX.leftMouseButton.wasJustPressed    then child:onLeftMouseDown() end
+            if GFX.leftMouseButton.wasJustReleased   then child:onLeftMouseUp() end
+            if GFX.middleMouseButton.wasJustPressed  then child:onMiddleMouseDown() end
+            if GFX.middleMouseButton.wasJustReleased then child:onMiddleMouseUp() end
+            if GFX.rightMouseButton.wasJustPressed   then child:onRightMouseDown() end
+            if GFX.rightMouseButton.wasJustReleased  then child:onRightMouseUp() end
+            if GFX.mouseMoved() then
+                if GFX.leftMouseButton.isPressed     then child:onLeftMouseDrag() end
+                if GFX.middleMouseButton.isPressed   then child:onMiddleMouseDrag() end
+                if GFX.rightMouseButton.isPressed    then child:onRightMouseDrag() end
+            end
+            if GFX.mouseWheel > 0 or GFX.mouseWheel < 0   then child:onMouseWheel(GFX.mouseWheel) end
+            if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
+        end
         child:draw()
     end
 
+    -- Keep the loop running.
 	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.loop) end
     gfx.update()
 

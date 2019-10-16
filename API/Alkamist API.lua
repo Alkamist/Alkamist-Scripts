@@ -107,4 +107,12 @@ function Alk.stringLines(str)
     return str:gmatch("[^\n]+")
 end
 
+function Alk.invertTable(tbl)
+    local invertedTable = {}
+    for key, value in pairs(tbl) do
+        invertedTable[value] = key
+    end
+    return invertedTable
+end
+
 return Alk
