@@ -4,57 +4,13 @@ local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 local ReaperItem = { pointerType = "MediaItem*" }
 setmetatable(ReaperItem, { __index = ReaperPointerWrapper })
 
-ReaperItem._members = {
-    { key = "length",
-        getter = function(self) return self:getLength() end,
-        setter = function(self, value) self:setLength(value) end },
-
-    { key = "leftEdge",
-        getter = function(self) return self:getLeftEdge() end,
-        setter = function(self, value) self:setLeftEdge(value) end },
-
-    { key = "rightEdge",
-        getter = function(self) return self:getRightEdge() end,
-        setter = function(self, value) self:setRightEdge(value) end },
-
-    { key = "loops",
-        getter = function(self) return self:getLoops() end,
-        setter = function(self, value) self:setLoops(value) end },
-
-    { key = "activeTake",
-        getter = function(self) return self:getActiveTake() end },
-
-    { key = "track",
-        getter = function(self) return self:getTrack() end },
-
-    { key = "isEmpty",
-        getter = function(self) return self:isTypeEmpty() end },
-
-    { key = "name",
-        getter = function(self) return self:getName() end },
-
-    { key = "takes",
-        getter = function(self) return self:getTakes() end },
-
-    { key = "isSelected",
-        getter = function(self) return self:getIsSelected() end,
-        setter = function(self, value) self:setSelected(value) end },
-}
-
 function ReaperItem:new(object)
     local object = object or {}
-    object._base = self
-    setmetatable(object, object)
-    ReaperPointerWrapper.init(object)
+    setmetatable(object, { __index = self })
     return object
 end
 
---------------------- Unique Functions  ---------------------
-
-
---------------------- Member Helper Functions  ---------------------
-
-function ReaperItem:getIsSelected()
+function ReaperItem:isSelected()
     return reaper.IsMediaItemSelected(self.pointer)
 end
 
@@ -102,15 +58,15 @@ function ReaperItem:getTrack()
     return self.project:wrapTrack(reaper.GetMediaItemTrack(self.pointer))
 end
 
-function ReaperItem:isTypeEmpty()
+function ReaperItem:isEmpty()
     return self:getActiveTake():getType() == nil
 end
 
 function ReaperItem:getName()
-    if self.isEmpty then
+    if self:isEmpty() then
         return reaper.ULT_GetMediaItemNote(self.pointer)
     end
-    return self.activeTake.name
+    return self:getActiveTake():getName()
 end
 
 function ReaperItem:getTakeCount()
@@ -122,7 +78,7 @@ function ReaperItem:getTake(takeNumber)
 end
 
 function ReaperItem:getTakes()
-    return ReaperPointerWrapper.getIterator(self, self.getTake, self.getTakeCount)
+    return self:getIterator(self.getTake, self.getTakeCount)
 end
 
 return ReaperItem

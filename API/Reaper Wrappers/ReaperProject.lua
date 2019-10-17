@@ -9,48 +9,11 @@ local ReaperPCMSource = require "API.Reaper Wrappers.ReaperPCMSource"
 local ReaperProject = { pointerType = "ReaProject*" }
 setmetatable(ReaperProject, { __index = ReaperPointerWrapper })
 
-ReaperProject._members = {
-    { key = "name",
-        getter = function(self) return self:getName() end },
-
-    { key = "items",
-        getter = function(self) return self:getItems() end },
-
-    { key = "selectedItems",
-        getter = function(self) return self:getSelectedItems() end },
-
-    { key = "tracks",
-        getter = function(self) return self:getTracks() end },
-
-    { key = "selectedTracks",
-        getter = function(self) return self:getSelectedTracks() end },
-
-    { key = "editCursorTime",
-        getter = function(self) return self:getEditCursorTime() end,
-        setter = function(self, value) self:setEditCursorTime(value) end },
-
-    { key = "playCursorTime",
-        getter = function(self) return self:getPlayCursorTime() end },
-
-    { key = "isPlaying",
-        getter = function(self) return self:getIsPlaying() end },
-
-    { key = "isPaused",
-        getter = function(self) return self:getIsPaused() end },
-
-    { key = "isRecording",
-        getter = function(self) return self:getIsRecording() end },
-}
-
 function ReaperProject:new(object)
     local object = object or {}
-    object._base = self
-    setmetatable(object, object)
-    ReaperPointerWrapper.init(object)
+    setmetatable(object, { __index = self })
     return object
 end
-
---------------------- Unique Functions  ---------------------
 
 function ReaperProject:mainCommand(id, flag)
     local flag = flag or 0
@@ -62,7 +25,6 @@ end
 function ReaperProject:validatePointer(pointer, pointerType)
     return reaper.ValidatePtr2(self.pointer, pointer, pointerType)
 end
-
 function ReaperProject:wrapPointer(pointer, wrapperType, storageKey)
     if pointer == nil then return nil end
     -- This is slower but safer.
@@ -76,13 +38,11 @@ function ReaperProject:wrapPointer(pointer, wrapperType, storageKey)
     }
     return self.wrappers[storageKey][pointerStr]
 end
-function ReaperProject:wrapTrack(pointer) return self:wrapPointer(pointer, ReaperTrack, "tracks") end
-function ReaperProject:wrapItem(pointer) return self:wrapPointer(pointer, ReaperItem, "items") end
-function ReaperProject:wrapTake(pointer) return self:wrapPointer(pointer, ReaperTake, "takes") end
-function ReaperProject:wrapEnvelope(pointer) return self:wrapPointer(pointer, ReaperEnvelope, "envelopes") end
+function ReaperProject:wrapTrack(pointer)     return self:wrapPointer(pointer, ReaperTrack, "tracks") end
+function ReaperProject:wrapItem(pointer)      return self:wrapPointer(pointer, ReaperItem, "items") end
+function ReaperProject:wrapTake(pointer)      return self:wrapPointer(pointer, ReaperTake, "takes") end
+function ReaperProject:wrapEnvelope(pointer)  return self:wrapPointer(pointer, ReaperEnvelope, "envelopes") end
 function ReaperProject:wrapPCMSource(pointer) return self:wrapPointer(pointer, ReaperPCMSource, "PCMSources") end
-
---------------------- Member Helper Functions  ---------------------
 
 function ReaperProject:getName()
     return reaper.GetProjectName(self.pointer, "")
@@ -121,19 +81,19 @@ function ReaperProject:getSelectedTrack(trackNumber)
 end
 
 function ReaperProject:getItems()
-    return ReaperPointerWrapper.getIterator(self, self.getItem, self.getItemCount)
+    return self:getIterator(self.getItem, self.getItemCount)
 end
 
 function ReaperProject:getSelectedItems()
-    return ReaperPointerWrapper.getIterator(self, self.getSelectedItem, self.getSelectedItemCount)
+    return self:getIterator(self.getSelectedItem, self.getSelectedItemCount)
 end
 
 function ReaperProject:getTracks()
-    return ReaperPointerWrapper.getIterator(self, self.getTrack, self.getTrackCount)
+    return self:getIterator(self.getTrack, self.getTrackCount)
 end
 
 function ReaperProject:getSelectedTracks()
-    return ReaperPointerWrapper.getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount)
+    return self:getIterator(self.getSelectedTrack, self.getSelectedTrackCount)
 end
 
 function ReaperProject:getEditCursorTime()
@@ -152,15 +112,15 @@ function ReaperProject:getPlayCursorTime()
     return reaper.GetPlayPositionEx(self.pointer)
 end
 
-function ReaperProject:getIsPlaying()
+function ReaperProject:isPlaying()
     return reaper.GetPlayStateEx(self.pointer) & 1 == 1
 end
 
-function ReaperProject:getIsPaused()
+function ReaperProject:isPaused()
     return reaper.GetPlayStateEx(self.pointer) & 2 == 2
 end
 
-function ReaperProject:getIsRecording()
+function ReaperProject:isRecording()
     return reaper.GetPlayStateEx(self.pointer) & 4 == 4
 end
 

@@ -2,50 +2,21 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local ReaperPointerWrapper = {}
 
-function ReaperPointerWrapper:init()
-    -- Getters
-    self.__index = function(tbl, key)
-        for _, member in ipairs(tbl._base._members) do
-            if key == member.key then
-                return member.getter(self)
-            end
-        end
-        return tbl._base[key]
-    end
-
-    -- Setters
-    self.__newindex = function(tbl, key, value)
-        for _, member in ipairs(tbl._base._members) do
-            if key == member.key then
-                if type(member.setter) == "function" then
-                    member.setter(self, value)
-                end
-                return
-            end
-        end
-        rawset(tbl, key, value)
-    end
-end
-
 function ReaperPointerWrapper:isValid()
     return self.project:validatePointer(self.pointer, self.pointerType)
 end
 
 function ReaperPointerWrapper:getIterator(getterFn, countFn)
-    local output = {
-        __index = function(tbl, key)
-            return getterFn(self, key)
+    return setmetatable({}, {
+        __index = function(tbl, index)
+            return getterFn(self, index)
         end,
 
         __len = function(tbl)
-            if countFn then
-                return countFn(self)
-            end
-            return #tbl
+            if countFn then return countFn(self) end
+            return rawlen(tbl)
         end
-    }
-    setmetatable(output, output)
-    return output
+    })
 end
 
 return ReaperPointerWrapper

@@ -9,8 +9,8 @@ local pitchEditor = PitchEditor:new()
 
 local numPrevSelectedItems = 0
 local function Main()
-    local numSelectedItems = #Alk.selectedItems
-    if #Alk.selectedItems ~= numPrevSelectedItems then
+    local numSelectedItems = #Alk.getSelectedItems()
+    if numSelectedItems ~= numPrevSelectedItems then
         pitchEditor:updateSelectedItems()
     end
     numPrevSelectedItems = numSelectedItems

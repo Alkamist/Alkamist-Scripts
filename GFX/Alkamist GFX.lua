@@ -239,6 +239,14 @@ function GFX.run()
     -- Go through all of the children and activate their events if needed.
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
+        local relativeMousePosition = {
+            x = GFX.mouseX - child.x,
+            y = GFX.mouseY - child.y
+        }
+        local prevRelativeMousePosition = {
+            x = GFX.prevMouseX - child.x,
+            y = GFX.prevMouseY - child.y,
+        }
         child:onUpdate()
         if GFX.wasResized()                 then child:onResize() end
         if GFX.focus == child and GFX.char  then child:onChar(GFX.char) end

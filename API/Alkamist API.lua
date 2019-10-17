@@ -3,7 +3,6 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m).."\n") end
 local ReaperProject = require "API.Reaper Wrappers.ReaperProject"
 
 local Alk = {}
-setmetatable(Alk, Alk)
 
 --------------------- Object Oriented Wrapper ---------------------
 
@@ -17,31 +16,44 @@ local function wrapProject(projectNumber)
         storedProjects[projectStr] = storedProjects[projectStr] or ReaperProject:new{ pointer = pointer }
         return storedProjects[projectStr]
     end
-    return {}
+    return nil
 end
 
-local projectsTable = {
+local projectsTable = setmetatable({}, {
     __index = function(tbl, key)
         return wrapProject(key)
     end,
 
     __len = function(tbl)
         local numProjects = 0
-        for _ in ipairs(Alk.projects) do
+        for _ in ipairs(Alk.getProjects()) do
             numProjects = numProjects + 1
         end
         return numProjects
-    end
-}
-setmetatable(projectsTable, projectsTable)
+    end,
 
-Alk.__index = function(tbl, key)
-    if key == "projects"       then return projectsTable end
-    if key == "items"          then return wrapProject(0).items end
-    if key == "selectedItems"  then return wrapProject(0).selectedItems end
-    if key == "tracks"         then return wrapProject(0).tracks end
-    if key == "selectedTracks" then return wrapProject(0).selectedTracks end
-    return Alk[key]
+    __pairs = function(tbl)
+        return ipairs(tbl)
+    end
+})
+
+function Alk.getProject(projectNumber)
+    return wrapProject(projectNumber)
+end
+function Alk.getProjects()
+    return projectsTable
+end
+function Alk.getItems(projectNumber)
+    return wrapProject(projectNumber):getItems()
+end
+function Alk.getSelectedItems(projectNumber)
+    return wrapProject(projectNumber):getSelectedItems()
+end
+function Alk.getTracks(projectNumber)
+    return wrapProject(projectNumber):getTracks()
+end
+function Alk.getSelectedTracks(projectNumber)
+    return wrapProject(projectNumber):getSelectedTracks()
 end
 
 --------------------- Reaper Function Wrappers ---------------------

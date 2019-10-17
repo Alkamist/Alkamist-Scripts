@@ -4,55 +4,15 @@ local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 local ReaperTake = { pointerType = "MediaItem_Take*" }
 setmetatable(ReaperTake, { __index = ReaperPointerWrapper })
 
-ReaperTake._members = {
-    { key = "track",
-        getter = function(self) return self:getItem():getTrack() end },
-
-    { key = "name",
-        getter = function(self) return self:getName() end,
-        setter = function(self, value) self:setName(value) end },
-
-    { key = "type",
-        getter = function(self) return self:getType() end },
-
-    { key = "GUID",
-        getter = function(self) return self:getGUID() end },
-
-    { key = "item",
-        getter = function(self) return self:getItem() end },
-
-    { key = "source",
-        getter = function(self) return self:getSource() end,
-        setter = function(self, value) self:setSource(value) end },
-
-    { key = "playrate",
-        getter = function(self) return self:getPlayrate() end,
-        setter = function(self, value) self:setPlayrate(value) end },
-
-    { key = "startOffset",
-        getter = function(self) return self:getStartOffset() end,
-        setter = function(self, value) self:setStartOffset(value) end },
-
-    { key = "stretchMarkers",
-        getter = function(self) return self:getStretchMarkers() end },
-
-    { key = "pitchEnvelope",
-        getter = function(self) return self:createAndGetPitchEnvelope() end },
-}
-
 function ReaperTake:new(object)
     local object = object or {}
-    object._base = self
-    setmetatable(object, object)
-    ReaperPointerWrapper.init(object)
+    setmetatable(object, { __index = self })
     return object
 end
 
---------------------- Unique Functions  ---------------------
-
 function ReaperTake:getSourceTime(realTime)
     if time == nil then return nil end
-    local tempMarkerIndex = reaper.SetTakeStretchMarker(self.pointer, -1, realTime * self.playrate)
+    local tempMarkerIndex = reaper.SetTakeStretchMarker(self.pointer, -1, realTime * self:getPlayrate())
     local _, _, sourcePosition = reaper.GetTakeStretchMarker(self.pointer, tempMarkerIndex)
     reaper.DeleteTakeStretchMarkers(self.pointer, tempMarkerIndex)
     return sourcePosition
@@ -61,9 +21,9 @@ end
 function ReaperTake:getRealTime(sourceTime)
     if sourceTime == nil then return nil end
 
-    local stretchMarkers = self.stretchMarkers
-    local startOffset = self.startOffset
-    local playrate = self.playrate
+    local stretchMarkers = self:getStretchMarkers()
+    local startOffset = self:getStartOffset()
+    local playrate = self:getPlayrate()
     local numStretchMarkers = #stretchMarkers
 
     if numStretchMarkers < 1 then
@@ -104,8 +64,6 @@ function ReaperTake:getRealTime(sourceTime)
 
     return realTime / playrate
 end
-
---------------------- Member Helper Functions  ---------------------
 
 function ReaperTake:getName()
     return reaper.GetTakeName(self.pointer)

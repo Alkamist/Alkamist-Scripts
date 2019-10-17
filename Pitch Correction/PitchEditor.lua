@@ -18,21 +18,19 @@ end
 local PitchEditor = setmetatable({}, { __index = GFXChild })
 function PitchEditor:new(object)
     local object = object or {}
-    object._base = self
-    self.init(object)
+    setmetatable(object, { __index = self })
+    object:init()
     return object
 end
 
 function PitchEditor:init()
     GFXChild.init(self)
-    self.__index = self._base
-    setmetatable(self, self)
+
     self.w = GFX.w
     self.h = GFX.h - self.y
     self.whiteKeyNumbers = getWhiteKeyNumbers()
     self.pitchHeight = 128
     self:updateSelectedItems()
-    self:setUpFunctionalIndexes()
 
     self.minKeyHeightToDrawCenterline = self.minKeyHeightToDrawCenterline or 16
     self.blackKeyColor = self.blackKeyColor           or {0.25, 0.25, 0.25, 1.0}
@@ -50,36 +48,26 @@ function PitchEditor:init()
 end
 
 function PitchEditor:updateSelectedItems()
-    local topMostSelectedItemTrackNumber = #Alk.tracks
-    for _, item in ipairs(Alk.selectedItems) do
-        topMostSelectedItemTrackNumber = math.min(item.track.number, topMostSelectedItemTrackNumber)
+    local tracks = Alk.getTracks()
+    local topMostSelectedItemTrackNumber = #tracks
+    for _, item in ipairs(Alk.getSelectedItems()) do
+        topMostSelectedItemTrackNumber = math.min(item:getTrack():getNumber(), topMostSelectedItemTrackNumber)
     end
-    self.track = Alk.tracks[topMostSelectedItemTrackNumber]
-    self.items = self.track.selectedItems
-end
-function PitchEditor:setUpFunctionalIndexes()
-    self.__index = function(tbl, key)
-        if key == "timeWidth" then
-            if self.items[1] and self.items[#self.items] then
-                return self.items[#self.items].rightEdge - self.items[1].leftEdge
-            end
-            return 0
-        end
-        if key == "leftEdge" then
-            if self.items[1] then
-                return self.items[1].leftEdge
-            end
-            return 0
-        end
-        return self._base[key]
-    end
+    self.track = tracks[topMostSelectedItemTrackNumber]
+    self.items = self.track:getSelectedItems()
 end
 
+function PitchEditor:getLeftEdge()
+    return self.items[1]:getLeftEdge()
+end
+function PitchEditor:getTimeWidth()
+    return self.items[#self.items]:getRightEdge() - self:getLeftEdge()
+end
 function PitchEditor:pixelsToTime(xPixels)
-    return self.timeWidth * (self.view.scroll.x + xPixels / (self.w * self.view.zoom.x))
+    return self:getTimeWidth() * (self.view.scroll.x + xPixels / (self.w * self.view.zoom.x))
 end
 function PitchEditor:timeToPixels(time)
-    return self.view.zoom.x * self.w * (time / self.timeWidth - self.view.scroll.x)
+    return self.view.zoom.x * self.w * (time / self:getTimeWidth() - self.view.scroll.x)
 end
 function PitchEditor:pixelsToPitch(yPixels)
     return self.pitchHeight * (1.0 - (self.view.scroll.y + yPixels / (self.h * self.view.zoom.y))) - 0.5
@@ -116,9 +104,9 @@ function PitchEditor:drawKeyBackgrounds()
     end
 end
 function PitchEditor:drawItemEdges()
-    for index, item in ipairs(self.items) do
-        local leftBoundTime = item.leftEdge - self.leftEdge
-        local rightBoundTime = leftBoundTime + item.length
+    for _, item in ipairs(self.items) do
+        local leftBoundTime = item:getLeftEdge() - self:getLeftEdge()
+        local rightBoundTime = leftBoundTime + item:getLength()
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
@@ -130,11 +118,11 @@ function PitchEditor:drawItemEdges()
     end
 end
 function PitchEditor:drawEditCursor()
-    local editCursorPixels = self:timeToPixels(Alk.projects[0].editCursorTime - self.leftEdge)
-    local playPositionPixels = self:timeToPixels(Alk.projects[0].playCursorTime - self.leftEdge)
+    local editCursorPixels = self:timeToPixels(Alk.getProject():getEditCursorTime() - self:getLeftEdge())
+    local playPositionPixels = self:timeToPixels(Alk.getProject():getPlayCursorTime() - self:getLeftEdge())
     GFX.setColor(self.editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, self.h, false)
-    if Alk.projects[0].isPlaying or Alk.projects[0].isRecording then
+    if Alk.getProject():isPlaying() or Alk.getProject():isRecording() then
         GFX.setColor(self.playCursorColor)
         self:line(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
@@ -163,7 +151,7 @@ function PitchEditor:onMouseLeave() end
 function PitchEditor:onLeftMouseDown() end
 function PitchEditor:onLeftMouseUp()
     if not self.leftMouseWasDragged then
-        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+        reaper.SetEditCurPos(self:getLeftEdge() + self.mouseTime, false, true)
     end
     Alk.updateArrange()
 end

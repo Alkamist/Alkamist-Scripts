@@ -16,6 +16,19 @@ function GFXChild:init()
     self.rightMouseWasDragged = false
 end
 
+function GFXChild:getRelativeMouseX()
+    return GFX.mouseX - self.x
+end
+function GFXChild:getRelativeMouseY()
+    return GFX.mouseY - self.y
+end
+function GFXChild:getPrevRelativeMouseX()
+    return GFX.prevMouseX - self.x
+end
+function GFXChild:getPrevRelativeMouseY()
+    return GFX.prevMouseY - self.y
+end
+
 ---------------------- Drawing Code ----------------------
 
 function GFXChild:rect(x, y, w, h, filled)

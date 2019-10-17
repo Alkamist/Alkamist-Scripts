@@ -4,43 +4,11 @@ local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 local ReaperEnvelope = { pointerType = "TrackEnvelope*" }
 setmetatable(ReaperEnvelope, { __index = ReaperPointerWrapper })
 
-ReaperEnvelope._members = {
-    { key = "name",
-        getter = function(self) return self:getName() end },
-
-    { key = "track",
-        getter = function(self) return self:getTrack() end },
-
-    { key = "take",
-        getter = function(self) return self:getTake() end },
-
-    { key = "fxNumber",
-        getter = function(self) return self:getFXNumber() end },
-
-    { key = "parameterNumber",
-        getter = function(self) return self:getParameterNumber() end },
-
-    { key = "isVisible",
-        getter = function(self) return self:getVisibility() end,
-        setter = function(self, value) self:setVisibility(value) end },
-
-    { key = "stateChunk",
-        getter = function(self) return self:getStateChunk() end,
-        setter = function(self, value) self:setStateChunk(value) end },
-}
-
 function ReaperEnvelope:new(object)
     local object = object or {}
-    object._base = self
-    setmetatable(object, object)
-    ReaperPointerWrapper.init(object)
+    setmetatable(object, { __index = self })
     return object
 end
-
---------------------- Unique Functions  ---------------------
-
-
---------------------- Member Helper Functions  ---------------------
 
 function ReaperEnvelope:getTrack()
     local parentTrack, _, _ = reaper.Envelope_GetParentTrack(self.pointer)
@@ -62,18 +30,18 @@ function ReaperEnvelope:setStateChunk(chunk)
 end
 
 function ReaperEnvelope:show()
-    if not self.isVisible then
+    if not self:isVisible() then
         self:setStateChunk(string.gsub(self:getStateChunk(), "VIS %d", "VIS 1"))
     end
 end
 
 function ReaperEnvelope:hide()
-    if self.isVisible then
+    if self:isVisible() then
         self:setStateChunk(string.gsub(self:getStateChunk(), "VIS %d", "VIS 0"))
     end
 end
 
-function ReaperEnvelope:getVisibility()
+function ReaperEnvelope:isVisible()
     return tonumber(self.stateChunk:match("VIS (%d)")) > 0
 end
 

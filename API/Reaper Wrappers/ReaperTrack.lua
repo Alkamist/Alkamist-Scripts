@@ -4,29 +4,11 @@ local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
 local ReaperTrack = { pointerType = "MediaTrack*" }
 setmetatable(ReaperTrack, { __index = ReaperPointerWrapper })
 
-ReaperTrack._members = {
-    { key = "number",
-        getter = function(self) return self:getNumber() end },
-
-    { key = "items",
-        getter = function(self) return self:getItems() end },
-
-    { key = "selectedItems",
-        getter = function(self) return self:getSelectedItems() end },
-}
-
 function ReaperTrack:new(object)
     local object = object or {}
-    object._base = self
-    setmetatable(object, object)
-    ReaperPointerWrapper.init(object)
+    setmetatable(object, { __index = self })
     return object
 end
-
---------------------- Unique Functions  ---------------------
-
-
---------------------- Member Helper Functions  ---------------------
 
 function ReaperTrack:getNumber()
     return reaper.GetMediaTrackInfo_Value(self.pointer, "IP_TRACKNUMBER")
@@ -59,12 +41,12 @@ function ReaperTrack:getSelectedItem(itemNumber)
 end
 
 function ReaperTrack:getItems()
-    return ReaperPointerWrapper.getIterator(self, self.getItem, self.getItemCount)
+    return self:getIterator(self.getItem, self.getItemCount)
 end
 
 function ReaperTrack:getSelectedItems()
     self:getSelectedItemCount()
-    return ReaperPointerWrapper.getIterator(self, self.getSelectedItem, self.getSelectedItemCount)
+    return self:getIterator(self.getSelectedItem, self.getSelectedItemCount)
 end
 
 return ReaperTrack
