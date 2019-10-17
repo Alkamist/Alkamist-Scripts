@@ -240,25 +240,41 @@ function GFX.run()
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
         child:onUpdate()
-        if GFX.wasResized()                 then child:onResize(GFX.w - GFX.prevW, GFX.h - GFX.prevH) end
+        if GFX.wasResized()                 then child:onResize() end
         if GFX.focus == child and GFX.char  then child:onChar(GFX.char) end
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
         if child:mouseIsInside() then
-            if GFX.mouseButtons.left.justPressed   then child:onLeftMouseDown() end
-            if GFX.mouseButtons.middle.justPressed then child:onMiddleMouseDown() end
-            if GFX.mouseButtons.right.justPressed  then child:onRightMouseDown() end
-            if GFX.mouseMoved() then
-                if GFX.mouseButtons.left.isPressed   then child:onLeftMouseDrag() end
-                if GFX.mouseButtons.middle.isPressed then child:onMiddleMouseDrag() end
-                if GFX.mouseButtons.right.isPressed  then child:onRightMouseDrag() end
+            if GFX.mouseButtons.left.justPressed then
+                child._shouldLeftDrag = true
+                child:onLeftMouseDown() end
+            if GFX.mouseButtons.middle.justPressed then
+                child._shouldMiddleDrag = true
+                child:onMiddleMouseDown()
+            end
+            if GFX.mouseButtons.right.justPressed then
+                child._shouldRightDrag = true
+                child:onRightMouseDown()
             end
             if GFX.mouseWheel > 0 or GFX.mouseWheel < 0   then child:onMouseWheel(GFX.mouseWheel) end
             if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
         end
-        if GFX.mouseButtons.left.justReleased   then child:onLeftMouseUp() end
-        if GFX.mouseButtons.middle.justReleased then child:onMiddleMouseUp() end
-        if GFX.mouseButtons.right.justReleased  then child:onRightMouseUp() end
+        local mouseMoved = GFX.mouseMoved()
+        if mouseMoved and child._shouldLeftDrag   then child:onLeftMouseDrag() end
+        if mouseMoved and child._shouldMiddleDrag then child:onMiddleMouseDrag() end
+        if mouseMoved and child._shouldRightDrag  then child:onRightMouseDrag() end
+        if GFX.mouseButtons.left.justReleased then
+            child._shouldLeftDrag = false
+            child:onLeftMouseUp()
+        end
+        if GFX.mouseButtons.middle.justReleased then
+            child._shouldMiddleDrag = false
+            child:onMiddleMouseUp()
+        end
+        if GFX.mouseButtons.right.justReleased then
+            child._shouldRightDrag = false
+            child:onRightMouseUp()
+        end
         child:draw()
     end
 

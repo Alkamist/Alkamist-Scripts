@@ -2,8 +2,9 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Alk = require "API.Alkamist API"
 local GFX = require "GFX.Alkamist GFX"
 local GFXChild = require "GFX.GFXChild"
+local View = require "GFX.View"
 
-local function getWhiteKeys()
+local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
     local whiteKeys = {}
     for i = 1, 11 do
@@ -28,7 +29,7 @@ function PitchEditor:init()
     setmetatable(self, self)
     self.w = GFX.w
     self.h = GFX.h - self.y
-    self.whiteKeys = getWhiteKeys()
+    self.whiteKeyNumbers = getWhiteKeyNumbers()
     self.pitchHeight = 128
     self:updateSelectedItems()
     self:setUpFunctionalIndexes()
@@ -42,16 +43,7 @@ function PitchEditor:init()
     self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.3}
 
-    self.view = {
-        zoom = {
-            x = 1.0,
-            y = 1.0
-        },
-        scroll = {
-            x = 0.0,
-            y = 0.0
-        }
-    }
+    self.view = View:new()
 end
 
 function PitchEditor:updateSelectedItems()
@@ -101,7 +93,7 @@ function PitchEditor:drawKeyBackgrounds()
         local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - prevKeyEnd
         GFX.setColor(self.blackKeyColor)
-        for _, value in ipairs(self.whiteKeys) do
+        for _, value in ipairs(self.whiteKeyNumbers) do
             if i == value then
                 GFX.setColor(self.whiteKeyColor)
             end
@@ -153,7 +145,7 @@ end
 
 function PitchEditor:onUpdate()
 end
-function PitchEditor:onResize(widthChange, heightChange)
+function PitchEditor:onResize()
     self.w = GFX.w
     self.h = GFX.h - self.y
 end
@@ -166,13 +158,32 @@ function PitchEditor:onMouseLeave() end
 function PitchEditor:onLeftMouseDown() end
 function PitchEditor:onLeftMouseUp() end
 function PitchEditor:onLeftMouseDrag() end
-function PitchEditor:onMiddleMouseDown() end
+function PitchEditor:onMiddleMouseDown()
+    self.view.scroll.xTarget = GFX.mouseX / self.w
+    self.view.scroll.yTarget = GFX.mouseY / self.h
+end
 function PitchEditor:onMiddleMouseUp() end
-function PitchEditor:onMiddleMouseDrag() end
+function PitchEditor:onMiddleMouseDrag()
+    local scaledXChange = (GFX.mouseX - GFX.prevMouseX) / self.w
+    local scaledYChange = (GFX.mouseY - GFX.prevMouseY) / self.h
+    if GFX.mods["Shift"].isPressed then
+        self.view:changeZoom(scaledXChange, scaledYChange, true)
+    else
+        self.view:changeScroll(scaledXChange, scaledYChange)
+    end
+end
 function PitchEditor:onRightMouseDown() end
 function PitchEditor:onRightMouseUp() end
 function PitchEditor:onRightMouseDrag() end
-function PitchEditor:onMouseWheel(numTicks) end
+function PitchEditor:onMouseWheel(numTicks)
+    self.view.scroll.xTarget = GFX.mouseX / self.w
+    self.view.scroll.yTarget = GFX.mouseY / self.h
+    if GFX.mods["Control"].isPressed then
+        self.view:changeZoom(0.0, numTicks * 0.1, true)
+    else
+        self.view:changeZoom(numTicks * 0.08, 0.0, true)
+    end
+end
 function PitchEditor:onMouseHWheel(numTicks) end
 function PitchEditor:draw()
     self:drawKeyBackgrounds()

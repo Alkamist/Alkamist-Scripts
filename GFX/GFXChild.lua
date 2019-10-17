@@ -41,7 +41,7 @@ function GFXChild:mouseJustLeft()
        and self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY })
 end
 function GFXChild:onUpdate() end
-function GFXChild:onResize(widthChange, heightChange) end
+function GFXChild:onResize() end
 function GFXChild:onChar(char) end
 function GFXChild:onMouseEnter() end
 function GFXChild:onMouseLeave() end
