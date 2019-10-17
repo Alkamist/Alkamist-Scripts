@@ -1,4 +1,5 @@
 local Alk = require "API.Alkamist API"
+local Mouse = require "GFX.Mouse"
 
 local GFX = {}
 
@@ -143,31 +144,8 @@ function GFX.wasResized()
     return GFX.w ~= GFX.prevW or GFX.h ~= GFX.prevH
 end
 
-function GFX.mouseMoved()
-    return GFX.mouseX ~= GFX.prevMouseX or GFX.mouseY ~= GFX.prevMouseY
-end
+GFX.mouse = Mouse:new()
 
-local function makeMouseCapState(bitValue)
-    return setmetatable({}, {
-        __index = function(tbl, key)
-            if key == "isPressed" then return GFX.mouseCap & bitValue == bitValue end
-            if key == "justPressed" then return (GFX.mouseCap & bitValue == bitValue) and (GFX.prevMouseCap & bitValue == 0) end
-            if key == "justReleased" then return (GFX.mouseCap & bitValue == 0) and (GFX.prevMouseCap & bitValue == bitValue) end
-            return tbl[key]
-        end
-    })
-end
-GFX.mouseButtons = {
-    left = makeMouseCapState(1),
-    middle = makeMouseCapState(64),
-    right = makeMouseCapState(2)
-}
-GFX.mods = {
-    Control = makeMouseCapState(4),
-    Shift = makeMouseCapState(8),
-    Alt = makeMouseCapState(16),
-    Windows = makeMouseCapState(32)
-}
 GFX.keys = {}
 for char, charValue in pairs(characterTable) do
     local wasPressedPreviously = nil
@@ -192,6 +170,19 @@ for char, charValue in pairs(characterTable) do
     setmetatable(GFX.keys[char], GFX.keys[char])
 end
 
+local function updateGFXVariables()
+    GFX.prevX = GFX.x or gfx.x
+    GFX.prevY = GFX.y or gfx.y
+    GFX.prevW = GFX.w or gfx.w
+    GFX.prevH = GFX.h or gfx.h
+
+    GFX.char = GFX.getChar()
+    GFX.x = gfx.x
+    GFX.y = gfx.y
+    GFX.w = gfx.w
+    GFX.h = gfx.h
+end
+
 function GFX.init(title, x, y, w, h, dock)
     gfx.init(title, w, h, dock, x, y)
     GFX.title = title
@@ -207,28 +198,8 @@ function GFX.init(title, x, y, w, h, dock)
 end
 
 function GFX.run()
-    -- Update current gfx variables.
-    GFX.char =        GFX.getChar()
-    GFX.x =           gfx.x
-    GFX.y =           gfx.y
-    GFX.w =           gfx.w
-    GFX.h =           gfx.h
-    GFX.mouseX =      gfx.mouse_x
-    GFX.mouseY =      gfx.mouse_y
-    GFX.mouseCap =    gfx.mouse_cap
-    GFX.mouseWheel =  math.floor(gfx.mouse_wheel / 120.0); gfx.mouse_wheel = 0
-    GFX.mouseHWheel = math.floor(gfx.mouse_hwheel / 120.0); gfx.mouse_hwheel = 0
-
-    -- Initialize previous gfx variables.
-    GFX.prevX =           GFX.prevX or GFX.x
-    GFX.prevY =           GFX.prevY or GFX.y
-    GFX.prevW =           GFX.prevW or GFX.w
-    GFX.prevH =           GFX.prevH or GFX.h
-    GFX.prevMouseX =      GFX.prevMouseX or GFX.mouseX
-    GFX.prevMouseY =      GFX.prevMouseY or GFX.mouseY
-    GFX.prevMouseCap =    GFX.prevMouseCap or GFX.mouseCap
-    GFX.prevMouseWheel =  GFX.prevMouseWheel or GFX.mouseWheel
-    GFX.prevMouseHWheel = GFX.prevMouseHWheel or GFX.mouseHWheel
+    GFX.mouse:update()
+    updateGFXVariables()
 
     -- Allow the play key to play the current project.
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
@@ -237,7 +208,7 @@ function GFX.run()
     GFX.runHook()
 
     -- Go through all of the children and activate their events if needed.
-    for _, child in pairs(GFX.children) do
+    --[[for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
         local relativeMousePosition = {
             x = GFX.mouseX - child.x,
@@ -296,22 +267,11 @@ function GFX.run()
             child.rightMouseWasDragged = false
         end
         child:draw()
-    end
+    end]]--
 
     -- Keep the loop running.
 	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.run) end
     gfx.update()
-
-    -- Update previous gfx variables.
-    GFX.prevX =           GFX.x
-    GFX.prevY =           GFX.y
-    GFX.prevW =           GFX.w
-    GFX.prevH =           GFX.h
-    GFX.prevMouseX =      GFX.mouseX
-    GFX.prevMouseY =      GFX.mouseY
-    GFX.prevMouseCap =    GFX.mouseCap
-    GFX.prevMouseWheel =  GFX.mouseWheel
-    GFX.prevMouseHWheel = GFX.mouseHWheel
 end
 
 return GFX

@@ -5,15 +5,13 @@ local GFXChild = require "GFX.GFXChild"
 local BoxSelect = setmetatable({}, { __index = GFXChild })
 function BoxSelect:new(object)
     local object = object or {}
-    object._base = self
-    self.init(object)
+    setmetatable(object, { __index = self })
+    object:init()
     return object
 end
 
 function BoxSelect:init()
     GFXChild.init(self)
-    self.__index = self._base
-    setmetatable(self, self)
 end
 
 ---------------------- Drawing Code ----------------------

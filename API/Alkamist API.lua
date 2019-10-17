@@ -137,4 +137,25 @@ function Alk.round(number, places)
     end
 end
 
+function Alk.copyTable(source, base)
+    if type(source) ~= "table" then return source end
+    local meta = getmetatable(source)
+    local new = base or {}
+    for k, v in pairs(source) do
+        if type(v) == "table" then
+            if base then
+                new[k] = GUI.table_copy(v, base[k])
+            else
+                new[k] = GUI.table_copy(v, nil)
+            end
+        else
+            if not base or (base and new[k] == nil) then
+                new[k] = v
+            end
+        end
+    end
+    setmetatable(new, meta)
+    return new
+end
+
 return Alk
