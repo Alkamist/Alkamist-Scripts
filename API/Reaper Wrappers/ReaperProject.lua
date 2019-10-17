@@ -24,6 +24,22 @@ ReaperProject._members = {
 
     { key = "selectedTracks",
         getter = function(self) return self:getSelectedTracks() end },
+
+    { key = "editCursorTime",
+        getter = function(self) return self:getEditCursorTime() end,
+        setter = function(self, value) self:setEditCursorTime(value) end },
+
+    { key = "playCursorTime",
+        getter = function(self) return self:getPlayCursorTime() end },
+
+    { key = "isPlaying",
+        getter = function(self) return self:getIsPlaying() end },
+
+    { key = "isPaused",
+        getter = function(self) return self:getIsPaused() end },
+
+    { key = "isRecording",
+        getter = function(self) return self:getIsRecording() end },
 }
 
 function ReaperProject:new(object)
@@ -118,6 +134,34 @@ end
 
 function ReaperProject:getSelectedTracks()
     return ReaperPointerWrapper.getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount)
+end
+
+function ReaperProject:getEditCursorTime()
+    return reaper.GetCursorPositionEx(self.pointer)
+end
+
+function ReaperProject:setEditCursorTime(time, moveView, seekPlay)
+    if type(time) == "number" then
+        reaper.SetEditCurPos2(self.pointer, time, moveView or false, seekPlay or true)
+        return
+    end
+    reaper.SetEditCurPos2(self.pointer, time.time, time.moveView or false, time.seekPlay or true)
+end
+
+function ReaperProject:getPlayCursorTime()
+    return reaper.GetPlayPositionEx(self.pointer)
+end
+
+function ReaperProject:getIsPlaying()
+    return reaper.GetPlayStateEx(self.pointer) & 1 == 1
+end
+
+function ReaperProject:getIsPaused()
+    return reaper.GetPlayStateEx(self.pointer) & 2 == 2
+end
+
+function ReaperProject:getIsRecording()
+    return reaper.GetPlayStateEx(self.pointer) & 4 == 4
 end
 
 return ReaperProject

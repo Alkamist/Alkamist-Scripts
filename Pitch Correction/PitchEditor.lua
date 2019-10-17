@@ -130,15 +130,11 @@ function PitchEditor:drawItemEdges()
     end
 end
 function PitchEditor:drawEditCursor()
-    local editCursorPosition = reaper.GetCursorPositionEx(0)
-    local editCursorPixels = self:timeToPixels(editCursorPosition - self.leftEdge)
-    local playPosition = reaper.GetPlayPositionEx(0)
-    local playPositionPixels = self:timeToPixels(playPosition - self.leftEdge)
+    local editCursorPixels = self:timeToPixels(Alk.projects[0].editCursorTime - self.leftEdge)
+    local playPositionPixels = self:timeToPixels(Alk.projects[0].playCursorTime - self.leftEdge)
     GFX.setColor(self.editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, self.h, false)
-    local projectPlaystate = reaper.GetPlayStateEx(0)
-    local projectIsPlaying = projectPlaystate & 1 == 1 or projectPlaystate & 4 == 4
-    if projectIsPlaying then
+    if Alk.projects[0].isPlaying or Alk.projects[0].isRecording then
         GFX.setColor(self.playCursorColor)
         self:line(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
@@ -147,6 +143,10 @@ end
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
+    self.mouseTime = self:pixelsToTime(GFX.mouseX)
+    self.prevMouseTime = self:pixelsToTime(GFX.prevMouseX)
+    self.mousePitch = self:pixelsToPitch(GFX.mouseY)
+    self.prevMousePitch = self:pixelsToPitch(GFX.prevMouseY)
 end
 function PitchEditor:onResize()
     self.w = GFX.w
@@ -161,7 +161,12 @@ end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onLeftMouseDown() end
-function PitchEditor:onLeftMouseUp() end
+function PitchEditor:onLeftMouseUp()
+    if not self.leftMouseWasDragged then
+        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+    end
+    Alk.updateArrange()
+end
 function PitchEditor:onLeftMouseDrag() end
 function PitchEditor:onMiddleMouseDown()
     self.view.scroll.xTarget = GFX.mouseX

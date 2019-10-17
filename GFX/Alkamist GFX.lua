@@ -260,20 +260,32 @@ function GFX.run()
             if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
         end
         local mouseMoved = GFX.mouseMoved()
-        if mouseMoved and child._shouldLeftDrag   then child:onLeftMouseDrag() end
-        if mouseMoved and child._shouldMiddleDrag then child:onMiddleMouseDrag() end
-        if mouseMoved and child._shouldRightDrag  then child:onRightMouseDrag() end
+        if mouseMoved and child._shouldLeftDrag then
+            child:onLeftMouseDrag()
+            child.leftMouseWasDragged = true
+        end
+        if mouseMoved and child._shouldMiddleDrag then
+            child:onMiddleMouseDrag()
+            child.middleMouseWasDragged = true
+        end
+        if mouseMoved and child._shouldRightDrag then
+            child:onRightMouseDrag()
+            child.rightMouseWasDragged = true
+        end
         if GFX.mouseButtons.left.justReleased then
             child._shouldLeftDrag = false
             child:onLeftMouseUp()
+            child.leftMouseWasDragged = false
         end
         if GFX.mouseButtons.middle.justReleased then
             child._shouldMiddleDrag = false
             child:onMiddleMouseUp()
+            child.middleMouseWasDragged = false
         end
         if GFX.mouseButtons.right.justReleased then
             child._shouldRightDrag = false
             child:onRightMouseUp()
+            child.rightMouseWasDragged = false
         end
         child:draw()
     end

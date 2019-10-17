@@ -8,6 +8,12 @@ function GFXChild:init()
     self.y = self.y or 0
     self.w = self.w or 0
     self.h = self.h or 0
+    self._shouldLeftDrag = false
+    self._shouldMiddleDrag = false
+    self._shouldRightDrag = false
+    self.leftMouseWasDragged = false
+    self.middleMouseWasDragged = false
+    self.rightMouseWasDragged = false
 end
 
 ---------------------- Drawing Code ----------------------

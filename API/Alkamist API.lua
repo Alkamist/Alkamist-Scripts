@@ -115,4 +115,14 @@ function Alk.invertTable(tbl)
     return invertedTable
 end
 
+function Alk.round(number, places)
+    if not places then
+        return number > 0 and math.floor(number + 0.5) or math.ceil(number - 0.5)
+    else
+        places = 10 ^ places
+        return number > 0 and math.floor(number * places + 0.5)
+                          or math.ceil(number * places - 0.5) / places
+    end
+end
+
 return Alk
