@@ -190,9 +190,9 @@ function PitchEditor:onMouseWheel(numTicks)
     self.view.scroll.xTarget = GFX.mouseX
     self.view.scroll.yTarget = GFX.mouseY
     if GFX.mods["Control"].isPressed then
-        self.view:changeZoom(0.0, numTicks * 0.1, true)
+        self.view:changeZoom(0.0, numTicks * 55.0, true)
     else
-        self.view:changeZoom(numTicks * 0.08, 0.0, true)
+        self.view:changeZoom(numTicks * 55.0, 0.0, true)
     end
 end
 function PitchEditor:onMouseHWheel(numTicks) end
