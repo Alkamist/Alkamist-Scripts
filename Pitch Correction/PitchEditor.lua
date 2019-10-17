@@ -43,7 +43,10 @@ function PitchEditor:init()
     self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.3}
 
-    self.view = View:new()
+    self.view = View:new{
+        xScale = self.w,
+        yScale = self.h
+    }
 end
 
 function PitchEditor:updateSelectedItems()
@@ -148,6 +151,8 @@ end
 function PitchEditor:onResize()
     self.w = GFX.w
     self.h = GFX.h - self.y
+    self.view.xScale = self.w
+    self.view.yScale = self.h
 end
 function PitchEditor:onChar(char)
     local charFunction = self.onCharFunctions[char]
@@ -159,25 +164,26 @@ function PitchEditor:onLeftMouseDown() end
 function PitchEditor:onLeftMouseUp() end
 function PitchEditor:onLeftMouseDrag() end
 function PitchEditor:onMiddleMouseDown()
-    self.view.scroll.xTarget = GFX.mouseX / self.w
-    self.view.scroll.yTarget = GFX.mouseY / self.h
+    self.view.scroll.xTarget = GFX.mouseX
+    self.view.scroll.yTarget = GFX.mouseY
 end
 function PitchEditor:onMiddleMouseUp() end
 function PitchEditor:onMiddleMouseDrag()
-    local scaledXChange = (GFX.mouseX - GFX.prevMouseX) / self.w
-    local scaledYChange = (GFX.mouseY - GFX.prevMouseY) / self.h
+    local xChange = GFX.mouseX - GFX.prevMouseX
+    local yChange = GFX.mouseY - GFX.prevMouseY
+
     if GFX.mods["Shift"].isPressed then
-        self.view:changeZoom(scaledXChange, scaledYChange, true)
+        self.view:changeZoom(xChange, yChange, true)
     else
-        self.view:changeScroll(scaledXChange, scaledYChange)
+        self.view:changeScroll(xChange, yChange)
     end
 end
 function PitchEditor:onRightMouseDown() end
 function PitchEditor:onRightMouseUp() end
 function PitchEditor:onRightMouseDrag() end
 function PitchEditor:onMouseWheel(numTicks)
-    self.view.scroll.xTarget = GFX.mouseX / self.w
-    self.view.scroll.yTarget = GFX.mouseY / self.h
+    self.view.scroll.xTarget = GFX.mouseX
+    self.view.scroll.yTarget = GFX.mouseY
     if GFX.mods["Control"].isPressed then
         self.view:changeZoom(0.0, numTicks * 0.1, true)
     else
