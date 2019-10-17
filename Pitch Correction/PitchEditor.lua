@@ -58,10 +58,16 @@ function PitchEditor:updateSelectedItems()
 end
 
 function PitchEditor:getLeftEdge()
-    return self.items[1]:getLeftEdge()
+    if #self.items > 0 then
+        return self.items[1]:getLeftEdge()
+    end
+    return 0.0
 end
 function PitchEditor:getTimeWidth()
-    return self.items[#self.items]:getRightEdge() - self:getLeftEdge()
+    if #self.items > 0 then
+        return self.items[#self.items]:getRightEdge() - self:getLeftEdge()
+    end
+    return 0.0
 end
 function PitchEditor:pixelsToTime(xPixels)
     return self:getTimeWidth() * (self.view.scroll.x + xPixels / (self.w * self.view.zoom.x))
@@ -131,10 +137,10 @@ end
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
-    self.mouseTime = self:pixelsToTime(GFX.mouseX)
-    self.prevMouseTime = self:pixelsToTime(GFX.prevMouseX)
-    self.mousePitch = self:pixelsToPitch(GFX.mouseY)
-    self.prevMousePitch = self:pixelsToPitch(GFX.prevMouseY)
+    self.mouseTime = self:pixelsToTime(self:getRelativeMouseX())
+    self.prevMouseTime = self:pixelsToTime(self:getPrevRelativeMouseX())
+    self.mousePitch = self:pixelsToPitch(self:getRelativeMouseY())
+    self.prevMousePitch = self:pixelsToPitch(self:getPrevRelativeMouseY())
 end
 function PitchEditor:onResize()
     self.w = GFX.w
@@ -157,15 +163,15 @@ function PitchEditor:onLeftMouseUp()
 end
 function PitchEditor:onLeftMouseDrag() end
 function PitchEditor:onMiddleMouseDown()
-    self.view.scroll.xTarget = GFX.mouseX
-    self.view.scroll.yTarget = GFX.mouseY
+    self.view.scroll.xTarget = self:getRelativeMouseX()
+    self.view.scroll.yTarget = self:getRelativeMouseY()
 end
 function PitchEditor:onMiddleMouseUp() end
 function PitchEditor:onMiddleMouseDrag()
-    local xChange = GFX.mouseX - GFX.prevMouseX
-    local yChange = GFX.mouseY - GFX.prevMouseY
+    local xChange = GFX.mouse:getXChange()
+    local yChange = GFX.mouse:getYChange()
 
-    if GFX.mods["Shift"].isPressed then
+    if GFX.mouse.shift:isPressed() then
         self.view:changeZoom(xChange, yChange, true)
     else
         self.view:changeScroll(xChange, yChange)
@@ -175,9 +181,9 @@ function PitchEditor:onRightMouseDown() end
 function PitchEditor:onRightMouseUp() end
 function PitchEditor:onRightMouseDrag() end
 function PitchEditor:onMouseWheel(numTicks)
-    self.view.scroll.xTarget = GFX.mouseX
-    self.view.scroll.yTarget = GFX.mouseY
-    if GFX.mods["Control"].isPressed then
+    self.view.scroll.xTarget = self:getRelativeMouseX()
+    self.view.scroll.yTarget = self:getRelativeMouseY()
+    if GFX.mouse.control:isPressed() then
         self.view:changeZoom(0.0, numTicks * 55.0, true)
     else
         self.view:changeZoom(numTicks * 55.0, 0.0, true)

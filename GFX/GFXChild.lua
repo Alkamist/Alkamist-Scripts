@@ -17,16 +17,16 @@ function GFXChild:init()
 end
 
 function GFXChild:getRelativeMouseX()
-    return GFX.mouseX - self.x
+    return self.relativeMouseX
 end
 function GFXChild:getRelativeMouseY()
-    return GFX.mouseY - self.y
+    return self.relativeMouseY
 end
 function GFXChild:getPrevRelativeMouseX()
-    return GFX.prevMouseX - self.x
+    return self.prevRelativeMouseX
 end
 function GFXChild:getPrevRelativeMouseY()
-    return GFX.prevMouseY - self.y
+    return self.prevRelativeMouseY
 end
 
 ---------------------- Drawing Code ----------------------
@@ -49,15 +49,15 @@ function GFXChild:pointIsInside(point)
        and point.y >= self.y and point.y <= self.y + self.h
 end
 function GFXChild:mouseIsInside()
-    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
+    return self:pointIsInside({ x = GFX.mouse:getX(), y = GFX.mouse:getY() })
 end
 function GFXChild:mouseJustEntered()
-    return self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY })
-    and (not self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY }) )
+    return self:pointIsInside({ x = GFX.mouse:getX(), y = GFX.mouse:getY() })
+    and (not self:pointIsInside({ x = GFX.mouse:getPrevX(), y = GFX.mouse:getPrevY() }) )
 end
 function GFXChild:mouseJustLeft()
-    return ( not self:pointIsInside({ x = GFX.mouseX, y = GFX.mouseY }) )
-       and self:pointIsInside({ x = GFX.prevMouseX, y = GFX.prevMouseY })
+    return ( not self:pointIsInside({ x = GFX.mouse:getX(), y = GFX.mouse:getY() }) )
+       and self:pointIsInside({ x = GFX.mouse:getPrevX(), y = GFX.mouse:getPrevY() })
 end
 function GFXChild:onUpdate() end
 function GFXChild:onResize() end

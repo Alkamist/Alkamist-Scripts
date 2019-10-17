@@ -60,10 +60,18 @@ function Mouse:update()
     self.windows.state = self.state
 end
 
+function Mouse:getX() return self.state.current.x end
+function Mouse:getPrevX() return self.state.previous.x end
+function Mouse:getXChange() return self:getX() - self:getPrevX() end
+function Mouse:getY() return self.state.current.y end
+function Mouse:getPrevY() return self.state.previous.y end
+function Mouse:getYChange() return self:getY() - self:getPrevY() end
+function Mouse:getWheel() return self.state.current.wheel end
+function Mouse:getHWheel() return self.state.current.hWheel end
+
 function Mouse:justMoved()
     return self.state.current.x ~= self.state.previous.x
         or self.state.current.y ~= self.state.previous.y
 end
-
 
 return Mouse

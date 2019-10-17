@@ -208,37 +208,33 @@ function GFX.run()
     GFX.runHook()
 
     -- Go through all of the children and activate their events if needed.
-    --[[for _, child in pairs(GFX.children) do
+    for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
-        local relativeMousePosition = {
-            x = GFX.mouseX - child.x,
-            y = GFX.mouseY - child.y
-        }
-        local prevRelativeMousePosition = {
-            x = GFX.prevMouseX - child.x,
-            y = GFX.prevMouseY - child.y,
-        }
+        child.relativeMouseX = GFX.mouse:getX() - child.x
+        child.relativeMouseY = GFX.mouse:getY() - child.y
+        child.prevRelativeMouseX = GFX.mouse:getPrevX() - child.x
+        child.prevRelativeMouseY = GFX.mouse:getPrevY() - child.y
         child:onUpdate()
         if GFX.wasResized()                 then child:onResize() end
         if GFX.focus == child and GFX.char  then child:onChar(GFX.char) end
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
         if child:mouseIsInside() then
-            if GFX.mouseButtons.left.justPressed then
+            if GFX.mouse.left:justPressed() then
                 child._shouldLeftDrag = true
                 child:onLeftMouseDown() end
-            if GFX.mouseButtons.middle.justPressed then
+            if GFX.mouse.middle:justPressed() then
                 child._shouldMiddleDrag = true
                 child:onMiddleMouseDown()
             end
-            if GFX.mouseButtons.right.justPressed then
+            if GFX.mouse.right:justPressed() then
                 child._shouldRightDrag = true
                 child:onRightMouseDown()
             end
-            if GFX.mouseWheel > 0 or GFX.mouseWheel < 0   then child:onMouseWheel(GFX.mouseWheel) end
-            if GFX.mouseHWheel > 0 or GFX.mouseHWheel < 0 then child:onMouseHWheel(GFX.mouseHWheel) end
+            if GFX.mouse:getWheel() > 0 or GFX.mouse:getWheel() < 0   then child:onMouseWheel(GFX.mouse:getWheel()) end
+            if GFX.mouse:getHWheel() > 0 or GFX.mouse:getHWheel() < 0 then child:onMouseHWheel(GFX.mouse:getHWheel()) end
         end
-        local mouseMoved = GFX.mouseMoved()
+        local mouseMoved = GFX.mouse:justMoved()
         if mouseMoved and child._shouldLeftDrag then
             child:onLeftMouseDrag()
             child.leftMouseWasDragged = true
@@ -251,23 +247,23 @@ function GFX.run()
             child:onRightMouseDrag()
             child.rightMouseWasDragged = true
         end
-        if GFX.mouseButtons.left.justReleased then
+        if GFX.mouse.left:justReleased() then
             child._shouldLeftDrag = false
             child:onLeftMouseUp()
             child.leftMouseWasDragged = false
         end
-        if GFX.mouseButtons.middle.justReleased then
+        if GFX.mouse.middle:justReleased() then
             child._shouldMiddleDrag = false
             child:onMiddleMouseUp()
             child.middleMouseWasDragged = false
         end
-        if GFX.mouseButtons.right.justReleased then
+        if GFX.mouse.right:justReleased() then
             child._shouldRightDrag = false
             child:onRightMouseUp()
             child.rightMouseWasDragged = false
         end
         child:draw()
-    end]]--
+    end
 
     -- Keep the loop running.
 	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.run) end
