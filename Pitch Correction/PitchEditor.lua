@@ -194,7 +194,6 @@ function PitchEditor:draw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
-    --gfx.a = 1.0
 end
 
 PitchEditor.onCharFunctions = {

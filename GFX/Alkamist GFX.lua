@@ -1,140 +1,12 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require "API.Alkamist API"
 local Mouse = require "GFX.Mouse"
+local Keys = require "GFX.Keys"
 
 local GFX = {}
 
 GFX.runHook = GFX.runHook or function() end
 GFX.children = GFX.children or {}
-
-local characterTable = {
-    ["Close"]     = -1,
-    ["Backspace"] = 8,
-    ["Tab"]       = 8,
-    ["Enter"]     = 13,
-    ["Escape"]    = 27,
-    ["Space"]     = 32,
-    ["Delete"]    = 127,
-    ["Home"]      = 1752132965,
-    ["End"]       = 6647396,
-    ["Insert"]    = 6909555,
-    ["Delete"]    = 6579564,
-    ["PageUp"]    = 1885828464,
-    ["PageDown"]  = 1885824110,
-    ["Up"]        = 30064,
-    ["Down"]      = 1685026670,
-    ["Left"]      = 1818584692,
-    ["Right"]     = 1919379572,
-    ["F1"]        = 26161,
-    ["F2"]        = 26162,
-    ["F3"]        = 26163,
-    ["F4"]        = 26164,
-    ["F5"]        = 26165,
-    ["F6"]        = 26166,
-    ["F7"]        = 26167,
-    ["F8"]        = 26168,
-    ["F9"]        = 26169,
-    ["F10"]       = 6697264,
-    ["F11"]       = 6697265,
-    ["F12"]       = 6697266,
-    ["!"]         = 33,
-    ["\""]        = 34,
-    ["#"]         = 35,
-    ["$"]         = 36,
-    ["%"]         = 37,
-    ["&"]         = 38,
-    ["\'"]        = 39,
-    ["("]         = 40,
-    [")"]         = 41,
-    ["*"]         = 42,
-    ["+"]         = 43,
-    [","]         = 44,
-    ["."]         = 45,
-    ["/"]         = 47,
-    ["0"]         = 48,
-    ["1"]         = 49,
-    ["2"]         = 50,
-    ["3"]         = 51,
-    ["4"]         = 52,
-    ["5"]         = 53,
-    ["6"]         = 54,
-    ["7"]         = 55,
-    ["8"]         = 56,
-    ["9"]         = 57,
-    [":"]         = 58,
-    [";"]         = 59,
-    ["<"]         = 60,
-    ["="]         = 61,
-    [">"]         = 62,
-    ["?"]         = 63,
-    ["@"]         = 64,
-    ["A"]         = 65,
-    ["B"]         = 66,
-    ["C"]         = 67,
-    ["D"]         = 68,
-    ["E"]         = 69,
-    ["F"]         = 70,
-    ["G"]         = 71,
-    ["H"]         = 72,
-    ["I"]         = 73,
-    ["J"]         = 74,
-    ["K"]         = 75,
-    ["L"]         = 76,
-    ["M"]         = 77,
-    ["N"]         = 78,
-    ["O"]         = 79,
-    ["P"]         = 80,
-    ["Q"]         = 81,
-    ["R"]         = 82,
-    ["S"]         = 83,
-    ["T"]         = 84,
-    ["U"]         = 85,
-    ["V"]         = 86,
-    ["W"]         = 87,
-    ["X"]         = 88,
-    ["Y"]         = 89,
-    ["Z"]         = 90,
-    ["%["]        = 91,
-    ["\\"]        = 92,
-    ["%]"]        = 93,
-    ["^"]         = 94,
-    ["_"]         = 95,
-    ["`"]         = 96,
-    ["a"]         = 97,
-    ["b"]         = 98,
-    ["c"]         = 99,
-    ["d"]         = 100,
-    ["e"]         = 101,
-    ["f"]         = 102,
-    ["g"]         = 103,
-    ["h"]         = 104,
-    ["i"]         = 105,
-    ["j"]         = 106,
-    ["k"]         = 107,
-    ["l"]         = 108,
-    ["m"]         = 109,
-    ["n"]         = 110,
-    ["o"]         = 111,
-    ["p"]         = 112,
-    ["q"]         = 113,
-    ["r"]         = 114,
-    ["s"]         = 115,
-    ["t"]         = 116,
-    ["u"]         = 117,
-    ["v"]         = 118,
-    ["w"]         = 119,
-    ["x"]         = 120,
-    ["y"]         = 121,
-    ["z"]         = 122,
-    ["{"]         = 123,
-    ["|"]         = 124,
-    ["}"]         = 125,
-    ["~"]         = 126,
-}
-local characterTableInverted = Alk.invertTable(characterTable)
-function GFX.getChar(char)
-    if char then return gfx.getchar(characterTable[char]) end
-    return characterTableInverted[gfx.getchar()]
-end
 
 function GFX.setColor(color)
     gfx.set(color[1], color[2], color[3], color[4])
@@ -145,30 +17,7 @@ function GFX.wasResized()
 end
 
 GFX.mouse = Mouse:new()
-
-GFX.keys = {}
-for char, charValue in pairs(characterTable) do
-    local wasPressedPreviously = nil
-    GFX.keys[char] = {
-        __index = function(tbl, key)
-            if key == "isPressed" then
-                local isPressed = GFX.getChar(char) > 0
-                wasPressedPreviously = isPressed
-                return isPressed
-            end
-            if key == "justPressed" then
-                local wasPressedPreviously = wasPressedPreviously
-                return tbl.isPressed and (not wasPressedPreviously)
-            end
-            if key == "justReleased" then
-                local wasPressedPreviously = wasPressedPreviously
-                return (not tbl.isPressed) and wasPressedPreviously
-            end
-            return tbl[key]
-        end
-    }
-    setmetatable(GFX.keys[char], GFX.keys[char])
-end
+GFX.keys = Keys:new()
 
 local function updateGFXVariables()
     GFX.prevX = GFX.x or gfx.x
@@ -176,7 +25,7 @@ local function updateGFXVariables()
     GFX.prevW = GFX.w or gfx.w
     GFX.prevH = GFX.h or gfx.h
 
-    GFX.char = GFX.getChar()
+    GFX.char = GFX.keys:getChar()
     GFX.x = gfx.x
     GFX.y = gfx.y
     GFX.w = gfx.w
@@ -204,21 +53,28 @@ function GFX.run()
     -- Allow the play key to play the current project.
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 
+    if GFX.keys["a"]:isPressed() then msg("a") end
+
     -- Run the user defined hook function.
     GFX.runHook()
 
     -- Go through all of the children and activate their events if needed.
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
+
         child.relativeMouseX = GFX.mouse:getX() - child.x
         child.relativeMouseY = GFX.mouse:getY() - child.y
         child.prevRelativeMouseX = GFX.mouse:getPrevX() - child.x
         child.prevRelativeMouseY = GFX.mouse:getPrevY() - child.y
+
         child:onUpdate()
+
         if GFX.wasResized()                 then child:onResize() end
         if GFX.focus == child and GFX.char  then child:onChar(GFX.char) end
+
         if child:mouseJustEntered()         then child:onMouseEnter() end
         if child:mouseJustLeft()            then child:onMouseLeave() end
+
         if child:mouseIsInside() then
             if GFX.mouse.left:justPressed() then
                 child._shouldLeftDrag = true
@@ -231,9 +87,15 @@ function GFX.run()
                 child._shouldRightDrag = true
                 child:onRightMouseDown()
             end
-            if GFX.mouse:getWheel() > 0 or GFX.mouse:getWheel() < 0   then child:onMouseWheel(GFX.mouse:getWheel()) end
-            if GFX.mouse:getHWheel() > 0 or GFX.mouse:getHWheel() < 0 then child:onMouseHWheel(GFX.mouse:getHWheel()) end
+
+            if GFX.mouse:getWheel() > 0 or GFX.mouse:getWheel() < 0 then
+                child:onMouseWheel(GFX.mouse:getWheel())
+            end
+            if GFX.mouse:getHWheel() > 0 or GFX.mouse:getHWheel() < 0 then
+                child:onMouseHWheel(GFX.mouse:getHWheel())
+            end
         end
+
         local mouseMoved = GFX.mouse:justMoved()
         if mouseMoved and child._shouldLeftDrag then
             child:onLeftMouseDrag()
@@ -247,6 +109,7 @@ function GFX.run()
             child:onRightMouseDrag()
             child.rightMouseWasDragged = true
         end
+
         if GFX.mouse.left:justReleased() then
             child._shouldLeftDrag = false
             child:onLeftMouseUp()
