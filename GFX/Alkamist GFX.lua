@@ -39,28 +39,7 @@ local function passThroughPlayKey()
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 end
 
-function GFX.init(title, x, y, w, h, dock)
-    gfx.init(title, w, h, dock, x, y)
-    GFX.title = title
-    GFX.x = x
-    GFX.prevX = x
-    GFX.y = y
-    GFX.prevY = y
-    GFX.w = w
-    GFX.prevW = w
-    GFX.h = h
-    GFX.prevH = h
-    GFX.dock = 0
-end
-
-function GFX.run()
-    updateGFXVariables()
-    GFX.mouse:update()
-    GFX.keys:update()
-    passThroughPlayKey()
-
-    if GFX.preHook then GFX.preHook() end
-
+local function processChildren()
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
 
@@ -129,8 +108,31 @@ function GFX.run()
         end
         child:draw()
     end
-    repeatLoop()
+end
+
+function GFX.init(title, x, y, w, h, dock)
+    gfx.init(title, w, h, dock, x, y)
+    GFX.title = title
+    GFX.x = x
+    GFX.prevX = x
+    GFX.y = y
+    GFX.prevY = y
+    GFX.w = w
+    GFX.prevW = w
+    GFX.h = h
+    GFX.prevH = h
+    GFX.dock = 0
+end
+
+function GFX.run()
+    updateGFXVariables()
+    GFX.mouse:update()
+    GFX.keys:update()
+    passThroughPlayKey()
+    if GFX.preHook then GFX.preHook() end
+    processChildren()
     if GFX.postHook then GFX.postHook() end
+    repeatLoop()
 end
 
 return GFX
