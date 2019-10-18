@@ -7,6 +7,8 @@ local GFX = {}
 
 GFX.runHook = GFX.runHook or function() end
 GFX.children = GFX.children or {}
+GFX.mouse = Mouse:new()
+GFX.keys = Keys:new()
 
 function GFX.setColor(color)
     gfx.set(color[1], color[2], color[3], color[4])
@@ -15,9 +17,6 @@ end
 function GFX.wasResized()
     return GFX.w ~= GFX.prevW or GFX.h ~= GFX.prevH
 end
-
-GFX.mouse = Mouse:new()
-GFX.keys = Keys:new()
 
 local function updateGFXVariables()
     GFX.prevX = GFX.x or gfx.x
@@ -30,6 +29,15 @@ local function updateGFXVariables()
     GFX.y = gfx.y
     GFX.w = gfx.w
     GFX.h = gfx.h
+end
+
+local function repeatLoop()
+    if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.run) end
+    gfx.update()
+end
+
+local function passThroughPlayKey()
+    if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 end
 
 function GFX.init(title, x, y, w, h, dock)
@@ -51,13 +59,10 @@ function GFX.run()
     GFX.mouse:update()
     GFX.keys:update()
 
-    -- Allow the play key to play the current project.
-    if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
+    passThroughPlayKey()
 
-    -- Run the user defined hook function.
     GFX.runHook()
 
-    -- Go through all of the children and activate their events if needed.
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
 
@@ -127,9 +132,7 @@ function GFX.run()
         child:draw()
     end
 
-    -- Keep the loop running.
-	if GFX.char ~= "Escape" and GFX.char ~= "Close" then reaper.defer(GFX.run) end
-    gfx.update()
+    repeatLoop()
 end
 
 return GFX
