@@ -1,23 +1,30 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
+local PointerWrapper = require "API.Reaper Wrappers.PointerWrapper"
 
-local ReaperPCMSource = { pointerType = "PCM_source*" }
-setmetatable(ReaperPCMSource, { __index = ReaperPointerWrapper })
+local function Source(project, pointer)
+    if project == nil then return nil end
+    if pointer == nil then return nil end
 
-function ReaperPCMSource:new(object)
-    local object = object or {}
-    setmetatable(object, { __index = self })
-    return object
+    local source = PointerWrapper(pointer, "PCM_source*")
+
+    -- Private Members:
+
+    local _project = project
+
+    -- Getters:
+
+    function source:getProject() return _project end
+    function source:getFileName()
+        local url = reaper.GetMediaSourceFileName(self:getPointer(), "")
+        return url:match("[^/\\]+$")
+    end
+    function source:getLength()
+        local _, _, sourceLength = reaper.PCM_Source_GetSectionInfo(self:getPointer())
+        return sourceLength
+    end
+
+    -- Setters:
+
+    return source
 end
 
-function ReaperPCMSource:getFileName()
-    local url = reaper.GetMediaSourceFileName(self.pointer, "")
-    return url:match("[^/\\]+$")
-end
-
-function ReaperPCMSource:getLength()
-    local _, _, sourceLength = reaper.PCM_Source_GetSectionInfo(self.pointer)
-    return sourceLength
-end
-
-return ReaperPCMSource
+return Source

@@ -1,52 +1,53 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ReaperPointerWrapper = require "API.Reaper Wrappers.ReaperPointerWrapper"
+local PointerWrapper = require "API.Reaper Wrappers.PointerWrapper"
 
-local ReaperTrack = { pointerType = "MediaTrack*" }
-setmetatable(ReaperTrack, { __index = ReaperPointerWrapper })
+local function Track(project, pointer)
+    if project == nil then return nil end
+    if pointer == nil then return nil end
 
-function ReaperTrack:new(object)
-    local object = object or {}
-    setmetatable(object, { __index = self })
-    return object
-end
+    local track = PointerWrapper(pointer, "MediaTrack*")
 
-function ReaperTrack:getNumber()
-    return reaper.GetMediaTrackInfo_Value(self.pointer, "IP_TRACKNUMBER")
-end
+    -- Private Members:
 
-function ReaperTrack:getItemCount()
-    return reaper.GetTrackNumMediaItems(self.pointer)
-end
+    local _project = project
 
-function ReaperTrack:getSelectedItemCount()
-    self.selectedItemNumbers = {}
-    local selectedItemCount = 0
-    for i = 1, self:getItemCount() do
-        if reaper.IsMediaItemSelected(reaper.GetTrackMediaItem(self.pointer, i - 1)) then
-            table.insert(self.selectedItemNumbers, i)
-            selectedItemCount = selectedItemCount + 1
+    local function getSelectedItemNumbers(track)
+        local selectedItemNumbers = {}
+        for i = 1, track:getItemCount() do
+            if reaper.IsMediaItemSelected(reaper.GetTrackMediaItem(track:getPointer(), i - 1)) then
+                table.insert(selectedItemNumbers, i)
+            end
         end
+        return selectedItemNumbers
     end
-    return selectedItemCount
+
+    -- Getters:
+
+    function track:getProject()        return _project end
+    function track:getNumber()         return reaper.GetMediaTrackInfo_Value(self:getPointer(), "IP_TRACKNUMBER") end
+    function track:getItemCount()      return reaper.GetTrackNumMediaItems(self:getPointer()) end
+    function track:getItem(itemNumber) return self:getProject():wrapItem(reaper.GetTrackMediaItem(self:getPointer(), itemNumber - 1)) end
+    function track:getItems()          return self:getProject():getIterator(self, self.getItem, self.getItemCount) end
+    function track:getSelectedItemCount()
+        local selectedItemNumbers = getSelectedItemNumbers(self)
+        local selectedItemCount = 0
+        for index, itemNumber in ipairs(selectedItemNumbers) do
+            if reaper.IsMediaItemSelected(reaper.GetTrackMediaItem(self:getPointer(), itemNumber - 1)) then
+                selectedItemCount = index
+            end
+        end
+        return selectedItemCount
+    end
+    function track:getSelectedItem(itemNumber)
+        local selectedItemNumbers = getSelectedItemNumbers(self)
+        local itemNumber = selectedItemNumbers[itemNumber]
+        if itemNumber then return self:getItem(itemNumber) end
+        return nil
+    end
+    function track:getSelectedItems() return self:getProject():getIterator(self, self.getSelectedItem, self.getSelectedItemCount) end
+
+    -- Setters:
+
+    return track
 end
 
-function ReaperTrack:getItem(itemNumber)
-    return self.project:wrapItem(reaper.GetTrackMediaItem(self.pointer, itemNumber - 1))
-end
-
-function ReaperTrack:getSelectedItem(itemNumber)
-    local itemNumber = self.selectedItemNumbers[itemNumber]
-    if itemNumber then return self:getItem(itemNumber) end
-    return nil
-end
-
-function ReaperTrack:getItems()
-    return self:getIterator(self.getItem, self.getItemCount)
-end
-
-function ReaperTrack:getSelectedItems()
-    self:getSelectedItemCount()
-    return self:getIterator(self.getSelectedItem, self.getSelectedItemCount)
-end
-
-return ReaperTrack
+return Track

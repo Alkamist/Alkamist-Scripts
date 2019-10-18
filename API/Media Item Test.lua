@@ -2,21 +2,10 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Alk = require "API.Alkamist API"
 
-local projects = Alk.getProjects()
-msg(#projects)
-
-local items = Alk.getItems()
-msg(#items)
-for _, item in ipairs(items) do
-    msg(item:isSelected())
-end
-
-
-
-
 
 
 --local startTime = 0
+--
 --for _, item in ipairs(Alk.getItems()) do
 --    local test1 = item:getLength()
 --end

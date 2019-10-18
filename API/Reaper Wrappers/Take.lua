@@ -1,32 +1,33 @@
+local PointerWrapper = require "API.Reaper Wrappers.PointerWrapper"
+
 local function Take(project, pointer)
+    if project == nil then return nil end
     if pointer == nil then return nil end
-    local take = {}
+
+    local take = PointerWrapper(pointer, "MediaItem_Take*")
 
     -- Private Members:
 
     local _project = project
-    local _pointer = pointer
-    local _pointerType = "MediaItem_Take*"
 
     -- Getters:
 
-    function item:getPointer()     return _pointer end
-    function item:getPointerType() return _pointerType end
-    function take:getName()        return reaper.GetTakeName(_pointer) end
-    function take:getGUID()        return reaper.BR_GetMediaItemTakeGUID(_pointer) end
-    function take:getItem()        return _project:wrapItem(reaper.GetMediaItemTake_Item(_pointer)) end
-    function take:getSource()      return _project:wrapPCMSource(reaper.GetMediaItemTake_Source(_pointer)) end
-    function take:getPlayrate()    return reaper.GetMediaItemTakeInfo_Value(_pointer, "D_PLAYRATE") end
+    function take:getProject()     return _project end
+    function take:getName()        return reaper.GetTakeName(self:getPointer()) end
+    function take:getGUID()        return reaper.BR_GetMediaItemTakeGUID(self:getPointer()) end
+    function take:getItem()        return self:getProject():wrapItem(reaper.GetMediaItemTake_Item(self:getPointer())) end
+    function take:getSource()      return self:getProject():wrapPCMSource(reaper.GetMediaItemTake_Source(self:getPointer())) end
+    function take:getPlayrate()    return reaper.GetMediaItemTakeInfo_Value(self:getPointer(), "D_PLAYRATE") end
     function take:getStretchMarkers()
         local stretchMarkers = {}
-        local numStretchMarkers = reaper.GetTakeNumStretchMarkers(_pointer)
+        local numStretchMarkers = reaper.GetTakeNumStretchMarkers(self:getPointer())
         for i = 1, numStretchMarkers do
-            local _, time, sourceTime = reaper.GetTakeStretchMarker(_pointer, i - 1)
+            local _, time, sourceTime = reaper.GetTakeStretchMarker(self:getPointer(), i - 1)
 
             stretchMarkers[i] = {
                 time = time,
                 sourceTime = sourceTime,
-                slope = reaper.GetTakeStretchMarkerSlope(_pointer, i - 1),
+                slope = reaper.GetTakeStretchMarkerSlope(self:getPointer(), i - 1),
                 rate = 1.0,
                 length = 0.0,
                 sourceLength = 0.0
@@ -57,9 +58,9 @@ local function Take(project, pointer)
     end
     function take:getSourceTime(realTime)
         if time == nil then return nil end
-        local tempMarkerIndex = reaper.SetTakeStretchMarker(_pointer, -1, realTime * self:getPlayrate())
-        local _, _, sourcePosition = reaper.GetTakeStretchMarker(_pointer, tempMarkerIndex)
-        reaper.DeleteTakeStretchMarkers(_pointer, tempMarkerIndex)
+        local tempMarkerIndex = reaper.SetTakeStretchMarker(self:getPointer(), -1, realTime * self:getPlayrate())
+        local _, _, sourcePosition = reaper.GetTakeStretchMarker(self:getPointer(), tempMarkerIndex)
+        reaper.DeleteTakeStretchMarkers(self:getPointer(), tempMarkerIndex)
         return sourcePosition
     end
     function take:getStartOffset()
@@ -112,26 +113,26 @@ local function Take(project, pointer)
         return realTime / playrate
     end
     function take:getType()
-        if reaper.TakeIsMIDI(_pointer) then
+        if reaper.TakeIsMIDI(self:getPointer()) then
             return "midi"
         end
         return "audio"
     end
     function take:createAndGetPitchEnvelope()
-        local pitchEnvelope = reaper.GetTakeEnvelopeByName(_pointer, "Pitch")
-        if not pitchEnvelope or not _project:validatePointer(pitchEnvelope, "TrackEnvelope*") then
-            _project:mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
-            pitchEnvelope = reaper.GetTakeEnvelopeByName(_pointer, "Pitch")
+        local pitchEnvelope = reaper.GetTakeEnvelopeByName(self:getPointer(), "Pitch")
+        if not pitchEnvelope or not self:getProject():validatePointer(pitchEnvelope, "TrackEnvelope*") then
+            self:getProject():mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
+            pitchEnvelope = reaper.GetTakeEnvelopeByName(self:getPointer(), "Pitch")
         end
-        return _project:wrapEnvelope(pitchEnvelope, _project)
+        return self:getProject():wrapEnvelope(pitchEnvelope)
     end
 
     -- Setters:
 
-    function take:setName(value)        reaper.GetSetMediaItemTakeInfo_String(_pointer, "P_NAME", "", true) end
-    function take:setSource(value)      reaper.SetMediaItemTake_Source(_pointer, value) end
-    function take:setPlayrate(value)    reaper.SetMediaItemTakeInfo_Value(_pointer, "D_PLAYRATE", value) end
-    function take:setStartOffset(value) reaper.SetMediaItemTakeInfo_Value(_pointer, "D_STARTOFFS", value) end
+    function take:setName(value)        reaper.GetSetMediaItemTakeInfo_String(self:getPointer(), "P_NAME", "", true) end
+    function take:setSource(value)      reaper.SetMediaItemTake_Source(self:getPointer(), value) end
+    function take:setPlayrate(value)    reaper.SetMediaItemTakeInfo_Value(self:getPointer(), "D_PLAYRATE", value) end
+    function take:setStartOffset(value) reaper.SetMediaItemTakeInfo_Value(self:getPointer(), "D_STARTOFFS", value) end
 
     return take
 end
