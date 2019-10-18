@@ -8,12 +8,6 @@ function GFXChild:init()
     self.y = self.y or 0
     self.w = self.w or 0
     self.h = self.h or 0
-    self._shouldLeftDrag = false
-    self._shouldMiddleDrag = false
-    self._shouldRightDrag = false
-    self.leftMouseWasDragged = false
-    self.middleMouseWasDragged = false
-    self.rightMouseWasDragged = false
 end
 
 function GFXChild:getRelativeMouseX()
@@ -42,7 +36,7 @@ function GFXChild:line(x, y, x2, y2, antiAliased)
              antiAliased)
 end
 
----------------------- Events ----------------------
+---------------------- Information Functions ----------------------
 
 function GFXChild:pointIsInside(point)
     return point.x >= self.x and point.x <= self.x + self.w
@@ -59,20 +53,32 @@ function GFXChild:mouseJustLeft()
     return ( not self:pointIsInside({ x = GFX.mouse:getX(), y = GFX.mouse:getY() }) )
        and self:pointIsInside({ x = GFX.mouse:getPrevX(), y = GFX.mouse:getPrevY() })
 end
+function GFXChild:mouseLeftButtonWasDragged()
+    return self._mouseLeftButtonWasDragged
+end
+function GFXChild:mouseMiddleButtonWasDragged()
+    return self._mouseMiddleButtonWasDragged
+end
+function GFXChild:mouseRightButtonWasDragged()
+    return self._mouseRightButtonWasDragged
+end
+
+---------------------- Events ----------------------
+
 function GFXChild:onUpdate() end
 function GFXChild:onResize() end
 function GFXChild:onChar(char) end
 function GFXChild:onMouseEnter() end
 function GFXChild:onMouseLeave() end
-function GFXChild:onLeftMouseDown() end
-function GFXChild:onLeftMouseUp() end
-function GFXChild:onLeftMouseDrag() end
-function GFXChild:onMiddleMouseDown() end
-function GFXChild:onMiddleMouseUp() end
-function GFXChild:onMiddleMouseDrag() end
-function GFXChild:onRightMouseDown() end
-function GFXChild:onRightMouseUp() end
-function GFXChild:onRightMouseDrag() end
+function GFXChild:onMouseLeftButtonDown() end
+function GFXChild:onMouseLeftButtonDrag() end
+function GFXChild:onMouseLeftButtonUp() end
+function GFXChild:onMouseMiddleButtonDown() end
+function GFXChild:onMouseMiddleButtonDrag() end
+function GFXChild:onMouseMiddleButtonUp() end
+function GFXChild:onMouseRightButtonDown() end
+function GFXChild:onMouseRightButtonDrag() end
+function GFXChild:onMouseRightButtonUp() end
 function GFXChild:onMouseWheel(numTicks) end
 function GFXChild:onMouseHWheel(numTicks) end
 function GFXChild:draw() end

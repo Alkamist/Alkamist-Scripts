@@ -17,6 +17,10 @@ function GFX.wasResized()
     return GFX.w ~= GFX.prevW or GFX.h ~= GFX.prevH
 end
 
+--GFX.buffers = {}
+--function GFX.getBuffer()
+--end
+
 local function updateGFXVariables()
     GFX.prevX = GFX.x or gfx.x
     GFX.prevY = GFX.y or gfx.y
@@ -59,14 +63,15 @@ local function processChildren()
         if child:mouseIsInside() then
             if GFX.mouse.left:justPressed() then
                 child._shouldLeftDrag = true
-                child:onLeftMouseDown() end
+                child:onMouseLeftButtonDown()
+            end
             if GFX.mouse.middle:justPressed() then
                 child._shouldMiddleDrag = true
-                child:onMiddleMouseDown()
+                child:onMouseMiddleButtonDown()
             end
             if GFX.mouse.right:justPressed() then
                 child._shouldRightDrag = true
-                child:onRightMouseDown()
+                child:onMouseRightButtonDown()
             end
 
             if GFX.mouse:getWheel() > 0 or GFX.mouse:getWheel() < 0 then
@@ -79,33 +84,34 @@ local function processChildren()
 
         local mouseMoved = GFX.mouse:justMoved()
         if mouseMoved and child._shouldLeftDrag then
-            child:onLeftMouseDrag()
-            child.leftMouseWasDragged = true
+            child._mouseLeftButtonWasDragged = true
+            child:onMouseLeftButtonDrag()
         end
         if mouseMoved and child._shouldMiddleDrag then
-            child:onMiddleMouseDrag()
-            child.middleMouseWasDragged = true
+            child._mouseMiddleButtonWasDragged = true
+            child:onMouseMiddleButtonDrag()
         end
         if mouseMoved and child._shouldRightDrag then
-            child:onRightMouseDrag()
-            child.rightMouseWasDragged = true
+            child._mouseRightButtonWasDragged = true
+            child:onMouseMiddleButtonDrag()
         end
 
         if GFX.mouse.left:justReleased() then
             child._shouldLeftDrag = false
-            child:onLeftMouseUp()
-            child.leftMouseWasDragged = false
+            child._mouseLeftButtonWasDragged = false
+            child:onMouseLeftButtonUp()
         end
         if GFX.mouse.middle:justReleased() then
             child._shouldMiddleDrag = false
-            child:onMiddleMouseUp()
-            child.middleMouseWasDragged = false
+            child._mouseMiddleButtonWasDragged = false
+            child:onMouseMiddleButtonUp()
         end
         if GFX.mouse.right:justReleased() then
             child._shouldRightDrag = false
-            child:onRightMouseUp()
-            child.rightMouseWasDragged = false
+            child._mouseRightButtonWasDragged = false
+            child:onMouseRightButtonUp()
         end
+
         child:draw()
     end
 end

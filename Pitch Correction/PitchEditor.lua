@@ -56,7 +56,6 @@ function PitchEditor:updateSelectedItems()
     self.track = tracks[topMostSelectedItemTrackNumber]
     self.items = self.track:getSelectedItems()
 end
-
 function PitchEditor:getLeftEdge()
     if #self.items > 0 then
         return self.items[1]:getLeftEdge()
@@ -154,20 +153,19 @@ function PitchEditor:onChar(char)
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onLeftMouseDown() end
-function PitchEditor:onLeftMouseUp()
-    if not self.leftMouseWasDragged then
+function PitchEditor:onMouseLeftButtonDown() end
+function PitchEditor:onMouseLeftButtonDrag() end
+function PitchEditor:onMouseLeftButtonUp()
+    if not self:mouseLeftButtonWasDragged() then
         reaper.SetEditCurPos(self:getLeftEdge() + self.mouseTime, false, true)
     end
     Alk.updateArrange()
 end
-function PitchEditor:onLeftMouseDrag() end
-function PitchEditor:onMiddleMouseDown()
+function PitchEditor:onMouseMiddleButtonDown()
     self.view.scroll.xTarget = self:getRelativeMouseX()
     self.view.scroll.yTarget = self:getRelativeMouseY()
 end
-function PitchEditor:onMiddleMouseUp() end
-function PitchEditor:onMiddleMouseDrag()
+function PitchEditor:onMouseMiddleButtonDrag()
     local xChange = GFX.mouse:getXChange()
     local yChange = GFX.mouse:getYChange()
 
@@ -177,9 +175,10 @@ function PitchEditor:onMiddleMouseDrag()
         self.view:changeScroll(xChange, yChange)
     end
 end
-function PitchEditor:onRightMouseDown() end
-function PitchEditor:onRightMouseUp() end
-function PitchEditor:onRightMouseDrag() end
+function PitchEditor:onMouseMiddleButtonUp() end
+function PitchEditor:onMouseRightButtonDown() end
+function PitchEditor:onMouseRightButtonDrag() end
+function PitchEditor:onMouseRightButtonUp() end
 function PitchEditor:onMouseWheel(numTicks)
     self.view.scroll.xTarget = self:getRelativeMouseX()
     self.view.scroll.yTarget = self:getRelativeMouseY()
@@ -191,9 +190,15 @@ function PitchEditor:onMouseWheel(numTicks)
 end
 function PitchEditor:onMouseHWheel(numTicks) end
 function PitchEditor:draw()
+    gfx.setimgdim(27, self.w, self.h)
+    gfx.dest = 27
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
+    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
+    gfx.dest = -1
+    gfx.a = 1.0
+    gfx.blit(27, 1.0, 0.0, self.x, self.y, self.w, self.h, 0, 0, GFX.w, GFX.h, 0.0, 0.0)
 end
 
 PitchEditor.onCharFunctions = {
