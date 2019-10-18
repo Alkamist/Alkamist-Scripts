@@ -81,10 +81,6 @@ local function AlkamistGFX(title, x, y, w, h, dock)
         local hWheelMoved = hWheel > 0 or hWheel < 0
 
         for _, child in pairs(self:getChildren()) do
-            local shouldLeftDrag = false
-            local shouldMiddleDrag = false
-            local shouldRightDrag = false
-
             self:setFocus(self:getFocus() or child)
 
             child:onUpdate()
@@ -97,15 +93,15 @@ local function AlkamistGFX(title, x, y, w, h, dock)
 
             if child:mouseIsInside() then
                 if leftClick:justPressed() then
-                    shouldLeftDrag = true
+                    child:setLeftDrag(true)
                     child:onMouseLeftButtonDown()
                 end
                 if middleClick:justPressed() then
-                    shouldMiddleDrag = true
+                    child:setMiddleDrag(true)
                     child:onMouseMiddleButtonDown()
                 end
                 if rightClick:justPressed() then
-                    shouldRightDrag = true
+                    child:setRightDrag(true)
                     child:onMouseRightButtonDown()
                 end
 
@@ -113,20 +109,20 @@ local function AlkamistGFX(title, x, y, w, h, dock)
                 if hWheelMoved then child:onMouseHWheel(hWheel) end
             end
 
-            if mouseMoved and shouldLeftDrag then   child:onMouseLeftButtonDrag() end
-            if mouseMoved and shouldMiddleDrag then child:onMouseMiddleButtonDrag() end
-            if mouseMoved and shouldRightDrag then  child:onMouseRightButtonDrag() end
+            if mouseMoved and child:isLeftDragging() then   child:onMouseLeftButtonDrag() end
+            if mouseMoved and child:isMiddleDragging() then child:onMouseMiddleButtonDrag() end
+            if mouseMoved and child:isRightDragging() then  child:onMouseRightButtonDrag() end
 
             if leftClick:justReleased() then
-                shouldLeftDrag = false
+                child:setLeftDrag(false)
                 child:onMouseLeftButtonUp()
             end
             if middleClick:justReleased() then
-                shouldMiddleDrag = false
+                child:setMiddleDrag(false)
                 child:onMouseMiddleButtonUp()
             end
             if rightClick:justReleased() then
-                shouldRightDrag = false
+                child:setRightDrag(false)
                 child:onMouseRightButtonUp()
             end
 

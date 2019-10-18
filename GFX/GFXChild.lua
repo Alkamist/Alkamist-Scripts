@@ -7,6 +7,13 @@ local function GFXChild(GFX)
     local _y = 0
     local _width = 0
     local _height = 0
+    local _isLeftDragging = false
+    local _isMiddleDragging = false
+    local _isRightDragging = false
+
+    function gfxChild:setLeftDrag(state)   _isLeftDragging = state end
+    function gfxChild:setMiddleDrag(state) _isMiddleDragging = state end
+    function gfxChild:setRightDrag(state)  _isRightDragging = state end
 
     -- Getters:
 
@@ -28,6 +35,9 @@ local function GFXChild(GFX)
     end
     function gfxChild:mouseJustEntered() return self:mouseIsInside() and not self:mouseWasInsidePreviously() end
     function gfxChild:mouseJustLeft()    return not self:mouseIsInside() and self:mouseWasInsidePreviously() end
+    function gfxChild:isLeftDragging()   return _isLeftDragging end
+    function gfxChild:isMiddleDragging() return _isMiddleDragging end
+    function gfxChild:isRightDragging()  return _isRightDragging end
 
     -- Setters:
 
