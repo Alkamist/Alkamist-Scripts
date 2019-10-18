@@ -138,21 +138,24 @@ end
 
 function Keys:init()
     for char, charValue in pairs(characterTable) do
-        local wasPressedPreviously = nil
         self[char] = {}
+        self[char].state = {}
         self[char].isPressed = function(key)
-            local isPressed = self:getChar(char) > 0
-            wasPressedPreviously = isPressed
-            return isPressed
+            return key.state.current
         end
         self[char].justPressed = function(key)
-            local wasPressedPreviously = wasPressedPreviously
-            return key:isPressed() and (not wasPressedPreviously)
+            return key.state.current and (not key.state.previous)
         end
         self[char].justReleased = function(key)
-            local wasPressedPreviously = wasPressedPreviously
-            return (not key:isPressed()) and wasPressedPreviously
+            return (not key.state.current) and key.state.previous
         end
+    end
+end
+
+function Keys:update()
+    for char, charValue in pairs(characterTable) do
+        self[char].state.previous = self[char].state.current
+        self[char].state.current = self:getChar(char) > 0
     end
 end
 
