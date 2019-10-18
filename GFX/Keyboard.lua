@@ -1,5 +1,10 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Alk = require "API.Alkamist API"
+function invertTable(tbl)
+    local invertedTable = {}
+    for key, value in pairs(tbl) do
+        invertedTable[value] = key
+    end
+    return invertedTable
+end
 
 local characterTable = {
     ["Close"]     = -1,
@@ -125,43 +130,57 @@ local characterTable = {
     ["}"]         = 125,
     ["~"]         = 126,
 }
-local characterTableInverted = Alk.invertTable(characterTable)
+local characterTableInverted = invertTable(characterTable)
 
-local Keys = {}
+local function KeyboardKey(keyName, keyValue)
+    local keyboardKey = {}
 
-function Keys:new(object)
-    local object = object or {}
-    setmetatable(object, { __index = self })
-    object:init()
-    return object
+    local _keyName = keyName
+    local _keyValue = keyValue
+    local _state = false
+    local _previousState = false
+
+    function keyboardKey:getName()      return _keyName end
+    function keyboardKey:getKeyValue()  return _keyValue end
+    function keyboardKey:isPressed()    return _state end
+    function keyboardKey:justPressed()  return _state and not _previousState end
+    function keyboardKey:justReleased() return not _state and _previousState end
+
+    function keyboardKey:update(state)
+        _previousState = _state
+        _state = state
+    end
+
+    return keyboardKey
 end
 
-function Keys:init()
-    for char, charValue in pairs(characterTable) do
-        self[char] = {}
-        self[char].state = {}
-        self[char].isPressed = function(key)
-            return key.state.current
-        end
-        self[char].justPressed = function(key)
-            return key.state.current and (not key.state.previous)
-        end
-        self[char].justReleased = function(key)
-            return (not key.state.current) and key.state.previous
+local function Keyboard()
+    local keyboard = {}
+
+    -- Private Members:
+
+    local _keys = {}
+    for keyName, keyValue in pairs(characterTable) do
+        _keys[keyName] = KeyboardKey(keyName, keyValue)
+    end
+
+    -- Getters:
+
+    function keyboard:getChar(keyName)
+        if keyName then return gfx.getchar(characterTable[keyName]) end
+        return characterTableInverted[gfx.getchar()]
+    end
+    function keyboard:getKeys() return _keys end
+
+    -- Setters:
+
+    function keyboard:update()
+        for keyName, key in pairs(self:getKeys()) do
+            key:update(self:getChar(keyName) > 0)
         end
     end
+
+    return keyboard
 end
 
-function Keys:update()
-    for char, charValue in pairs(characterTable) do
-        self[char].state.previous = self[char].state.current
-        self[char].state.current = self:getChar(char) > 0
-    end
-end
-
-function Keys:getChar(char)
-    if char then return gfx.getchar(characterTable[char]) end
-    return characterTableInverted[gfx.getchar()]
-end
-
-return Keys
+return Keyboard
