@@ -114,16 +114,16 @@ local function AlkamistGFX(title, x, y, w, h, dock)
             if mouseMoved and child:isRightDragging() then  child:onMouseRightButtonDrag() end
 
             if leftClick:justReleased() then
-                child:setLeftDrag(false)
                 child:onMouseLeftButtonUp()
+                child:setLeftDrag(false)
             end
             if middleClick:justReleased() then
-                child:setMiddleDrag(false)
                 child:onMouseMiddleButtonUp()
+                child:setMiddleDrag(false)
             end
             if rightClick:justReleased() then
-                child:setRightDrag(false)
                 child:onMouseRightButtonUp()
+                child:setRightDrag(false)
             end
 
             child:onDraw()
