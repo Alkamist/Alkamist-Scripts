@@ -13,8 +13,13 @@ local function getProjectPointerByNumber(projectNumber)
     local pointer = reaper.EnumProjects(projectNumber - 1, "")
     return pointer
 end
+
+local projectWrappers = {}
 local function getProjectWrapperByNumber(projectNumber)
-    return Project(getProjectPointerByNumber(projectNumber))
+    local projectPointer = getProjectPointerByNumber(projectNumber)
+    local projectString = tostring(projectPointer)
+    projectWrappers[projectString] = projectWrappers[projectString] or Project(projectPointer)
+    return projectWrappers[projectString]
 end
 
 local projectsTable = setmetatable({}, {

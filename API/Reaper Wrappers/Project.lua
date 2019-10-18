@@ -10,13 +10,23 @@ local function Project(pointer)
 
     local project = PointerWrapper(pointer, "ReaProject*")
 
+    -- Private Members:
+
+    local _wrappers = {}
+
+    local function wrapPointer(project, pointer, wrapFn)
+        local pointerString = tostring(pointer)
+        _wrappers[pointerString] = _wrappers[pointerString] or wrapFn(project, pointer)
+        return _wrappers[pointerString]
+    end
+
     -- Getters:
 
-    function project:wrapTrack(pointer)            return Track(self, pointer) end
-    function project:wrapEnvelope(pointer)         return Envelope(self, pointer) end
-    function project:wrapItem(pointer)             return Item(self, pointer) end
-    function project:wrapTake(pointer)             return Take(self, pointer) end
-    function project:wrapSource(pointer)           return Source(self, pointer) end
+    function project:wrapTrack(pointer)            return wrapPointer(self, pointer, Track) end
+    function project:wrapEnvelope(pointer)         return wrapPointer(self, pointer, Envelope) end
+    function project:wrapItem(pointer)             return wrapPointer(self, pointer, Item) end
+    function project:wrapTake(pointer)             return wrapPointer(self, pointer, Take) end
+    function project:wrapSource(pointer)           return wrapPointer(self, pointer, Source) end
 
     function project:validateChild(child)          return child:validatePointer(self:getPointer()) end
     function project:getName()                     return reaper.GetProjectName(self:getPointer(), "") end

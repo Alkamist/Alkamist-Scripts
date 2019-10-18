@@ -2,7 +2,9 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Alk = require "API.Alkamist API"
 
-
+msg(Alk.getProject():getItem(1))
+msg(Alk.getProject():getItem(3))
+msg(Alk.getProject():getItem(1))
 
 --local startTime = 0
 --
