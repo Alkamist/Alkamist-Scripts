@@ -139,21 +139,20 @@ end
 function Keys:init()
     for char, charValue in pairs(characterTable) do
         local wasPressedPreviously = nil
-        self[char] = {
-            isPressed = function()
-                local isPressed = self:getChar(char) > 0
-                wasPressedPreviously = isPressed
-                return isPressed
-            end,
-            justPressed = function()
-                local wasPressedPreviously = wasPressedPreviously
-                return tbl.isPressed and (not wasPressedPreviously)
-            end,
-            justReleased = function()
-                local wasPressedPreviously = wasPressedPreviously
-                return (not tbl.isPressed) and wasPressedPreviously
-            end
-        }
+        self[char] = {}
+        self[char].isPressed = function(key)
+            local isPressed = self:getChar(char) > 0
+            wasPressedPreviously = isPressed
+            return isPressed
+        end
+        self[char].justPressed = function(key)
+            local wasPressedPreviously = wasPressedPreviously
+            return key:isPressed() and (not wasPressedPreviously)
+        end
+        self[char].justReleased = function(key)
+            local wasPressedPreviously = wasPressedPreviously
+            return (not key:isPressed()) and wasPressedPreviously
+        end
     end
 end
 

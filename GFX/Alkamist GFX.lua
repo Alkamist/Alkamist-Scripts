@@ -53,7 +53,7 @@ function GFX.run()
     -- Allow the play key to play the current project.
     if GFX.playKey and GFX.char == GFX.playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    if GFX.keys["a"]:isPressed() then msg("a") end
+    --if GFX.keys["a"]:justPressed() then msg("a") end
 
     -- Run the user defined hook function.
     GFX.runHook()
