@@ -1,59 +1,55 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+
 function msg(m) reaper.ShowConsoleMsg(tostring(m).."\n") end
-local ReaperProject = require "API.Reaper Wrappers.ReaperProject"
+
+local Project = require "API.Reaper Wrappers.Project"
 
 local Alk = {}
 
 --------------------- Object Oriented Wrapper ---------------------
 
-local storedProjects = {}
--- 0 for current project.
-local function wrapProject(projectNumber)
-    if projectNumber == nil then projectNumber = 0 end
-    local projectPointer = reaper.EnumProjects(projectNumber - 1, "")
-    if projectPointer then
-        local projectStr = tostring(projectPointer)
-        storedProjects[projectStr] = storedProjects[projectStr] or ReaperProject:new{ pointer = pointer }
-        return storedProjects[projectStr]
-    end
-    return nil
+local function getProjectPointerByNumber(projectNumber)
+    local projectNumber = projectNumber or 0
+    local pointer = reaper.EnumProjects(projectNumber - 1, "")
+    return pointer
+end
+local function getProjectWrapperByNumber(projectNumber)
+    return Project(getProjectPointerByNumber(projectNumber))
 end
 
 local projectsTable = setmetatable({}, {
     __index = function(tbl, key)
-        return wrapProject(key)
+        return getProjectWrapperByNumber(key)
     end,
-
     __len = function(tbl)
         local numProjects = 0
-        for _ in ipairs(Alk.getProjects()) do
+        for _ in ipairs(tbl) do
             numProjects = numProjects + 1
         end
         return numProjects
     end,
-
     __pairs = function(tbl)
         return ipairs(tbl)
     end
 })
 
 function Alk.getProject(projectNumber)
-    return wrapProject(projectNumber)
+    return getProjectWrapperByNumber(projectNumber)
 end
 function Alk.getProjects()
     return projectsTable
 end
 function Alk.getItems(projectNumber)
-    return wrapProject(projectNumber):getItems()
+    return getProjectWrapperByNumber(projectNumber):getItems()
 end
 function Alk.getSelectedItems(projectNumber)
-    return wrapProject(projectNumber):getSelectedItems()
+    return getProjectWrapperByNumber(projectNumber):getSelectedItems()
 end
 function Alk.getTracks(projectNumber)
-    return wrapProject(projectNumber):getTracks()
+    return getProjectWrapperByNumber(projectNumber):getTracks()
 end
 function Alk.getSelectedTracks(projectNumber)
-    return wrapProject(projectNumber):getSelectedTracks()
+    return getProjectWrapperByNumber(projectNumber):getSelectedTracks()
 end
 
 --------------------- Reaper Function Wrappers ---------------------
