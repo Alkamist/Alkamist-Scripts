@@ -18,5 +18,5 @@ end
 
 GFX.children = { pitchEditor }
 GFX.playKey = "Space"
-GFX.runHook = Main
+GFX.preHook = Main
 GFX.run()

@@ -5,7 +5,6 @@ local Keys = require "GFX.Keys"
 
 local GFX = {}
 
-GFX.runHook = GFX.runHook or function() end
 GFX.children = GFX.children or {}
 GFX.mouse = Mouse:new()
 GFX.keys = Keys:new()
@@ -58,10 +57,9 @@ function GFX.run()
     updateGFXVariables()
     GFX.mouse:update()
     GFX.keys:update()
-
     passThroughPlayKey()
 
-    GFX.runHook()
+    if GFX.preHook then GFX.preHook() end
 
     for _, child in pairs(GFX.children) do
         GFX.focus = GFX.focus or child
@@ -131,8 +129,8 @@ function GFX.run()
         end
         child:draw()
     end
-
     repeatLoop()
+    if GFX.postHook then GFX.postHook() end
 end
 
 return GFX
