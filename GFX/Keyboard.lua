@@ -159,24 +159,25 @@ local function Keyboard()
 
     -- Private Members:
 
+    local _char
     local _keys = {}
     for keyName, keyValue in pairs(characterTable) do
         _keys[keyName] = KeyboardKey(keyName, keyValue)
     end
 
+    local function updateChar() _char = characterTableInverted[gfx.getchar()] end
+
     -- Getters:
 
-    function keyboard:getChar(keyName)
-        if keyName then return gfx.getchar(characterTable[keyName]) end
-        return characterTableInverted[gfx.getchar()]
-    end
+    function keyboard:getChar() return _char end
     function keyboard:getKeys() return _keys end
 
     -- Setters:
 
     function keyboard:update()
+        updateChar()
         for keyName, key in pairs(self:getKeys()) do
-            key:update(self:getChar(keyName) > 0)
+            key:update(gfx.getchar(characterTable[keyName]) > 0)
         end
     end
 
