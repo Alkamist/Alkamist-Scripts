@@ -5,8 +5,10 @@ local Envelope = setmetatable({}, { __index = PointerWrapper })
 function Envelope:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
+
     local instance = PointerWrapper:new(pointer, "TrackEnvelope*")
     instance._project = project
+
     return setmetatable(instance, { __index = self })
 end
 

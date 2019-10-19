@@ -4,6 +4,7 @@ function PointerWrapper:new(pointer, pointerType)
     local instance = {}
     instance._pointer = pointer
     instance._pointerType = pointerType
+
     return setmetatable(instance, { __index = self })
 end
 

@@ -5,8 +5,10 @@ local Track = setmetatable({}, { __index = PointerWrapper })
 function Track:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
+
     local instance = PointerWrapper:new(pointer, "MediaTrack*")
     instance._project = project
+
     return setmetatable(instance, { __index = self })
 end
 

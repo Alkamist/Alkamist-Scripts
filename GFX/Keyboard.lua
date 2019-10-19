@@ -132,56 +132,57 @@ local characterTable = {
 }
 local characterTableInverted = invertTable(characterTable)
 
-local function KeyboardKey(keyName, keyValue)
-    local keyboardKey = {}
 
-    local _keyName = keyName
-    local _keyValue = keyValue
-    local _state = false
-    local _previousState = false
 
-    function keyboardKey:getName()      return _keyName end
-    function keyboardKey:getKeyValue()  return _keyValue end
-    function keyboardKey:isPressed()    return _state end
-    function keyboardKey:justPressed()  return _state and not _previousState end
-    function keyboardKey:justReleased() return not _state and _previousState end
+local KeyboardKey = {}
 
-    function keyboardKey:update(state)
-        _previousState = _state
-        _state = state
-    end
+function KeyboardKey:new(keyName, keyValue)
+    local instance = {}
+    instance._keyName = keyName
+    instance._keyValue = keyValue
+    instance._state = false
+    instance._previousState = false
 
-    return keyboardKey
+    return setmetatable(instance, { __index = self })
 end
 
-local function Keyboard()
-    local keyboard = {}
+function KeyboardKey:getName()      return self._keyName end
+function KeyboardKey:getKeyValue()  return self._keyValue end
+function KeyboardKey:isPressed()    return self._state end
+function KeyboardKey:justPressed()  return self._state and not self._previousState end
+function KeyboardKey:justReleased() return not self._state and self._previousState end
 
-    -- Private Members:
+function KeyboardKey:update(state)
+    self._previousState = self._state
+    self._state = state
+end
 
-    local _char
-    local _keys = {}
+
+
+local Keyboard = {}
+
+function Keyboard:new()
+    local instance = {}
+    instance._char = nil
+    instance._keys = {}
     for keyName, keyValue in pairs(characterTable) do
-        _keys[keyName] = KeyboardKey(keyName, keyValue)
+        instance._keys[keyName] = KeyboardKey:new(keyName, keyValue)
     end
 
-    local function updateChar() _char = characterTableInverted[gfx.getchar()] end
+    return setmetatable(instance, { __index = self })
+end
 
-    -- Getters:
+function Keyboard:getChar() return self._char end
+function Keyboard:getKeys() return self._keys end
 
-    function keyboard:getChar() return _char end
-    function keyboard:getKeys() return _keys end
+-- Setters:
 
-    -- Setters:
-
-    function keyboard:update()
-        updateChar()
-        for keyName, key in pairs(self:getKeys()) do
-            key:update(gfx.getchar(characterTable[keyName]) > 0)
-        end
+function Keyboard:updateChar() self._char = characterTableInverted[gfx.getchar()] end
+function Keyboard:update()
+    self:updateChar()
+    for keyName, key in pairs(self:getKeys()) do
+        key:update(gfx.getchar(characterTable[keyName]) > 0)
     end
-
-    return keyboard
 end
 
 return Keyboard

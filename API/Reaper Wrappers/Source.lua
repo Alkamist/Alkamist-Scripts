@@ -5,8 +5,10 @@ local Source = setmetatable({}, { __index = PointerWrapper })
 function Source:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
+
     local instance = PointerWrapper:new(pointer, "PCM_source*")
     instance._project = project
+
     return setmetatable(instance, { __index = self })
 end
 

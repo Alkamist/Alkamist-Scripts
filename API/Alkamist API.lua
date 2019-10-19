@@ -10,6 +10,7 @@ function AlkamistAPI:new()
     local instance = {}
     instance._uiRefreshIsEnabled = true
     instance._projectWrappers = {}
+
     return setmetatable(instance, { __index = self })
 end
 

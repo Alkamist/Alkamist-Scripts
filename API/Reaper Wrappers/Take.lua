@@ -5,8 +5,10 @@ local Take = setmetatable({}, { __index = PointerWrapper })
 function Take:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
+
     local instance = PointerWrapper:new(pointer, "MediaItem_Take*")
     instance._project = project
+
     return setmetatable(instance, { __index = self })
 end
 
