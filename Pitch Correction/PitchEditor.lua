@@ -228,7 +228,7 @@ function PitchEditor:onChar(char)
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown() msg("left") end
+function PitchEditor:onMouseLeftButtonDown() end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     local wasDragged = self:isLeftDragging()

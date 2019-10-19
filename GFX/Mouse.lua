@@ -75,8 +75,9 @@ end
 
 function Mouse:update()
     local mouseCap = gfx.mouse_cap
-    for _, button   in ipairs(self:getButtons())   do button:update(mouseCap) end
-    for _, modifier in ipairs(self:getModifiers()) do modifier:update(mouseCap) end
+
+    for _, button   in pairs(self:getButtons())   do button:update(mouseCap) end
+    for _, modifier in pairs(self:getModifiers()) do modifier:update(mouseCap) end
 
     self._previousX = self._x
     self._x = gfx.mouse_x

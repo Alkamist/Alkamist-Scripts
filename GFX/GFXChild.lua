@@ -12,6 +12,9 @@ function GFXChild:new(init)
     self._width =  init.width or 0
     self._height = init.height or 0
 
+    self._leftDragEnabled = false
+    self._middleDragEnabled = false
+    self._rightDragEnabled = false
     self._isLeftDragging = false
     self._isMiddleDragging = false
     self._isRightDragging = false
@@ -21,9 +24,15 @@ end
 
 -- Functions you should not call:
 
-function GFXChild:setLeftDrag(state)   self._isLeftDragging = state end
-function GFXChild:setMiddleDrag(state) self._isMiddleDragging = state end
-function GFXChild:setRightDrag(state)  self._isRightDragging = state end
+function GFXChild:enableLeftDrag(state)       self._leftDragEnabled = state end
+function GFXChild:enableMiddleDrag(state)     self._middleDragEnabled = state end
+function GFXChild:enableRightDrag(state)      self._rightDragEnabled = state end
+function GFXChild:markAsLeftDragging(state)   self._isLeftDragging = state end
+function GFXChild:markAsMiddleDragging(state) self._isMiddleDragging = state end
+function GFXChild:markAsRightDragging(state)  self._isRightDragging = state end
+function GFXChild:isLeftDragEnabled(state)    return self._leftDragEnabled end
+function GFXChild:isMiddleDragEnabled(state)  return self._middleDragEnabled end
+function GFXChild:isRightDragEnabled(state)   return self._rightDragEnabled end
 
 -- Getters:
 

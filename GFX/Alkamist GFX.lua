@@ -87,15 +87,15 @@ function AlkamistGFX:processChildren()
 
         if child:mouseIsInside() then
             if leftClick:justPressed() then
-                child:setLeftDrag(true)
+                child:enableLeftDrag(true)
                 child:onMouseLeftButtonDown()
             end
             if middleClick:justPressed() then
-                child:setMiddleDrag(true)
+                child:enableMiddleDrag(true)
                 child:onMouseMiddleButtonDown()
             end
             if rightClick:justPressed() then
-                child:setRightDrag(true)
+                child:enableRightDrag(true)
                 child:onMouseRightButtonDown()
             end
 
@@ -103,21 +103,33 @@ function AlkamistGFX:processChildren()
             if hWheelMoved then child:onMouseHWheel(hWheel) end
         end
 
-        if mouseMoved and child:isLeftDragging() then   child:onMouseLeftButtonDrag() end
-        if mouseMoved and child:isMiddleDragging() then child:onMouseMiddleButtonDrag() end
-        if mouseMoved and child:isRightDragging() then  child:onMouseRightButtonDrag() end
+        if mouseMoved and child:isLeftDragEnabled() then
+            child:markAsLeftDragging(true)
+            child:onMouseLeftButtonDrag()
+        end
+        if mouseMoved and child:isMiddleDragEnabled() then
+            child:markAsMiddleDragging(true)
+            child:onMouseMiddleButtonDrag()
+        end
+        if mouseMoved and child:isRightDragEnabled() then
+            child:markAsRightDragging(true)
+            child:onMouseRightButtonDrag()
+        end
 
         if leftClick:justReleased() then
             child:onMouseLeftButtonUp()
-            child:setLeftDrag(false)
+            child:enableLeftDrag(false)
+            child:markAsLeftDragging(false)
         end
         if middleClick:justReleased() then
             child:onMouseMiddleButtonUp()
-            child:setMiddleDrag(false)
+            child:enableMiddleDrag(false)
+            child:markAsMiddleDragging(false)
         end
         if rightClick:justReleased() then
             child:onMouseRightButtonUp()
-            child:setRightDrag(false)
+            child:enableRightDrag(false)
+            child:markAsRightDragging(false)
         end
 
         child:onDraw()
