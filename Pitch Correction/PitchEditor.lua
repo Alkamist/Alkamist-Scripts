@@ -75,7 +75,7 @@ end
 function PitchEditor:getLeftEdge()
     local items = self:getItems()
     if #items > 0 then
-        return items:getLeftEdge()
+        return items[1]:getLeftEdge()
     end
     return 0.0
 end
@@ -86,7 +86,7 @@ function PitchEditor:getTimeWidth()
     end
     return 0.0
 end
-function PitchEditor:getPitchHeight() return self_pitchHeight end
+function PitchEditor:getPitchHeight() return self._pitchHeight end
 function PitchEditor:pixelsToTime(xPixels)
     local view = self:getView()
     local scrollX = view:getScrollX()
@@ -127,6 +127,7 @@ end
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
+    local GFX = self:getGFXAPI()
     local pitchHeight = self:getPitchHeight()
     local blackKeyColor = self._blackKeyColor
     local whiteKeyColor = self._whiteKeyColor
@@ -140,21 +141,21 @@ function PitchEditor:drawKeyBackgrounds()
         local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
-        GFX.setColor(blackKeyColor)
+        GFX:setColor(blackKeyColor)
         for _, value in ipairs(whiteKeyNumbers) do
             if i == value then
-                GFX.setColor(whiteKeyColor)
+                GFX:setColor(whiteKeyColor)
             end
         end
         self:rect(0, keyEnd, width, keyHeight + 1, 1)
 
-        GFX.setColor(blackKeyColor)
+        GFX:setColor(blackKeyColor)
         self:line(0, keyEnd, width - 1, keyEnd, false)
 
         if keyHeight > minCenterLineHeight then
             local keyCenterLine = self:pitchToPixels(pitchHeight - i)
 
-            GFX.setColor(keyCenterLineColor)
+            GFX:setColor(keyCenterLineColor)
             self:line(0, keyCenterLine, width - 1, keyCenterLine, false)
         end
 
@@ -162,6 +163,7 @@ function PitchEditor:drawKeyBackgrounds()
     end
 end
 function PitchEditor:drawItemEdges()
+    local GFX = self:getGFXAPI()
     local itemInsideColor = self._itemInsideColor
     local itemEdgeColor = self._itemEdgeColor
     local height = self:getHeight()
@@ -176,14 +178,15 @@ function PitchEditor:drawItemEdges()
         local boxWidth = rightBoundPixels - leftBoundPixels
         local boxHeight = height - 2
 
-        GFX.setColor(itemInsideColor)
+        GFX:setColor(itemInsideColor)
         self:rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
 
-        GFX.setColor(itemEdgeColor)
+        GFX:setColor(itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
 function PitchEditor:drawEditCursor()
+    local GFX = self:getGFXAPI()
     local project = Alk:getProject()
     local editCursorTime = project:getEditCursorTime()
     local playCursorTime = project:getPlayCursorTime()
@@ -196,11 +199,11 @@ function PitchEditor:drawEditCursor()
     local editCursorColor = self._editCursorColor
     local playCursorColor = self._playCursorColor
 
-    GFX.setColor(editCursorColor)
+    GFX:setColor(editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, height, false)
 
     if projectIsPlaying or projectIsRecording then
-        GFX.setColor(playCursorColor)
+        GFX:setColor(playCursorColor)
         self:line(playPositionPixels, 0, playPositionPixels, height, false)
     end
 end
@@ -225,7 +228,7 @@ function PitchEditor:onChar(char)
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown() end
+function PitchEditor:onMouseLeftButtonDown() msg("left") end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     local wasDragged = self:isLeftDragging()
@@ -284,24 +287,24 @@ function PitchEditor:onMouseWheel(numTicks)
     end
 end
 function PitchEditor:onMouseHWheel(numTicks) end
-function PitchEditor:draw()
+function PitchEditor:onDraw()
     local x = self:getX()
     local y = self:getY()
     local width = self:getWidth()
     local height = self:getHeight()
-    local drawBuffer = 27
+    --local drawBuffer = 27
 
-    gfx.setimgdim(drawBuffer, width, height)
-    gfx.dest = drawBuffer
+    --gfx.setimgdim(drawBuffer, width, height)
+    --gfx.dest = drawBuffer
 
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.dest = -1
-    gfx.a = 1.0
-    gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
+    --gfx.dest = -1
+    --gfx.a = 1.0
+    --gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
 end
 
 PitchEditor._onCharFunctions = {

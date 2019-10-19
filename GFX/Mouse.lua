@@ -37,7 +37,6 @@ function Mouse:new()
     self._previousX = 0
     self._y = 0
     self._previousY = 0
-    self._cap = nil
     self._wheel = 0
     self._hWheel = 0
     self._buttons = {
@@ -75,11 +74,14 @@ end
 -- Setters:
 
 function Mouse:update()
+    local mouseCap = gfx.mouse_cap
+    for _, button   in ipairs(self:getButtons())   do button:update(mouseCap) end
+    for _, modifier in ipairs(self:getModifiers()) do modifier:update(mouseCap) end
+
     self._previousX = self._x
     self._x = gfx.mouse_x
     self._previousY = self._y
     self._y = gfx.mouse_y
-    self._cap = gfx.mouse_cap
     self._wheel = math.floor(gfx.mouse_wheel / 120.0)
     gfx.mouse_wheel = 0
     self._hWheel = math.floor(gfx.mouse_hwheel / 120.0)

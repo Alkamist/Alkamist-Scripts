@@ -5,7 +5,7 @@ local Keyboard = require("GFX.Keyboard")
 
 local AlkamistGFX = {}
 
-function AlkamistGFX:new(init)
+function AlkamistGFX:init(init)
     local init = init or {}
     local title = init.title or ""
     local width = init.width or 0
@@ -15,8 +15,6 @@ function AlkamistGFX:new(init)
     local dock = init.dock or 0
 
     gfx.init(title, width, height, dock, x, y)
-
-    local self = setmetatable({}, { __index = self })
 
     self._title = title
     self._x = x
@@ -35,8 +33,6 @@ function AlkamistGFX:new(init)
     self._children = {}
     self._mouse = Mouse:new()
     self._keyboard = Keyboard:new()
-
-    return self
 end
 
 function AlkamistGFX:getTitle()              return self._title end
@@ -76,8 +72,9 @@ function AlkamistGFX:processChildren()
     local wheelMoved = wheel > 0 or wheel < 0
     local hWheel = self:getMouse():getHWheel()
     local hWheelMoved = hWheel > 0 or hWheel < 0
+    local children = self:getChildren()
 
-    for _, child in pairs(self:getChildren()) do
+    for _, child in pairs(children) do
         self:setFocus(self:getFocus() or child)
 
         child:onUpdate()
@@ -151,6 +148,8 @@ function AlkamistGFX:flagLoopForRepeat()
 end
 
 function AlkamistGFX.run()
+    local self = AlkamistGFX
+
     self:updateGFXVariables()
     self:getMouse():update()
     self:getKeyboard():update()

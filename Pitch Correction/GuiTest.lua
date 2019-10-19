@@ -1,7 +1,8 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require("API.Alkamist API")
+local GFX = require("GFX.Alkamist GFX")
 
-local GFX = require("GFX.Alkamist GFX"):new{
+GFX:init{
     title = "Alkamist Pitch Correction",
     x = 200,
     y = 200,

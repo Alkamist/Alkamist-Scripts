@@ -24,7 +24,7 @@ function Track:getSelectedItemNumbers()
     end
     return selectedItemNumbers
 end
-function Track:getProject()        return _project end
+function Track:getProject()        return self._project end
 function Track:getNumber()         return reaper.GetMediaTrackInfo_Value(self:getPointer(), "IP_TRACKNUMBER") end
 function Track:getItemCount()      return reaper.GetTrackNumMediaItems(self:getPointer()) end
 function Track:getItem(itemNumber) return self:getProject():wrapItem(reaper.GetTrackMediaItem(self:getPointer(), itemNumber - 1)) end
