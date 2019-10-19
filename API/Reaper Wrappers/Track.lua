@@ -18,7 +18,7 @@ end
 function Track:getSelectedItemNumbers()
     local selectedItemNumbers = {}
     for i = 1, self:getItemCount() do
-        if reaper.IsMediaItemSelected(reaper.GetTrackMediaItem(Track:getPointer(), i - 1)) then
+        if reaper.IsMediaItemSelected(reaper.GetTrackMediaItem(self:getPointer(), i - 1)) then
             table.insert(selectedItemNumbers, i)
         end
     end
@@ -28,7 +28,7 @@ function Track:getProject()        return _project end
 function Track:getNumber()         return reaper.GetMediaTrackInfo_Value(self:getPointer(), "IP_TRACKNUMBER") end
 function Track:getItemCount()      return reaper.GetTrackNumMediaItems(self:getPointer()) end
 function Track:getItem(itemNumber) return self:getProject():wrapItem(reaper.GetTrackMediaItem(self:getPointer(), itemNumber - 1)) end
-function Track:getItems()          return self:getProject():getIterator(self, self.getItem, self.getItemCount) end
+function Track:getItems()          return self:getIterator(self.getItem, self.getItemCount) end
 function Track:getSelectedItemCount()
     local selectedItemNumbers = self:getSelectedItemNumbers(self)
     local selectedItemCount = 0
@@ -45,6 +45,6 @@ function Track:getSelectedItem(itemNumber)
     if itemNumber then return self:getItem(itemNumber) end
     return nil
 end
-function Track:getSelectedItems() return self:getProject():getIterator(self, self.getSelectedItem, self.getSelectedItemCount) end
+function Track:getSelectedItems() return self:getIterator(self.getSelectedItem, self.getSelectedItemCount) end
 
 return Track

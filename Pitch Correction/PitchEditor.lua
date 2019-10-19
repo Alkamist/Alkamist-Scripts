@@ -1,6 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Alk = require("API.Alkamist API")
-
 local GFXChild = require("GFX.GFXChild")
 local View = require("GFX.View")
 
@@ -24,8 +23,7 @@ function PitchEditor:new(init)
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
-    self:onResize()
-    self._whiteKeyNumbers = getWhiteKeyNumbers()
+    self._whiteKeyNumbers =    getWhiteKeyNumbers()
     self._pitchHeight =        init.pitchHeight or 128
     self._blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
     self._whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
@@ -36,12 +34,16 @@ function PitchEditor:new(init)
     self._playCursorColor =    {1.0, 1.0, 1.0, 0.3}
     self._minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
 
+    self._track = {}
+    self._items = {}
+
     self._view = View:new{
         xScale = self:getWidth(),
         yScale = self:getHeight()
     }
 
     self:updateSelectedItems()
+    self:onResize()
 
     return self
 end

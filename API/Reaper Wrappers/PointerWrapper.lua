@@ -18,5 +18,15 @@ function PointerWrapper:validatePointer(projectPointer)
         return reaper.ValidatePtr(self:getPointer(), self:getPointerType())
     end
 end
+function PointerWrapper:getIterator(getterFn, countFn)
+    return setmetatable({}, {
+        __index = function(tbl, index)
+            return getterFn(self, index)
+        end,
+        __len = function(tbl)
+            if countFn then return countFn(self) end
+        end
+    })
+end
 
 return PointerWrapper

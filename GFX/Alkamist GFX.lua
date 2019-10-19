@@ -48,7 +48,7 @@ function AlkamistGFX:getWidthChange()        return self:getWidth() - self:getPr
 function AlkamistGFX:getHeight()             return self._height end
 function AlkamistGFX:getPreviousHeight()     return self._previousHeight end
 function AlkamistGFX:getHeightChange()       return self:getHeight() - self:getPreviousHeight() end
-function AlkamistGFX:windowWasResized(color)
+function AlkamistGFX:windowWasResized()
     return self:getWidth() ~= self:getPreviousWidth() or self:getHeight() ~= self:getPreviousHeight()
 end
 function AlkamistGFX:getMouse()              return self._mouse end
@@ -82,7 +82,7 @@ function AlkamistGFX:processChildren()
 
         child:onUpdate()
 
-        if GFX.windowWasResized()            then child:onResize() end
+        if self:windowWasResized()           then child:onResize() end
         if self:getFocus() == child and char then child:onChar(char) end
 
         if child:mouseJustEntered()          then child:onMouseEnter() end
@@ -149,7 +149,8 @@ function AlkamistGFX:flagLoopForRepeat()
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
     gfx.update()
 end
-function AlkamistGFX:run()
+
+function AlkamistGFX.run()
     self:updateGFXVariables()
     self:getMouse():update()
     self:getKeyboard():update()

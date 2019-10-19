@@ -5,8 +5,8 @@ function MouseButton:new(bitValue)
 
     local self = setmetatable({}, { __index = self })
 
-    self._mouseCap = nil
-    self._previousMouseCap = nil
+    self._mouseCap = 0
+    self._previousMouseCap = 0
     self._bitValue = bitValue
 
     return self

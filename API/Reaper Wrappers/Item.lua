@@ -18,7 +18,7 @@ end
 function Item:getProject()        return self._project end
 function Item:getTakeCount()      return reaper.CountTakes(self:getPointer()) end
 function Item:getTake(takeNumber) return self:getProject():wrapTake(reaper.GetTake(self:getPointer(), takeNumber - 1)) end
-function Item:getTakes()          return self:getProject():getIterator(self, self.getTake, self.getTakeCount) end
+function Item:getTakes()          return self:getIterator(self.getTake, self.getTakeCount) end
 function Item:isSelected()        return reaper.IsMediaItemSelected(self:getPointer()) end
 function Item:getLength()         return reaper.GetMediaItemInfo_Value(self:getPointer(), "D_LENGTH") end
 function Item:getLeftEdge()       return reaper.GetMediaItemInfo_Value(self:getPointer(), "D_POSITION") end

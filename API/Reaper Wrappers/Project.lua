@@ -40,25 +40,15 @@ function Project:getItem(itemNumber)           return self:wrapItem(reaper.GetMe
 function Project:getSelectedItem(itemNumber)   return self:wrapItem(reaper.GetSelectedMediaItem(self:getPointer(), itemNumber - 1)) end
 function Project:getTrack(trackNumber)         return self:wrapTrack(reaper.GetTrack(self:getPointer(), trackNumber - 1)) end
 function Project:getSelectedTrack(trackNumber) return self:wrapTrack(reaper.GetSelectedTrack(self:getPointer(), trackNumber - 1)) end
-function Project:getItems()                    return self:getIterator(self, self.getItem, self.getItemCount) end
-function Project:getSelectedItems()            return self:getIterator(self, self.getSelectedItem, self.getSelectedItemCount) end
-function Project:getTracks()                   return self:getIterator(self, self.getTrack, self.getTrackCount) end
-function Project:getSelectedTracks()           return self:getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount) end
+function Project:getItems()                    return self:getIterator(self.getItem, self.getItemCount) end
+function Project:getSelectedItems()            return self:getIterator(self.getSelectedItem, self.getSelectedItemCount) end
+function Project:getTracks()                   return self:getIterator(self.getTrack, self.getTrackCount) end
+function Project:getSelectedTracks()           return self:getIterator(self.getSelectedTrack, self.getSelectedTrackCount) end
 function Project:getEditCursorTime()           return reaper.GetCursorPositionEx(self:getPointer()) end
 function Project:getPlayCursorTime()           return reaper.GetPlayPositionEx(self:getPointer()) end
 function Project:isPlaying()                   return reaper.GetPlayStateEx(self:getPointer()) & 1 == 1 end
 function Project:isPaused()                    return reaper.GetPlayStateEx(self:getPointer()) & 2 == 2 end
 function Project:isRecording()                 return reaper.GetPlayStateEx(self:getPointer()) & 4 == 4 end
-function Project:getIterator(child, getterFn, countFn)
-    return setmetatable({}, {
-        __index = function(tbl, index)
-            return getterFn(child, index)
-        end,
-        __len = function(tbl)
-            if countFn then return countFn(child) end
-        end
-    })
-end
 
 -- Setters:
 
