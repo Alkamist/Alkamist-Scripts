@@ -5,70 +5,66 @@ local Item =           require "API.Reaper Wrappers.Item"
 local Take =           require "API.Reaper Wrappers.Take"
 local Source =         require "API.Reaper Wrappers.Source"
 
-local function Project(pointer)
+local Project = setmetatable({}, { __index = PointerWrapper })
+
+function Project:new(pointer)
     if pointer == nil then return nil end
+    local instance = PointerWrapper:new(pointer, "ReaProject*")
+    instance._wrappers = {}
+    return setmetatable(instance, { __index = self })
+end
 
-    local project = PointerWrapper(pointer, "ReaProject*")
+-- Getters:
 
-    -- Private Members:
+function Project:wrapPointer(pointer, wrapperType)
+    local pointerString = tostring(pointer)
+    self._wrappers[pointerString] = self._wrappers[pointerString] or wrapperType:new(self, pointer)
+    return self._wrappers[pointerString]
+end
+function Project:wrapTrack(pointer)            return self:wrapPointer(pointer, Track) end
+function Project:wrapEnvelope(pointer)         return self:wrapPointer(pointer, Envelope) end
+function Project:wrapItem(pointer)             return self:wrapPointer(pointer, Item) end
+function Project:wrapTake(pointer)             return self:wrapPointer(pointer, Take) end
+function Project:wrapSource(pointer)           return self:wrapPointer(pointer, Source) end
 
-    local _wrappers = {}
+function Project:validateChild(child)          return child:validatePointer(self:getPointer()) end
+function Project:getName()                     return reaper.GetProjectName(self:getPointer(), "") end
+function Project:getItemCount()                return reaper.CountMediaItems(self:getPointer()) end
+function Project:getSelectedItemCount()        return reaper.CountSelectedMediaItems(self:getPointer()) end
+function Project:getTrackCount()               return reaper.CountTracks(self:getPointer()) end
+function Project:getSelectedTrackCount()       return reaper.CountSelectedTracks(self:getPointer()) end
+function Project:getItem(itemNumber)           return self:wrapItem(reaper.GetMediaItem(self:getPointer(), itemNumber - 1)) end
+function Project:getSelectedItem(itemNumber)   return self:wrapItem(reaper.GetSelectedMediaItem(self:getPointer(), itemNumber - 1)) end
+function Project:getTrack(trackNumber)         return self:wrapTrack(reaper.GetTrack(self:getPointer(), trackNumber - 1)) end
+function Project:getSelectedTrack(trackNumber) return self:wrapTrack(reaper.GetSelectedTrack(self:getPointer(), trackNumber - 1)) end
+function Project:getItems()                    return self:getIterator(self, self.getItem, self.getItemCount) end
+function Project:getSelectedItems()            return self:getIterator(self, self.getSelectedItem, self.getSelectedItemCount) end
+function Project:getTracks()                   return self:getIterator(self, self.getTrack, self.getTrackCount) end
+function Project:getSelectedTracks()           return self:getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount) end
+function Project:getEditCursorTime()           return reaper.GetCursorPositionEx(self:getPointer()) end
+function Project:getPlayCursorTime()           return reaper.GetPlayPositionEx(self:getPointer()) end
+function Project:isPlaying()                   return reaper.GetPlayStateEx(self:getPointer()) & 1 == 1 end
+function Project:isPaused()                    return reaper.GetPlayStateEx(self:getPointer()) & 2 == 2 end
+function Project:isRecording()                 return reaper.GetPlayStateEx(self:getPointer()) & 4 == 4 end
+function Project:getIterator(child, getterFn, countFn)
+    return setmetatable({}, {
+        __index = function(tbl, index)
+            return getterFn(child, index)
+        end,
+        __len = function(tbl)
+            if countFn then return countFn(child) end
+        end
+    })
+end
 
-    local function wrapPointer(project, pointer, wrapFn)
-        local pointerString = tostring(pointer)
-        _wrappers[pointerString] = _wrappers[pointerString] or wrapFn(project, pointer)
-        return _wrappers[pointerString]
-    end
+-- Setters:
 
-    -- Getters:
-
-    function project:wrapTrack(pointer)            return wrapPointer(self, pointer, Track) end
-    function project:wrapEnvelope(pointer)         return wrapPointer(self, pointer, Envelope) end
-    function project:wrapItem(pointer)             return wrapPointer(self, pointer, Item) end
-    function project:wrapTake(pointer)             return wrapPointer(self, pointer, Take) end
-    function project:wrapSource(pointer)           return wrapPointer(self, pointer, Source) end
-
-    function project:validateChild(child)          return child:validatePointer(self:getPointer()) end
-    function project:getName()                     return reaper.GetProjectName(self:getPointer(), "") end
-    function project:getItemCount()                return reaper.CountMediaItems(self:getPointer()) end
-    function project:getSelectedItemCount()        return reaper.CountSelectedMediaItems(self:getPointer()) end
-    function project:getTrackCount()               return reaper.CountTracks(self:getPointer()) end
-    function project:getSelectedTrackCount()       return reaper.CountSelectedTracks(self:getPointer()) end
-    function project:getItem(itemNumber)           return self:wrapItem(reaper.GetMediaItem(self:getPointer(), itemNumber - 1)) end
-    function project:getSelectedItem(itemNumber)   return self:wrapItem(reaper.GetSelectedMediaItem(self:getPointer(), itemNumber - 1)) end
-    function project:getTrack(trackNumber)         return self:wrapTrack(reaper.GetTrack(self:getPointer(), trackNumber - 1)) end
-    function project:getSelectedTrack(trackNumber) return self:wrapTrack(reaper.GetSelectedTrack(self:getPointer(), trackNumber - 1)) end
-    function project:getItems()                    return self:getIterator(self, self.getItem, self.getItemCount) end
-    function project:getSelectedItems()            return self:getIterator(self, self.getSelectedItem, self.getSelectedItemCount) end
-    function project:getTracks()                   return self:getIterator(self, self.getTrack, self.getTrackCount) end
-    function project:getSelectedTracks()           return self:getIterator(self, self.getSelectedTrack, self.getSelectedTrackCount) end
-    function project:getEditCursorTime()           return reaper.GetCursorPositionEx(self:getPointer()) end
-    function project:getPlayCursorTime()           return reaper.GetPlayPositionEx(self:getPointer()) end
-    function project:isPlaying()                   return reaper.GetPlayStateEx(self:getPointer()) & 1 == 1 end
-    function project:isPaused()                    return reaper.GetPlayStateEx(self:getPointer()) & 2 == 2 end
-    function project:isRecording()                 return reaper.GetPlayStateEx(self:getPointer()) & 4 == 4 end
-    function project:getIterator(self, getterFn, countFn)
-        return setmetatable({}, {
-            __index = function(tbl, index)
-                return getterFn(self, index)
-            end,
-            __len = function(tbl)
-                if countFn then return countFn(self) end
-            end
-        })
-    end
-
-    -- Setters:
-
-    function project:setEditCursorTime(time, moveView, seekPlay) reaper.SetEditCurPos2(self:getPointer(), time, moveView or false, seekPlay or true) end
-    function project:mainCommand(id, flag)
-        local flag = flag or 0
-        local id = id
-        if type(id) == "string" then id = reaper.NamedCommandLookup(id) end
-        reaper.Main_OnCommandEx(id, flag, self:getPointer())
-    end
-
-    return project
+function Project:setEditCursorTime(time, moveView, seekPlay) reaper.SetEditCurPos2(self:getPointer(), time, moveView or false, seekPlay or true) end
+function Project:mainCommand(id, flag)
+    local flag = flag or 0
+    local id = id
+    if type(id) == "string" then id = reaper.NamedCommandLookup(id) end
+    reaper.Main_OnCommandEx(id, flag, self:getPointer())
 end
 
 return Project
