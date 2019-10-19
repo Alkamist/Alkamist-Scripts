@@ -1,4 +1,6 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Alk = require("API.Alkamist API")
+
 local GFXChild = require("GFX.GFXChild")
 local View = require("GFX.View")
 
@@ -25,7 +27,7 @@ function PitchEditor:new(init)
     self:setWidth(init.gfxAPI:getWidth())
     self:setHeight(init.gfxAPI:getHeight() - self:getY())
     self._whiteKeyNumbers = getWhiteKeyNumbers()
-    self._pitchHeight =        init.maxPitch or 128
+    self._pitchHeight =        init.pitchHeight or 128
     self._blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
     self._whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
     self._keyCenterLineColor = {1.0, 1.0, 1.0, 0.12}
@@ -35,9 +37,9 @@ function PitchEditor:new(init)
     self._playCursorColor =    {1.0, 1.0, 1.0, 0.3}
     self._minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
 
-    self.view = View:new{
-        xScale = self:getW(),
-        yScale = self:getH()
+    self._view = View:new{
+        xScale = self:getWidth(),
+        yScale = self:getHeight()
     }
 
     self:updateSelectedItems()
@@ -45,89 +47,154 @@ function PitchEditor:new(init)
     return self
 end
 
+function PitchEditor:getItems()      return self._items end
+function PitchEditor:getTrack()      return self._track end
+function PitchEditor:getView()       return self._view end
+
+function PitchEditor:setItems(items) self._items = items end
+function PitchEditor:setTrack(track) self._track = track end
+
 function PitchEditor:updateSelectedItems()
     local tracks = Alk:getTracks()
+    local selectedItems = Alk:getSelectedItems()
     local topMostSelectedItemTrackNumber = #tracks
-    for _, item in ipairs(Alk.getSelectedItems()) do
+    for _, item in ipairs(selectedItems) do
         topMostSelectedItemTrackNumber = math.min(item:getTrack():getNumber(), topMostSelectedItemTrackNumber)
     end
-    self.track = tracks[topMostSelectedItemTrackNumber]
-    self.items = self.track:getSelectedItems()
+    local track = tracks[topMostSelectedItemTrackNumber]
+    self:setTrack(track)
+    self:setItems(track:getSelectedItems())
 end
 function PitchEditor:getLeftEdge()
-    if #self.items > 0 then
-        return self.items[1]:getLeftEdge()
+    local items = self:getItems()
+    if #items > 0 then
+        return items:getLeftEdge()
     end
     return 0.0
 end
 function PitchEditor:getTimeWidth()
-    if #self.items > 0 then
-        return self.items[#self.items]:getRightEdge() - self:getLeftEdge()
+    local items = self:getItems()
+    if #items > 0 then
+        return items[#items]:getRightEdge() - self:getLeftEdge()
     end
     return 0.0
 end
+function PitchEditor:getPitchHeight() return self_pitchHeight end
 function PitchEditor:pixelsToTime(xPixels)
-    return self:getTimeWidth() * (self.view.scroll.x + xPixels / (self.w * self.view.zoom.x))
+    local view = self:getView()
+    local scrollX = view:getScrollX()
+    local zoomX = view:getZoomX()
+    local width = self:getWidth()
+    local timeWidth = self:getTimeWidth()
+
+    return timeWidth * (scrollX + xPixels / (width * zoomX))
 end
 function PitchEditor:timeToPixels(time)
-    return self.view.zoom.x * self.w * (time / self:getTimeWidth() - self.view.scroll.x)
+    local view = self:getView()
+    local scrollX = view:getScrollX()
+    local zoomX = view:getZoomX()
+    local width = self:getWidth()
+    local timeWidth = self:getTimeWidth()
+
+    return zoomX * width * (time / timeWidth - scrollX)
 end
 function PitchEditor:pixelsToPitch(yPixels)
-    return self.pitchHeight * (1.0 - (self.view.scroll.y + yPixels / (self.h * self.view.zoom.y))) - 0.5
+    local view = self:getView()
+    local scrollY = view:getScrollY()
+    local zoomY = view:getZoomY()
+    local height = self:getHeight()
+    local pitchHeight = self:getPitchHeight()
+
+    return pitchHeight * (1.0 - (scrollY + yPixels / (height * zoomY))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
-    return self.view.zoom.y * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.scroll.y)
+    local view = self:getView()
+    local scrollY = view:getScrollY()
+    local zoomY = view:getZoomY()
+    local height = self:getHeight()
+    local pitchHeight = self:getPitchHeight()
+
+    return zoomY * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scrollY)
 end
 
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
-    local prevKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
-    for i = 1, self.pitchHeight do
-        local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
-        local keyHeight = keyEnd - prevKeyEnd
-        GFX.setColor(self.blackKeyColor)
-        for _, value in ipairs(self.whiteKeyNumbers) do
+    local pitchHeight = self:getPitchHeight()
+    local blackKeyColor = self._blackKeyColor
+    local whiteKeyColor = self._whiteKeyColor
+    local keyCenterLineColor = self._keyCenterLineColor
+    local minCenterLineHeight = self._minKeyHeightToDrawCenterline
+    local whiteKeyNumbers = self._whiteKeyNumbers
+    local width = self:getWidth()
+    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
+
+    for i = 1, pitchHeight do
+        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
+        local keyHeight = keyEnd - previousKeyEnd
+
+        GFX.setColor(blackKeyColor)
+        for _, value in ipairs(whiteKeyNumbers) do
             if i == value then
-                GFX.setColor(self.whiteKeyColor)
+                GFX.setColor(whiteKeyColor)
             end
         end
-        self:rect(0, keyEnd, self.w, keyHeight + 1, 1)
+        self:rect(0, keyEnd, width, keyHeight + 1, 1)
 
-        GFX.setColor(self.blackKeyColor)
-        self:line(0, keyEnd, self.w - 1, keyEnd, false)
+        GFX.setColor(blackKeyColor)
+        self:line(0, keyEnd, width - 1, keyEnd, false)
 
-        if keyHeight > self.minKeyHeightToDrawCenterline then
-            GFX.setColor(self.keyCenterLineColor)
-            local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
-            self:line(0, keyCenterLine, self.w - 1, keyCenterLine, false)
+        if keyHeight > minCenterLineHeight then
+            local keyCenterLine = self:pitchToPixels(pitchHeight - i)
+
+            GFX.setColor(keyCenterLineColor)
+            self:line(0, keyCenterLine, width - 1, keyCenterLine, false)
         end
 
-        prevKeyEnd = keyEnd
+        previousKeyEnd = keyEnd
     end
 end
 function PitchEditor:drawItemEdges()
-    for _, item in ipairs(self.items) do
-        local leftBoundTime = item:getLeftEdge() - self:getLeftEdge()
+    local itemInsideColor = self._itemInsideColor
+    local itemEdgeColor = self._itemEdgeColor
+    local height = self:getHeight()
+    local items = self:getItems()
+    local leftEdge = self:getLeftEdge()
+
+    for _, item in ipairs(items) do
+        local leftBoundTime = item:getLeftEdge() - leftEdge
         local rightBoundTime = leftBoundTime + item:getLength()
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
-        local boxHeight = self.h - 2
-        GFX.setColor(self.itemInsideColor)
+        local boxHeight = height - 2
+
+        GFX.setColor(itemInsideColor)
         self:rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
-        GFX.setColor(self.itemEdgeColor)
+
+        GFX.setColor(itemEdgeColor)
         self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
 function PitchEditor:drawEditCursor()
-    local editCursorPixels = self:timeToPixels(Alk.getProject():getEditCursorTime() - self:getLeftEdge())
-    local playPositionPixels = self:timeToPixels(Alk.getProject():getPlayCursorTime() - self:getLeftEdge())
-    GFX.setColor(self.editCursorColor)
-    self:line(editCursorPixels, 0, editCursorPixels, self.h, false)
-    if Alk.getProject():isPlaying() or Alk.getProject():isRecording() then
-        GFX.setColor(self.playCursorColor)
-        self:line(playPositionPixels, 0, playPositionPixels, self.h, false)
+    local project = Alk:getProject()
+    local editCursorTime = project:getEditCursorTime()
+    local playCursorTime = project:getPlayCursorTime()
+    local projectIsPlaying = project:isPlaying()
+    local projectIsRecording = project:isRecording()
+    local leftEdge = self:getLeftEdge()
+    local editCursorPixels = self:timeToPixels(editCursorTime - leftEdge)
+    local playPositionPixels = self:timeToPixels(playCursorTime - leftEdge)
+    local height = self:getHeight()
+    local editCursorColor = self._editCursorColor
+    local playCursorColor = self._playCursorColor
+
+    GFX.setColor(editCursorColor)
+    self:line(editCursorPixels, 0, editCursorPixels, height, false)
+
+    if projectIsPlaying or projectIsRecording then
+        GFX.setColor(playCursorColor)
+        self:line(playPositionPixels, 0, playPositionPixels, height, false)
     end
 end
 

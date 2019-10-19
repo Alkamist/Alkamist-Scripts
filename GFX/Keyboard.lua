@@ -137,13 +137,14 @@ local characterTableInverted = invertTable(characterTable)
 local KeyboardKey = {}
 
 function KeyboardKey:new(keyName, keyValue)
-    local instance = {}
-    instance._keyName = keyName
-    instance._keyValue = keyValue
-    instance._state = false
-    instance._previousState = false
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._keyName = keyName
+    self._keyValue = keyValue
+    self._state = false
+    self._previousState = false
+
+    return self
 end
 
 function KeyboardKey:getName()      return self._keyName end
@@ -162,14 +163,14 @@ end
 local Keyboard = {}
 
 function Keyboard:new()
-    local instance = {}
-    instance._char = nil
-    instance._keys = {}
+    local self = setmetatable({}, { __index = self })
+    self._char = nil
+    self._keys = {}
     for keyName, keyValue in pairs(characterTable) do
-        instance._keys[keyName] = KeyboardKey:new(keyName, keyValue)
+        self._keys[keyName] = KeyboardKey:new(keyName, keyValue)
     end
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 function Keyboard:getChar() return self._char end

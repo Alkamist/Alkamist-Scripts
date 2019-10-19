@@ -5,30 +5,38 @@ local Keyboard = require("GFX.Keyboard")
 
 local AlkamistGFX = {}
 
-function AlkamistGFX:new(title, x, y, w, h, dock)
-    gfx.init(title, w, h, dock, x, y)
+function AlkamistGFX:new(init)
+    local init = init or {}
+    local title = init.title or ""
+    local width = init.width or 0
+    local height = init.height or 0
+    local x = init.x or 0
+    local y = init.y or 0
+    local dock = init.dock or 0
 
-    local instance = {}
+    gfx.init(title, width, height, dock, x, y)
 
-    instance._title = title
-    instance._x = x
-    instance._previousX = x
-    instance._y = y
-    instance._previousY = y
-    instance._width = w
-    instance._previousWidth = w
-    instance._height = h
-    instance._previousHeight = h
-    instance._dock = dock
-    instance._playKey = nil
-    instance._preHookFn = nil
-    instance._postHookFn = nil
-    instance._focus = nil
-    instance._children = {}
-    instance._mouse = Mouse:new()
-    instance._keyboard = Keyboard:new()
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._title = title
+    self._x = x
+    self._previousX = x
+    self._y = y
+    self._previousY = y
+    self._width = width
+    self._previousWidth = width
+    self._height = height
+    self._previousHeight = height
+    self._dock = dock
+    self._playKey = nil
+    self._preHookFn = nil
+    self._postHookFn = nil
+    self._focus = nil
+    self._children = {}
+    self._mouse = Mouse:new()
+    self._keyboard = Keyboard:new()
+
+    return self
 end
 
 function AlkamistGFX:getTitle()              return self._title end
@@ -49,7 +57,7 @@ function AlkamistGFX:getChildren()           return self._children end
 function AlkamistGFX:getPlayKey()            return self._playKey end
 function AlkamistGFX:getFocus()              return self._focus end
 
-function AlkamistGFX:setColor(r, g, b, a)    gfx.set(r, g, b, a) end
+function AlkamistGFX:setColor(color)         gfx.set(color[1], color[2], color[3], color[4]) end
 function AlkamistGFX:setPlayKey(playKey)     self._playKey = playKey end
 function AlkamistGFX:setFocus(focus)         self._focus = focus end
 function AlkamistGFX:setChildren(children)   self._children = children end

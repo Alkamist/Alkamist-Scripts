@@ -3,12 +3,13 @@ local MouseButton = {}
 function MouseButton:new(bitValue)
     if bitValue == nil then return nil end
 
-    local instance = {}
-    instance._mouseCap = nil
-    instance._previousMouseCap = nil
-    instance._bitValue = bitValue
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._mouseCap = nil
+    self._previousMouseCap = nil
+    self._bitValue = bitValue
+
+    return self
 end
 
 function MouseButton:update(mouseCap)
@@ -30,27 +31,28 @@ end
 local Mouse = {}
 
 function Mouse:new()
-    local instance = {}
-    instance._x = 0
-    instance._previousX = 0
-    instance._y = 0
-    instance._previousY = 0
-    instance._cap = nil
-    instance._wheel = 0
-    instance._hWheel = 0
-    instance._buttons = {
+    local self = setmetatable({}, { __index = self })
+
+    self._x = 0
+    self._previousX = 0
+    self._y = 0
+    self._previousY = 0
+    self._cap = nil
+    self._wheel = 0
+    self._hWheel = 0
+    self._buttons = {
         left =   MouseButton:new(1),
         middle = MouseButton:new(64),
         right =  MouseButton:new(2)
     }
-    instance._modifiers = {
+    self._modifiers = {
         shift =   MouseButton:new(8),
         control = MouseButton:new(4),
         alt =     MouseButton:new(16),
         windows = MouseButton:new(32)
     }
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 -- Getters:

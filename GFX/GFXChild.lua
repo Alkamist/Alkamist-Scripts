@@ -19,16 +19,18 @@ function GFXChild:new(init)
     return self
 end
 
-function GFXChild:setLeftDrag(state)   _isLeftDragging = state end
-function GFXChild:setMiddleDrag(state) _isMiddleDragging = state end
-function GFXChild:setRightDrag(state)  _isRightDragging = state end
+-- Functions you should not call:
+
+function GFXChild:setLeftDrag(state)   self._isLeftDragging = state end
+function GFXChild:setMiddleDrag(state) self._isMiddleDragging = state end
+function GFXChild:setRightDrag(state)  self._isRightDragging = state end
 
 -- Getters:
 
-function GFXChild:getX()      return _x end
-function GFXChild:getY()      return _y end
-function GFXChild:getWidth()  return _width end
-function GFXChild:getHeight() return _height end
+function GFXChild:getX()      return self._x end
+function GFXChild:getY()      return self._y end
+function GFXChild:getWidth()  return self._width end
+function GFXChild:getHeight() return self._height end
 function GFXChild:getMouse()  return self._gfxAPI:getMouse() end
 
 function GFXChild:pointIsInside(x, y)
@@ -43,16 +45,16 @@ function GFXChild:mouseWasInsidePreviously()
 end
 function GFXChild:mouseJustEntered() return self:mouseIsInside() and not self:mouseWasInsidePreviously() end
 function GFXChild:mouseJustLeft()    return not self:mouseIsInside() and self:mouseWasInsidePreviously() end
-function GFXChild:isLeftDragging()   return _isLeftDragging end
-function GFXChild:isMiddleDragging() return _isMiddleDragging end
-function GFXChild:isRightDragging()  return _isRightDragging end
+function GFXChild:isLeftDragging()   return self._isLeftDragging end
+function GFXChild:isMiddleDragging() return self._isMiddleDragging end
+function GFXChild:isRightDragging()  return self._isRightDragging end
 
 -- Setters:
 
-function GFXChild:setX(value)      _x = value end
-function GFXChild:setY(value)      _y = value end
-function GFXChild:setWidth(value)  _width = value end
-function GFXChild:setHeight(value) _height = value end
+function GFXChild:setX(value)      self._x = value end
+function GFXChild:setY(value)      self._y = value end
+function GFXChild:setWidth(value)  self._width = value end
+function GFXChild:setHeight(value) self._height = value end
 
 -- Drawing Code:
 
