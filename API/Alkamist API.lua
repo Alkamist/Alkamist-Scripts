@@ -7,11 +7,12 @@ local Project = require "API.Reaper Wrappers.Project"
 local AlkamistAPI = {}
 
 function AlkamistAPI:new()
-    local instance = {}
-    instance._uiRefreshIsEnabled = true
-    instance._projectWrappers = {}
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._uiRefreshIsEnabled = true
+    self._projectWrappers = {}
+
+    return self
 end
 
 -- Object Oriented API Interface:
@@ -143,4 +144,4 @@ function AlkamistAPI:copyTable(source, base)
     return new
 end
 
-return AlkamistAPI
+return AlkamistAPI:new()

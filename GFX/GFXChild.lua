@@ -1,19 +1,22 @@
 local GFXChild = {}
 
-function GFXChild:new(gfxAPI)
-    if gfxAPI == nil then return nil end
+function GFXChild:new(init)
+    local init = init or {}
+    if init.gfxAPI == nil then return nil end
 
-    local instance = {}
-    instance._gfxAPI = gfxAPI
-    instance._x = 0
-    instance._y = 0
-    instance._width = 0
-    instance._height = 0
-    instance._isLeftDragging = false
-    instance._isMiddleDragging = false
-    instance._isRightDragging = false
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._gfxAPI = init.gfxAPI
+    self._x =      init.x or 0
+    self._y =      init.y or 0
+    self._width =  init.width or 0
+    self._height = init.height or 0
+
+    self._isLeftDragging = false
+    self._isMiddleDragging = false
+    self._isRightDragging = false
+
+    return self
 end
 
 function GFXChild:setLeftDrag(state)   _isLeftDragging = state end

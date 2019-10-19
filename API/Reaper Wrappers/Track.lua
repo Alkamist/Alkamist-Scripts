@@ -6,10 +6,11 @@ function Track:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
 
-    local instance = PointerWrapper:new(pointer, "MediaTrack*")
-    instance._project = project
+    local base = PointerWrapper:new(pointer, "MediaTrack*")
+    local self = setmetatable(base, { __index = self })
+    self._project = project
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 -- Getters:

@@ -10,10 +10,11 @@ local Project = setmetatable({}, { __index = PointerWrapper })
 function Project:new(pointer)
     if pointer == nil then return nil end
 
-    local instance = PointerWrapper:new(pointer, "ReaProject*")
-    instance._wrappers = {}
+    local base = PointerWrapper:new(pointer, "ReaProject*")
+    local self = setmetatable(base, { __index = self })
+    self._wrappers = {}
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 -- Getters:

@@ -1,11 +1,12 @@
 local PointerWrapper = {}
 
 function PointerWrapper:new(pointer, pointerType)
-    local instance = {}
-    instance._pointer = pointer
-    instance._pointerType = pointerType
+    local self = setmetatable({}, { __index = self })
 
-    return setmetatable(instance, { __index = self })
+    self._pointer = pointer
+    self._pointerType = pointerType
+
+    return self
 end
 
 function PointerWrapper:getPointer()     return self._pointer end

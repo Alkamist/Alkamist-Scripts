@@ -1,8 +1,6 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Alk = require "API.Alkamist API"
-local GFX = require "GFX.Alkamist GFX"
-local GFXChild = require "GFX.GFXChild"
-local View = require "GFX.View"
+local GFXChild = require("GFX.GFXChild")
+local View = require("GFX.View")
 
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -16,39 +14,39 @@ local function getWhiteKeyNumbers()
 end
 
 local PitchEditor = setmetatable({}, { __index = GFXChild })
-function PitchEditor:new(object)
-    local object = object or {}
-    setmetatable(object, { __index = self })
-    object:init()
-    return object
-end
 
-function PitchEditor:init()
-    GFXChild.init(self)
+function PitchEditor:new(init)
+    local init = init or {}
+    if init.gfxAPI == nil then return nil end
 
-    self.w = GFX.w
-    self.h = GFX.h - self.y
-    self.whiteKeyNumbers = getWhiteKeyNumbers()
-    self.pitchHeight = 128
-    self:updateSelectedItems()
+    local base = GFXChild:new(init)
+    local self = setmetatable(base, { __index = self })
 
-    self.minKeyHeightToDrawCenterline = self.minKeyHeightToDrawCenterline or 16
-    self.blackKeyColor = self.blackKeyColor           or {0.25, 0.25, 0.25, 1.0}
-    self.whiteKeyColor = self.whiteKeyColor           or {0.34, 0.34, 0.34, 1.0}
-    self.keyCenterLineColor = self.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
-    self.itemInsideColor = self.itemInsideColor       or {1.0, 1.0, 1.0, 0.02}
-    self.itemEdgeColor = self.itemEdgeColor           or {1.0, 1.0, 1.0, 0.1}
-    self.editCursorColor = self.editCursorColor       or {1.0, 1.0, 1.0, 0.4}
-    self.playCursorColor = self.playCursorColor       or {1.0, 1.0, 1.0, 0.3}
+    self:setWidth(init.gfxAPI:getWidth())
+    self:setHeight(init.gfxAPI:getHeight() - self:getY())
+    self._whiteKeyNumbers = getWhiteKeyNumbers()
+    self._pitchHeight =        init.maxPitch or 128
+    self._blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
+    self._whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
+    self._keyCenterLineColor = {1.0, 1.0, 1.0, 0.12}
+    self._itemInsideColor =    {1.0, 1.0, 1.0, 0.02}
+    self._itemEdgeColor =      {1.0, 1.0, 1.0, 0.1}
+    self._editCursorColor =    {1.0, 1.0, 1.0, 0.4}
+    self._playCursorColor =    {1.0, 1.0, 1.0, 0.3}
+    self._minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
 
     self.view = View:new{
-        xScale = self.w,
-        yScale = self.h
+        xScale = self:getW(),
+        yScale = self:getH()
     }
+
+    self:updateSelectedItems()
+
+    return self
 end
 
 function PitchEditor:updateSelectedItems()
-    local tracks = Alk.getTracks()
+    local tracks = Alk:getTracks()
     local topMostSelectedItemTrackNumber = #tracks
     for _, item in ipairs(Alk.getSelectedItems()) do
         topMostSelectedItemTrackNumber = math.min(item:getTrack():getNumber(), topMostSelectedItemTrackNumber)

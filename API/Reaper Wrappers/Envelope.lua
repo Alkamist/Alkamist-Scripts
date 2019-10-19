@@ -6,10 +6,11 @@ function Envelope:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
 
-    local instance = PointerWrapper:new(pointer, "TrackEnvelope*")
-    instance._project = project
+    local base = PointerWrapper:new(pointer, "TrackEnvelope*")
+    local self = setmetatable(base, { __index = self })
+    self._project = project
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 -- Getters:

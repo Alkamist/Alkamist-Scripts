@@ -6,10 +6,11 @@ function Source:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
 
-    local instance = PointerWrapper:new(pointer, "PCM_source*")
-    instance._project = project
+    local base = PointerWrapper:new(pointer, "PCM_source*")
+    local self = setmetatable(base, { __index = self })
+    self._project = project
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 function Source:getProject() return self._project end

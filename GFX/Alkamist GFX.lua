@@ -49,7 +49,7 @@ function AlkamistGFX:getChildren()           return self._children end
 function AlkamistGFX:getPlayKey()            return self._playKey end
 function AlkamistGFX:getFocus()              return self._focus end
 
-function AlkamistGFX:setColor(color)         gfx.set(color[1], color[2], color[3], color[4]) end
+function AlkamistGFX:setColor(r, g, b, a)    gfx.set(r, g, b, a) end
 function AlkamistGFX:setPlayKey(playKey)     self._playKey = playKey end
 function AlkamistGFX:setFocus(focus)         self._focus = focus end
 function AlkamistGFX:setChildren(children)   self._children = children end

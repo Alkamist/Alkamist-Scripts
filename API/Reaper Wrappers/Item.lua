@@ -6,10 +6,11 @@ function Item:new(project, pointer)
     if project == nil then return nil end
     if pointer == nil then return nil end
 
-    local instance = PointerWrapper:new(pointer, "MediaItem*")
-    instance._project = project
+    local base = PointerWrapper:new(pointer, "MediaItem*")
+    local self = setmetatable(base, { __index = self })
+    self._project = project
 
-    return setmetatable(instance, { __index = self })
+    return self
 end
 
 -- Getters:

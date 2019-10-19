@@ -1,17 +1,17 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 
-local alk = require("API.Alkamist API"):new()
+local Alk = require("API.Alkamist API")
 
 local startTime = 0
 
-for _, item in ipairs(alk:getItems()) do
+for _, item in ipairs(Alk:getItems()) do
     local test1 = item:getLength()
 end
-local project = alk:getProject()
+local project = Alk:getProject()
 local items = project:getItems()
 
 startTime = reaper.time_precise()
-for _, item in ipairs(alk:getItems()) do
+for _, item in ipairs(Alk:getItems()) do
     local test1 = item:getLength()
     test1 = item:getLeftEdge()
     test1 = item:getRightEdge()
