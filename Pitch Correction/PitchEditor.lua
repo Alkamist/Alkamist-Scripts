@@ -24,8 +24,7 @@ function PitchEditor:new(init)
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
-    self:setWidth(init.gfxAPI:getWidth())
-    self:setHeight(init.gfxAPI:getHeight() - self:getY())
+    self:onResize()
     self._whiteKeyNumbers = getWhiteKeyNumbers()
     self._pitchHeight =        init.pitchHeight or 128
     self._blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
@@ -50,6 +49,11 @@ end
 function PitchEditor:getItems()      return self._items end
 function PitchEditor:getTrack()      return self._track end
 function PitchEditor:getView()       return self._view end
+function PitchEditor:getMouseTime()
+    local mouse = self:getMouse()
+    local relativeMouseX = mouse:getX() - self:getX()
+    return self:pixelsToTime(relativeMouseX)
+end
 
 function PitchEditor:setItems(items) self._items = items end
 function PitchEditor:setTrack(track) self._track = track end
@@ -59,7 +63,8 @@ function PitchEditor:updateSelectedItems()
     local selectedItems = Alk:getSelectedItems()
     local topMostSelectedItemTrackNumber = #tracks
     for _, item in ipairs(selectedItems) do
-        topMostSelectedItemTrackNumber = math.min(item:getTrack():getNumber(), topMostSelectedItemTrackNumber)
+        local itemTrackNumber = item:getTrack():getNumber()
+        topMostSelectedItemTrackNumber = math.min(itemTrackNumber, topMostSelectedItemTrackNumber)
     end
     local track = tracks[topMostSelectedItemTrackNumber]
     self:setTrack(track)
@@ -200,20 +205,20 @@ end
 
 ---------------------- Events ----------------------
 
-function PitchEditor:onUpdate()
-    self.mouseTime = self:pixelsToTime(self:getRelativeMouseX())
-    self.prevMouseTime = self:pixelsToTime(self:getPrevRelativeMouseX())
-    self.mousePitch = self:pixelsToPitch(self:getRelativeMouseY())
-    self.prevMousePitch = self:pixelsToPitch(self:getPrevRelativeMouseY())
-end
+function PitchEditor:onUpdate() end
 function PitchEditor:onResize()
-    self.w = GFX.w
-    self.h = GFX.h - self.y
-    self.view.xScale = self.w
-    self.view.yScale = self.h
+    local view = self:getView()
+    local gfxAPI = self:getGFXAPI()
+    local newWidth = gfxAPI:getWidth()
+    local newHeight = gfxAPI:getHeight() - self:getY()
+
+    self:setWidth(newWidth)
+    self:setHeight(newHeight)
+    view:setXScale(newWidth)
+    view:setYScale(newHeight)
 end
 function PitchEditor:onChar(char)
-    local charFunction = self.onCharFunctions[char]
+    local charFunction = self._onCharFunctions[char]
     if charFunction then charFunction() end
 end
 function PitchEditor:onMouseEnter() end
@@ -221,23 +226,37 @@ function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown() end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
-    if not self:mouseLeftButtonWasDragged() then
-        reaper.SetEditCurPos(self:getLeftEdge() + self.mouseTime, false, true)
+    local wasDragged = self:isLeftDragging()
+    local leftEdge = self:getLeftEdge()
+    local mouseTime = self:getMouseTime()
+
+    if not wasDragged then
+        local project = Alk:getProject()
+        project:setEditCursorTime(leftEdge + mouseTime, false, true)
     end
-    Alk.updateArrange()
+
+    Alk:updateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
-    self.view.scroll.xTarget = self:getRelativeMouseX()
-    self.view.scroll.yTarget = self:getRelativeMouseY()
+    local view = self:getView()
+    local mouse = self:getMouse()
+    local relativeMouseX = mouse:getX() - self:getX()
+    local relativeMouseY = mouse:getY() - self:getY()
+
+    view:setScrollXTarget(relativeMouseX)
+    view:setScrollYTarget(relativeMouseY)
 end
 function PitchEditor:onMouseMiddleButtonDrag()
-    local xChange = GFX.mouse:getXChange()
-    local yChange = GFX.mouse:getYChange()
+    local view = self:getView()
+    local mouse = self:getMouse()
+    local xChange = mouse:getXChange()
+    local yChange = mouse:getYChange()
+    local shiftIsPressed = mouse:getModifiers().shift:isPressed()
 
-    if GFX.mouse.shift:isPressed() then
-        self.view:changeZoom(xChange, yChange, true)
+    if shiftIsPressed then
+        view:changeZoom(xChange, yChange, true)
     else
-        self.view:changeScroll(xChange, yChange)
+        view:changeScroll(xChange, yChange)
     end
 end
 function PitchEditor:onMouseMiddleButtonUp() end
@@ -245,28 +264,45 @@ function PitchEditor:onMouseRightButtonDown() end
 function PitchEditor:onMouseRightButtonDrag() end
 function PitchEditor:onMouseRightButtonUp() end
 function PitchEditor:onMouseWheel(numTicks)
-    self.view.scroll.xTarget = self:getRelativeMouseX()
-    self.view.scroll.yTarget = self:getRelativeMouseY()
-    if GFX.mouse.control:isPressed() then
-        self.view:changeZoom(0.0, numTicks * 55.0, true)
+    local view = self:getView()
+    local mouse = self:getMouse()
+    local relativeMouseX = mouse:getX() - self:getX()
+    local relativeMouseY = mouse:getY() - self:getY()
+    local controlIsPressed = mouse:getModifiers().control:isPressed()
+    local xSensitivity = 55.0
+    local ySensitivity = 55.0
+
+    view:setScrollXTarget(relativeMouseX)
+    view:setScrollYTarget(relativeMouseY)
+
+    if controlIsPressed then
+        view:changeZoom(0.0, numTicks * ySensitivity, true)
     else
-        self.view:changeZoom(numTicks * 55.0, 0.0, true)
+        view:changeZoom(numTicks * xSensitivity, 0.0, true)
     end
 end
 function PitchEditor:onMouseHWheel(numTicks) end
 function PitchEditor:draw()
-    gfx.setimgdim(27, self.w, self.h)
-    gfx.dest = 27
+    local x = self:getX()
+    local y = self:getY()
+    local width = self:getWidth()
+    local height = self:getHeight()
+    local drawBuffer = 27
+
+    gfx.setimgdim(drawBuffer, width, height)
+    gfx.dest = drawBuffer
+
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
+
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     gfx.dest = -1
     gfx.a = 1.0
-    gfx.blit(27, 1.0, 0.0, self.x, self.y, self.w, self.h, 0, 0, GFX.w, GFX.h, 0.0, 0.0)
+    gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
 end
 
-PitchEditor.onCharFunctions = {
+PitchEditor._onCharFunctions = {
     ["Left"] = function()
         msg("left")
     end,

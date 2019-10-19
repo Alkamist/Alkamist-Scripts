@@ -27,6 +27,7 @@ function GFXChild:setRightDrag(state)  self._isRightDragging = state end
 
 -- Getters:
 
+function GFXChild:getGFXAPI() return self._gfxAPI end
 function GFXChild:getX()      return self._x end
 function GFXChild:getY()      return self._y end
 function GFXChild:getWidth()  return self._width end
