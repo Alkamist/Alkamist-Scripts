@@ -33,6 +33,7 @@ function PitchEditor:new(init)
     self._editCursorColor =    {1.0, 1.0, 1.0, 0.4}
     self._playCursorColor =    {1.0, 1.0, 1.0, 0.3}
     self._minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
+    self._previousNumberOfSelectedItems = 0
 
     self._track = {}
     self._items = {}
@@ -210,7 +211,13 @@ end
 
 ---------------------- Events ----------------------
 
-function PitchEditor:onUpdate() end
+function PitchEditor:onUpdate()
+    local numSelectedItems = #Alk:getSelectedItems()
+    if numSelectedItems ~= self._previousNumberOfSelectedItems then
+        self:updateSelectedItems()
+    end
+    self._previousNumberOfSelectedItems = numSelectedItems
+end
 function PitchEditor:onResize()
     local view = self:getView()
     local gfxAPI = self:getGFXAPI()

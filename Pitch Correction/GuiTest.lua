@@ -19,16 +19,6 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     height = 700
 }
 
-local numPrevSelectedItems = 0
-local function Main()
-    local numSelectedItems = #Alk:getSelectedItems()
-    if numSelectedItems ~= numPrevSelectedItems then
-        pitchEditor:updateSelectedItems()
-    end
-    numPrevSelectedItems = numSelectedItems
-end
-
 GFX:setChildren{ pitchEditor }
 GFX:setPlayKey("Space")
-GFX:setPreHook(Main)
 GFX:run()
