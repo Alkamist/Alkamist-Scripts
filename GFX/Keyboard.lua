@@ -139,23 +139,23 @@ local KeyboardKey = {}
 function KeyboardKey:new(keyName, keyValue)
     local self = setmetatable({}, { __index = self })
 
-    self._keyName = keyName
-    self._keyValue = keyValue
-    self._state = false
-    self._previousState = false
+    self.keyName = keyName
+    self.keyValue = keyValue
+    self.state = false
+    self.previousState = false
 
     return self
 end
 
-function KeyboardKey:getName()      return self._keyName end
-function KeyboardKey:getKeyValue()  return self._keyValue end
-function KeyboardKey:isPressed()    return self._state end
-function KeyboardKey:justPressed()  return self._state and not self._previousState end
-function KeyboardKey:justReleased() return not self._state and self._previousState end
+function KeyboardKey:getName()      return self.keyName end
+function KeyboardKey:getKeyValue()  return self.keyValue end
+function KeyboardKey:isPressed()    return self.state end
+function KeyboardKey:justPressed()  return self.state and not self.previousState end
+function KeyboardKey:justReleased() return not self.state and self.previousState end
 
 function KeyboardKey:update(state)
-    self._previousState = self._state
-    self._state = state
+    self.previousState = self.state
+    self.state = state
 end
 
 
@@ -164,21 +164,21 @@ local Keyboard = {}
 
 function Keyboard:new()
     local self = setmetatable({}, { __index = self })
-    self._char = nil
-    self._keys = {}
+    self.char = nil
+    self.keys = {}
     for keyName, keyValue in pairs(characterTable) do
-        self._keys[keyName] = KeyboardKey:new(keyName, keyValue)
+        self.keys[keyName] = KeyboardKey:new(keyName, keyValue)
     end
 
     return self
 end
 
-function Keyboard:getChar() return self._char end
-function Keyboard:getKeys() return self._keys end
+function Keyboard:getChar() return self.char end
+function Keyboard:getKeys() return self.keys end
 
 -- Setters:
 
-function Keyboard:updateChar() self._char = characterTableInverted[gfx.getchar()] end
+function Keyboard:updateChar() self.char = characterTableInverted[gfx.getchar()] end
 function Keyboard:update()
     self:updateChar()
     for keyName, key in pairs(self:getKeys()) do

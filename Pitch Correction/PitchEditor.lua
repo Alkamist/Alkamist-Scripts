@@ -24,27 +24,27 @@ function PitchEditor:new(init)
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
-    self._whiteKeyNumbers =    getWhiteKeyNumbers()
-    self._pitchHeight =        init.pitchHeight or 128
-    self._blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
-    self._whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
-    self._keyCenterLineColor = {1.0, 1.0, 1.0, 0.12}
-    self._itemInsideColor =    {1.0, 1.0, 1.0, 0.02}
-    self._itemEdgeColor =      {1.0, 1.0, 1.0, 0.1}
-    self._editCursorColor =    {1.0, 1.0, 1.0, 0.4}
-    self._playCursorColor =    {1.0, 1.0, 1.0, 0.3}
-    self._minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-    self._previousNumberOfSelectedItems = 0
+    self.whiteKeyNumbers =    getWhiteKeyNumbers()
+    self.pitchHeight =        init.pitchHeight or 128
+    self.blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
+    self.whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
+    self.keyCenterLineColor = {1.0, 1.0, 1.0, 0.12}
+    self.itemInsideColor =    {1.0, 1.0, 1.0, 0.02}
+    self.itemEdgeColor =      {1.0, 1.0, 1.0, 0.1}
+    self.editCursorColor =    {1.0, 1.0, 1.0, 0.4}
+    self.playCursorColor =    {1.0, 1.0, 1.0, 0.3}
+    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
+    self.previousNumberOfSelectedItems = 0
 
-    self._track = {}
-    self._items = {}
+    self.track = {}
+    self.items = {}
 
-    self._view = View:new{
+    self.view = View:new{
         xScale = self:getWidth(),
         yScale = self:getHeight()
     }
 
-    self._boxSelect = BoxSelect:new{
+    self.boxSelect = BoxSelect:new{
         gfxAPI = self:getGFXAPI()
     }
 
@@ -54,17 +54,17 @@ function PitchEditor:new(init)
     return self
 end
 
-function PitchEditor:getItems()      return self._items end
-function PitchEditor:getTrack()      return self._track end
-function PitchEditor:getView()       return self._view end
+function PitchEditor:getItems()      return self.items end
+function PitchEditor:getTrack()      return self.track end
+function PitchEditor:getView()       return self.view end
 function PitchEditor:getMouseTime()
     local mouse = self:getMouse()
     local relativeMouseX = mouse:getX() - self:getX()
     return self:pixelsToTime(relativeMouseX)
 end
 
-function PitchEditor:setItems(items) self._items = items end
-function PitchEditor:setTrack(track) self._track = track end
+function PitchEditor:setItems(items) self.items = items end
+function PitchEditor:setTrack(track) self.track = track end
 
 function PitchEditor:updateSelectedItems()
     local tracks = Alk:getTracks()
@@ -92,7 +92,7 @@ function PitchEditor:getTimeWidth()
     end
     return 0.0
 end
-function PitchEditor:getPitchHeight() return self._pitchHeight end
+function PitchEditor:getPitchHeight() return self.pitchHeight end
 function PitchEditor:pixelsToTime(xPixels)
     local view = self:getView()
     local scrollX = view:getScrollX()
@@ -135,11 +135,11 @@ end
 function PitchEditor:drawKeyBackgrounds()
     local GFX = self:getGFXAPI()
     local pitchHeight = self:getPitchHeight()
-    local blackKeyColor = self._blackKeyColor
-    local whiteKeyColor = self._whiteKeyColor
-    local keyCenterLineColor = self._keyCenterLineColor
-    local minCenterLineHeight = self._minKeyHeightToDrawCenterline
-    local whiteKeyNumbers = self._whiteKeyNumbers
+    local blackKeyColor = self.blackKeyColor
+    local whiteKeyColor = self.whiteKeyColor
+    local keyCenterLineColor = self.keyCenterLineColor
+    local minCenterLineHeight = self.minKeyHeightToDrawCenterline
+    local whiteKeyNumbers = self.whiteKeyNumbers
     local width = self:getWidth()
     local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
 
@@ -170,8 +170,8 @@ function PitchEditor:drawKeyBackgrounds()
 end
 function PitchEditor:drawItemEdges()
     local GFX = self:getGFXAPI()
-    local itemInsideColor = self._itemInsideColor
-    local itemEdgeColor = self._itemEdgeColor
+    local itemInsideColor = self.itemInsideColor
+    local itemEdgeColor = self.itemEdgeColor
     local height = self:getHeight()
     local items = self:getItems()
     local leftEdge = self:getLeftEdge()
@@ -202,8 +202,8 @@ function PitchEditor:drawEditCursor()
     local editCursorPixels = self:timeToPixels(editCursorTime - leftEdge)
     local playPositionPixels = self:timeToPixels(playCursorTime - leftEdge)
     local height = self:getHeight()
-    local editCursorColor = self._editCursorColor
-    local playCursorColor = self._playCursorColor
+    local editCursorColor = self.editCursorColor
+    local playCursorColor = self.playCursorColor
 
     GFX:setColor(editCursorColor)
     self:line(editCursorPixels, 0, editCursorPixels, height, false)
@@ -218,10 +218,10 @@ end
 
 function PitchEditor:onUpdate()
     local numSelectedItems = #Alk:getSelectedItems()
-    if numSelectedItems ~= self._previousNumberOfSelectedItems then
+    if numSelectedItems ~= self.previousNumberOfSelectedItems then
         self:updateSelectedItems()
     end
-    self._previousNumberOfSelectedItems = numSelectedItems
+    self.previousNumberOfSelectedItems = numSelectedItems
 end
 function PitchEditor:onResize()
     local view = self:getView()
@@ -235,7 +235,7 @@ function PitchEditor:onResize()
     view:setYScale(newHeight)
 end
 function PitchEditor:onChar(char)
-    local charFunction = self._onCharFunctions[char]
+    local charFunction = self.onCharFunctions[char]
     if charFunction then charFunction() end
 end
 function PitchEditor:onMouseEnter() end
@@ -278,7 +278,7 @@ function PitchEditor:onMouseMiddleButtonDrag()
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
-    local boxSelect = self._boxSelect
+    local boxSelect = self.boxSelect
     local mouse = self:getMouse()
     local relativeMouseX = mouse:getX() - self:getX()
     local relativeMouseY = mouse:getY() - self:getY()
@@ -286,7 +286,7 @@ function PitchEditor:onMouseRightButtonDown()
     boxSelect:activate(relativeMouseX, relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonDrag()
-    local boxSelect = self._boxSelect
+    local boxSelect = self.boxSelect
     local mouse = self:getMouse()
     local relativeMouseX = mouse:getX() - self:getX()
     local relativeMouseY = mouse:getY() - self:getY()
@@ -294,7 +294,7 @@ function PitchEditor:onMouseRightButtonDrag()
     boxSelect:edit(relativeMouseX, relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonUp()
-    local boxSelect = self._boxSelect
+    local boxSelect = self.boxSelect
     boxSelect:deactivate()
 end
 function PitchEditor:onMouseWheel(numTicks)
@@ -321,7 +321,7 @@ function PitchEditor:onDraw()
     local y = self:getY()
     local width = self:getWidth()
     local height = self:getHeight()
-    local boxSelect = self._boxSelect
+    local boxSelect = self.boxSelect
     --local drawBuffer = 27
 
     --gfx.setimgdim(drawBuffer, width, height)
@@ -338,7 +338,7 @@ function PitchEditor:onDraw()
     --gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
 end
 
-PitchEditor._onCharFunctions = {
+PitchEditor.onCharFunctions = {
     ["Left"] = function()
         msg("left")
     end,

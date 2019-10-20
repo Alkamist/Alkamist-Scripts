@@ -5,15 +5,15 @@ function View:new(init)
 
     local self = setmetatable({}, { __index = self })
 
-    self._xScale = init.xScale or 1.0
-    self._yScale = init.yScale or 1.0
-    self._zoom = {
+    self.xScale = init.xScale or 1.0
+    self.yScale = init.yScale or 1.0
+    self.zoom = {
         x =            init.xZoom or 1.0,
         xSensitivity = init.xZoomSensitivity or 1.0,
         y =            init.yZoom or 1.0,
         ySensitivity = init.yZoomSensitivity or 1.0
     }
-    self._scroll = {
+    self.scroll = {
         x =       init.xScroll or 0.0,
         xTarget = init.xScrollTarget or 0.0,
         y =       init.yScroll or 0.0,
@@ -23,38 +23,38 @@ function View:new(init)
     return self
 end
 
-function View:getZoomX()   return self._zoom.x end
-function View:getZoomY()   return self._zoom.y end
-function View:getScrollX() return self._scroll.x end
-function View:getScrollY() return self._scroll.y end
+function View:getZoomX()   return self.zoom.x end
+function View:getZoomY()   return self.zoom.y end
+function View:getScrollX() return self.scroll.x end
+function View:getScrollY() return self.scroll.y end
 
-function View:setXScale(value)        self._xScale = value end
-function View:setYScale(value)        self._yScale = value end
-function View:setScrollXTarget(value) self._scroll.xTarget = value end
-function View:setScrollYTarget(value) self._scroll.yTarget = value end
+function View:setXScale(value)        self.xScale = value end
+function View:setYScale(value)        self.yScale = value end
+function View:setScrollXTarget(value) self.scroll.xTarget = value end
+function View:setScrollYTarget(value) self.scroll.yTarget = value end
 
 function View:changeScroll(xChange, yChange)
-    local xChange = xChange / self._xScale
-    local yChange = yChange / self._yScale
+    local xChange = xChange / self.xScale
+    local yChange = yChange / self.yScale
 
-    self._scroll.x = self._scroll.x - xChange / self._zoom.x
-    self._scroll.y = self._scroll.y - yChange / self._zoom.y
+    self.scroll.x = self.scroll.x - xChange / self.zoom.x
+    self.scroll.y = self.scroll.y - yChange / self.zoom.y
 end
 
 function View:changeZoom(xChange, yChange, centerOnTarget)
-    local xChange = xChange / self._xScale
-    local yChange = yChange / self._yScale
-    local xTarget = self._scroll.xTarget / self._xScale
-    local yTarget = self._scroll.yTarget / self._yScale
-    local xSensitivity = 0.005 * self._zoom.xSensitivity * self._xScale
-    local ySensitivity = 0.005 * self._zoom.ySensitivity * self._yScale
+    local xChange = xChange / self.xScale
+    local yChange = yChange / self.yScale
+    local xTarget = self.scroll.xTarget / self.xScale
+    local yTarget = self.scroll.yTarget / self.yScale
+    local xSensitivity = 0.005 * self.zoom.xSensitivity * self.xScale
+    local ySensitivity = 0.005 * self.zoom.ySensitivity * self.yScale
 
-    self._zoom.x = self._zoom.x * (1.0 + xSensitivity * xChange)
-    self._zoom.y = self._zoom.y * (1.0 + ySensitivity * yChange)
+    self.zoom.x = self.zoom.x * (1.0 + xSensitivity * xChange)
+    self.zoom.y = self.zoom.y * (1.0 + ySensitivity * yChange)
 
     if centerOnTarget then
-        self._scroll.x = self._scroll.x + xSensitivity * xChange * xTarget / self._zoom.x
-        self._scroll.y = self._scroll.y + ySensitivity * yChange * yTarget / self._zoom.y
+        self.scroll.x = self.scroll.x + xSensitivity * xChange * xTarget / self.zoom.x
+        self.scroll.y = self.scroll.y + ySensitivity * yChange * yTarget / self.zoom.y
     end
 end
 

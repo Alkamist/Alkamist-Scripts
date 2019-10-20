@@ -10,23 +10,23 @@ function BoxSelect:new(init)
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
-    self._insideColor = init.insideColor or {1.0, 1.0, 1.0, 0.05}
-    self._edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.3}
-    self._isActive = false
-    self._x1 = 0
-    self._x2 = 0
-    self._y1 = 0
-    self._y2 = 0
+    self.insideColor = init.insideColor or {1.0, 1.0, 1.0, 0.05}
+    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.3}
+    self.isActive = false
+    self.x1 = 0
+    self.x2 = 0
+    self.y1 = 0
+    self.y2 = 0
 
     return self
 end
 
 function BoxSelect:activate(startingX, startingY)
-    self._isActive = true
-    self._x1 = startingX
-    self._x2 = startingX
-    self._y1 = startingY
-    self._y2 = startingY
+    self.isActive = true
+    self.x1 = startingX
+    self.x2 = startingX
+    self.y1 = startingY
+    self.y2 = startingY
 
     self:setX(startingX)
     self:setY(startingY)
@@ -35,13 +35,13 @@ function BoxSelect:activate(startingX, startingY)
 end
 
 function BoxSelect:edit(editX, editY)
-    self._x2 = editX
-    self._y2 = editY
+    self.x2 = editX
+    self.y2 = editY
 
-    local boxX = math.min(self._x1, self._x2)
-    local boxY = math.min(self._y1, self._y2)
-    local boxWidth = math.abs(self._x1 - self._x2)
-    local boxHeight = math.abs(self._y1 - self._y2)
+    local boxX = math.min(self.x1, self.x2)
+    local boxY = math.min(self.y1, self.y2)
+    local boxWidth = math.abs(self.x1 - self.x2)
+    local boxHeight = math.abs(self.y1 - self.y2)
 
     self:setX(boxX)
     self:setY(boxY)
@@ -50,16 +50,16 @@ function BoxSelect:edit(editX, editY)
 end
 
 function BoxSelect:deactivate()
-    self._isActive = false
+    self.isActive = false
 end
 
 function BoxSelect:draw()
-    local isActive = self._isActive
+    local isActive = self.isActive
 
     if isActive then
         local GFX = self:getGFXAPI()
-        local insideColor = self._insideColor
-        local edgeColor = self._edgeColor
+        local insideColor = self.insideColor
+        local edgeColor = self.edgeColor
         local width = self:getWidth()
         local height = self:getHeight()
 

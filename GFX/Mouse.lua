@@ -5,27 +5,27 @@ function MouseButton:new(bitValue)
 
     local self = setmetatable({}, { __index = self })
 
-    self._mouseCap = 0
-    self._previousMouseCap = 0
-    self._bitValue = bitValue
+    self.mouseCap = 0
+    self.previousMouseCap = 0
+    self.bitValue = bitValue
 
     return self
 end
 
 function MouseButton:update(mouseCap)
-    self._previousMouseCap = self._mouseCap
-    self._mouseCap = mouseCap
+    self.previousMouseCap = self.mouseCap
+    self.mouseCap = mouseCap
 end
 function MouseButton:isPressed()
-    return self._mouseCap & self._bitValue == self._bitValue
+    return self.mouseCap & self.bitValue == self.bitValue
 end
 function MouseButton:justPressed()
-    return self._mouseCap & self._bitValue == self._bitValue
-       and self._previousMouseCap & self._bitValue == 0
+    return self.mouseCap & self.bitValue == self.bitValue
+       and self.previousMouseCap & self.bitValue == 0
 end
 function MouseButton:justReleased()
-    return self._mouseCap & self._bitValue == 0
-       and self._previousMouseCap & self._bitValue == self._bitValue
+    return self.mouseCap & self.bitValue == 0
+       and self.previousMouseCap & self.bitValue == self.bitValue
 end
 
 local Mouse = {}
@@ -33,18 +33,18 @@ local Mouse = {}
 function Mouse:new()
     local self = setmetatable({}, { __index = self })
 
-    self._x = 0
-    self._previousX = 0
-    self._y = 0
-    self._previousY = 0
-    self._wheel = 0
-    self._hWheel = 0
-    self._buttons = {
+    self.x = 0
+    self.previousX = 0
+    self.y = 0
+    self.previousY = 0
+    self.wheel = 0
+    self.hWheel = 0
+    self.buttons = {
         left =   MouseButton:new(1),
         middle = MouseButton:new(64),
         right =  MouseButton:new(2)
     }
-    self._modifiers = {
+    self.modifiers = {
         shift =   MouseButton:new(8),
         control = MouseButton:new(4),
         alt =     MouseButton:new(16),
@@ -56,16 +56,16 @@ end
 
 -- Getters:
 
-function Mouse:getX()         return self._x end
-function Mouse:getPreviousX() return self._previousX end
+function Mouse:getX()         return self.x end
+function Mouse:getPreviousX() return self.previousX end
 function Mouse:getXChange()   return self:getX() - self:getPreviousX() end
-function Mouse:getY()         return self._y end
-function Mouse:getPreviousY() return self._previousY end
+function Mouse:getY()         return self.y end
+function Mouse:getPreviousY() return self.previousY end
 function Mouse:getYChange()   return self:getY() - self:getPreviousY() end
-function Mouse:getWheel()     return self._wheel end
-function Mouse:getHWheel()    return self._hWheel end
-function Mouse:getButtons()   return self._buttons end
-function Mouse:getModifiers() return self._modifiers end
+function Mouse:getWheel()     return self.wheel end
+function Mouse:getHWheel()    return self.hWheel end
+function Mouse:getButtons()   return self.buttons end
+function Mouse:getModifiers() return self.modifiers end
 function Mouse:justMoved()
     return self:getX() ~= self:getPreviousX()
         or self:getY() ~= self:getPreviousY()
@@ -79,13 +79,13 @@ function Mouse:update()
     for _, button   in pairs(self:getButtons())   do button:update(mouseCap) end
     for _, modifier in pairs(self:getModifiers()) do modifier:update(mouseCap) end
 
-    self._previousX = self._x
-    self._x = gfx.mouse_x
-    self._previousY = self._y
-    self._y = gfx.mouse_y
-    self._wheel = math.floor(gfx.mouse_wheel / 120.0)
+    self.previousX = self.x
+    self.x = gfx.mouse_x
+    self.previousY = self.y
+    self.y = gfx.mouse_y
+    self.wheel = math.floor(gfx.mouse_wheel / 120.0)
     gfx.mouse_wheel = 0
-    self._hWheel = math.floor(gfx.mouse_hwheel / 120.0)
+    self.hWheel = math.floor(gfx.mouse_hwheel / 120.0)
     gfx.mouse_hwheel = 0
 end
 

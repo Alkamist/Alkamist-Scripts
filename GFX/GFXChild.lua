@@ -6,42 +6,42 @@ function GFXChild:new(init)
 
     local self = setmetatable({}, { __index = self })
 
-    self._gfxAPI = init.gfxAPI
-    self._x =      init.x or 0
-    self._y =      init.y or 0
-    self._width =  init.width or 0
-    self._height = init.height or 0
+    self.gfxAPI = init.gfxAPI
+    self.x =      init.x or 0
+    self.y =      init.y or 0
+    self.width =  init.width or 0
+    self.height = init.height or 0
 
-    self._leftDragEnabled = false
-    self._middleDragEnabled = false
-    self._rightDragEnabled = false
-    self._isLeftDragging = false
-    self._isMiddleDragging = false
-    self._isRightDragging = false
+    self.leftDragEnabled = false
+    self.middleDragEnabled = false
+    self.rightDragEnabled = false
+    self.leftDragState = false
+    self.middleDragState = false
+    self.rightDragState = false
 
     return self
 end
 
 -- Functions you should not call:
 
-function GFXChild:enableLeftDrag(state)       self._leftDragEnabled = state end
-function GFXChild:enableMiddleDrag(state)     self._middleDragEnabled = state end
-function GFXChild:enableRightDrag(state)      self._rightDragEnabled = state end
-function GFXChild:markAsLeftDragging(state)   self._isLeftDragging = state end
-function GFXChild:markAsMiddleDragging(state) self._isMiddleDragging = state end
-function GFXChild:markAsRightDragging(state)  self._isRightDragging = state end
-function GFXChild:isLeftDragEnabled(state)    return self._leftDragEnabled end
-function GFXChild:isMiddleDragEnabled(state)  return self._middleDragEnabled end
-function GFXChild:isRightDragEnabled(state)   return self._rightDragEnabled end
+function GFXChild:enableLeftDrag(state)       self.leftDragEnabled = state end
+function GFXChild:enableMiddleDrag(state)     self.middleDragEnabled = state end
+function GFXChild:enableRightDrag(state)      self.rightDragEnabled = state end
+function GFXChild:markAsLeftDragging(state)   self.leftDragState = state end
+function GFXChild:markAsMiddleDragging(state) self.middleDragState = state end
+function GFXChild:markAsRightDragging(state)  self.rightDragState = state end
+function GFXChild:isLeftDragEnabled(state)    return self.leftDragEnabled end
+function GFXChild:isMiddleDragEnabled(state)  return self.middleDragEnabled end
+function GFXChild:isRightDragEnabled(state)   return self.rightDragEnabled end
 
 -- Getters:
 
-function GFXChild:getGFXAPI() return self._gfxAPI end
-function GFXChild:getX()      return self._x end
-function GFXChild:getY()      return self._y end
-function GFXChild:getWidth()  return self._width end
-function GFXChild:getHeight() return self._height end
-function GFXChild:getMouse()  return self._gfxAPI:getMouse() end
+function GFXChild:getGFXAPI() return self.gfxAPI end
+function GFXChild:getX()      return self.x end
+function GFXChild:getY()      return self.y end
+function GFXChild:getWidth()  return self.width end
+function GFXChild:getHeight() return self.height end
+function GFXChild:getMouse()  return self.gfxAPI:getMouse() end
 
 function GFXChild:pointIsInside(x, y)
     return x >= self:getX() and x <= self:getX() + self:getWidth()
@@ -55,16 +55,16 @@ function GFXChild:mouseWasInsidePreviously()
 end
 function GFXChild:mouseJustEntered() return self:mouseIsInside() and not self:mouseWasInsidePreviously() end
 function GFXChild:mouseJustLeft()    return not self:mouseIsInside() and self:mouseWasInsidePreviously() end
-function GFXChild:isLeftDragging()   return self._isLeftDragging end
-function GFXChild:isMiddleDragging() return self._isMiddleDragging end
-function GFXChild:isRightDragging()  return self._isRightDragging end
+function GFXChild:isLeftDragging()   return self.leftDragState end
+function GFXChild:isMiddleDragging() return self.middleDragState end
+function GFXChild:isRightDragging()  return self.rightDragState end
 
 -- Setters:
 
-function GFXChild:setX(value)      self._x = value end
-function GFXChild:setY(value)      self._y = value end
-function GFXChild:setWidth(value)  self._width = value end
-function GFXChild:setHeight(value) self._height = value end
+function GFXChild:setX(value)      self.x = value end
+function GFXChild:setY(value)      self.y = value end
+function GFXChild:setWidth(value)  self.width = value end
+function GFXChild:setHeight(value) self.height = value end
 
 -- Drawing Code:
 

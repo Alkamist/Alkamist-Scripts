@@ -16,49 +16,49 @@ function AlkamistGFX:init(init)
 
     gfx.init(title, width, height, dock, x, y)
 
-    self._title = title
-    self._x = x
-    self._previousX = x
-    self._y = y
-    self._previousY = y
-    self._width = width
-    self._previousWidth = width
-    self._height = height
-    self._previousHeight = height
-    self._dock = dock
-    self._playKey = nil
-    self._preHookFn = nil
-    self._postHookFn = nil
-    self._focus = nil
-    self._children = {}
-    self._mouse = Mouse:new()
-    self._keyboard = Keyboard:new()
+    self.title = title
+    self.x = x
+    self.previousX = x
+    self.y = y
+    self.previousY = y
+    self.width = width
+    self.previousWidth = width
+    self.height = height
+    self.previousHeight = height
+    self.dock = dock
+    self.playKey = nil
+    self.preHookFn = nil
+    self.postHookFn = nil
+    self.focus = nil
+    self.children = {}
+    self.mouse = Mouse:new()
+    self.keyboard = Keyboard:new()
 end
 
-function AlkamistGFX:getTitle()              return self._title end
-function AlkamistGFX:getX()                  return self._x end
-function AlkamistGFX:getY()                  return self._y end
-function AlkamistGFX:getWidth()              return self._width end
-function AlkamistGFX:getPreviousWidth()      return self._previousWidth end
+function AlkamistGFX:getTitle()              return self.title end
+function AlkamistGFX:getX()                  return self.x end
+function AlkamistGFX:getY()                  return self.y end
+function AlkamistGFX:getWidth()              return self.width end
+function AlkamistGFX:getPreviousWidth()      return self.previousWidth end
 function AlkamistGFX:getWidthChange()        return self:getWidth() - self:getPreviousWidth() end
-function AlkamistGFX:getHeight()             return self._height end
-function AlkamistGFX:getPreviousHeight()     return self._previousHeight end
+function AlkamistGFX:getHeight()             return self.height end
+function AlkamistGFX:getPreviousHeight()     return self.previousHeight end
 function AlkamistGFX:getHeightChange()       return self:getHeight() - self:getPreviousHeight() end
 function AlkamistGFX:windowWasResized()
     return self:getWidth() ~= self:getPreviousWidth() or self:getHeight() ~= self:getPreviousHeight()
 end
-function AlkamistGFX:getMouse()              return self._mouse end
-function AlkamistGFX:getKeyboard()           return self._keyboard end
-function AlkamistGFX:getChildren()           return self._children end
-function AlkamistGFX:getPlayKey()            return self._playKey end
-function AlkamistGFX:getFocus()              return self._focus end
+function AlkamistGFX:getMouse()              return self.mouse end
+function AlkamistGFX:getKeyboard()           return self.keyboard end
+function AlkamistGFX:getChildren()           return self.children end
+function AlkamistGFX:getPlayKey()            return self.playKey end
+function AlkamistGFX:getFocus()              return self.focus end
 
 function AlkamistGFX:setColor(color)         gfx.set(color[1], color[2], color[3], color[4]) end
-function AlkamistGFX:setPlayKey(playKey)     self._playKey = playKey end
-function AlkamistGFX:setFocus(focus)         self._focus = focus end
-function AlkamistGFX:setChildren(children)   self._children = children end
-function AlkamistGFX:setPreHook(fn)          self._preHookFn = fn end
-function AlkamistGFX:setPostHook(fn)         self._postHookFn = fn end
+function AlkamistGFX:setPlayKey(playKey)     self.playKey = playKey end
+function AlkamistGFX:setFocus(focus)         self.focus = focus end
+function AlkamistGFX:setChildren(children)   self.children = children end
+function AlkamistGFX:setPreHook(fn)          self.preHookFn = fn end
+function AlkamistGFX:setPostHook(fn)         self.postHookFn = fn end
 
 function AlkamistGFX:processChildren()
     local keyboard = self:getKeyboard()
@@ -136,14 +136,14 @@ function AlkamistGFX:processChildren()
     end
 end
 function AlkamistGFX:updateGFXVariables()
-    self._previousX =      self._x
-    self._previousY =      self._y
-    self._previousWidth =  self._width
-    self._previousHeight = self._height
-    self._x =              gfx.x
-    self._y =              gfx.y
-    self._width =          gfx.w
-    self._height =         gfx.h
+    self.previousX =      self.x
+    self.previousY =      self.y
+    self.previousWidth =  self.width
+    self.previousHeight = self.height
+    self.x =              gfx.x
+    self.y =              gfx.y
+    self.width =          gfx.w
+    self.height =         gfx.h
 end
 function AlkamistGFX:passThroughPlayKey()
     local keyboard = self:getKeyboard()
@@ -164,9 +164,9 @@ function AlkamistGFX.run()
     self:getMouse():update()
     self:getKeyboard():update()
     self:passThroughPlayKey()
-    if self._preHookFn then self._preHookFn() end
+    if self.preHookFn then self.preHookFn() end
     self:processChildren()
-    if self._postHookFn then self._postHookFn() end
+    if self.postHookFn then self.postHookFn() end
     self:flagLoopForRepeat()
 end
 
