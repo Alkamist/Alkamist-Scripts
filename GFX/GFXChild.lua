@@ -2,11 +2,11 @@ local GFXChild = {}
 
 function GFXChild:new(init)
     local init = init or {}
-    if init.gfxAPI == nil then return nil end
+    if init.GFX == nil then return nil end
 
     local self = setmetatable({}, { __index = self })
 
-    self.gfxAPI = init.gfxAPI
+    self.GFX =    init.GFX
     self.x =      init.x or 0
     self.y =      init.y or 0
     self.width =  init.width or 0
@@ -36,12 +36,12 @@ function GFXChild:isRightDragEnabled(state)   return self.rightDragEnabled end
 
 -- Getters:
 
-function GFXChild:getGFXAPI() return self.gfxAPI end
+function GFXChild:getGFX() return self.GFX end
 function GFXChild:getX()      return self.x end
 function GFXChild:getY()      return self.y end
 function GFXChild:getWidth()  return self.width end
 function GFXChild:getHeight() return self.height end
-function GFXChild:getMouse()  return self.gfxAPI:getMouse() end
+function GFXChild:getMouse()  return self.GFX:getMouse() end
 
 function GFXChild:pointIsInside(x, y)
     return x >= self:getX() and x <= self:getX() + self:getWidth()

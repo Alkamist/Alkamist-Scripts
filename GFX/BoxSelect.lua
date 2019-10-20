@@ -5,7 +5,7 @@ local BoxSelect = setmetatable({}, { __index = GFXChild })
 
 function BoxSelect:new(init)
     local init = init or {}
-    if init.gfxAPI == nil then return nil end
+    if init.GFX == nil then return nil end
 
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
@@ -57,7 +57,7 @@ function BoxSelect:draw()
     local isActive = self.isActive
 
     if isActive then
-        local GFX = self:getGFXAPI()
+        local GFX = self:getGFX()
         local insideColor = self.insideColor
         local edgeColor = self.edgeColor
         local width = self:getWidth()

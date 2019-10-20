@@ -19,7 +19,7 @@ local PitchEditor = setmetatable({}, { __index = GFXChild })
 
 function PitchEditor:new(init)
     local init = init or {}
-    if init.gfxAPI == nil then return nil end
+    if init.GFX == nil then return nil end
 
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
@@ -45,7 +45,7 @@ function PitchEditor:new(init)
     }
 
     self.boxSelect = BoxSelect:new{
-        gfxAPI = self:getGFXAPI()
+        GFX = self:getGFX()
     }
 
     self:updateSelectedItems()
@@ -133,7 +133,7 @@ end
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
-    local GFX = self:getGFXAPI()
+    local GFX = self:getGFX()
     local pitchHeight = self:getPitchHeight()
     local blackKeyColor = self.blackKeyColor
     local whiteKeyColor = self.whiteKeyColor
@@ -169,7 +169,7 @@ function PitchEditor:drawKeyBackgrounds()
     end
 end
 function PitchEditor:drawItemEdges()
-    local GFX = self:getGFXAPI()
+    local GFX = self:getGFX()
     local itemInsideColor = self.itemInsideColor
     local itemEdgeColor = self.itemEdgeColor
     local height = self:getHeight()
@@ -192,7 +192,7 @@ function PitchEditor:drawItemEdges()
     end
 end
 function PitchEditor:drawEditCursor()
-    local GFX = self:getGFXAPI()
+    local GFX = self:getGFX()
     local project = Alk:getProject()
     local editCursorTime = project:getEditCursorTime()
     local playCursorTime = project:getPlayCursorTime()
@@ -225,9 +225,9 @@ function PitchEditor:onUpdate()
 end
 function PitchEditor:onResize()
     local view = self:getView()
-    local gfxAPI = self:getGFXAPI()
-    local newWidth = gfxAPI:getWidth()
-    local newHeight = gfxAPI:getHeight() - self:getY()
+    local GFX = self:getGFX()
+    local newWidth = GFX:getWidth()
+    local newHeight = GFX:getHeight() - self:getY()
 
     self:setWidth(newWidth)
     self:setHeight(newHeight)
