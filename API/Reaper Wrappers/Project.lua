@@ -12,7 +12,7 @@ function Project:new(pointer)
 
     local base = PointerWrapper:new(pointer, "ReaProject*")
     local self = setmetatable(base, { __index = self })
-    self._wrappers = {}
+    self.wrappers = {}
 
     return self
 end
@@ -21,8 +21,8 @@ end
 
 function Project:wrapPointer(pointer, wrapperType)
     local pointerString = tostring(pointer)
-    self._wrappers[pointerString] = self._wrappers[pointerString] or wrapperType:new(self, pointer)
-    return self._wrappers[pointerString]
+    self.wrappers[pointerString] = self.wrappers[pointerString] or wrapperType:new(self, pointer)
+    return self.wrappers[pointerString]
 end
 function Project:wrapTrack(pointer)            return self:wrapPointer(pointer, Track) end
 function Project:wrapEnvelope(pointer)         return self:wrapPointer(pointer, Envelope) end

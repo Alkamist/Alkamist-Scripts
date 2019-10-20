@@ -8,14 +8,14 @@ function Item:new(project, pointer)
 
     local base = PointerWrapper:new(pointer, "MediaItem*")
     local self = setmetatable(base, { __index = self })
-    self._project = project
+    self.project = project
 
     return self
 end
 
 -- Getters:
 
-function Item:getProject()        return self._project end
+function Item:getProject()        return self.project end
 function Item:getTakeCount()      return reaper.CountTakes(self:getPointer()) end
 function Item:getTake(takeNumber) return self:getProject():wrapTake(reaper.GetTake(self:getPointer(), takeNumber - 1)) end
 function Item:getTakes()          return self:getIterator(self.getTake, self.getTakeCount) end

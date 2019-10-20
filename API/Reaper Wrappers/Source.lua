@@ -8,12 +8,12 @@ function Source:new(project, pointer)
 
     local base = PointerWrapper:new(pointer, "PCM_source*")
     local self = setmetatable(base, { __index = self })
-    self._project = project
+    self.project = project
 
     return self
 end
 
-function Source:getProject() return self._project end
+function Source:getProject() return self.project end
 function Source:getFileName()
     local url = reaper.GetMediaSourceFileName(self:getPointer(), "")
     return url:match("[^/\\]+$")

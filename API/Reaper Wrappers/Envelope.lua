@@ -8,14 +8,14 @@ function Envelope:new(project, pointer)
 
     local base = PointerWrapper:new(pointer, "TrackEnvelope*")
     local self = setmetatable(base, { __index = self })
-    self._project = project
+    self.project = project
 
     return self
 end
 
 -- Getters:
 
-function Envelope:getProject() return self._project end
+function Envelope:getProject() return self.project end
 function Envelope:getTrack()
     local parentTrack = reaper.Envelope_GetParentTrack(self:getPointer())
     return self:getProject():wrapTrack(parentTrack)

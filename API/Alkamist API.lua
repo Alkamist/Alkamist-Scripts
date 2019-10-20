@@ -9,8 +9,8 @@ local AlkamistAPI = {}
 function AlkamistAPI:new()
     local self = setmetatable({}, { __index = self })
 
-    self._uiRefreshIsEnabled = true
-    self._projectWrappers = {}
+    self.uiRefreshIsEnabled = true
+    self.projectWrappers = {}
 
     return self
 end
@@ -25,8 +25,8 @@ end
 function AlkamistAPI:getProject(projectNumber)
     local projectPointer = self:getProjectPointerByNumber(projectNumber)
     local projectString = tostring(projectPointer)
-    self._projectWrappers[projectString] = self._projectWrappers[projectString] or Project:new(projectPointer)
-    return self._projectWrappers[projectString]
+    self.projectWrappers[projectString] = self.projectWrappers[projectString] or Project:new(projectPointer)
+    return self.projectWrappers[projectString]
 end
 function AlkamistAPI:getProjects()
     return setmetatable({}, {
@@ -56,16 +56,16 @@ function AlkamistAPI:updateArrange() reaper.UpdateArrange() end
 function AlkamistAPI:setUIRefresh(enable)
     -- Enable UI refresh.
     if enable then
-        if not self._uiRefreshIsEnabled then
+        if not self.uiRefreshIsEnabled then
             reaper.PreventUIRefresh(-1)
-            self._uiRefreshIsEnabled = true
+            self.uiRefreshIsEnabled = true
         end
 
     -- Disable UI refresh.
     else
-        if self._uiRefreshIsEnabled then
+        if self.uiRefreshIsEnabled then
             reaper.PreventUIRefresh(1)
-            self._uiRefreshIsEnabled = false
+            self.uiRefreshIsEnabled = false
         end
     end
 end

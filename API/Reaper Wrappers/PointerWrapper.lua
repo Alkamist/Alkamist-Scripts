@@ -3,14 +3,14 @@ local PointerWrapper = {}
 function PointerWrapper:new(pointer, pointerType)
     local self = setmetatable({}, { __index = self })
 
-    self._pointer = pointer
-    self._pointerType = pointerType
+    self.pointer = pointer
+    self.pointerType = pointerType
 
     return self
 end
 
-function PointerWrapper:getPointer()     return self._pointer end
-function PointerWrapper:getPointerType() return self._pointerType end
+function PointerWrapper:getPointer()     return self.pointer end
+function PointerWrapper:getPointerType() return self.pointerType end
 function PointerWrapper:validatePointer(projectPointer)
     if projectPointer then
         return reaper.ValidatePtr2(projectPointer, self:getPointer(), self:getPointerType())

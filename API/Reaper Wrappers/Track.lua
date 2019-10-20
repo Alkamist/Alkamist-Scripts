@@ -8,7 +8,7 @@ function Track:new(project, pointer)
 
     local base = PointerWrapper:new(pointer, "MediaTrack*")
     local self = setmetatable(base, { __index = self })
-    self._project = project
+    self.project = project
 
     return self
 end
@@ -24,7 +24,7 @@ function Track:getSelectedItemNumbers()
     end
     return selectedItemNumbers
 end
-function Track:getProject()        return self._project end
+function Track:getProject()        return self.project end
 function Track:getNumber()         return reaper.GetMediaTrackInfo_Value(self:getPointer(), "IP_TRACKNUMBER") end
 function Track:getItemCount()      return reaper.GetTrackNumMediaItems(self:getPointer()) end
 function Track:getItem(itemNumber) return self:getProject():wrapItem(reaper.GetTrackMediaItem(self:getPointer(), itemNumber - 1)) end

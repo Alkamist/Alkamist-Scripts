@@ -8,12 +8,12 @@ function Take:new(project, pointer)
 
     local base = PointerWrapper:new(pointer, "MediaItem_Take*")
     local self = setmetatable(base, { __index = self })
-    self._project = project
+    self.project = project
 
     return self
 end
 
-function Take:getProject()     return self._project end
+function Take:getProject()     return self.project end
 function Take:getName()        return reaper.GetTakeName(self:getPointer()) end
 function Take:getGUID()        return reaper.BR_GetMediaItemTakeGUID(self:getPointer()) end
 function Take:getItem()        return self:getProject():wrapItem(reaper.GetMediaItemTake_Item(self:getPointer())) end
