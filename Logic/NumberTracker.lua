@@ -25,6 +25,7 @@ local NumberTracker_mt = {
 }
 
 function NumberTracker:new(initialValue)
+    local initialValue = initialValue or 0
     local base = State:new(initialValue)
     local self = setmetatable(base, NumberTracker_mt)
 

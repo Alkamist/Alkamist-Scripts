@@ -37,9 +37,9 @@ function BoxSelect:edit(editX, editY)
     self.x2 = editX
     self.y2 = editY
 
-    local boxX = math.min(self.x1, self.x2)
-    local boxY = math.min(self.y1, self.y2)
-    local boxWidth = math.abs(self.x1 - self.x2)
+    local boxX =      math.min(self.x1, self.x2)
+    local boxY =      math.min(self.y1, self.y2)
+    local boxWidth =  math.abs(self.x1 - self.x2)
     local boxHeight = math.abs(self.y1 - self.y2)
 
     self.x:update(boxX)

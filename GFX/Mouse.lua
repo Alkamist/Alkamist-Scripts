@@ -10,14 +10,14 @@ function MouseButton:new(bitValue)
     local self = setmetatable({}, { __index = self })
 
     self.bitValue = bitValue
-    self.switch = Switch:new(false)
+    self.state = Switch:new(false)
 
     return self
 end
 
 function MouseButton:update(mouseCap)
     local newState = mouseCap & self.bitValue == self.bitValue
-    self.switch:update(newState)
+    self.state:update(newState)
 end
 
 local Mouse = {}
@@ -27,8 +27,8 @@ function Mouse:new()
 
     self.x =      NumberTracker:new(0)
     self.y =      NumberTracker:new(0)
-    self.wheel =  NumberTracker:new(0)
-    self.hWheel = NumberTracker:new(0)
+    self.wheel =  0
+    self.hWheel = 0
     self.cap =    NumberTracker:new(0)
     self.buttons = {
         left =    MouseButton:new(1),
@@ -46,16 +46,16 @@ function Mouse:new()
     return self
 end
 
--- Setters:
-
 function Mouse:update()
+    local mouseCap = gfx.mouse_cap
+
     self.x:update(gfx.mouse_x)
     self.y:update(gfx.mouse_y)
-    self.wheel:update(math.floor(gfx.mouse_wheel / 120.0))
+    self.wheel = math.floor(gfx.mouse_wheel / 120.0)
     gfx.mouse_wheel = 0
-    self.hWheel:update(math.floor(gfx.mouse_hwheel / 120.0))
+    self.hWheel = math.floor(gfx.mouse_hwheel / 120.0)
     gfx.mouse_hwheel = 0
-    self.cap:update(gfx.mouse_cap)
+    self.cap:update(mouseCap)
 
     for _, button   in pairs(self.buttons) do
         button:update(mouseCap)
@@ -63,6 +63,7 @@ function Mouse:update()
     for _, modifier in pairs(self.modifiers) do
         modifier:update(mouseCap)
     end
+
     self.moved = self.x.changed or self.y.changed
 end
 

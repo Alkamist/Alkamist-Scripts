@@ -1,4 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local NumberTracker =       require("Logic.NumberTracker")
 local Alk =                 require("API.Alkamist API")
 local GFXChild =            require("GFX.GFXChild")
 local View =                require("GFX.View")
@@ -42,12 +43,12 @@ function PitchEditor:new(init)
     self.view =      View:new()
     self.boxSelect = BoxSelect:new()
 
-    self.mouseTime  = NumberTracker(0)
-    self.mousePitch = NumberTracker(0)
-    self.leftEdge =   NumberTracker(0)
-    self.timeWidth =  NumberTracker(0)
+    self.mouseTime  = NumberTracker:new(0)
+    self.mousePitch = NumberTracker:new(0)
+    self.leftEdge =   NumberTracker:new(0)
+    self.timeWidth =  NumberTracker:new(0)
 
-    self.numberOfSelectedItems = NumberTracker(0)
+    self.numberOfSelectedItems = NumberTracker:new(0)
 
     self:updateSelectedItems()
     self:onResize()
@@ -57,15 +58,17 @@ end
 
 function PitchEditor:updateLeftEdge()
     if #self.items > 0 then
-        return self.leftEdge:update(self.items[1]:getLeftEdge())
+        self.leftEdge:update(self.items[1]:getLeftEdge())
+    else
+        self.leftEdge:update(0.0)
     end
-    return self.leftEdge:update(0.0)
 end
 function PitchEditor:updateTimeWidth()
     if #self.items > 0 then
-        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self:getLeftEdge())
+        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self.leftEdge)
+    else
+        self.timeWidth:update(0.0)
     end
-    self.timeWidth:update(0.0)
 end
 function PitchEditor:updateSelectedItems()
     local tracks = Alk:getTracks()
@@ -82,38 +85,34 @@ function PitchEditor:updateSelectedItems()
 end
 
 function PitchEditor:pixelsToTime(xPixels)
-    local view = self:getView()
-    local scrollX = view:getScrollX()
-    local zoomX = view:getZoomX()
-    local width = self:getWidth()
-    local timeWidth = self:getTimeWidth()
+    local scrollX = self.view.scroll.x
+    local zoomX = self.view.zoom.x
+    local width = self.width
+    local timeWidth = self.timeWidth
 
     return timeWidth * (scrollX + xPixels / (width * zoomX))
 end
 function PitchEditor:timeToPixels(time)
-    local view = self:getView()
-    local scrollX = view:getScrollX()
-    local zoomX = view:getZoomX()
-    local width = self:getWidth()
-    local timeWidth = self:getTimeWidth()
+    local scrollX = self.view.scroll.x
+    local zoomX = self.view.zoom.x
+    local width = self.width.current
+    local timeWidth = self.timeWidth.current
 
     return zoomX * width * (time / timeWidth - scrollX)
 end
 function PitchEditor:pixelsToPitch(yPixels)
-    local view = self:getView()
-    local scrollY = view:getScrollY()
-    local zoomY = view:getZoomY()
-    local height = self:getHeight()
-    local pitchHeight = self:getPitchHeight()
+    local scrollY = self.view.scroll.y
+    local zoomY = self.view.zoom.y
+    local height = self.height
+    local pitchHeight = self.pitchHeight
 
     return pitchHeight * (1.0 - (scrollY + yPixels / (height * zoomY))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
-    local view = self:getView()
-    local scrollY = view:getScrollY()
-    local zoomY = view:getZoomY()
-    local height = self:getHeight()
-    local pitchHeight = self:getPitchHeight()
+    local scrollY = self.view.scroll.y
+    local zoomY = self.view.zoom.y
+    local height = self.height
+    local pitchHeight = self.pitchHeight
 
     return zoomY * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scrollY)
 end
@@ -133,6 +132,7 @@ end
 
 function PitchEditor:drawKeyBackgrounds()
     local width = self.width.current
+
     local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
 
     for i = 1, self.pitchHeight do
@@ -164,7 +164,7 @@ function PitchEditor:drawItemEdges()
     local height = self.height.current
 
     for _, item in ipairs(self.items) do
-        local leftBoundTime = item:getLeftEdge() - self.leftEdge
+        local leftBoundTime = item:getLeftEdge() - self.leftEdge.current
         local rightBoundTime = leftBoundTime + item:getLength()
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
@@ -201,8 +201,8 @@ end
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
-    self.mouseTime:update(self:pixelsToTime(self.relativeMouseX))
-    self.mousePitch:update(self:pixelsToPitch(self.relativeMouseY))
+    self.mouseTime:update(self:pixelsToTime(self.relativeMouseX.current))
+    self.mousePitch:update(self:pixelsToPitch(self.relativeMouseY.current))
 
     self.numberOfSelectedItems:update(#Alk:getSelectedItems())
     if self.numberOfSelectedItems.changed then
@@ -215,8 +215,8 @@ function PitchEditor:onResize()
 
     self.width:update(newWidth)
     self.height:update(newHeight)
-    view.xScale = newWidth
-    view.yScale = newHeight
+    self.view.xScale = newWidth
+    self.view.yScale = newHeight
 end
 function PitchEditor:onKeyPress()
     local charFunction = self.onCharFunctions[self.keyboard.char]
@@ -225,7 +225,7 @@ end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    --self:addPitchCorrectionNode(self.relativeMouseX, self.relativeMouseY)
+    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY)
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
@@ -236,68 +236,47 @@ function PitchEditor:onMouseLeftButtonUp()
     Alk:updateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
-    view.scroll.xTarget = self.relativeMouseX
-    view.scroll.yTarget = self.relativeMouseY
+    self.view.scroll.xTarget = self.relativeMouseX.current
+    self.view.scroll.yTarget = self.relativeMouseY.current
 end
 function PitchEditor:onMouseMiddleButtonDrag()
-    local view = self:getView()
-    local mouse = self:getMouse()
-    local xChange = mouse:getXChange()
-    local yChange = mouse:getYChange()
-    local shiftIsPressed = mouse:getModifiers().shift:isPressed()
+    local xChange = self.mouse.x.delta
+    local yChange = self.mouse.y.delta
+    local shiftIsPressed = self.mouse.modifiers.shift.state.current
 
     if shiftIsPressed then
-        view:changeZoom(xChange, yChange, true)
+        self.view:changeZoom(xChange, yChange, true)
     else
-        view:changeScroll(xChange, yChange)
+        self.view:changeScroll(xChange, yChange)
     end
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
-    local boxSelect = self.boxSelect
-    local mouse = self:getMouse()
-    local relativeMouseX = self:getRelativeMouseX()
-    local relativeMouseY = self:getRelativeMouseY()
-
-    boxSelect:activate(relativeMouseX, relativeMouseY)
+    self.boxSelect:activate(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseRightButtonDrag()
-    local boxSelect = self.boxSelect
-    local mouse = self:getMouse()
-    local relativeMouseX = self:getRelativeMouseX()
-    local relativeMouseY = self:getRelativeMouseY()
-
-    boxSelect:edit(relativeMouseX, relativeMouseY)
+    self.boxSelect:edit(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseRightButtonUp()
-    local boxSelect = self.boxSelect
-    boxSelect:deactivate()
+    self.boxSelect:deactivate()
 end
-function PitchEditor:onMouseWheel(numTicks)
-    local view = self:getView()
-    local mouse = self:getMouse()
-    local relativeMouseX = self:getRelativeMouseX()
-    local relativeMouseY = self:getRelativeMouseY()
-    local controlIsPressed = mouse:getModifiers().control:isPressed()
+function PitchEditor:onMouseWheel()
+    local numTicks = self.mouse.wheel
+    local controlIsPressed = self.mouse.modifiers.control.state.current
     local xSensitivity = 55.0
     local ySensitivity = 55.0
 
-    view:setScrollXTarget(relativeMouseX)
-    view:setScrollYTarget(relativeMouseY)
+    self.view.scroll.xTarget = self.relativeMouseX.current
+    self.view.scroll.yTarget = self.relativeMouseY.current
 
     if controlIsPressed then
-        view:changeZoom(0.0, numTicks * ySensitivity, true)
+        self.view:changeZoom(0.0, numTicks * ySensitivity, true)
     else
-        view:changeZoom(numTicks * xSensitivity, 0.0, true)
+        self.view:changeZoom(numTicks * xSensitivity, 0.0, true)
     end
 end
-function PitchEditor:onMouseHWheel(numTicks) end
+function PitchEditor:onMouseHWheel() end
 function PitchEditor:onDraw()
-    local x = self:getX()
-    local y = self:getY()
-    local width = self:getWidth()
-    local height = self:getHeight()
-    local boxSelect = self.boxSelect
     --local drawBuffer = 27
 
     --gfx.setimgdim(drawBuffer, width, height)
@@ -307,7 +286,7 @@ function PitchEditor:onDraw()
     self:drawItemEdges()
     self:drawEditCursor()
     self:drawPitchCorrectionNodes()
-    boxSelect:draw()
+    self.boxSelect:draw()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     --gfx.dest = -1

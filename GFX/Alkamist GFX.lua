@@ -35,8 +35,7 @@ function AlkamistGFX:setPlayKey(playKey) self.playKey = playKey end
 function AlkamistGFX:setChildren(children)
     self.children = children
 
-    for _, child in pairs(self.children) do
-        child.GFX =      self
+    for _, child in pairs(children) do
         child.mouse =    self.mouse
         child.keyboard = self.keyboard
     end
@@ -44,10 +43,10 @@ end
 
 function AlkamistGFX:processChildren()
     local state = {
-        x = self.x,
-        y = self.y,
-        width = self.width,
-        height = self.height
+        x = self.x.current,
+        y = self.y.current,
+        width = self.width.current,
+        height = self.height.current
     }
 
     for _, child in pairs(self.children) do
@@ -56,7 +55,7 @@ function AlkamistGFX:processChildren()
         child:updateState(state)
         child:onUpdate()
 
-        if self.width.value.changed or self.height.value.changed then
+        if self.width.changed or self.height.changed then
             child:onResize()
         end
         if self.focus == child and self.keyboard.char then
@@ -67,21 +66,21 @@ function AlkamistGFX:processChildren()
         if child:mouseJustLeft()    then child:onMouseLeave() end
 
         if child:mouseIsInside() then
-            if self.mouse.buttons.left.switch.activated then
+            if self.mouse.buttons.left.state.activated then
                 child.leftDragIsEnabled = true
                 child:onMouseLeftButtonDown()
             end
-            if self.mouse.buttons.middle.switch.activated then
+            if self.mouse.buttons.middle.state.activated then
                 child.middleDragIsEnabled = true
                 child:onMouseMiddleButtonDown()
             end
-            if self.mouse.buttons.right.switch.activated then
+            if self.mouse.buttons.right.state.activated then
                 child.rightDragIsEnabled = true
                 child:onMouseRightButtonDown()
             end
 
-            if self.mouse.wheel.changed  then child:onMouseWheel() end
-            if self.mouse.hWheel.changed then child:onMouseHWheel() end
+            if self.mouse.wheel > 0 or self.mouse.wheel < 0 then child:onMouseWheel() end
+            if self.mouse.hWheel > 0 or self.mouse.hWheel < 0 then child:onMouseHWheel() end
         end
 
         if self.mouse.moved and child.leftDragIsEnabled then
@@ -97,17 +96,17 @@ function AlkamistGFX:processChildren()
             child:onMouseRightButtonDrag()
         end
 
-        if self.mouse.buttons.left.switch.deactivated then
+        if self.mouse.buttons.left.state.deactivated then
             child:onMouseLeftButtonUp()
             child.leftIsDragging = false
             child.leftDragIsEnabled = false
         end
-        if self.mouse.buttons.middle.switch.deactivated then
+        if self.mouse.buttons.middle.state.deactivated then
             child:onMouseMiddleButtonUp()
             child.middleIsDragging = false
             child.middleDragIsEnabled = false
         end
-        if self.mouse.buttons.right.switch.deactivated then
+        if self.mouse.buttons.right.state.deactivated then
             child:onMouseRightButtonUp()
             child.rightIsDragging = false
             child.rightDragIsEnabled = false

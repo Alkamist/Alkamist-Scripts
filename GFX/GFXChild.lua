@@ -8,16 +8,16 @@ function GFXChild:new(init)
 
     local self = setmetatable({}, { __index = self })
 
-    self.GFX =      {}
+    self.GFX =      init.GFX
     self.mouse =    {}
     self.keyboard = {}
-    self.x =        NumberTracker(init.x)
-    self.y =        NumberTracker(init.y)
-    self.width =    NumberTracker(init.width)
-    self.height =   NumberTracker(init.height)
+    self.x =        NumberTracker:new(init.x)
+    self.y =        NumberTracker:new(init.y)
+    self.width =    NumberTracker:new(init.width)
+    self.height =   NumberTracker:new(init.height)
 
-    self.relativeMouseX = NumberTracker(init.mouse.x - self.x)
-    self.relativeMouseY = NumberTracker(init.mouse.y - self.y)
+    self.relativeMouseX = NumberTracker:new(0)
+    self.relativeMouseY = NumberTracker:new(0)
 
     return self
 end

@@ -11,6 +11,7 @@ GFX:init{
 }
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
+    GFX = GFX,
     x = 0,
     y = 0,
     width = 1000,
