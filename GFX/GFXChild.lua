@@ -73,10 +73,10 @@ function GFXChild:rect(x, y, width, height, filled)
 end
 function GFXChild:line(x, y, x2, y2, antiAliased)
     gfx.line(x + self:getX(),
-                y + self:getY(),
-                x2 + self:getX(),
-                y2 + self:getY(),
-                antiAliased)
+             y + self:getY(),
+             x2 + self:getX(),
+             y2 + self:getY(),
+             antiAliased)
 end
 
 -- Events:

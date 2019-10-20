@@ -135,7 +135,6 @@ function AlkamistGFX:processChildren()
         child:onDraw()
     end
 end
-
 function AlkamistGFX:updateGFXVariables()
     self._previousX =      self._x
     self._previousY =      self._y
@@ -158,7 +157,6 @@ function AlkamistGFX:flagLoopForRepeat()
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
     gfx.update()
 end
-
 function AlkamistGFX.run()
     local self = AlkamistGFX
 

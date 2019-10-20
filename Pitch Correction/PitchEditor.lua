@@ -2,6 +2,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Alk = require("API.Alkamist API")
 local GFXChild = require("GFX.GFXChild")
 local View = require("GFX.View")
+local BoxSelect = require("GFX.BoxSelect")
 
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -41,6 +42,10 @@ function PitchEditor:new(init)
     self._view = View:new{
         xScale = self:getWidth(),
         yScale = self:getHeight()
+    }
+
+    self._boxSelect = BoxSelect:new{
+        gfxAPI = self:getGFXAPI()
     }
 
     self:updateSelectedItems()
@@ -272,9 +277,26 @@ function PitchEditor:onMouseMiddleButtonDrag()
     end
 end
 function PitchEditor:onMouseMiddleButtonUp() end
-function PitchEditor:onMouseRightButtonDown() end
-function PitchEditor:onMouseRightButtonDrag() end
-function PitchEditor:onMouseRightButtonUp() end
+function PitchEditor:onMouseRightButtonDown()
+    local boxSelect = self._boxSelect
+    local mouse = self:getMouse()
+    local relativeMouseX = mouse:getX() - self:getX()
+    local relativeMouseY = mouse:getY() - self:getY()
+
+    boxSelect:activate(relativeMouseX, relativeMouseY)
+end
+function PitchEditor:onMouseRightButtonDrag()
+    local boxSelect = self._boxSelect
+    local mouse = self:getMouse()
+    local relativeMouseX = mouse:getX() - self:getX()
+    local relativeMouseY = mouse:getY() - self:getY()
+
+    boxSelect:edit(relativeMouseX, relativeMouseY)
+end
+function PitchEditor:onMouseRightButtonUp()
+    local boxSelect = self._boxSelect
+    boxSelect:deactivate()
+end
 function PitchEditor:onMouseWheel(numTicks)
     local view = self:getView()
     local mouse = self:getMouse()
@@ -299,6 +321,7 @@ function PitchEditor:onDraw()
     local y = self:getY()
     local width = self:getWidth()
     local height = self:getHeight()
+    local boxSelect = self._boxSelect
     --local drawBuffer = 27
 
     --gfx.setimgdim(drawBuffer, width, height)
@@ -306,6 +329,7 @@ function PitchEditor:onDraw()
 
     self:drawKeyBackgrounds()
     self:drawItemEdges()
+    boxSelect:draw()
     self:drawEditCursor()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
