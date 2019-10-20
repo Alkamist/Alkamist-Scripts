@@ -1,8 +1,9 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Alk = require("API.Alkamist API")
-local GFXChild = require("GFX.GFXChild")
-local View = require("GFX.View")
-local BoxSelect = require("GFX.BoxSelect")
+local Alk =                 require("API.Alkamist API")
+local GFXChild =            require("GFX.GFXChild")
+local View =                require("GFX.View")
+local BoxSelect =           require("GFX.BoxSelect")
+local PitchCorrectionNode = require("Pitch Correction.PitchCorrectionNode")
 
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -38,6 +39,7 @@ function PitchEditor:new(init)
 
     self.track = {}
     self.items = {}
+    self.pitchCorrectionNodes = {}
 
     self.view = View:new{
         xScale = self:getWidth(),
@@ -57,11 +59,17 @@ end
 function PitchEditor:getItems()      return self.items end
 function PitchEditor:getTrack()      return self.track end
 function PitchEditor:getView()       return self.view end
-function PitchEditor:getMouseTime()
-    local mouse = self:getMouse()
-    local relativeMouseX = mouse:getX() - self:getX()
-    return self:pixelsToTime(relativeMouseX)
+
+function PitchEditor:updateMouseTime()
+    local relativeMouseX = self:getRelativeMouseX()
+    self.mouseTime = self:pixelsToTime(relativeMouseX)
 end
+function PitchEditor:updateMousePitch()
+    local relativeMouseY = self:getRelativeMouseY()
+    self.mousePitch = self:pixelsToPitch(relativeMouseY)
+end
+function PitchEditor:getMouseTime()  return self.mouseTime end
+function PitchEditor:getMousePitch() return self.mousePitch end
 
 function PitchEditor:setItems(items) self.items = items end
 function PitchEditor:setTrack(track) self.track = track end
@@ -128,6 +136,22 @@ function PitchEditor:pitchToPixels(pitch)
     local pitchHeight = self:getPitchHeight()
 
     return zoomY * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scrollY)
+end
+
+function PitchEditor:addPitchCorrectionNode(x, y)
+    local GFX = self:getGFX()
+    local pitchCorrectionNodes = self.pitchCorrectionNodes
+    local previousNode
+    local nextNode = pitchCorrectionNodes[#pitchCorrectionNodes]
+    local newNode = PitchCorrectionNode:new{
+        GFX = GFX,
+        x = x,
+        y = y,
+        nextNode = nextNode,
+        isActive = true
+    }
+
+    table.insert(pitchCorrectionNodes, newNode)
 end
 
 ---------------------- Drawing Code ----------------------
@@ -213,10 +237,18 @@ function PitchEditor:drawEditCursor()
         self:line(playPositionPixels, 0, playPositionPixels, height, false)
     end
 end
+function PitchEditor:drawPitchCorrectionNodes()
+    for _, node in ipairs(self.pitchCorrectionNodes) do
+        node:draw()
+    end
+end
 
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
+    self:updateMouseTime()
+    self:updateMousePitch()
+
     local numSelectedItems = #Alk:getSelectedItems()
     if numSelectedItems ~= self.previousNumberOfSelectedItems then
         self:updateSelectedItems()
@@ -240,7 +272,13 @@ function PitchEditor:onChar(char)
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown() end
+function PitchEditor:onMouseLeftButtonDown()
+    local mouse = self:getMouse()
+    local relativeMouseX = self:getRelativeMouseX()
+    local relativeMouseY = self:getRelativeMouseY()
+
+    self:addPitchCorrectionNode(relativeMouseX, relativeMouseY)
+end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     local wasDragged = self:isLeftDragging()
@@ -257,8 +295,8 @@ end
 function PitchEditor:onMouseMiddleButtonDown()
     local view = self:getView()
     local mouse = self:getMouse()
-    local relativeMouseX = mouse:getX() - self:getX()
-    local relativeMouseY = mouse:getY() - self:getY()
+    local relativeMouseX = self:getRelativeMouseX()
+    local relativeMouseY = self:getRelativeMouseY()
 
     view:setScrollXTarget(relativeMouseX)
     view:setScrollYTarget(relativeMouseY)
@@ -280,16 +318,16 @@ function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
     local boxSelect = self.boxSelect
     local mouse = self:getMouse()
-    local relativeMouseX = mouse:getX() - self:getX()
-    local relativeMouseY = mouse:getY() - self:getY()
+    local relativeMouseX = self:getRelativeMouseX()
+    local relativeMouseY = self:getRelativeMouseY()
 
     boxSelect:activate(relativeMouseX, relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonDrag()
     local boxSelect = self.boxSelect
     local mouse = self:getMouse()
-    local relativeMouseX = mouse:getX() - self:getX()
-    local relativeMouseY = mouse:getY() - self:getY()
+    local relativeMouseX = self:getRelativeMouseX()
+    local relativeMouseY = self:getRelativeMouseY()
 
     boxSelect:edit(relativeMouseX, relativeMouseY)
 end
@@ -300,8 +338,8 @@ end
 function PitchEditor:onMouseWheel(numTicks)
     local view = self:getView()
     local mouse = self:getMouse()
-    local relativeMouseX = mouse:getX() - self:getX()
-    local relativeMouseY = mouse:getY() - self:getY()
+    local relativeMouseX = self:getRelativeMouseX()
+    local relativeMouseY = self:getRelativeMouseY()
     local controlIsPressed = mouse:getModifiers().control:isPressed()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
@@ -329,8 +367,9 @@ function PitchEditor:onDraw()
 
     self:drawKeyBackgrounds()
     self:drawItemEdges()
-    boxSelect:draw()
     self:drawEditCursor()
+    self:drawPitchCorrectionNodes()
+    boxSelect:draw()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     --gfx.dest = -1

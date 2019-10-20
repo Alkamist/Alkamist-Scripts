@@ -2,7 +2,7 @@ local GFXChild = {}
 
 function GFXChild:new(init)
     local init = init or {}
-    if init.GFX == nil then return nil end
+    --if init.GFX == nil then return nil end
 
     local self = setmetatable({}, { __index = self })
 
@@ -11,6 +11,9 @@ function GFXChild:new(init)
     self.y =      init.y or 0
     self.width =  init.width or 0
     self.height = init.height or 0
+
+    self.relativeMouseX = 0
+    self.relativeMouseY = 0
 
     self.leftDragEnabled = false
     self.middleDragEnabled = false
@@ -36,12 +39,23 @@ function GFXChild:isRightDragEnabled(state)   return self.rightDragEnabled end
 
 -- Getters:
 
-function GFXChild:getGFX() return self.GFX end
+function GFXChild:getGFX()    return self.GFX end
 function GFXChild:getX()      return self.x end
 function GFXChild:getY()      return self.y end
 function GFXChild:getWidth()  return self.width end
 function GFXChild:getHeight() return self.height end
 function GFXChild:getMouse()  return self.GFX:getMouse() end
+
+function GFXChild:updateRelativeMouseX()
+    local mouse = self:getMouse()
+    self.relativeMouseX = mouse:getX() - self:getX()
+end
+function GFXChild:updateRelativeMouseY()
+    local mouse = self:getMouse()
+    self.relativeMouseY = mouse:getY() - self:getY()
+end
+function GFXChild:getRelativeMouseX() return self.relativeMouseX end
+function GFXChild:getRelativeMouseY() return self.relativeMouseY end
 
 function GFXChild:pointIsInside(x, y)
     return x >= self:getX() and x <= self:getX() + self:getWidth()
@@ -78,10 +92,20 @@ function GFXChild:line(x, y, x2, y2, antiAliased)
              y2 + self:getY(),
              antiAliased)
 end
+function GFXChild:circle(x, y, r, filled, antiAliased)
+    gfx.circle(x + self:getX(),
+               y + self:getY(),
+               r,
+               filled,
+               antiAliased)
+end
 
 -- Events:
 
-function GFXChild:onUpdate() end
+function GFXChild:onUpdate()
+    self:updateRelativeMouseX()
+    self:updateRelativeMouseY()
+end
 function GFXChild:onResize() end
 function GFXChild:onChar(char) end
 function GFXChild:onMouseEnter() end
