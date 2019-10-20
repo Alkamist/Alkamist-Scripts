@@ -1,5 +1,5 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-
+local NumberTracker = require("Logic.NumberTracker")
 local Mouse = require("GFX.Mouse")
 local Keyboard = require("GFX.Keyboard")
 
@@ -16,158 +16,132 @@ function AlkamistGFX:init(init)
 
     gfx.init(title, width, height, dock, x, y)
 
-    self.title = title
-    self.x = x
-    self.previousX = x
-    self.y = y
-    self.previousY = y
-    self.width = width
-    self.previousWidth = width
-    self.height = height
-    self.previousHeight = height
-    self.dock = dock
+    self.title =    title
+    self.x =        NumberTracker:new(x)
+    self.y =        NumberTracker:new(y)
+    self.width =    NumberTracker:new(width)
+    self.height =   NumberTracker:new(height)
+    self.dock =     NumberTracker:new(dock)
+    self.mouse =    Mouse:new()
+    self.keyboard = Keyboard:new()
     self.playKey = nil
     self.preHookFn = nil
     self.postHookFn = nil
     self.focus = nil
     self.children = {}
-    self.mouse = Mouse:new()
-    self.keyboard = Keyboard:new()
 end
 
-function AlkamistGFX:getTitle()              return self.title end
-function AlkamistGFX:getX()                  return self.x end
-function AlkamistGFX:getY()                  return self.y end
-function AlkamistGFX:getWidth()              return self.width end
-function AlkamistGFX:getPreviousWidth()      return self.previousWidth end
-function AlkamistGFX:getWidthChange()        return self:getWidth() - self:getPreviousWidth() end
-function AlkamistGFX:getHeight()             return self.height end
-function AlkamistGFX:getPreviousHeight()     return self.previousHeight end
-function AlkamistGFX:getHeightChange()       return self:getHeight() - self:getPreviousHeight() end
 function AlkamistGFX:windowWasResized()
-    return self:getWidth() ~= self:getPreviousWidth() or self:getHeight() ~= self:getPreviousHeight()
+    return self.width.value.changed or self.height.value.changed
 end
-function AlkamistGFX:getMouse()              return self.mouse end
-function AlkamistGFX:getKeyboard()           return self.keyboard end
-function AlkamistGFX:getChildren()           return self.children end
-function AlkamistGFX:getPlayKey()            return self.playKey end
-function AlkamistGFX:getFocus()              return self.focus end
-
-function AlkamistGFX:setColor(color)         gfx.set(color[1], color[2], color[3], color[4]) end
-function AlkamistGFX:setPlayKey(playKey)     self.playKey = playKey end
-function AlkamistGFX:setFocus(focus)         self.focus = focus end
-function AlkamistGFX:setChildren(children)   self.children = children end
-function AlkamistGFX:setPreHook(fn)          self.preHookFn = fn end
-function AlkamistGFX:setPostHook(fn)         self.postHookFn = fn end
+function AlkamistGFX:setColor(color)
+    gfx.set(color[1], color[2], color[3], color[4])
+end
 
 function AlkamistGFX:processChildren()
-    local keyboard = self:getKeyboard()
-    local char = keyboard:getChar()
-    local mouse = self:getMouse()
-    local mouseMoved = mouse:justMoved()
-    local leftClick = mouse:getButtons().left
-    local middleClick = mouse:getButtons().middle
-    local rightClick = mouse:getButtons().right
-    local wheel = self:getMouse():getWheel()
-    local wheelMoved = wheel > 0 or wheel < 0
-    local hWheel = self:getMouse():getHWheel()
-    local hWheelMoved = hWheel > 0 or hWheel < 0
-    local children = self:getChildren()
+    local state = {
+        x = self.x,
+        y = self.y,
+        width = self.width,
+        height = self.height
+    }
 
     for _, child in pairs(children) do
-        self:setFocus(self:getFocus() or child)
+        self.focus = self.focus or child
 
+        child:updateState(state)
         child:onUpdate()
 
-        if self:windowWasResized()           then child:onResize() end
-        if self:getFocus() == child and char then child:onChar(char) end
+        if self:windowWasResized() then child:onResize() end
+        if self.focus == child and self.keyboard.char then
+            child:onKeyPress()
+        end
 
-        if child:mouseJustEntered()          then child:onMouseEnter() end
-        if child:mouseJustLeft()             then child:onMouseLeave() end
+        if child:mouseJustEntered() then child:onMouseEnter() end
+        if child:mouseJustLeft()    then child:onMouseLeave() end
 
         if child:mouseIsInside() then
-            if leftClick:justPressed() then
-                child:enableLeftDrag(true)
+            if self.mouse.buttons.left.switch.activated then
+                child.leftDragIsEnabled = true
                 child:onMouseLeftButtonDown()
             end
-            if middleClick:justPressed() then
-                child:enableMiddleDrag(true)
+            if self.mouse.buttons.middle.switch.activated then
+                child.middleDragIsEnabled = true
                 child:onMouseMiddleButtonDown()
             end
-            if rightClick:justPressed() then
-                child:enableRightDrag(true)
+            if self.mouse.buttons.right.switch.activated then
+                child.rightDragIsEnabled = true
                 child:onMouseRightButtonDown()
             end
 
-            if wheelMoved then child:onMouseWheel(wheel) end
-            if hWheelMoved then child:onMouseHWheel(hWheel) end
+            if self.mouse.wheel.changed  then child:onMouseWheel() end
+            if self.mouse.hWheel.changed then child:onMouseHWheel() end
         end
 
-        if mouseMoved and child:isLeftDragEnabled() then
-            child:markAsLeftDragging(true)
+        if self.mouse.moved and child.leftDragIsEnabled then
+            child.leftIsDragging = true
             child:onMouseLeftButtonDrag()
         end
-        if mouseMoved and child:isMiddleDragEnabled() then
-            child:markAsMiddleDragging(true)
+        if self.mouse.moved and child.middleDragIsEnabled then
+            child.middleIsDragging = true
             child:onMouseMiddleButtonDrag()
         end
-        if mouseMoved and child:isRightDragEnabled() then
-            child:markAsRightDragging(true)
+        if self.mouse.moved and child.rightDragIsEnabled then
+            child.rightIsDragging = true
             child:onMouseRightButtonDrag()
         end
 
-        if leftClick:justReleased() then
+        if self.mouse.buttons.left.switch.deactivated then
             child:onMouseLeftButtonUp()
-            child:enableLeftDrag(false)
-            child:markAsLeftDragging(false)
+            child.leftIsDragging = false
+            child.leftDragIsEnabled = false
         end
-        if middleClick:justReleased() then
+        if self.mouse.buttons.middle.switch.deactivated then
             child:onMouseMiddleButtonUp()
-            child:enableMiddleDrag(false)
-            child:markAsMiddleDragging(false)
+            child.middleIsDragging = false
+            child.middleDragIsEnabled = false
         end
-        if rightClick:justReleased() then
+        if self.mouse.buttons.right.switch.deactivated then
             child:onMouseRightButtonUp()
-            child:enableRightDrag(false)
-            child:markAsRightDragging(false)
+            child.rightIsDragging = false
+            child.rightDragIsEnabled = false
         end
 
         child:onDraw()
     end
 end
-function AlkamistGFX:updateGFXVariables()
-    self.previousX =      self.x
-    self.previousY =      self.y
-    self.previousWidth =  self.width
-    self.previousHeight = self.height
-    self.x =              gfx.x
-    self.y =              gfx.y
-    self.width =          gfx.w
-    self.height =         gfx.h
-end
-function AlkamistGFX:passThroughPlayKey()
-    local keyboard = self:getKeyboard()
-    local char = keyboard:getChar()
-    local playKey = self:getPlayKey()
-    if playKey and char == playKey then reaper.Main_OnCommandEx(40044, 0, 0) end
-end
-function AlkamistGFX:flagLoopForRepeat()
-    local keyboard = self:getKeyboard()
-    local char = keyboard:getChar()
-    if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
-    gfx.update()
-end
+
 function AlkamistGFX.run()
     local self = AlkamistGFX
 
-    self:updateGFXVariables()
-    self:getMouse():update()
-    self:getKeyboard():update()
-    self:passThroughPlayKey()
-    if self.preHookFn then self.preHookFn() end
+    -- Update the gfx parameters.
+    self.x:update(gfx.x)
+    self.y:update(gfx.y)
+    self.width:update(gfx.w)
+    self.height:update(gfx.h)
+    self.mouse:update()
+    self.keyboard:update()
+
+    -- Pass through the play key.
+    if self.playKey and self.keyboard.char == self.playKey then
+        reaper.Main_OnCommandEx(40044, 0, 0)
+    end
+
+    if self.preHookFn then
+        self.preHookFn()
+    end
+
     self:processChildren()
-    if self.postHookFn then self.postHookFn() end
-    self:flagLoopForRepeat()
+
+    if self.postHookFn then
+        self.postHookFn()
+    end
+
+    -- Flag the run loop to repeat.
+    if self.keyboard.char ~= "Escape" and self.keyboard.char ~= "Close" then
+        reaper.defer(self.run)
+    end
+    gfx.update()
 end
 
 return AlkamistGFX

@@ -1,3 +1,6 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Switch = require("Logic.Switch")
+
 function invertTable(tbl)
     local invertedTable = {}
     for key, value in pairs(tbl) do
@@ -134,54 +137,23 @@ local characterTableInverted = invertTable(characterTable)
 
 
 
-local KeyboardKey = {}
-
-function KeyboardKey:new(keyName, keyValue)
-    local self = setmetatable({}, { __index = self })
-
-    self.keyName = keyName
-    self.keyValue = keyValue
-    self.state = false
-    self.previousState = false
-
-    return self
-end
-
-function KeyboardKey:getName()      return self.keyName end
-function KeyboardKey:getKeyValue()  return self.keyValue end
-function KeyboardKey:isPressed()    return self.state end
-function KeyboardKey:justPressed()  return self.state and not self.previousState end
-function KeyboardKey:justReleased() return not self.state and self.previousState end
-
-function KeyboardKey:update(state)
-    self.previousState = self.state
-    self.state = state
-end
-
-
-
 local Keyboard = {}
 
 function Keyboard:new()
     local self = setmetatable({}, { __index = self })
-    self.char = nil
+
+    self.char = 0
     self.keys = {}
     for keyName, keyValue in pairs(characterTable) do
-        self.keys[keyName] = KeyboardKey:new(keyName, keyValue)
+        self.keys[keyName] = Switch:new(false)
     end
 
     return self
 end
 
-function Keyboard:getChar() return self.char end
-function Keyboard:getKeys() return self.keys end
-
--- Setters:
-
-function Keyboard:updateChar() self.char = characterTableInverted[gfx.getchar()] end
 function Keyboard:update()
-    self:updateChar()
-    for keyName, key in pairs(self:getKeys()) do
+    self.char = characterTableInverted[gfx.getchar()]
+    for keyName, key in pairs(self.keys) do
         key:update(gfx.getchar(characterTable[keyName]) > 0)
     end
 end
