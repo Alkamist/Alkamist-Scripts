@@ -23,16 +23,6 @@ function View:new(init)
     return self
 end
 
-function View:getZoomX()   return self.zoom.x end
-function View:getZoomY()   return self.zoom.y end
-function View:getScrollX() return self.scroll.x end
-function View:getScrollY() return self.scroll.y end
-
-function View:setXScale(value)        self.xScale = value end
-function View:setYScale(value)        self.yScale = value end
-function View:setScrollXTarget(value) self.scroll.xTarget = value end
-function View:setScrollYTarget(value) self.scroll.yTarget = value end
-
 function View:changeScroll(xChange, yChange)
     local xChange = xChange / self.xScale
     local yChange = yChange / self.yScale

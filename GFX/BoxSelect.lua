@@ -5,7 +5,6 @@ local BoxSelect = setmetatable({}, { __index = GFXChild })
 
 function BoxSelect:new(init)
     local init = init or {}
-    --if init.GFX == nil then return nil end
 
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
@@ -28,10 +27,10 @@ function BoxSelect:activate(startingX, startingY)
     self.y1 = startingY
     self.y2 = startingY
 
-    self:setX(startingX)
-    self:setY(startingY)
-    self:setWidth(0)
-    self:setHeight(0)
+    self.x:update(startingX)
+    self.y:update(startingY)
+    self.width:update(0)
+    self.height:update(0)
 end
 
 function BoxSelect:edit(editX, editY)
@@ -43,10 +42,10 @@ function BoxSelect:edit(editX, editY)
     local boxWidth = math.abs(self.x1 - self.x2)
     local boxHeight = math.abs(self.y1 - self.y2)
 
-    self:setX(boxX)
-    self:setY(boxY)
-    self:setWidth(boxWidth)
-    self:setHeight(boxHeight)
+    self.x:update(boxX)
+    self.y:update(boxY)
+    self.width:update(boxWidth)
+    self.height:update(boxHeight)
 end
 
 function BoxSelect:deactivate()
@@ -54,20 +53,12 @@ function BoxSelect:deactivate()
 end
 
 function BoxSelect:draw()
-    local isActive = self.isActive
+    if self.isActive then
+        self:setColor(self.edgeColor)
+        self:drawRectangle(0, 0, self.width.current, self.height.current, false)
 
-    if isActive then
-        local GFX = self:getGFX()
-        local insideColor = self.insideColor
-        local edgeColor = self.edgeColor
-        local width = self:getWidth()
-        local height = self:getHeight()
-
-        GFX:setColor(edgeColor)
-        self:rect(0, 0, width, height, false)
-
-        GFX:setColor(insideColor)
-        self:rect(1, 1, width - 2, height - 2, true)
+        self:setColor(self.insideColor)
+        self:drawRectangle(1, 1, self.width.current - 2, self.height.current - 2, true)
     end
 end
 

@@ -14,9 +14,7 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     x = 0,
     y = 0,
     width = 1000,
-    height = 700,
-    mouse = GFX.mouse,
-    keyboard = GFX.keyboard
+    height = 700
 }
 
 GFX:setChildren{ pitchEditor }

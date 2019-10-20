@@ -20,7 +20,6 @@ local PitchEditor = setmetatable({}, { __index = GFXChild })
 
 function PitchEditor:new(init)
     local init = init or {}
-    if init.GFX == nil then return nil end
 
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
@@ -35,20 +34,20 @@ function PitchEditor:new(init)
     self.editCursorColor =    {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor =    {1.0, 1.0, 1.0, 0.3}
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-    self.previousNumberOfSelectedItems = 0
 
     self.track = {}
     self.items = {}
     self.pitchCorrectionNodes = {}
 
-    self.view = View:new{
-        xScale = self:getWidth(),
-        yScale = self:getHeight()
-    }
+    self.view =      View:new()
+    self.boxSelect = BoxSelect:new()
 
-    self.boxSelect = BoxSelect:new{
-        GFX = self:getGFX()
-    }
+    self.mouseTime  = NumberTracker(0)
+    self.mousePitch = NumberTracker(0)
+    self.leftEdge =   NumberTracker(0)
+    self.timeWidth =  NumberTracker(0)
+
+    self.numberOfSelectedItems = NumberTracker(0)
 
     self:updateSelectedItems()
     self:onResize()
@@ -56,24 +55,18 @@ function PitchEditor:new(init)
     return self
 end
 
-function PitchEditor:getItems()      return self.items end
-function PitchEditor:getTrack()      return self.track end
-function PitchEditor:getView()       return self.view end
-
-function PitchEditor:updateMouseTime()
-    local relativeMouseX = self:getRelativeMouseX()
-    self.mouseTime = self:pixelsToTime(relativeMouseX)
+function PitchEditor:updateLeftEdge()
+    if #self.items > 0 then
+        return self.leftEdge:update(self.items[1]:getLeftEdge())
+    end
+    return self.leftEdge:update(0.0)
 end
-function PitchEditor:updateMousePitch()
-    local relativeMouseY = self:getRelativeMouseY()
-    self.mousePitch = self:pixelsToPitch(relativeMouseY)
+function PitchEditor:updateTimeWidth()
+    if #self.items > 0 then
+        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self:getLeftEdge())
+    end
+    self.timeWidth:update(0.0)
 end
-function PitchEditor:getMouseTime()  return self.mouseTime end
-function PitchEditor:getMousePitch() return self.mousePitch end
-
-function PitchEditor:setItems(items) self.items = items end
-function PitchEditor:setTrack(track) self.track = track end
-
 function PitchEditor:updateSelectedItems()
     local tracks = Alk:getTracks()
     local selectedItems = Alk:getSelectedItems()
@@ -82,25 +75,12 @@ function PitchEditor:updateSelectedItems()
         local itemTrackNumber = item:getTrack():getNumber()
         topMostSelectedItemTrackNumber = math.min(itemTrackNumber, topMostSelectedItemTrackNumber)
     end
-    local track = tracks[topMostSelectedItemTrackNumber]
-    self:setTrack(track)
-    self:setItems(track:getSelectedItems())
+    self.track = tracks[topMostSelectedItemTrackNumber]
+    self.items = self.track:getSelectedItems()
+    self:updateLeftEdge()
+    self:updateTimeWidth()
 end
-function PitchEditor:getLeftEdge()
-    local items = self:getItems()
-    if #items > 0 then
-        return items[1]:getLeftEdge()
-    end
-    return 0.0
-end
-function PitchEditor:getTimeWidth()
-    local items = self:getItems()
-    if #items > 0 then
-        return items[#items]:getRightEdge() - self:getLeftEdge()
-    end
-    return 0.0
-end
-function PitchEditor:getPitchHeight() return self.pitchHeight end
+
 function PitchEditor:pixelsToTime(xPixels)
     local view = self:getView()
     local scrollX = view:getScrollX()
@@ -139,167 +119,125 @@ function PitchEditor:pitchToPixels(pitch)
 end
 
 function PitchEditor:addPitchCorrectionNode(x, y)
-    local GFX = self:getGFX()
-    local pitchCorrectionNodes = self.pitchCorrectionNodes
-    local previousNode
-    local nextNode = pitchCorrectionNodes[#pitchCorrectionNodes]
-    local newNode = PitchCorrectionNode:new{
-        GFX = GFX,
-        x = x,
-        y = y,
-        nextNode = nextNode,
-        isActive = true
-    }
-
-    table.insert(pitchCorrectionNodes, newNode)
+    --local nextNode = self.pitchCorrectionNodes[#self.pitchCorrectionNodes]
+    --local newNode = PitchCorrectionNode:new{
+    --    x = x,
+    --    y = y,
+    --    nextNode = nextNode,
+    --    isActive = true
+    --}
+    --table.insert(self.pitchCorrectionNodes, newNode)
 end
 
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
-    local GFX = self:getGFX()
-    local pitchHeight = self:getPitchHeight()
-    local blackKeyColor = self.blackKeyColor
-    local whiteKeyColor = self.whiteKeyColor
-    local keyCenterLineColor = self.keyCenterLineColor
-    local minCenterLineHeight = self.minKeyHeightToDrawCenterline
-    local whiteKeyNumbers = self.whiteKeyNumbers
-    local width = self:getWidth()
-    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
+    local width = self.width.current
+    local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
 
-    for i = 1, pitchHeight do
-        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
+    for i = 1, self.pitchHeight do
+        local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
-        GFX:setColor(blackKeyColor)
-        for _, value in ipairs(whiteKeyNumbers) do
+        self:setColor(self.blackKeyColor)
+        for _, value in ipairs(self.whiteKeyNumbers) do
             if i == value then
-                GFX:setColor(whiteKeyColor)
+                self:setColor(self.whiteKeyColor)
             end
         end
-        self:rect(0, keyEnd, width, keyHeight + 1, 1)
+        self:drawRectangle(0, keyEnd, width, keyHeight + 1, 1)
 
-        GFX:setColor(blackKeyColor)
-        self:line(0, keyEnd, width - 1, keyEnd, false)
+        self:setColor(self.blackKeyColor)
+        self:drawLine(0, keyEnd, width - 1, keyEnd, false)
 
-        if keyHeight > minCenterLineHeight then
-            local keyCenterLine = self:pitchToPixels(pitchHeight - i)
+        if keyHeight > self.minKeyHeightToDrawCenterline then
+            local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
 
-            GFX:setColor(keyCenterLineColor)
-            self:line(0, keyCenterLine, width - 1, keyCenterLine, false)
+            self:setColor(self.keyCenterLineColor)
+            self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
     end
 end
 function PitchEditor:drawItemEdges()
-    local GFX = self:getGFX()
-    local itemInsideColor = self.itemInsideColor
-    local itemEdgeColor = self.itemEdgeColor
-    local height = self:getHeight()
-    local items = self:getItems()
-    local leftEdge = self:getLeftEdge()
+    local height = self.height.current
 
-    for _, item in ipairs(items) do
-        local leftBoundTime = item:getLeftEdge() - leftEdge
+    for _, item in ipairs(self.items) do
+        local leftBoundTime = item:getLeftEdge() - self.leftEdge
         local rightBoundTime = leftBoundTime + item:getLength()
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
         local boxHeight = height - 2
 
-        GFX:setColor(itemInsideColor)
-        self:rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
+        self:setColor(self.itemInsideColor)
+        self:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
 
-        GFX:setColor(itemEdgeColor)
-        self:rect(leftBoundPixels, 1, boxWidth, boxHeight, 0)
+        self:setColor(self.itemEdgeColor)
+        self:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
 function PitchEditor:drawEditCursor()
-    local GFX = self:getGFX()
     local project = Alk:getProject()
-    local editCursorTime = project:getEditCursorTime()
-    local playCursorTime = project:getPlayCursorTime()
-    local projectIsPlaying = project:isPlaying()
-    local projectIsRecording = project:isRecording()
-    local leftEdge = self:getLeftEdge()
-    local editCursorPixels = self:timeToPixels(editCursorTime - leftEdge)
-    local playPositionPixels = self:timeToPixels(playCursorTime - leftEdge)
-    local height = self:getHeight()
-    local editCursorColor = self.editCursorColor
-    local playCursorColor = self.playCursorColor
+    local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge)
+    local playPositionPixels = self:timeToPixels(project:getPlayCursorTime() - self.leftEdge)
+    local height = self.height.current
 
-    GFX:setColor(editCursorColor)
-    self:line(editCursorPixels, 0, editCursorPixels, height, false)
+    self:setColor(self.editCursorColor)
+    self:drawLine(editCursorPixels, 0, editCursorPixels, height, false)
 
-    if projectIsPlaying or projectIsRecording then
-        GFX:setColor(playCursorColor)
-        self:line(playPositionPixels, 0, playPositionPixels, height, false)
+    if project:isPlaying() or project:isRecording() then
+        self:setColor(self.playCursorColor)
+        self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
     end
 end
 function PitchEditor:drawPitchCorrectionNodes()
-    for _, node in ipairs(self.pitchCorrectionNodes) do
-        node:draw()
-    end
+    --for _, node in ipairs(self.pitchCorrectionNodes) do
+    --    node:draw()
+    --end
 end
 
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
-    self:updateMouseTime()
-    self:updateMousePitch()
+    self.mouseTime:update(self:pixelsToTime(self.relativeMouseX))
+    self.mousePitch:update(self:pixelsToPitch(self.relativeMouseY))
 
-    local numSelectedItems = #Alk:getSelectedItems()
-    if numSelectedItems ~= self.previousNumberOfSelectedItems then
+    self.numberOfSelectedItems:update(#Alk:getSelectedItems())
+    if self.numberOfSelectedItems.changed then
         self:updateSelectedItems()
     end
-    self.previousNumberOfSelectedItems = numSelectedItems
 end
 function PitchEditor:onResize()
-    local view = self:getView()
-    local GFX = self:getGFX()
-    local newWidth = GFX:getWidth()
-    local newHeight = GFX:getHeight() - self:getY()
+    local newWidth = self.GFX.width.current
+    local newHeight = self.GFX.height.current - self.y.current
 
-    self:setWidth(newWidth)
-    self:setHeight(newHeight)
-    view:setXScale(newWidth)
-    view:setYScale(newHeight)
+    self.width:update(newWidth)
+    self.height:update(newHeight)
+    view.xScale = newWidth
+    view.yScale = newHeight
 end
-function PitchEditor:onChar(char)
-    local charFunction = self.onCharFunctions[char]
+function PitchEditor:onKeyPress()
+    local charFunction = self.onCharFunctions[self.keyboard.char]
     if charFunction then charFunction() end
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    local mouse = self:getMouse()
-    local relativeMouseX = self:getRelativeMouseX()
-    local relativeMouseY = self:getRelativeMouseY()
-
-    self:addPitchCorrectionNode(relativeMouseX, relativeMouseY)
+    --self:addPitchCorrectionNode(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
-    local wasDragged = self:isLeftDragging()
-    local leftEdge = self:getLeftEdge()
-    local mouseTime = self:getMouseTime()
-
-    if not wasDragged then
+    if not self.leftIsDragging then
         local project = Alk:getProject()
-        project:setEditCursorTime(leftEdge + mouseTime, false, true)
+        project:setEditCursorTime(self.leftEdge + self.mouseTime, false, true)
     end
-
     Alk:updateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
-    local view = self:getView()
-    local mouse = self:getMouse()
-    local relativeMouseX = self:getRelativeMouseX()
-    local relativeMouseY = self:getRelativeMouseY()
-
-    view:setScrollXTarget(relativeMouseX)
-    view:setScrollYTarget(relativeMouseY)
+    view.scroll.xTarget = self.relativeMouseX
+    view.scroll.yTarget = self.relativeMouseY
 end
 function PitchEditor:onMouseMiddleButtonDrag()
     local view = self:getView()

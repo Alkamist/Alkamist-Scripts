@@ -31,11 +31,15 @@ function AlkamistGFX:init(init)
     self.children = {}
 end
 
-function AlkamistGFX:windowWasResized()
-    return self.width.value.changed or self.height.value.changed
-end
-function AlkamistGFX:setColor(color)
-    gfx.set(color[1], color[2], color[3], color[4])
+function AlkamistGFX:setPlayKey(playKey) self.playKey = playKey end
+function AlkamistGFX:setChildren(children)
+    self.children = children
+
+    for _, child in pairs(self.children) do
+        child.GFX =      self
+        child.mouse =    self.mouse
+        child.keyboard = self.keyboard
+    end
 end
 
 function AlkamistGFX:processChildren()
@@ -46,13 +50,15 @@ function AlkamistGFX:processChildren()
         height = self.height
     }
 
-    for _, child in pairs(children) do
+    for _, child in pairs(self.children) do
         self.focus = self.focus or child
 
         child:updateState(state)
         child:onUpdate()
 
-        if self:windowWasResized() then child:onResize() end
+        if self.width.value.changed or self.height.value.changed then
+            child:onResize()
+        end
         if self.focus == child and self.keyboard.char then
             child:onKeyPress()
         end
