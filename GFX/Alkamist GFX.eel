@@ -98,6 +98,8 @@ function windowsDown()     ( mouse_cap & 32 == 32 && previous_mouse_cap & 32 == 
 function windowsUp()       ( mouse_cap & 32 == 0 && previous_mouse_cap & 32 == 32; );
 function wheelMoved()      ( GFX_wheel > 0 || GFX_wheel < 0);
 
+function windowWasResized()( gfx_w != gfx_previous_w || gfx_h != gfx_previous_h; );
+
 //========================================================================
 //=== Define Graphical Elements ==========================================
 //========================================================================
@@ -286,6 +288,9 @@ function GFX_init(title, x, y, w, h, dock)
     mouse_x_delta = 0;
     mouse_y_delta = 0;
 
+    gfx_previous_w = 0;
+    gfx_previous_h = 0;
+
     mouseTime = 0;
     mousePitch = 0;
 
@@ -309,7 +314,7 @@ function GFX_init(title, x, y, w, h, dock)
 
     numberOfWhiteKeys = 0;
 
-    pitchEditor_view_x.viewAxis_new(1.0, 0.0, gfx_w);
+    pitchEditor_view_x.viewAxis_new(1.0, 0.0, pitchEditor_w);
     pitchEditor_view_y.viewAxis_new(1.0, 0.0, pitchEditor_h);
 
     // ARRAYS:
@@ -336,6 +341,13 @@ function GFX_run()
     numberOfSelectedItems = CountSelectedMediaItems(0);
     numberOfSelectedItems != previousNumberOfSelectedItems ? (
         updateSelectedItems();
+    );
+
+    windowWasResized() ? (
+        pitchEditor_w = gfx_w - pitchEditor_x;
+        pitchEditor_h = gfx_h - pitchEditor_y;
+        pitchEditor_view_x.scale = pitchEditor_w;
+        pitchEditor_view_y.scale = pitchEditor_h;
     );
 
     mouseMiddleDown() ? (
@@ -367,6 +379,8 @@ function GFX_run()
     previous_mouse_cap = mouse_cap;
     previous_mouse_x = mouse_x;
     previous_mouse_y = mouse_y;
+    gfx_previous_w = gfx_w;
+    gfx_previous_h = gfx_h;
     previousNumberOfSelectedItems = numberOfSelectedItems;
 );
 
