@@ -112,42 +112,45 @@ function element_new(x,y,w,h)
 //========================================================================
 //=== Key Background =====================================================
 //========================================================================
-//function getWhiteKeyNumbers(buffer)
-//  local(i, whiteKeyMultiples)
-//(
-//    whiteKeyMultiples[7] = { 1, 3, 4, 6, 8, 9, 11 };
-//    i = 0;
-//    loop(11,
-//        loop(7,
-//            buffer[i] = i * 12 + whiteKeyMultiples[i];
-//        );
-//        i += 1;
-//    );
-//);
-function drawKeyBackgrounds()
-  local(i, previousKeyEnd, keyEnd, keyHeight, keyCenterLine)
+function getWhiteKeyNumbers(whiteKeys)
+  local(octave)
 (
-    previousKeyEnd = pitchToPixels(pitchEditor_pitchHeight + 0.5);
+    0[0] = 1; 0[1] = 3; 0[2] = 4; 0[3] = 6; 0[4] = 8; 0[5] = 9; 0[6] = 11;
+    octave = 0;
+    numberOfWhiteKeys = 0;
+    loop(11,
+        loop(7,
+            whiteKeys[numberOfWhiteKeys] = octave * 12 + 0[numberOfWhiteKeys - octave * 7];
+            numberOfWhiteKeys += 1;
+        );
+        octave += 1;
+    );
+);
+function drawKeyBackgrounds()
+  local(i, j, previousKeyEnd, keyEnd, keyHeight, keyCenterLine)
+(
+    previousKeyEnd = pitchEditor_y;
 
     i = 0;
     loop(pitchEditor_pitchHeight,
-        keyEnd = pitchToPixels(pitchEditor_pitchHeight - i + 1.5);
+        keyEnd = pitchToPixels(pitchEditor_pitchHeight - i - 0.5);
         keyHeight = keyEnd - previousKeyEnd;
 
         gfx_set(0.25, 0.25, 0.25, 1.0);
-        //for _, value in ipairs(self.whiteKeyNumbers) do
-        //loop(
-        //    if i == value then
-        //        gfx_set(0.34, 0.34, 0.34, 1.0);
-        //    end
-        //end
-        //gfx_rect(0, keyEnd, gfx_w, keyHeight + 1, 1);
+        j = 0;
+        loop(numberOfWhiteKeys,
+            i == whiteKeyNumbers[j] ? (
+                gfx_set(0.34, 0.34, 0.34, 1.0);
+            );
+            j += 1;
+        );
+        gfx_rect(0, keyEnd, gfx_w, keyHeight + 1, 1);
 
-        //gfx_set(0.25, 0.25, 0.25, 1.0);
+        gfx_set(0.25, 0.25, 0.25, 1.0);
         gfx_line(0, keyEnd, gfx_w - 1, keyEnd, 0);
 
         keyHeight > 16 ? (
-            keyCenterLine = pitchToPixels(self.pitchEditor_pitchHeight - i + 1);
+            keyCenterLine = pitchToPixels(pitchEditor_pitchHeight - i + 1);
             gfx_set(1.0, 1.0, 1.0, 0.12);
             gfx_line(0, keyCenterLine, gfx_w - 1, keyCenterLine, 0);
         );
@@ -286,12 +289,11 @@ function GFX_init(title, x, y, w, h, dock)
     mouseTime = 0;
     mousePitch = 0;
 
-    pitchEditor_y = 40;
+    pitchEditor_y = 0;
     pitchEditor_h = gfx_h - pitchEditor_y;
     pitchEditor_x = 0;
     pitchEditor_w = gfx_w - pitchEditor_x;
     pitchEditor_track = 0;
-    pitchEditor_items = 10000;
     pitchEditor_numberOfItems = 0;
 
     relativeMouseX = 0;
@@ -305,8 +307,15 @@ function GFX_init(title, x, y, w, h, dock)
     pitchEditor_timeWidth = 0;
     pitchEditor_pitchHeight = 128;
 
+    numberOfWhiteKeys = 0;
+
     pitchEditor_view_x.viewAxis_new(1.0, 0.0, gfx_w);
     pitchEditor_view_y.viewAxis_new(1.0, 0.0, pitchEditor_h);
+
+    // ARRAYS:
+    pitchEditor_items = 10000;
+    whiteKeyNumbers = 1000;
+    getWhiteKeyNumbers(whiteKeyNumbers);
 );
 function GFX_run()
 (
