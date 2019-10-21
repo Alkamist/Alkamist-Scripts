@@ -55,19 +55,19 @@ function pointIsInside(pointX, pointY)
 
 function pixelsToTime(pixels)
 (
-    pitchEditor_timeWidth * (mainView_x.scroll + (pixels + pitchEditor_x) / (pitchEditor_w * mainView_x.zoom));
+    pitchEditor_timeWidth * (pitchEditor_view_x.scroll + (pixels + pitchEditor_x) / (pitchEditor_w * pitchEditor_view_x.zoom));
 );
 function timeToPixels(time)
 (
-    pitchEditor_x + mainView_x.zoom * pitchEditor_w * (time / pitchEditor_timeWidth - mainView_x.scroll);
+    pitchEditor_x + pitchEditor_view_x.zoom * pitchEditor_w * (time / pitchEditor_timeWidth - pitchEditor_view_x.scroll);
 );
 function pixelsToPitch(pixels)
 (
-    pitchEditor_pitchHeight * (1.0 - (mainView_y.scroll + (pixels + pitchEditor_y) / (pitchEditor_h * mainView_y.zoom))) - 0.5;
+    pitchEditor_pitchHeight * (1.0 - (pitchEditor_view_y.scroll + (pixels + pitchEditor_y) / (pitchEditor_h * pitchEditor_view_y.zoom))) - 0.5;
 );
 function pitchToPixels(pitch)
 (
-    pitchEditor_y + mainView_y.zoom * pitchEditor_h * ((1.0 - (0.5 + pitch) / pitchEditor_pitchHeight) - mainView_y.scroll);
+    pitchEditor_y + pitchEditor_view_y.zoom * pitchEditor_h * ((1.0 - (0.5 + pitch) / pitchEditor_pitchHeight) - pitchEditor_view_y.scroll);
 );
 
 //========================================================================
@@ -153,6 +153,32 @@ function drawKeyBackgrounds()
         );
 
         previousKeyEnd = keyEnd;
+        i += 1;
+    );
+);
+
+//========================================================================
+//=== Item Backgrounds ===================================================
+//========================================================================
+function drawItemBackgrounds()
+  local(i, item, leftBoundTime, rightBoundTime, leftBoundPixels, rightBoundPixels, boxWidth, boxHeight)
+(
+    i = 0;
+    loop(pitchEditor_numberOfItems,
+        item = pitchEditor_items[i];
+        leftBoundTime = GetMediaItemInfo_Value(item, "D_POSITION") - pitchEditor_leftEdge;
+        rightBoundTime = leftBoundTime + GetMediaItemInfo_Value(item, "D_LENGTH");
+        leftBoundPixels = timeToPixels(leftBoundTime);
+        rightBoundPixels = timeToPixels(rightBoundTime);
+        boxWidth = rightBoundPixels - leftBoundPixels;
+        boxHeight = gfx_h - 2;
+
+        gfx_set(1.0, 1.0, 1.0, 0.02);
+        gfx_rect(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1);
+
+        gfx_set(1.0, 1.0, 1.0, 0.17);
+        gfx_rect(leftBoundPixels, 1, boxWidth, boxHeight, 0);
+
         i += 1;
     );
 );
@@ -279,8 +305,8 @@ function GFX_init(title, x, y, w, h, dock)
     pitchEditor_timeWidth = 0;
     pitchEditor_pitchHeight = 128;
 
-    mainView_x.viewAxis_new(1.0, 0.0, gfx_x);
-    mainView_y.viewAxis_new(1.0, 0.0, pitchEditor_h);
+    pitchEditor_view_x.viewAxis_new(1.0, 0.0, gfx_w);
+    pitchEditor_view_y.viewAxis_new(1.0, 0.0, pitchEditor_h);
 );
 function GFX_run()
 (
@@ -304,22 +330,23 @@ function GFX_run()
     );
 
     mouseMiddleDown() ? (
-        mainView_x.target = mouse_x;
-        mainView_y.target = mouse_y;
+        pitchEditor_view_x.target = mouse_x;
+        pitchEditor_view_y.target = mouse_y;
     );
 
     mouseMiddleState() ? (
         shiftState() ? (
-            mainView_x.viewAxis_changeZoom(mouse_x_delta);
-            mainView_y.viewAxis_changeZoom(mouse_y_delta);
+            pitchEditor_view_x.viewAxis_changeZoom(mouse_x_delta);
+            pitchEditor_view_y.viewAxis_changeZoom(mouse_y_delta);
         ):(
-            mainView_x.viewAxis_changeScroll(mouse_x_delta);
-            mainView_y.viewAxis_changeScroll(mouse_y_delta);
+            pitchEditor_view_x.viewAxis_changeScroll(mouse_x_delta);
+            pitchEditor_view_y.viewAxis_changeScroll(mouse_y_delta);
         );
     );
 
     //testButton.button_draw();
     drawKeyBackgrounds();
+    drawItemBackgrounds();
 
     // Allow the Space Bar to play the current project.
     GFX_char == 32 ? Main_OnCommand(40044, 0);
