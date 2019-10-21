@@ -210,7 +210,7 @@ testButton.button_new(20,20,140,30, 0.0,0.3,0.4,1.0, "test");
 //=== Main Processing ====================================================
 //========================================================================
 function updateSelectedItems()
-  local(i, j, item, topMostSelectedItemTrackNumber)
+  local(i, j, leftMostItem, rightMostItem, topMostSelectedItemTrackNumber)
 (
     topMostSelectedItemTrackNumber = CountTracks(0);
     i = 0;
@@ -219,12 +219,13 @@ function updateSelectedItems()
         i += 1;
     );
     pitchEditor_track = GetTrack(0, topMostSelectedItemTrackNumber - 1);
+
     i = 0;
     j = 0;
     loop(CountSelectedMediaItems(0),
-        item = GetSelectedMediaItem(0, i);
-        MediaItemDescendsFromTrack(item, pitchEditor_track) ? (
-            pitchEditor_items[j] = item;
+        leftMostItem = GetSelectedMediaItem(0, i);
+        pitchEditor_track == GetMediaItemTrack(leftMostItem) ? (
+            pitchEditor_items[j] = leftMostItem;
             j += 1;
         );
         i += 1;
@@ -232,14 +233,16 @@ function updateSelectedItems()
     pitchEditor_numberOfItems = j;
 
     pitchEditor_numberOfItems > 0 ? (
-        item = GetSelectedMediaItem(0, pitchEditor_items[0]);
-        reaper.GetMediaItemInfo_Value(item, "D_POSITION") + reaper.GetMediaItemInfo_Value(item, "D_LENGTH") ;
-        self.items[#self.items]:getRightEdge() - self.leftEdge.current
+        leftMostItem = pitchEditor_items[0];
+        rightMostItem = pitchEditor_items[pitchEditor_numberOfItems - 1];
+        pitchEditor_leftEdge = GetMediaItemInfo_Value(leftMostItem, "D_POSITION");
+        pitchEditor_rightEdge = GetMediaItemInfo_Value(rightMostItem, "D_POSITION") + GetMediaItemInfo_Value(rightMostItem, "D_LENGTH");
+        pitchEditor_timeWidth = pitchEditor_rightEdge - pitchEditor_leftEdge;
     ):(
-
+        pitchEditor_leftEdge = 0;
+        pitchEditor_rightEdge = 0;
+        pitchEditor_timeWidth = 0;
     );
-
-    self:updateTimeWidth()
 );
 
 function GFX_init(title, x, y, w, h, dock)
@@ -295,7 +298,7 @@ function GFX_run()
     mouseTime =  pixelsToTime(relativeMouseX);
     mousePitch = pixelsToPitch(relativeMouseY);
 
-    numberOfSelectedItems = CountSelectedMediaItems(0)
+    numberOfSelectedItems = CountSelectedMediaItems(0);
     numberOfSelectedItems != previousNumberOfSelectedItems ? (
         updateSelectedItems();
     );
