@@ -17,9 +17,9 @@ function PitchCorrectionNode:new(init)
                                    self.activeColor[3] * 0.5,
                                    self.activeColor[4] }
     self.inactiveUnselectedColor = { self.inactiveColor[1] * 0.5,
-                                   self.inactiveColor[2] * 0.5,
-                                   self.inactiveColor[3] * 0.5,
-                                   self.inactiveColor[4] }
+                                     self.inactiveColor[2] * 0.5,
+                                     self.inactiveColor[3] * 0.5,
+                                     self.inactiveColor[4] }
 
     self.nextNode =      init.nextNode
     self.previousNode =  init.previousNode

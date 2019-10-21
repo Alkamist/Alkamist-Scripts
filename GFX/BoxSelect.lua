@@ -16,6 +16,9 @@ function BoxSelect:new(init)
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
+    self.thingsToSelect = init.thingsToSelect or {}
+    self.inversionKey =   init.inversionKey
+    self.additiveKey =    init.additiveKey
 
     return self
 end
@@ -50,6 +53,12 @@ end
 
 function BoxSelect:deactivate()
     self.isActive = false
+
+    for _, thing in ipairs(self.thingsToSelect) do
+        if self:pointIsInside(thing.x.current, thing.y.current) then
+            thing.isSelected:update(true)
+        end
+    end
 end
 
 function BoxSelect:draw()

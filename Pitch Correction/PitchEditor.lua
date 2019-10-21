@@ -41,7 +41,10 @@ function PitchEditor:new(init)
     self.pitchCorrectionNodes = {}
 
     self.view =      View:new()
-    self.boxSelect = BoxSelect:new{ GFX = self.GFX }
+    self.boxSelect = BoxSelect:new{
+        GFX = self.GFX,
+        thingsToSelect = self.pitchCorrectionNodes
+    }
 
     self.mouseTime  = NumberTracker:new(0)
     self.mousePitch = NumberTracker:new(0)
