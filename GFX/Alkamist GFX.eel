@@ -1,3 +1,6 @@
+//========================================================================
+//=== Debug Functions ====================================================
+//========================================================================
 function imsg(message)
 (
     #temp = sprintf(#, "%i", message);
@@ -17,12 +20,47 @@ function msg(message)
     ShowConsoleMsg(#temp);
 );
 
+//========================================================================
+//=== View ===============================================================
+//========================================================================
+function viewAxis_new(zoom, scroll, scale)
+(
+    this.zoom = zoom;
+    this.scroll = scroll;
+    this.scale = scale;
+    this.target = 0.0;
+);
+function viewAxis_changeScroll(change)
+(
+    this.scroll = this.scroll - change / (this.zoom * this.scale);
+);
+function viewAxis_changeZoom(change)
+  local(sensitivity, scaledChange, scaledTarget)
+(
+    sensitivity = 0.005 * this.scale;
+    scaledChange = change / this.scale;
+    scaledTarget = this.target / this.scale;
+    this.zoom = this.zoom * (1.0 + sensitivity * scaledChange);
+    this.scroll = this.scroll + sensitivity * scaledChange * scaledTarget / this.zoom;
+);
+
+//========================================================================
+//=== Helpful Functions ==================================================
+//========================================================================
 function pointIsInside(pointX, pointY)
 (
     pointX >= this.x && pointX <= this.x + this.w
     && pointY >= this.y && pointY <= this.y + this.h;
 );
 
+function pitchToPixels(pitch)
+(
+    mainArea_y + mainView_y.zoom * mainArea_h * ((1.0 - (0.5 + pitch) / pitchHeight) - mainView_y.scroll);
+);
+
+//========================================================================
+//=== Mouse Functions ====================================================
+//========================================================================
 function mouseIsInside()   ( this.pointIsInside(mouse_x, mouse_y); );
 
 function mouseLeftState()  ( mouse_cap & 1 == 1; );
@@ -48,17 +86,76 @@ function windowsDown()     ( mouse_cap & 32 == 32 && previous_mouse_cap & 32 == 
 function windowsUp()       ( mouse_cap & 32 == 0 && previous_mouse_cap & 32 == 32; );
 function wheelMoved()      ( GFX_wheel > 0 || GFX_wheel < 0);
 
+//========================================================================
+//=== Define Graphical Elements ==========================================
+//========================================================================
+function element_new(x,y,w,h)
+(
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+);
+
+//========================================================================
+//=== Key Background =====================================================
+//========================================================================
+//function getWhiteKeyNumbers(buffer)
+//  local(i, whiteKeyMultiples)
+//(
+//    whiteKeyMultiples[7] = { 1, 3, 4, 6, 8, 9, 11 };
+//    i = 0;
+//    loop(11,
+//        loop(7,
+//            buffer[i] = i * 12 + whiteKeyMultiples[i];
+//        );
+//        i += 1;
+//    );
+//);
+function drawKeyBackgrounds()
+  local(i, previousKeyEnd, keyEnd, keyHeight, keyCenterLine)
+(
+    previousKeyEnd = pitchToPixels(pitchHeight + 0.5);
+
+    i = 0;
+    loop(pitchHeight,
+        keyEnd = pitchToPixels(pitchHeight - i + 1.5);
+        keyHeight = keyEnd - previousKeyEnd;
+
+        gfx_set(0.25, 0.25, 0.25, 1.0);
+        //for _, value in ipairs(self.whiteKeyNumbers) do
+        //loop(
+        //    if i == value then
+        //        gfx_set(0.34, 0.34, 0.34, 1.0);
+        //    end
+        //end
+        //gfx_rect(0, keyEnd, gfx_w, keyHeight + 1, 1);
+
+        //gfx_set(0.25, 0.25, 0.25, 1.0);
+        gfx_line(0, keyEnd, gfx_w - 1, keyEnd, 0);
+
+        keyHeight > 16 ? (
+            keyCenterLine = pitchToPixels(self.pitchHeight - i + 1);
+            gfx_set(1.0, 1.0, 1.0, 0.12);
+            gfx_line(0, keyCenterLine, gfx_w - 1, keyCenterLine, 0);
+        );
+
+        previousKeyEnd = keyEnd;
+        i += 1;
+    );
+);
+
+//========================================================================
+//=== Buttons ============================================================
+//========================================================================
 function button_new(x,y,w,h, r,g,b,a, label)
 (
-  this.x = x;
-  this.y = y;
-  this.w = w;
-  this.h = h;
-  this.r = r;
-  this.g = g;
-  this.b = b;
-  this.a = a;
-  this.label = label;
+    this.element_new(x, y, w, h);
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+    this.label = label;
 );
 function button_draw()
   local(x,y,w,h, r,g,b,a, label,label_w,label_h, value,value_w,value_h)
@@ -73,14 +170,17 @@ function button_draw()
     a =     this.a;
     label = this.label;
 
-    //this.mouseIsInside() ? (
-    //    this.mouseLeftState() ? a = a + 0.2;
-    //);
-
     gfx_set(r, g, b, a);
     gfx_rect(x, y, w, h, 1);
     gfx_set(1.0, 1.0, 1.0, 0.3);
     gfx_rect(x, y, w, h, 0);
+
+    this.mouseIsInside() ? (
+        this.mouseLeftState() ? (
+            gfx_set(1.0, 1.0, 1.0, 0.7);
+        );
+        gfx_rect(x, y, w, h, 1);
+    );
 
     gfx_set(1.0, 1.0, 1.0, 0.9);
     gfx_measurestr(label, label_w, label_h);
@@ -89,15 +189,33 @@ function button_draw()
     gfx_drawstr(label);
 );
 
+//========================================================================
+//=== Create Graphical Elements ==========================================
+//========================================================================
 testButton.button_new(20,20,140,30, 0.0,0.3,0.4,1.0, "test");
 
-function GFX_init(title, x, y, width, height, dock)
-(
-    gfx_init(title, width, height, dock, x, y);
-    gfx_clear = 32 + 32 * 256 + 32 * 65536;
-    previous_mouse_cap = 0;
+//========================================================================
+//=== Main Processing ====================================================
+//========================================================================
 
+function GFX_init(title, x, y, w, h, dock)
+(
+    gfx_init(title, w, h, dock, x, y);
+    gfx_clear = 32 + 32 * 256 + 32 * 65536;
     gfx_setfont(1, "Arial", 15);
+
+    previous_mouse_cap = 0;
+    previous_mouse_x = 0;
+    previous_mouse_y = 0;
+    mouse_x_delta = 0;
+    mouse_y_delta = 0;
+
+    mainArea_y = 40;
+    pitchHeight = 128;
+    mainArea_h = gfx_h - mainArea_y;
+
+    mainView_x.viewAxis_new(1.0, 0.0, gfx_x);
+    mainView_y.viewAxis_new(1.0, 0.0, mainArea_h);
 );
 function GFX_run()
 (
@@ -107,8 +225,26 @@ function GFX_run()
     GFX_hWheel = mouse_hwheel / 120;
     mouse_wheel = 0;
     mouse_hwheel = 0;
+    mouse_x_delta = mouse_x - previous_mouse_x;
+    mouse_y_delta = mouse_y - previous_mouse_y;
 
-    testButton.button_draw();
+    mouseMiddleDown() ? (
+        mainView_x.target = mouse_x;
+        mainView_y.target = mouse_y;
+    );
+
+    mouseMiddleState() ? (
+        shiftState() ? (
+            mainView_x.viewAxis_changeZoom(mouse_x_delta);
+            mainView_y.viewAxis_changeZoom(mouse_y_delta);
+        ):(
+            mainView_x.viewAxis_changeScroll(mouse_x_delta);
+            mainView_y.viewAxis_changeScroll(mouse_y_delta);
+        );
+    );
+
+    //testButton.button_draw();
+    drawKeyBackgrounds();
 
     // Allow the Space Bar to play the current project.
     GFX_char == 32 ? Main_OnCommand(40044, 0);
@@ -118,6 +254,8 @@ function GFX_run()
     gfx_update();
 
     previous_mouse_cap = mouse_cap;
+    previous_mouse_x = mouse_x;
+    previous_mouse_y = mouse_y;
 );
 
 GFX_init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0);
