@@ -9,8 +9,8 @@ function BoxSelect:new(init)
     local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
-    self.insideColor = init.insideColor or {1.0, 1.0, 1.0, 0.05}
-    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.3}
+    self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
+    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
     self.isActive = false
     self.x1 = 0
     self.x2 = 0
