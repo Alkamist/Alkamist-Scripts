@@ -115,7 +115,7 @@ function element_new(x,y,w,h)
 function getWhiteKeyNumbers(whiteKeys)
   local(octave)
 (
-    0[0] = 1; 0[1] = 3; 0[2] = 4; 0[3] = 6; 0[4] = 8; 0[5] = 9; 0[6] = 11;
+    0[0] = 0; 0[1] = 2; 0[2] = 3; 0[3] = 5; 0[4] = 7; 0[5] = 8; 0[6] = 10;
     octave = 0;
     numberOfWhiteKeys = 0;
     loop(11,
@@ -129,7 +129,7 @@ function getWhiteKeyNumbers(whiteKeys)
 function drawKeyBackgrounds()
   local(i, j, previousKeyEnd, keyEnd, keyHeight, keyCenterLine)
 (
-    previousKeyEnd = pitchEditor_y;
+    previousKeyEnd = pitchToPixels(pitchEditor_pitchHeight + 0.5);
 
     i = 0;
     loop(pitchEditor_pitchHeight,
@@ -144,13 +144,13 @@ function drawKeyBackgrounds()
             );
             j += 1;
         );
-        gfx_rect(0, keyEnd, gfx_w, keyHeight + 1, 1);
+        gfx_rect(0, keyEnd, pitchEditor_w, keyHeight + 1, 1);
 
         gfx_set(0.25, 0.25, 0.25, 1.0);
-        gfx_line(0, keyEnd, gfx_w - 1, keyEnd, 0);
+        gfx_line(0, keyEnd, pitchEditor_w - 1, keyEnd, 0);
 
         keyHeight > 16 ? (
-            keyCenterLine = pitchToPixels(pitchEditor_pitchHeight - i + 1);
+            keyCenterLine = pitchToPixels(pitchEditor_pitchHeight - i - 1);
             gfx_set(1.0, 1.0, 1.0, 0.12);
             gfx_line(0, keyCenterLine, gfx_w - 1, keyCenterLine, 0);
         );
