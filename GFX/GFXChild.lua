@@ -28,13 +28,13 @@ function GFXChild:updateState(state)
     self.width:update(state.width)
     self.height:update(state.height)
 
-    self.relativeMouseX:update(self.mouse.x - self.x)
-    self.relativeMouseY:update(self.mouse.y - self.y)
+    self.relativeMouseX:update(self.mouse.x.current - self.x.current)
+    self.relativeMouseY:update(self.mouse.y.current - self.y.current)
 end
 
 function GFXChild:pointIsInside(x, y)
-    return x >= self.x and x <= self.x + self.width
-       and y >= self.y and y <= self.y + self.height
+    return x >= self.x.current and x <= self.x.current + self.width.current
+       and y >= self.y.current and y <= self.y.current + self.height.current
 end
 function GFXChild:mouseIsInside()
     return self:pointIsInside(self.mouse.x.current, self.mouse.y.current)
@@ -51,18 +51,18 @@ function GFXChild:setColor(color)
     gfx.set(color[1], color[2], color[3], color[4])
 end
 function GFXChild:drawRectangle(x, y, width, height, filled)
-    gfx.rect(x + self.x, y + self.y, width, height, filled)
+    gfx.rect(x + self.x.current, y + self.y.current, width, height, filled)
 end
 function GFXChild:drawLine(x, y, x2, y2, antiAliased)
-    gfx.line(x + self.x,
-             y + self.y,
-             x2 + self.x,
-             y2 + self.y,
+    gfx.line(x + self.x.current,
+             y + self.y.current,
+             x2 + self.x.current,
+             y2 + self.y.current,
              antiAliased)
 end
 function GFXChild:drawCircle(x, y, r, filled, antiAliased)
-    gfx.circle(x + self.x,
-               y + self.y,
+    gfx.circle(x + self.x.current,
+               y + self.y.current,
                r,
                filled,
                antiAliased)

@@ -65,7 +65,7 @@ function PitchEditor:updateLeftEdge()
 end
 function PitchEditor:updateTimeWidth()
     if #self.items > 0 then
-        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self.leftEdge)
+        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self.leftEdge.current)
     else
         self.timeWidth:update(0.0)
     end
@@ -87,8 +87,8 @@ end
 function PitchEditor:pixelsToTime(xPixels)
     local scrollX = self.view.scroll.x
     local zoomX = self.view.zoom.x
-    local width = self.width
-    local timeWidth = self.timeWidth
+    local width = self.width.current
+    local timeWidth = self.timeWidth.current
 
     return timeWidth * (scrollX + xPixels / (width * zoomX))
 end
@@ -103,7 +103,7 @@ end
 function PitchEditor:pixelsToPitch(yPixels)
     local scrollY = self.view.scroll.y
     local zoomY = self.view.zoom.y
-    local height = self.height
+    local height = self.height.current
     local pitchHeight = self.pitchHeight
 
     return pitchHeight * (1.0 - (scrollY + yPixels / (height * zoomY))) - 0.5
@@ -111,7 +111,7 @@ end
 function PitchEditor:pitchToPixels(pitch)
     local scrollY = self.view.scroll.y
     local zoomY = self.view.zoom.y
-    local height = self.height
+    local height = self.height.current
     local pitchHeight = self.pitchHeight
 
     return zoomY * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scrollY)
@@ -180,8 +180,8 @@ function PitchEditor:drawItemEdges()
 end
 function PitchEditor:drawEditCursor()
     local project = Alk:getProject()
-    local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge)
-    local playPositionPixels = self:timeToPixels(project:getPlayCursorTime() - self.leftEdge)
+    local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge.current)
+    local playPositionPixels = self:timeToPixels(project:getPlayCursorTime() - self.leftEdge.current)
     local height = self.height.current
 
     self:setColor(self.editCursorColor)
@@ -225,13 +225,13 @@ end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY)
+    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     if not self.leftIsDragging then
         local project = Alk:getProject()
-        project:setEditCursorTime(self.leftEdge + self.mouseTime, false, true)
+        project:setEditCursorTime(self.leftEdge.current + self.mouseTime.current, false, true)
     end
     Alk:updateArrange()
 end
