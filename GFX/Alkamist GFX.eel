@@ -1,0 +1,124 @@
+function imsg(message)
+(
+    #temp = sprintf(#, "%i", message);
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
+function fmsg(message)
+(
+    #temp = sprintf(#, "%f", message);
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
+function msg(message)
+(
+    #temp = message;
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
+
+function pointIsInside(pointX, pointY)
+(
+    pointX >= this.x && pointX <= this.x + this.w
+    && pointY >= this.y && pointY <= this.y + this.h;
+);
+
+function mouseIsInside()   ( this.pointIsInside(mouse_x, mouse_y); );
+
+function mouseLeftState()  ( mouse_cap & 1 == 1; );
+function mouseLeftDown()   ( mouse_cap & 1 == 1 && previous_mouse_cap & 1 == 0; );
+function mouseLeftUp()     ( mouse_cap & 1 == 0 && previous_mouse_cap & 1 == 1; );
+function mouseMiddleState()( mouse_cap & 64 == 64; );
+function mouseMiddleDown() ( mouse_cap & 64 == 64 && previous_mouse_cap & 64 == 0; );
+function mouseMiddleUp()   ( mouse_cap & 64 == 0 && previous_mouse_cap & 64 == 64; );
+function mouseRightState() ( mouse_cap & 2 == 2; );
+function mouseRightDown()  ( mouse_cap & 2 == 2 && previous_mouse_cap & 2 == 0; );
+function mouseRightUp()    ( mouse_cap & 2 == 0 && previous_mouse_cap & 2 == 2; );
+function shiftState()      ( mouse_cap & 8 == 8; );
+function shiftDown()       ( mouse_cap & 8 == 8 && previous_mouse_cap & 8 == 0; );
+function shiftUp()         ( mouse_cap & 8 == 0 && previous_mouse_cap & 8 == 8; );
+function controlState()    ( mouse_cap & 4 == 4; );
+function controlDown()     ( mouse_cap & 4 == 4 && previous_mouse_cap & 4 == 0; );
+function controlUp()       ( mouse_cap & 4 == 0 && previous_mouse_cap & 4 == 4; );
+function altState()        ( mouse_cap & 16 == 16; );
+function altDown()         ( mouse_cap & 16 == 16 && previous_mouse_cap & 16 == 0; );
+function altUp()           ( mouse_cap & 16 == 0 && previous_mouse_cap & 16 == 16; );
+function windowsState()    ( mouse_cap & 32 == 32; );
+function windowsDown()     ( mouse_cap & 32 == 32 && previous_mouse_cap & 32 == 0; );
+function windowsUp()       ( mouse_cap & 32 == 0 && previous_mouse_cap & 32 == 32; );
+function wheelMoved()      ( GFX_wheel > 0 || GFX_wheel < 0);
+
+function button_new(x,y,w,h, r,g,b,a, label)
+(
+  this.x = x;
+  this.y = y;
+  this.w = w;
+  this.h = h;
+  this.r = r;
+  this.g = g;
+  this.b = b;
+  this.a = a;
+  this.label = label;
+);
+function button_draw()
+  local(x,y,w,h, r,g,b,a, label,label_w,label_h, value,value_w,value_h)
+(
+    x =     this.x;
+    y =     this.y;
+    w =     this.w;
+    h =     this.h;
+    r =     this.r;
+    g =     this.g;
+    b =     this.b;
+    a =     this.a;
+    label = this.label;
+
+    //this.mouseIsInside() ? (
+    //    this.mouseLeftState() ? a = a + 0.2;
+    //);
+
+    gfx_set(r, g, b, a);
+    gfx_rect(x, y, w, h, 1);
+    gfx_set(1.0, 1.0, 1.0, 0.3);
+    gfx_rect(x, y, w, h, 0);
+
+    gfx_set(1.0, 1.0, 1.0, 0.9);
+    gfx_measurestr(label, label_w, label_h);
+    gfx_x = x + (w - label_w) / 2;
+    gfx_y = y + (h - label_h) / 2;
+    gfx_drawstr(label);
+);
+
+testButton.button_new(20,20,140,30, 0.0,0.3,0.4,1.0, "test");
+
+function GFX_init(title, x, y, width, height, dock)
+(
+    gfx_init(title, width, height, dock, x, y);
+    gfx_clear = 32 + 32 * 256 + 32 * 65536;
+    previous_mouse_cap = 0;
+
+    gfx_setfont(1, "Arial", 15);
+);
+function GFX_run()
+(
+    // Initialize GFX parameters.
+    GFX_char = gfx_getchar();
+    GFX_wheel = mouse_wheel / 120;
+    GFX_hWheel = mouse_hwheel / 120;
+    mouse_wheel = 0;
+    mouse_hwheel = 0;
+
+    testButton.button_draw();
+
+    // Allow the Space Bar to play the current project.
+    GFX_char == 32 ? Main_OnCommand(40044, 0);
+
+    // Make Escape and clicking the X button close the window.
+    GFX_char != 27 && GFX_char != -1 ? defer("GFX_run();");
+    gfx_update();
+
+    previous_mouse_cap = mouse_cap;
+);
+
+GFX_init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0);
+GFX_run();

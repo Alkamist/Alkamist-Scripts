@@ -1,0 +1,38 @@
+function showTime(msg, a, b)
+(
+    #output = msg;
+    #output += sprintf(#, "%f", b - a);
+    #output += "\n";
+    ShowConsoleMsg(#output);
+);
+
+
+function test()
+(
+    item = GetMediaItem(0, 0);
+    leftTime = GetMediaItemInfo_Value(item, "D_POSITION");
+);
+
+
+
+
+t0 = time_precise();
+
+loop(100000,
+    item = GetMediaItem(0, 0);
+    leftTime = GetMediaItemInfo_Value(item, "D_POSITION");
+);
+
+t1 = time_precise();
+showTime("Normal ", t0, t1);
+
+
+
+t0 = time_precise();
+
+loop(100000,
+    test();
+);
+
+t1 = time_precise();
+showTime("Function ", t0, t1);
