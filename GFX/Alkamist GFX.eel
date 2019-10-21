@@ -53,9 +53,21 @@ function pointIsInside(pointX, pointY)
     && pointY >= this.y && pointY <= this.y + this.h;
 );
 
+function pixelsToTime(pixels)
+(
+    pitchEditor_timeWidth * (mainView_x.scroll + (pixels + pitchEditor_x) / (pitchEditor_w * mainView_x.zoom));
+);
+function timeToPixels(time)
+(
+    pitchEditor_x + mainView_x.zoom * pitchEditor_w * (time / pitchEditor_timeWidth - mainView_x.scroll);
+);
+function pixelsToPitch(pixels)
+(
+    pitchEditor_pitchHeight * (1.0 - (mainView_y.scroll + (pixels + pitchEditor_y) / (pitchEditor_h * mainView_y.zoom))) - 0.5;
+);
 function pitchToPixels(pitch)
 (
-    mainArea_y + mainView_y.zoom * mainArea_h * ((1.0 - (0.5 + pitch) / pitchHeight) - mainView_y.scroll);
+    pitchEditor_y + mainView_y.zoom * pitchEditor_h * ((1.0 - (0.5 + pitch) / pitchEditor_pitchHeight) - mainView_y.scroll);
 );
 
 //========================================================================
@@ -115,11 +127,11 @@ function element_new(x,y,w,h)
 function drawKeyBackgrounds()
   local(i, previousKeyEnd, keyEnd, keyHeight, keyCenterLine)
 (
-    previousKeyEnd = pitchToPixels(pitchHeight + 0.5);
+    previousKeyEnd = pitchToPixels(pitchEditor_pitchHeight + 0.5);
 
     i = 0;
-    loop(pitchHeight,
-        keyEnd = pitchToPixels(pitchHeight - i + 1.5);
+    loop(pitchEditor_pitchHeight,
+        keyEnd = pitchToPixels(pitchEditor_pitchHeight - i + 1.5);
         keyHeight = keyEnd - previousKeyEnd;
 
         gfx_set(0.25, 0.25, 0.25, 1.0);
@@ -135,7 +147,7 @@ function drawKeyBackgrounds()
         gfx_line(0, keyEnd, gfx_w - 1, keyEnd, 0);
 
         keyHeight > 16 ? (
-            keyCenterLine = pitchToPixels(self.pitchHeight - i + 1);
+            keyCenterLine = pitchToPixels(self.pitchEditor_pitchHeight - i + 1);
             gfx_set(1.0, 1.0, 1.0, 0.12);
             gfx_line(0, keyCenterLine, gfx_w - 1, keyCenterLine, 0);
         );
@@ -197,6 +209,38 @@ testButton.button_new(20,20,140,30, 0.0,0.3,0.4,1.0, "test");
 //========================================================================
 //=== Main Processing ====================================================
 //========================================================================
+function updateSelectedItems()
+  local(i, j, item, topMostSelectedItemTrackNumber)
+(
+    topMostSelectedItemTrackNumber = CountTracks(0);
+    i = 0;
+    loop(CountSelectedMediaItems(0),
+        topMostSelectedItemTrackNumber = min(GetMediaTrackInfo_Value(GetMediaItemTrack(GetSelectedMediaItem(0, i)), "IP_TRACKNUMBER"), topMostSelectedItemTrackNumber);
+        i += 1;
+    );
+    pitchEditor_track = GetTrack(0, topMostSelectedItemTrackNumber - 1);
+    i = 0;
+    j = 0;
+    loop(CountSelectedMediaItems(0),
+        item = GetSelectedMediaItem(0, i);
+        MediaItemDescendsFromTrack(item, pitchEditor_track) ? (
+            pitchEditor_items[j] = item;
+            j += 1;
+        );
+        i += 1;
+    );
+    pitchEditor_numberOfItems = j;
+
+    pitchEditor_numberOfItems > 0 ? (
+        item = GetSelectedMediaItem(0, pitchEditor_items[0]);
+        reaper.GetMediaItemInfo_Value(item, "D_POSITION") + reaper.GetMediaItemInfo_Value(item, "D_LENGTH") ;
+        self.items[#self.items]:getRightEdge() - self.leftEdge.current
+    ):(
+
+    );
+
+    self:updateTimeWidth()
+);
 
 function GFX_init(title, x, y, w, h, dock)
 (
@@ -210,12 +254,30 @@ function GFX_init(title, x, y, w, h, dock)
     mouse_x_delta = 0;
     mouse_y_delta = 0;
 
-    mainArea_y = 40;
-    pitchHeight = 128;
-    mainArea_h = gfx_h - mainArea_y;
+    mouseTime = 0;
+    mousePitch = 0;
+
+    pitchEditor_y = 40;
+    pitchEditor_h = gfx_h - pitchEditor_y;
+    pitchEditor_x = 0;
+    pitchEditor_w = gfx_w - pitchEditor_x;
+    pitchEditor_track = 0;
+    pitchEditor_items = 10000;
+    pitchEditor_numberOfItems = 0;
+
+    relativeMouseX = 0;
+    relativeMouseY = 0;
+
+    numberOfSelectedItems = 0;
+    previousNumberOfSelectedItems = 0;
+
+    pitchEditor_leftEdge = 0;
+    pitchEditor_rightEdge = 0;
+    pitchEditor_timeWidth = 0;
+    pitchEditor_pitchHeight = 128;
 
     mainView_x.viewAxis_new(1.0, 0.0, gfx_x);
-    mainView_y.viewAxis_new(1.0, 0.0, mainArea_h);
+    mainView_y.viewAxis_new(1.0, 0.0, pitchEditor_h);
 );
 function GFX_run()
 (
@@ -227,6 +289,16 @@ function GFX_run()
     mouse_hwheel = 0;
     mouse_x_delta = mouse_x - previous_mouse_x;
     mouse_y_delta = mouse_y - previous_mouse_y;
+
+    relativeMouseX = mouse_x + pitchEditor_x;
+    relativeMouseY = mouse_y + pitchEditor_y;
+    mouseTime =  pixelsToTime(relativeMouseX);
+    mousePitch = pixelsToPitch(relativeMouseY);
+
+    numberOfSelectedItems = CountSelectedMediaItems(0)
+    numberOfSelectedItems != previousNumberOfSelectedItems ? (
+        updateSelectedItems();
+    );
 
     mouseMiddleDown() ? (
         mainView_x.target = mouse_x;
@@ -256,6 +328,7 @@ function GFX_run()
     previous_mouse_cap = mouse_cap;
     previous_mouse_x = mouse_x;
     previous_mouse_y = mouse_y;
+    previousNumberOfSelectedItems = numberOfSelectedItems;
 );
 
 GFX_init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0);
