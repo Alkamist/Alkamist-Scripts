@@ -9,8 +9,8 @@ function GFXChild:new(init)
     local self = setmetatable({}, { __index = self })
 
     self.GFX =      init.GFX
-    self.mouse =    {}
-    self.keyboard = {}
+    self.mouse =    init.GFX.mouse
+    self.keyboard = init.GFX.keyboard
     self.x =        NumberTracker:new(init.x)
     self.y =        NumberTracker:new(init.y)
     self.width =    NumberTracker:new(init.width)
@@ -18,6 +18,8 @@ function GFXChild:new(init)
 
     self.relativeMouseX = NumberTracker:new(0)
     self.relativeMouseY = NumberTracker:new(0)
+
+    self.currentColor = {0.0, 0.0, 0.0, 1.0}
 
     return self
 end
@@ -48,6 +50,7 @@ function GFXChild:mouseJustLeft()    return not self:mouseIsInside() and self:mo
 -- Drawing Code:
 
 function GFXChild:setColor(color)
+    self.currentColor = color
     gfx.set(color[1], color[2], color[3], color[4])
 end
 function GFXChild:drawRectangle(x, y, width, height, filled)

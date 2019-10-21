@@ -41,7 +41,7 @@ function PitchEditor:new(init)
     self.pitchCorrectionNodes = {}
 
     self.view =      View:new()
-    self.boxSelect = BoxSelect:new()
+    self.boxSelect = BoxSelect:new{ GFX = self.GFX }
 
     self.mouseTime  = NumberTracker:new(0)
     self.mousePitch = NumberTracker:new(0)
@@ -118,14 +118,16 @@ function PitchEditor:pitchToPixels(pitch)
 end
 
 function PitchEditor:addPitchCorrectionNode(x, y)
-    --local nextNode = self.pitchCorrectionNodes[#self.pitchCorrectionNodes]
-    --local newNode = PitchCorrectionNode:new{
-    --    x = x,
-    --    y = y,
-    --    nextNode = nextNode,
-    --    isActive = true
-    --}
-    --table.insert(self.pitchCorrectionNodes, newNode)
+    local nextNode = self.pitchCorrectionNodes[#self.pitchCorrectionNodes]
+    local newNode = PitchCorrectionNode:new{
+        GFX = self.GFX,
+        x = x,
+        y = y,
+        nextNode = nextNode,
+        isActive = true,
+        isSelected = false
+    }
+    table.insert(self.pitchCorrectionNodes, newNode)
 end
 
 ---------------------- Drawing Code ----------------------
@@ -193,9 +195,9 @@ function PitchEditor:drawEditCursor()
     end
 end
 function PitchEditor:drawPitchCorrectionNodes()
-    --for _, node in ipairs(self.pitchCorrectionNodes) do
-    --    node:draw()
-    --end
+    for _, node in ipairs(self.pitchCorrectionNodes) do
+        node:draw()
+    end
 end
 
 ---------------------- Events ----------------------
@@ -225,7 +227,7 @@ end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
+    self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()

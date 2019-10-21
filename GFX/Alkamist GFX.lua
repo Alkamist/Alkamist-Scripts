@@ -31,15 +31,8 @@ function AlkamistGFX:init(init)
     self.children = {}
 end
 
-function AlkamistGFX:setPlayKey(playKey) self.playKey = playKey end
-function AlkamistGFX:setChildren(children)
-    self.children = children
-
-    for _, child in pairs(children) do
-        child.mouse =    self.mouse
-        child.keyboard = self.keyboard
-    end
-end
+function AlkamistGFX:setPlayKey(playKey)   self.playKey = playKey end
+function AlkamistGFX:setChildren(children) self.children = children end
 
 function AlkamistGFX:processChildren()
     local state = {
