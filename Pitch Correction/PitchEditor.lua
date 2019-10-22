@@ -143,6 +143,14 @@ function PitchEditor:insertNode(newNode)
     self.nodes[numberOfNodes + 1] = newNode
     return numberOfNodes + 1
 end
+function PitchEditor:recalculateNodeCoordinates()
+    local numberOfNodes = #self.nodes
+    for i = 1, numberOfNodes do
+        local node = self.nodes[i]
+        node.x = self:timeToPixels(node.time)
+        node.y = self:pitchToPixels(node.pitch)
+    end
+end
 --function PitchEditor:editSelectedNodes()
 --    local numberOfNodes = #self.nodes
 --    for i = 1, numberOfNodes do
@@ -251,6 +259,8 @@ function PitchEditor:onResize()
     self.h = newHeight
     self.view.x.scale = newWidth
     self.view.y.scale = newHeight
+
+    self:recalculateNodeCoordinates()
 end
 function PitchEditor:onKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
@@ -285,6 +295,8 @@ function PitchEditor:onMouseMiddleButtonDrag()
         self.view.x:changeScroll(self.GFX.mouseXChange)
         self.view.y:changeScroll(self.GFX.mouseYChange)
     end
+
+    self:recalculateNodeCoordinates()
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
@@ -308,6 +320,8 @@ function PitchEditor:onMouseWheel()
     else
         self.view.x:changeZoom(self.GFX.wheel * xSensitivity)
     end
+
+    self:recalculateNodeCoordinates()
 end
 function PitchEditor:onMouseHWheel() end
 function PitchEditor:onDraw()
