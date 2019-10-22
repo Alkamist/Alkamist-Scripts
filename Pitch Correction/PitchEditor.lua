@@ -212,8 +212,8 @@ function PitchEditor:onResize()
     self.view.y.scale = newHeight
 end
 function PitchEditor:onKeyPress()
-    --local charFunction = self.onCharFunctions[self.keyboard.char]
-    --if charFunction then charFunction() end
+    local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
+    if keyPressFunction then keyPressFunction() end
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
@@ -303,7 +303,7 @@ function PitchEditor:onDraw()
     --gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
 end
 
---[[PitchEditor.onCharFunctions = {
+PitchEditor.onKeyPressFunctions = {
     ["Left"] = function()
         msg("left")
     end,
@@ -316,6 +316,6 @@ end
     ["Down"] = function()
         msg("down")
     end
-}]]--
+}
 
 return PitchEditor
