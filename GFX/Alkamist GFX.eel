@@ -47,6 +47,8 @@ function viewAxis_changeZoom(change)
 //========================================================================
 //=== Helpful Functions ==================================================
 //========================================================================
+function windowWasResized()( gfx_w != gfx_previous_w || gfx_h != gfx_previous_h; );
+
 function pointIsInside(pointX, pointY)
 (
     pointX >= this.x && pointX <= this.x + this.w
@@ -98,10 +100,8 @@ function windowsDown()     ( mouse_cap & 32 == 32 && previous_mouse_cap & 32 == 
 function windowsUp()       ( mouse_cap & 32 == 0 && previous_mouse_cap & 32 == 32; );
 function wheelMoved()      ( GFX_wheel > 0 || GFX_wheel < 0);
 
-function windowWasResized()( gfx_w != gfx_previous_w || gfx_h != gfx_previous_h; );
-
 //========================================================================
-//=== Define Graphical Elements ==========================================
+//=== Graphical Elements =================================================
 //========================================================================
 function element_new(x,y,w,h)
 (
