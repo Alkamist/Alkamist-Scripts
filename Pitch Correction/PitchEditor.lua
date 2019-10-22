@@ -1,10 +1,8 @@
+local reaper = reaper
+local gfx = gfx
+
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local NumberTracker =       require("Logic.NumberTracker")
-local Alk =                 require("API.Alkamist API")
-local GFXChild =            require("GFX.GFXChild")
-local View =                require("GFX.View")
-local BoxSelect =           require("GFX.BoxSelect")
-local PitchCorrectionNode = require("Pitch Correction.PitchCorrectionNode")
+local ViewAxis = require("GFX.ViewAxis")
 
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -17,41 +15,37 @@ local function getWhiteKeyNumbers()
     return whiteKeys
 end
 
-local PitchEditor = setmetatable({}, { __index = GFXChild })
+local PitchEditor = {}
 
 function PitchEditor:new(init)
     local init = init or {}
-
-    local base = GFXChild:new(init)
     local self = setmetatable(base, { __index = self })
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
-    self.pitchHeight =        init.pitchHeight or 128
-    self.blackKeyColor =      {0.25, 0.25, 0.25, 1.0}
-    self.whiteKeyColor =      {0.34, 0.34, 0.34, 1.0}
-    self.keyCenterLineColor = {1.0, 1.0, 1.0, 0.12}
-    self.itemInsideColor =    {1.0, 1.0, 1.0, 0.02}
-    self.itemEdgeColor =      {1.0, 1.0, 1.0, 0.17}
-    self.editCursorColor =    {1.0, 1.0, 1.0, 0.4}
-    self.playCursorColor =    {1.0, 1.0, 1.0, 0.3}
+    self.pitchHeight =        init.pitchHeight        or 128
+    self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0}
+    self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0}
+    self.keyCenterLineColor = init.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
+    self.itemInsideColor =    init.itemInsideColor    or {1.0, 1.0, 1.0, 0.02}
+    self.itemEdgeColor =      init.itemEdgeColor      or {1.0, 1.0, 1.0, 0.17}
+    self.editCursorColor =    init.editCursorColor    or {1.0, 1.0, 1.0, 0.4}
+    self.playCursorColor =    init.playCursorColor    or {1.0, 1.0, 1.0, 0.3}
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
 
     self.track = {}
     self.items = {}
-    self.pitchCorrectionNodes = {}
-
-    self.view =      View:new()
-    self.boxSelect = BoxSelect:new{
-        GFX = self.GFX,
-        thingsToSelect = self.pitchCorrectionNodes
+    self.view = {
+        x = ViewAxis:new(),
+        y = ViewAxis:new()
     }
 
-    self.mouseTime  = NumberTracker:new(0)
-    self.mousePitch = NumberTracker:new(0)
-    self.leftEdge =   NumberTracker:new(0)
-    self.timeWidth =  NumberTracker:new(0)
+    self.mouseTime  = 0.0
+    self.mousePitch = 0.0
+    self.leftEdge =   0.0
+    self.timeWidth =  0.0
 
-    self.numberOfSelectedItems = NumberTracker:new(0)
+    self.numberOfSelectedItems = 0
+    self.previousNumberOfSelectedItems = 0
 
     self:updateSelectedItems()
     self:onResize()
@@ -87,85 +81,50 @@ function PitchEditor:updateSelectedItems()
     self:updateTimeWidth()
 end
 
-function PitchEditor:pixelsToTime(xPixels)
-    local scrollX = self.view.scroll.x
-    local zoomX = self.view.zoom.x
-    local width = self.width.current
-    local timeWidth = self.timeWidth.current
-
-    return timeWidth * (scrollX + xPixels / (width * zoomX))
+function PitchEditor:pixelsToTime(relativePixels)
+    return self.timeWidth * (self.view.x.scroll + relativePixels / (self.w * self.view.x.zoom))
 end
 function PitchEditor:timeToPixels(time)
-    local scrollX = self.view.scroll.x
-    local zoomX = self.view.zoom.x
-    local width = self.width.current
-    local timeWidth = self.timeWidth.current
-
-    return zoomX * width * (time / timeWidth - scrollX)
+    return self.x + self.view.x.zoom * self.w * (time / self.timeWidth - self.view.x.scroll)
 end
-function PitchEditor:pixelsToPitch(yPixels)
-    local scrollY = self.view.scroll.y
-    local zoomY = self.view.zoom.y
-    local height = self.height.current
-    local pitchHeight = self.pitchHeight
-
-    return pitchHeight * (1.0 - (scrollY + yPixels / (height * zoomY))) - 0.5
+function PitchEditor:pixelsToPitch(relativePixels)
+    return self.pitchHeight * (1.0 - (self.view.y.scroll + relativePixels / (self.h * self.view.y.zoom))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
-    local scrollY = self.view.scroll.y
-    local zoomY = self.view.zoom.y
-    local height = self.height.current
-    local pitchHeight = self.pitchHeight
-
-    return zoomY * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scrollY)
-end
-
-function PitchEditor:addPitchCorrectionNode(x, y)
-    local nextNode = self.pitchCorrectionNodes[#self.pitchCorrectionNodes]
-    local newNode = PitchCorrectionNode:new{
-        GFX = self.GFX,
-        x = x,
-        y = y,
-        nextNode = nextNode,
-        isActive = true,
-        isSelected = false
-    }
-    table.insert(self.pitchCorrectionNodes, newNode)
+    return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
-    local width = self.width.current
-
-    local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
+    local previousKeyEnd = self.y + self:pitchToPixels(self.pitchHeight + 0.5)
 
     for i = 1, self.pitchHeight do
-        local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
+        local keyEnd = self.y + self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
-        self:setColor(self.blackKeyColor)
+        self.GFX:setColor(self.blackKeyColor)
         for _, value in ipairs(self.whiteKeyNumbers) do
             if i == value then
-                self:setColor(self.whiteKeyColor)
+                self.GFX:setColor(self.whiteKeyColor)
             end
         end
-        self:drawRectangle(0, keyEnd, width, keyHeight + 1, 1)
+        self.GFX:drawRectangle(self.x, keyEnd, self.w, keyHeight + 1, 1)
 
-        self:setColor(self.blackKeyColor)
-        self:drawLine(0, keyEnd, width - 1, keyEnd, false)
+        self.GFX:setColor(self.blackKeyColor)
+        self.GFX:drawLine(self.x, keyEnd, self.x + self.w - 1, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
-            local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
+            local keyCenterLine = self.y + self:pitchToPixels(self.pitchHeight - i)
 
-            self:setColor(self.keyCenterLineColor)
-            self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
+            self.GFX:setColor(self.keyCenterLineColor)
+            self.GFX:drawLine(self.x, keyCenterLine, self.x + self.w - 1, keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
     end
 end
-function PitchEditor:drawItemEdges()
+--[[function PitchEditor:drawItemEdges()
     local height = self.height.current
 
     for _, item in ipairs(self.items) do
@@ -182,8 +141,8 @@ function PitchEditor:drawItemEdges()
         self:setColor(self.itemEdgeColor)
         self:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
-end
-function PitchEditor:drawEditCursor()
+end]]--
+--[[function PitchEditor:drawEditCursor()
     local project = Alk:getProject()
     local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge.current)
     local playPositionPixels = self:timeToPixels(project:getPlayCursorTime() - self.leftEdge.current)
@@ -196,88 +155,83 @@ function PitchEditor:drawEditCursor()
         self:setColor(self.playCursorColor)
         self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
     end
-end
-function PitchEditor:drawPitchCorrectionNodes()
-    for _, node in ipairs(self.pitchCorrectionNodes) do
-        node:draw()
-    end
-end
+end]]--
 
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
-    self.mouseTime:update(self:pixelsToTime(self.relativeMouseX.current))
-    self.mousePitch:update(self:pixelsToPitch(self.relativeMouseY.current))
+    self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
+    self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
 
-    self.numberOfSelectedItems:update(#Alk:getSelectedItems())
-    if self.numberOfSelectedItems.changed then
+    self.numberOfSelectedItems = reaper.CountSelectedMediaItems(0)
+    if self.numberOfSelectedItems ~= self.previousNumberOfSelectedItems then
         self:updateSelectedItems()
     end
+    self.previousNumberOfSelectedItems = self.numberOfSelectedItems
 end
 function PitchEditor:onResize()
-    local newWidth = self.GFX.width.current
-    local newHeight = self.GFX.height.current - self.y.current
+    local newWidth = self.GFX.w - self.x
+    local newHeight = self.GFX.h - self.y
 
-    self.width:update(newWidth)
-    self.height:update(newHeight)
-    self.view.xScale = newWidth
-    self.view.yScale = newHeight
+    self.w = newWidth
+    self.h = newHeight
+    self.view.x.scale = newWidth
+    self.view.y.scale = newHeight
 end
 function PitchEditor:onKeyPress()
-    local charFunction = self.onCharFunctions[self.keyboard.char]
-    if charFunction then charFunction() end
+    --local charFunction = self.onCharFunctions[self.keyboard.char]
+    --if charFunction then charFunction() end
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
+    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
-    if not self.leftIsDragging then
-        local project = Alk:getProject()
-        project:setEditCursorTime(self.leftEdge.current + self.mouseTime.current, false, true)
-    end
-    Alk:updateArrange()
+    --if not self.leftIsDragging then
+    --    local project = Alk:getProject()
+    --    project:setEditCursorTime(self.leftEdge.current + self.mouseTime.current, false, true)
+    --end
+    --Alk:updateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
-    self.view.scroll.xTarget = self.relativeMouseX.current
-    self.view.scroll.yTarget = self.relativeMouseY.current
+    self.view.x.scroll.target = self.relativeMouseX
+    self.view.y.scroll.target = self.relativeMouseY
 end
 function PitchEditor:onMouseMiddleButtonDrag()
-    local xChange = self.mouse.x.delta
-    local yChange = self.mouse.y.delta
-    local shiftIsPressed = self.mouse.modifiers.shift.state.current
+    local xChange = self.mouseXChange
+    local yChange = self.mouseYChange
 
-    if shiftIsPressed then
-        self.view:changeZoom(xChange, yChange, true)
+    if self.shiftState then
+        self.view.x:changeZoom(self.mouseXChange)
+        self.view.y:changeZoom(self.mouseYChange)
     else
-        self.view:changeScroll(xChange, yChange)
+        self.view.x:changeScroll(self.mouseXChange)
+        self.view.y:changeScroll(self.mouseYChange)
     end
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
-    self.boxSelect:activate(self.relativeMouseX.current, self.relativeMouseY.current)
+    --self.boxSelect:activate(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseRightButtonDrag()
-    self.boxSelect:edit(self.relativeMouseX.current, self.relativeMouseY.current)
+    --self.boxSelect:edit(self.relativeMouseX.current, self.relativeMouseY.current)
 end
 function PitchEditor:onMouseRightButtonUp()
-    self.boxSelect:deactivate()
+    --self.boxSelect:deactivate()
 end
 function PitchEditor:onMouseWheel()
-    local numTicks = self.mouse.wheel
-    local controlIsPressed = self.mouse.modifiers.control.state.current
     local xSensitivity = 55.0
     local ySensitivity = 55.0
 
-    self.view.scroll.xTarget = self.relativeMouseX.current
-    self.view.scroll.yTarget = self.relativeMouseY.current
+    self.view.x.scroll.target = self.relativeMouseX
+    self.view.y.scroll.target = self.relativeMouseY
 
-    if controlIsPressed then
-        self.view:changeZoom(0.0, numTicks * ySensitivity, true)
+    if self.controlState then
+        self.view.y.changeZoom(self.wheel * ySensitivity)
     else
-        self.view:changeZoom(numTicks * xSensitivity, 0.0, true)
+        self.view.x.changeZoom(self.wheel * xSensitivity)
     end
 end
 function PitchEditor:onMouseHWheel() end
@@ -288,10 +242,10 @@ function PitchEditor:onDraw()
     --gfx.dest = drawBuffer
 
     self:drawKeyBackgrounds()
-    self:drawItemEdges()
-    self:drawEditCursor()
-    self:drawPitchCorrectionNodes()
-    self.boxSelect:draw()
+    --self:drawItemEdges()
+    --self:drawEditCursor()
+    --self:drawPitchCorrectionNodes()
+    --self.boxSelect:draw()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     --gfx.dest = -1
@@ -299,7 +253,7 @@ function PitchEditor:onDraw()
     --gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
 end
 
-PitchEditor.onCharFunctions = {
+--[[PitchEditor.onCharFunctions = {
     ["Left"] = function()
         msg("left")
     end,
@@ -312,6 +266,6 @@ PitchEditor.onCharFunctions = {
     ["Down"] = function()
         msg("down")
     end
-}
+}]]--
 
 return PitchEditor

@@ -149,8 +149,10 @@ local GFX = {
     numberOfChildren = 0,
     mouseX =           0,
     previousMouseX =   0,
+    mouseXChange =     0,
     mouseY =           0,
     previousMouseY =   0,
+    mouseYChange =     0,
     wheel =            0,
     hWheel =           0,
     mouseCap =         0,
@@ -180,12 +182,27 @@ local GFX = {
     mouseMoved =       false
 }
 
+function GFX:setColor(color)
+    gfx.set(color[1], color[2], color[3], color[4])
+end
+function GFX:drawRectangle(x, y, w, h, filled)
+    gfx.rect(x, y, w, h, filled)
+end
+function GFX:drawLine(x, y, x2, y2, antiAliased)
+    gfx.line(x, y, x2, y2, antiAliased)
+end
+function GFX:drawCircle(x, y, r, filled, antiAliased)
+    gfx.circle(x, y, r, filled, antiAliased)
+end
+
 function GFX:setChildren(children)
     self.children = children
     for index, child in pairs(self.children) do
         self.numberOfChildren = index
     end
 end
+
+
 
 function GFX:init(title, x, y, w, h, dock)
     gfx.init(title, w, h, dock, x, y)
@@ -201,25 +218,27 @@ end
 function GFX:update()
     local mouseCap = gfx.mouse_cap
 
-    self.previousW = self.w
-    self.previousH = self.h
-    self.previousMouseX = self.mouseX
-    self.previousMouseY = self.mouseY
+    self.previousW =        self.w
+    self.previousH =        self.h
+    self.previousMouseX =   self.mouseX
+    self.previousMouseY =   self.mouseY
     self.previousMouseCap = self.mouseCap
 
-    self.x = gfx.x
-    self.y = gfx.y
-    self.w = gfx.w
-    self.h = gfx.h
+    self.x =                gfx.x
+    self.y =                gfx.y
+    self.w =                gfx.w
+    self.h =                gfx.h
     self.windowWasResized = self.w ~= self.previousW or self.h ~= self.previousH
-    self.mouseX = gfx.mouse_x
-    self.mouseY = gfx.mouse_y
-    self.wheel = gfx.mouse_wheel / 120
-    gfx.mouse_wheel = 0
-    self.hWheel = gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel = 0
-    self.mouseCap = gfx.mouse_cap
-    self.char = characterTableInverted[gfx.getchar()]
+    self.mouseX =           gfx.mouse_x
+    self.mouseXChange =     self.mouseX - self.previousMouseX
+    self.mouseY =           gfx.mouse_y
+    self.mouseYChange =     self.mouseY - self.previousMouseY
+    self.wheel =            gfx.mouse_wheel / 120
+    gfx.mouse_wheel =       0
+    self.hWheel =           gfx.mouse_hwheel / 120
+    gfx.mouse_hwheel =      0
+    self.mouseCap =         gfx.mouse_cap
+    self.char =             characterTableInverted[gfx.getchar()]
     self.leftState =        self.mouseCap & 1 == 1
     self.leftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
     self.leftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
@@ -246,8 +265,18 @@ end
 function GFX:processChildren()
     for i = 1, self.numberOfChildren do
         local child = self.children[i]
-
         self.focus = self.focus or child
+
+        child.previousRelativeMouseX = self.previousMouseX + child.x
+        child.previousRelativeMouseY = self.previousMouseY + child.y
+        child.relativeMouseX =         self.mouseX + child.x
+        child.relativeMouseY =         self.mouseY + child.y
+        child.mouseIsInside = child.relativeMouseX >= 0 and child.relativeMouseX <= child.w
+                          and child.relativeMouseY >= 0 and child.relativeMouseY <= child.h
+        child.mouseWasPreviouslyInside = child.previousRelativeMouseX >= 0 and child.previousRelativeMouseX <= child.w
+                                     and child.previousRelativeMouseY >= 0 and child.previousRelativeMouseY <= child.h
+        child.mouseJustEntered = child.mouseIsInside and not child.mouseWasPreviouslyInside
+        child.mouseJustLeft =    not child.mouseIsInside and child.mouseWasPreviouslyInside
 
         child:onUpdate()
         if self.windowWasResized             then child:onResize() end
