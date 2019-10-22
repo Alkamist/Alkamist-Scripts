@@ -1,73 +1,74 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local GFXChild = require("GFX.GFXChild")
-
-local BoxSelect = setmetatable({}, { __index = GFXChild })
+local BoxSelect = {}
 
 function BoxSelect:new(init)
     local init = init or {}
+    local self = setmetatable({}, { __index = self })
 
-    local base = GFXChild:new(init)
-    local self = setmetatable(base, { __index = self })
+    self.GFX = init.GFX
 
-    self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
-    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
-    self.isActive = false
+    self.x = 0
+    self.y = 0
+    self.w = 0
+    self.h = 0
     self.x1 = 0
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
+    self.isActive = false
+
+    self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
+    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
+
     self.thingsToSelect = init.thingsToSelect or {}
-    self.inversionKey =   init.inversionKey
-    self.additiveKey =    init.additiveKey
+    self.inversionState = init.inversionState
+    self.additiveState =  init.additiveState
 
     return self
 end
 
+function BoxSelect:pointIsInside(x, y)
+    return x >= self.x and x <= self.x + self.w
+       and y >= self.y and y <= self.y + self.h
+end
+
 function BoxSelect:activate(startingX, startingY)
     self.isActive = true
+
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
     self.y2 = startingY
-
-    self.x:update(startingX)
-    self.y:update(startingY)
-    self.width:update(0)
-    self.height:update(0)
 end
 
 function BoxSelect:edit(editX, editY)
     self.x2 = editX
     self.y2 = editY
 
-    local boxX =      math.min(self.x1, self.x2)
-    local boxY =      math.min(self.y1, self.y2)
-    local boxWidth =  math.abs(self.x1 - self.x2)
-    local boxHeight = math.abs(self.y1 - self.y2)
-
-    self.x:update(boxX)
-    self.y:update(boxY)
-    self.width:update(boxWidth)
-    self.height:update(boxHeight)
+    self.x = math.min(self.x1, self.x2)
+    self.y = math.min(self.y1, self.y2)
+    self.w = math.abs(self.x1 - self.x2)
+    self.h = math.abs(self.y1 - self.y2)
 end
 
 function BoxSelect:deactivate()
     self.isActive = false
 
-    for _, thing in ipairs(self.thingsToSelect) do
-        if self:pointIsInside(thing.x.current, thing.y.current) then
-            thing.isSelected:update(true)
+    for i = 1, #self.thingsToSelect do
+        local thing = self.thingsToSelect[i]
+
+        if self:pointIsInside(thing.x, thing.y) then
+            thing.isSelected = true
         end
     end
 end
 
 function BoxSelect:draw()
     if self.isActive then
-        self:setColor(self.edgeColor)
-        self:drawRectangle(0, 0, self.width.current, self.height.current, false)
+        self.GFX:setColor(self.edgeColor)
+        self.GFX:drawRectangle(self.x, self.y, self.w, self.h, false)
 
-        self:setColor(self.insideColor)
-        self:drawRectangle(1, 1, self.width.current - 2, self.height.current - 2, true)
+        self.GFX:setColor(self.insideColor)
+        self.GFX:drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, true)
     end
 end
 

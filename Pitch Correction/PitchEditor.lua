@@ -2,7 +2,8 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ViewAxis = require("GFX.ViewAxis")
+local ViewAxis =  require("GFX.ViewAxis")
+local BoxSelect = require("GFX.BoxSelect")
 
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
@@ -39,18 +40,23 @@ function PitchEditor:new(init)
     self.editCursorColor =    init.editCursorColor    or {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor =    init.playCursorColor    or {1.0, 1.0, 1.0, 0.3}
 
+    self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
+
     self.track = {}
     self.items = {}
     self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
     }
+    self.boxSelect = BoxSelect:new{ GFX = self.GFX }
 
     self.mouseTime  = 0.0
     self.mousePitch = 0.0
     self.leftEdge =   0.0
     self.rightEdge =  0.0
     self.timeWidth =  0.0
+
+    self.nodes = {}
 
     self:updateSelectedItems()
     self:onResize()
@@ -93,15 +99,19 @@ function PitchEditor:updateSelectedItems()
 end
 
 function PitchEditor:pixelsToTime(relativePixels)
+    if self.w <= 0 then return 0.0 end
     return self.timeWidth * (self.view.x.scroll + relativePixels / (self.w * self.view.x.zoom))
 end
 function PitchEditor:timeToPixels(time)
+    if self.timeWidth <= 0 then return 0 end
     return self.x + self.view.x.zoom * self.w * (time / self.timeWidth - self.view.x.scroll)
 end
 function PitchEditor:pixelsToPitch(relativePixels)
+    if self.h <= 0 then return 0.0 end
     return self.pitchHeight * (1.0 - (self.view.y.scroll + relativePixels / (self.h * self.view.y.zoom))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
+    if self.pitchHeight <= 0 then return 0 end
     return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
@@ -167,6 +177,22 @@ function PitchEditor:drawEditCursor()
         self.GFX:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
+function PitchEditor:drawPitchCorrectionNodes()
+    for i = 1, #self.nodes do
+        local node = self.nodes[i]
+        local nextNode = self.nodes[i + 1]
+
+        local nodeX = self:timeToPixels(node.time)
+        local nodeY = self:pitchToPixels(node.pitch)
+        self.GFX:drawCircle(nodeX, nodeY, self.nodeCirclePixelRadius, true, true)
+
+        if node.isActive and nextNode then
+            local nextNodeX = self:timeToPixels(nextNode.time)
+            local nextNodeY = self:pitchToPixels(nextNode.pitch)
+            self.GFX:drawLine(nodeX, nodeY, nextNodeX, nextNodeY, true)
+        end
+    end
+end
 
 ---------------------- Events ----------------------
 
@@ -191,7 +217,30 @@ function PitchEditor:onKeyPress()
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown() end
+function PitchEditor:onMouseLeftButtonDown()
+    local numberOfNodes = #self.nodes
+    local newNode = {
+        time = self.mouseTime,
+        pitch = self.mousePitch,
+        isActive = true,
+        isSelected = true
+    }
+
+    if numberOfNodes == 0 then
+        self.nodes[1] = newNode
+        return
+    end
+
+    for i = 1, numberOfNodes do
+        local node = self.nodes[i]
+        if node.time >= self.mouseTime then
+            table.insert(self.nodes, i, newNode)
+            return
+        end
+    end
+
+    self.nodes[#self.nodes + 1] = newNode
+end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     if not self.leftIsDragging then
@@ -214,13 +263,13 @@ function PitchEditor:onMouseMiddleButtonDrag()
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
-    --self.boxSelect:activate(self.relativeMouseX.current, self.relativeMouseY.current)
+    self.boxSelect:activate(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonDrag()
-    --self.boxSelect:edit(self.relativeMouseX.current, self.relativeMouseY.current)
+    self.boxSelect:edit(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonUp()
-    --self.boxSelect:deactivate()
+    self.boxSelect:deactivate()
 end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
@@ -245,8 +294,8 @@ function PitchEditor:onDraw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
-    --self:drawPitchCorrectionNodes()
-    --self.boxSelect:draw()
+    self:drawPitchCorrectionNodes()
+    self.boxSelect:draw()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     --gfx.dest = -1
