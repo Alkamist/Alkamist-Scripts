@@ -52,9 +52,6 @@ function PitchEditor:new(init)
     self.rightEdge =  0.0
     self.timeWidth =  0.0
 
-    self.numberOfSelectedItems = 0
-    self.previousNumberOfSelectedItems = 0
-
     self:updateSelectedItems()
     self:onResize()
 
@@ -62,11 +59,12 @@ function PitchEditor:new(init)
 end
 
 function PitchEditor:updateSelectedItems()
+    local numberOfSelectedItems = reaper.CountSelectedMediaItems(0)
     local topMostSelectedItemTrackNumber = reaper.CountTracks(0)
 
     self.items = {}
 
-    for i = 1, self.numberOfSelectedItems do
+    for i = 1, numberOfSelectedItems do
         local item =        reaper.GetSelectedMediaItem(0, i - 1)
         local track =       reaper.GetMediaItemTrack(item)
         local trackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
@@ -74,7 +72,7 @@ function PitchEditor:updateSelectedItems()
     end
     self.track = reaper.GetTrack(0, topMostSelectedItemTrackNumber - 1)
 
-    for i = 1, self.numberOfSelectedItems do
+    for i = 1, numberOfSelectedItems do
         local item = reaper.GetSelectedMediaItem(0, i - 1)
         if self.track == reaper.GetMediaItemTrack(item) then
             self.items[#self.items + 1] = item
@@ -175,11 +173,7 @@ function PitchEditor:onUpdate()
     self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
     self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
 
-    self.numberOfSelectedItems = reaper.CountSelectedMediaItems(0)
-    if self.numberOfSelectedItems ~= self.previousNumberOfSelectedItems then
-        self:updateSelectedItems()
-    end
-    self.previousNumberOfSelectedItems = self.numberOfSelectedItems
+    self:updateSelectedItems()
 end
 function PitchEditor:onResize()
     local newWidth = self.GFX.w - self.x
