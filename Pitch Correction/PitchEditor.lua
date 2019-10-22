@@ -34,6 +34,7 @@ function PitchEditor:new(init)
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
     self.pitchHeight =        init.pitchHeight        or 128
 
+    self.backgroundColor =    init.backgroundColor    or {0.2, 0.2, 0.2, 1.0}
     self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0}
     self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0}
     self.keyCenterLineColor = init.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
@@ -121,7 +122,7 @@ function PitchEditor:pixelsToTime(relativePixels)
 end
 function PitchEditor:timeToPixels(time)
     if self.timeWidth <= 0 then return 0 end
-    return self.x + self.view.x.zoom * self.w * (time / self.timeWidth - self.view.x.scroll)
+    return self.view.x.zoom * self.w * (time / self.timeWidth - self.view.x.scroll)
 end
 function PitchEditor:pixelsToPitch(relativePixels)
     if self.h <= 0 then return 0.0 end
@@ -129,7 +130,7 @@ function PitchEditor:pixelsToPitch(relativePixels)
 end
 function PitchEditor:pitchToPixels(pitch)
     if self.pitchHeight <= 0 then return 0 end
-    return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
+    return self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
 function PitchEditor:insertThingIntoGroup(group, newThing, stoppingConditionFn)
@@ -214,6 +215,10 @@ end
 
 ---------------------- Drawing Code ----------------------
 
+function PitchEditor:drawMainBackground()
+    self.GFX:setColor(self.backgroundColor)
+    self.GFX:drawRectangle(0, 0, self.w, self.h, true)
+end
 function PitchEditor:drawKeyBackgrounds()
     local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
 
@@ -227,16 +232,16 @@ function PitchEditor:drawKeyBackgrounds()
                 self.GFX:setColor(self.whiteKeyColor)
             end
         end
-        self.GFX:drawRectangle(self.x, keyEnd, self.w, keyHeight + 1, 1)
+        self.GFX:drawRectangle(0, keyEnd, self.w, keyHeight + 1, true)
 
         self.GFX:setColor(self.blackKeyColor)
-        self.GFX:drawLine(self.x, keyEnd, self.x + self.w - 1, keyEnd, false)
+        self.GFX:drawLine(0, keyEnd, self.w - 1, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
 
             self.GFX:setColor(self.keyCenterLineColor)
-            self.GFX:drawLine(self.x, keyCenterLine, self.x + self.w - 1, keyCenterLine, false)
+            self.GFX:drawLine(0, keyCenterLine, self.w - 1, keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
@@ -254,10 +259,10 @@ function PitchEditor:drawItemEdges()
         local boxHeight = self.h - 2
 
         self.GFX:setColor(self.itemInsideColor)
-        self.GFX:drawRectangle(leftBoundPixels + 1, self.y + 2, boxWidth - 2, boxHeight - 2, 1)
+        self.GFX:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, true)
 
         self.GFX:setColor(self.itemEdgeColor)
-        self.GFX:drawRectangle(leftBoundPixels, self.y + 1, boxWidth, boxHeight, 0)
+        self.GFX:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, false)
     end
 end
 function PitchEditor:drawEditCursor()
@@ -388,6 +393,7 @@ function PitchEditor:onDraw()
     gfx.setimgdim(drawBuffer, self.w, self.h)
     gfx.dest = drawBuffer
 
+    self:drawMainBackground()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
@@ -397,7 +403,7 @@ function PitchEditor:onDraw()
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     gfx.dest = -1
     gfx.a = 1.0
-    gfx.blit(drawBuffer, 1.0, 0, self.x, self.y, self.w, self.h, self.x, self.y, self.w, self.h, 0, 0)
+    gfx.blit(drawBuffer, 1.0, 0, 0, 0, self.w, self.h, self.x, self.y, self.w, self.h, 0, 0)
 end
 
 PitchEditor.onKeyPressFunctions = {
