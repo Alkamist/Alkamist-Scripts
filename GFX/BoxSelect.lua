@@ -20,8 +20,6 @@ function BoxSelect:new(init)
     self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
 
     self.thingsToSelect = init.thingsToSelect or {}
-    self.inversionState = init.inversionState
-    self.additiveState =  init.additiveState
 
     return self
 end
@@ -58,9 +56,15 @@ function BoxSelect:deactivate()
         local thing = self.thingsToSelect[i]
 
         if self:pointIsInside(thing.x, thing.y) then
-            thing.isSelected = true
+            if self.GFX.controlState then
+                thing.isSelected = not thing.isSelected
+            else
+                thing.isSelected = true
+            end
         else
-            thing.isSelected = false
+            if not self.GFX.shiftState then
+                thing.isSelected = false
+            end
         end
     end
 end
