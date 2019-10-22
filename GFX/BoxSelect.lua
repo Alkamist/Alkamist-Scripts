@@ -19,7 +19,7 @@ function BoxSelect:new(init)
     self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
     self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
 
-    self.thingsToSelect =              init.thingsToSelect or {}
+    self.thingsToSelect = init.thingsToSelect or {}
 
     return self
 end

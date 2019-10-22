@@ -121,27 +121,34 @@ function PitchEditor:pitchToPixels(pitch)
     return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
-function PitchEditor:insertNode(newNode)
+function PitchEditor:insertNodeIntoGroupOfNodes(groupOfNodes, newNode)
     newNode.x = self:timeToPixels(newNode.time)
     newNode.y = self:pitchToPixels(newNode.pitch)
 
-    local numberOfNodes = #self.nodes
-
+    local numberOfNodes = #groupOfNodes
     if numberOfNodes == 0 then
-        self.nodes[1] = newNode
+        groupOfNodes[1] = newNode
         return 1
     end
 
     for i = 1, numberOfNodes do
-        local node = self.nodes[i]
+        local node = groupOfNodes[i]
         if node.time >= self.mouseTime then
-            table.insert(self.nodes, i, newNode)
+            table.insert(groupOfNodes, i, newNode)
             return i
         end
     end
 
-    self.nodes[numberOfNodes + 1] = newNode
+    groupOfNodes[numberOfNodes + 1] = newNode
     return numberOfNodes + 1
+end
+function PitchEditor:insertNode(newNode)
+    local nodeIndex = self:insertNodeIntoGroupOfNodes(self.nodes, newNode)
+    local selectedNodeIndex
+    if newNode.isSelected then
+        selectedNodeIndex = self:insertNodeIntoGroupOfNodes(self.selectedNodes, newNode)
+    end
+    return nodeIndex, selectedNodeIndex
 end
 function PitchEditor:recalculateNodeCoordinates()
     local numberOfNodes = #self.nodes
