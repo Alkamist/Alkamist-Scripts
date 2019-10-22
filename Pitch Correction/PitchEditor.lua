@@ -49,6 +49,7 @@ function PitchEditor:new(init)
     self.mouseTime  = 0.0
     self.mousePitch = 0.0
     self.leftEdge =   0.0
+    self.rightEdge =  0.0
     self.timeWidth =  0.0
 
     self.numberOfSelectedItems = 0
@@ -60,32 +61,37 @@ function PitchEditor:new(init)
     return self
 end
 
-function PitchEditor:updateLeftEdge()
-    if #self.items > 0 then
-        self.leftEdge:update(self.items[1]:getLeftEdge())
-    else
-        self.leftEdge:update(0.0)
-    end
-end
-function PitchEditor:updateTimeWidth()
-    if #self.items > 0 then
-        self.timeWidth:update(self.items[#self.items]:getRightEdge() - self.leftEdge.current)
-    else
-        self.timeWidth:update(0.0)
-    end
-end
 function PitchEditor:updateSelectedItems()
-    --local tracks = Alk:getTracks()
-    --local selectedItems = Alk:getSelectedItems()
-    --local topMostSelectedItemTrackNumber = #tracks
-    --for _, item in ipairs(selectedItems) do
-    --    local itemTrackNumber = item:getTrack():getNumber()
-    --    topMostSelectedItemTrackNumber = math.min(itemTrackNumber, topMostSelectedItemTrackNumber)
-    --end
-    --self.track = tracks[topMostSelectedItemTrackNumber]
-    --self.items = self.track:getSelectedItems()
-    --self:updateLeftEdge()
-    --self:updateTimeWidth()
+    local topMostSelectedItemTrackNumber = reaper.CountTracks(0)
+
+    self.items = {}
+
+    for i = 1, self.numberOfSelectedItems do
+        local item =        reaper.GetSelectedMediaItem(0, i - 1)
+        local track =       reaper.GetMediaItemTrack(item)
+        local trackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+        topMostSelectedItemTrackNumber = math.min(topMostSelectedItemTrackNumber, trackNumber)
+    end
+    self.track = reaper.GetTrack(0, topMostSelectedItemTrackNumber - 1)
+
+    for i = 1, self.numberOfSelectedItems do
+        local item = reaper.GetSelectedMediaItem(0, i - 1)
+        if self.track == reaper.GetMediaItemTrack(item) then
+            self.items[#self.items + 1] = item
+        end
+    end
+
+    if #self.items > 0 then
+        local leftMostItem = self.items[1]
+        local rightMostItem = self.items[#self.items]
+        self.leftEdge =  reaper.GetMediaItemInfo_Value(leftMostItem, "D_POSITION")
+        self.rightEdge = reaper.GetMediaItemInfo_Value(rightMostItem, "D_POSITION") + reaper.GetMediaItemInfo_Value(rightMostItem, "D_LENGTH")
+        self.timeWidth = self.rightEdge - self.leftEdge;
+    else
+        self.leftEdge = 0
+        self.rightEdge = 0
+        self.timeWidth = 0
+    end
 end
 
 function PitchEditor:pixelsToTime(relativePixels)
@@ -131,24 +137,23 @@ function PitchEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
---[[function PitchEditor:drawItemEdges()
-    local height = self.height.current
-
-    for _, item in ipairs(self.items) do
-        local leftBoundTime = item:getLeftEdge() - self.leftEdge.current
-        local rightBoundTime = leftBoundTime + item:getLength()
+function PitchEditor:drawItemEdges()
+    for i = 1, #self.items do
+        local item = self.items[i]
+        local leftBoundTime = reaper.GetMediaItemInfo_Value(item, "D_POSITION") - self.leftEdge
+        local rightBoundTime = leftBoundTime + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
         local leftBoundPixels = self:timeToPixels(leftBoundTime)
         local rightBoundPixels = self:timeToPixels(rightBoundTime)
         local boxWidth = rightBoundPixels - leftBoundPixels
-        local boxHeight = height - 2
+        local boxHeight = self.h - 2
 
-        self:setColor(self.itemInsideColor)
-        self:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
+        self.GFX:setColor(self.itemInsideColor)
+        self.GFX:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
 
-        self:setColor(self.itemEdgeColor)
-        self:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
+        self.GFX:setColor(self.itemEdgeColor)
+        self.GFX:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
-end]]--
+end
 --[[function PitchEditor:drawEditCursor()
     local project = Alk:getProject()
     local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge.current)
@@ -246,7 +251,7 @@ function PitchEditor:onDraw()
     --gfx.dest = drawBuffer
 
     self:drawKeyBackgrounds()
-    --self:drawItemEdges()
+    self:drawItemEdges()
     --self:drawEditCursor()
     --self:drawPitchCorrectionNodes()
     --self.boxSelect:draw()
