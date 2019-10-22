@@ -5,6 +5,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local ViewAxis =  require("GFX.ViewAxis")
 local BoxSelect = require("GFX.BoxSelect")
 
+local function nodeIsSelected(node)                return node.isSelected end
+local function setNodeSelected(node, shouldSelect) node.isSelected = shouldSelect end
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
     local whiteKeys = {}
@@ -47,7 +49,6 @@ function PitchEditor:new(init)
     self.track = {}
     self.items = {}
     self.nodes = {}
-    self.selectedNodes = {}
     self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
@@ -121,10 +122,11 @@ function PitchEditor:pitchToPixels(pitch)
     return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
-function PitchEditor:insertNodeIntoGroupOfNodes(groupOfNodes, newNode)
+function PitchEditor:insertNode(newNode)
     newNode.x = self:timeToPixels(newNode.time)
     newNode.y = self:pitchToPixels(newNode.pitch)
 
+    local groupOfNodes = self.nodes
     local numberOfNodes = #groupOfNodes
     if numberOfNodes == 0 then
         groupOfNodes[1] = newNode
@@ -141,14 +143,6 @@ function PitchEditor:insertNodeIntoGroupOfNodes(groupOfNodes, newNode)
 
     groupOfNodes[numberOfNodes + 1] = newNode
     return numberOfNodes + 1
-end
-function PitchEditor:insertNode(newNode)
-    local nodeIndex = self:insertNodeIntoGroupOfNodes(self.nodes, newNode)
-    local selectedNodeIndex
-    if newNode.isSelected then
-        selectedNodeIndex = self:insertNodeIntoGroupOfNodes(self.selectedNodes, newNode)
-    end
-    return nodeIndex, selectedNodeIndex
 end
 function PitchEditor:recalculateNodeCoordinates()
     local numberOfNodes = #self.nodes
@@ -313,7 +307,7 @@ function PitchEditor:onMouseRightButtonDrag()
     self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonUp()
-    self.boxSelect:makeSelection(self.GFX.shiftState, self.GFX.controlState)
+    self.boxSelect:makeSelection(self.nodes, setNodeSelected, nodeIsSelected, self.GFX.shiftState, self.GFX.controlState)
 end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0

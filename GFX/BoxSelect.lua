@@ -19,8 +19,6 @@ function BoxSelect:new(init)
     self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
     self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
 
-    self.thingsToSelect = init.thingsToSelect or {}
-
     return self
 end
 
@@ -48,31 +46,24 @@ function BoxSelect:editSelection(editX, editY)
     self.h = math.abs(self.y1 - self.y2)
 end
 
-function BoxSelect:makeSelection(shouldAdd, shouldInvert)
-    local selectedIndexes = {}
-    local numberOfThings = #self.thingsToSelect
+function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, shouldAdd, shouldInvert)
+    local numberOfThings = #listOfThings
     for i = 1, numberOfThings do
-        local thing = self.thingsToSelect[i]
+        local thing = listOfThings[i]
 
         if self:pointIsInside(thing.x, thing.y) then
             if shouldInvert then
-                self:setSelected(thing, i, selectedIndexes, not thing.isSelected)
+                setSelectedFn(thing, not getSelectedFn(thing))
             else
-                self:setSelected(thing, i, selectedIndexes, true)
+                setSelectedFn(thing, true)
             end
         else
             if not shouldAdd then
-                self:setSelected(thing, i, selectedIndexes, false)
+                setSelectedFn(thing, false)
             end
         end
     end
     self.isActive = false
-    return selectedIndexes
-end
-
-function BoxSelect:setSelected(thing, thingsIndex, selectedIndexes, shouldSelect)
-    thing.isSelected = shouldSelect
-    selectedIndexes[#selectedIndexes + 1] = thingsIndex
 end
 
 function BoxSelect:draw()
