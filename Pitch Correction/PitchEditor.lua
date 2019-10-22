@@ -30,8 +30,8 @@ function PitchEditor:new(init)
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-
     self.pitchHeight =        init.pitchHeight        or 128
+
     self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0}
     self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0}
     self.keyCenterLineColor = init.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
@@ -39,6 +39,8 @@ function PitchEditor:new(init)
     self.itemEdgeColor =      init.itemEdgeColor      or {1.0, 1.0, 1.0, 0.17}
     self.editCursorColor =    init.editCursorColor    or {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor =    init.playCursorColor    or {1.0, 1.0, 1.0, 0.3}
+    self.nodeActiveColor =    init.nodeActiveColor    or {0.3, 0.6, 1.0, 1.0}
+    self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0, 0.6, 0.3, 1.0}
 
     self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
 
@@ -202,9 +204,15 @@ function PitchEditor:drawPitchCorrectionNodes()
         local node = self.nodes[i]
         local nextNode = self.nodes[i + 1]
 
+        if node.isActive then
+            self.GFX:setColor(self.nodeActiveColor)
+        else
+            self.GFX:setColor(self.nodeInactiveColor)
+        end
+
         local nodeX = self:timeToPixels(node.time)
         local nodeY = self:pitchToPixels(node.pitch)
-        self.GFX:drawCircle(nodeX, nodeY, self.nodeCirclePixelRadius, true, true)
+        self.GFX:drawCircle(nodeX, nodeY, self.nodeCirclePixelRadius, node.isSelected, true)
 
         if node.isActive and nextNode then
             local nextNodeX = self:timeToPixels(nextNode.time)
@@ -249,8 +257,8 @@ function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
     if not self.leftIsDragging then
         reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+        reaper.UpdateArrange()
     end
-    reaper.UpdateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
     self.view.x.target = self.relativeMouseX
