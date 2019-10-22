@@ -46,7 +46,12 @@ function PitchEditor:new(init)
     self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0, 0.6, 0.3, 1.0}
 
     self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
-    self.scaleWithWindow =       init.scaleWithWindow or true
+
+    if init.scaleWithWindow ~= nil then
+        self.scaleWithWindow = init.scaleWithWindow
+    else
+        self.scaleWithWindow = true
+    end
 
     self.track = {}
     self.items = {}
@@ -184,6 +189,12 @@ function PitchEditor:recalculateNodeCoordinates()
         node.y = self:pitchToPixels(node.pitch)
     end
 end
+function PitchEditor:sortNodes()
+    table.sort(self.nodes, function(left, right)
+        return left.time < right.time
+    end)
+    self:updateSelectedIndexes()
+end
 function PitchEditor:moveSelectedNodesWithMouse()
     local numberOfSelectedNodes = #self.selectedNodeIndexes
     for i = 1, numberOfSelectedNodes do
@@ -195,6 +206,8 @@ function PitchEditor:moveSelectedNodesWithMouse()
         node.time = node.time + self.mouseTimeChange
         node.pitch = node.pitch + self.mousePitchChange
     end
+
+    self:sortNodes()
 end
 function PitchEditor:moveSelectedNodesByCoordinateChange(xChange, yChange)
     local numberOfSelectedNodes = #self.selectedNodeIndexes
@@ -211,6 +224,8 @@ function PitchEditor:moveSelectedNodesByCoordinateChange(xChange, yChange)
             node.pitch = self:pixelsToPitch(node.y)
         end
     end
+
+    self:sortNodes()
 end
 
 ---------------------- Drawing Code ----------------------
