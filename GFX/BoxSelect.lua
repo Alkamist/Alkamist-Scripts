@@ -19,7 +19,7 @@ function BoxSelect:new(init)
     self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.15}
     self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.5}
 
-    self.thingsToSelect = init.thingsToSelect or {}
+    self.thingsToSelect =              init.thingsToSelect or {}
 
     return self
 end
@@ -29,7 +29,7 @@ function BoxSelect:pointIsInside(x, y)
        and y >= self.y and y <= self.y + self.h
 end
 
-function BoxSelect:activate(startingX, startingY)
+function BoxSelect:startSelection(startingX, startingY)
     self.isActive = true
 
     self.x1 = startingX
@@ -38,7 +38,7 @@ function BoxSelect:activate(startingX, startingY)
     self.y2 = startingY
 end
 
-function BoxSelect:edit(editX, editY)
+function BoxSelect:editSelection(editX, editY)
     self.x2 = editX
     self.y2 = editY
 
@@ -48,25 +48,31 @@ function BoxSelect:edit(editX, editY)
     self.h = math.abs(self.y1 - self.y2)
 end
 
-function BoxSelect:deactivate()
-    self.isActive = false
-
+function BoxSelect:makeSelection(shouldAdd, shouldInvert)
+    local selectedIndexes = {}
     local numberOfThings = #self.thingsToSelect
     for i = 1, numberOfThings do
         local thing = self.thingsToSelect[i]
 
         if self:pointIsInside(thing.x, thing.y) then
-            if self.GFX.controlState then
-                thing.isSelected = not thing.isSelected
+            if shouldInvert then
+                self:setSelected(thing, i, selectedIndexes, not thing.isSelected)
             else
-                thing.isSelected = true
+                self:setSelected(thing, i, selectedIndexes, true)
             end
         else
-            if not self.GFX.shiftState then
-                thing.isSelected = false
+            if not shouldAdd then
+                self:setSelected(thing, i, selectedIndexes, false)
             end
         end
     end
+    self.isActive = false
+    return selectedIndexes
+end
+
+function BoxSelect:setSelected(thing, thingsIndex, selectedIndexes, shouldSelect)
+    thing.isSelected = shouldSelect
+    selectedIndexes[#selectedIndexes + 1] = thingsIndex
 end
 
 function BoxSelect:draw()

@@ -47,6 +47,7 @@ function PitchEditor:new(init)
     self.track = {}
     self.items = {}
     self.nodes = {}
+    self.selectedNodes = {}
     self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
@@ -142,6 +143,14 @@ function PitchEditor:insertNode(newNode)
     self.nodes[numberOfNodes + 1] = newNode
     return numberOfNodes + 1
 end
+--function PitchEditor:editSelectedNodes()
+--    local numberOfNodes = #self.nodes
+--    for i = 1, numberOfNodes do
+--        local node = self.nodes[i]
+--
+--        node.time =
+--    end
+--end
 
 ---------------------- Drawing Code ----------------------
 
@@ -279,13 +288,13 @@ function PitchEditor:onMouseMiddleButtonDrag()
 end
 function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
-    self.boxSelect:activate(self.relativeMouseX, self.relativeMouseY)
+    self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonDrag()
-    self.boxSelect:edit(self.relativeMouseX, self.relativeMouseY)
+    self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightButtonUp()
-    self.boxSelect:deactivate()
+    self.boxSelect:makeSelection(self.GFX.shiftState, self.GFX.controlState)
 end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
