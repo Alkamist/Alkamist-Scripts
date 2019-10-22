@@ -45,14 +45,19 @@ function PitchEditor:new(init)
     self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0, 0.6, 0.3, 1.0}
 
     self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
+    self.scaleWithWindow =       init.scaleWithWindow or true
 
     self.track = {}
     self.items = {}
     self.nodes = {}
     self.selectedNodeIndexes = {}
     self.view = {
-        x = ViewAxis:new(),
-        y = ViewAxis:new()
+        x = ViewAxis:new{
+            scale = self.w
+        },
+        y = ViewAxis:new{
+            scale = self.h
+        }
     }
     self.boxSelect = BoxSelect:new{
         GFX = self.GFX,
@@ -190,7 +195,7 @@ function PitchEditor:moveSelectedNodesWithMouse()
         node.pitch = node.pitch + self.mousePitchChange
     end
 end
-function PitchEditor:moveSelectedNodesByCoordinates(xChange, yChange)
+function PitchEditor:moveSelectedNodesByCoordinateChange(xChange, yChange)
     local numberOfSelectedNodes = #self.selectedNodeIndexes
     for i = 1, numberOfSelectedNodes do
         local nodeIndex = self.selectedNodeIndexes[i]
@@ -210,10 +215,10 @@ end
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
-    local previousKeyEnd = self.y + self:pitchToPixels(self.pitchHeight + 0.5)
+    local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
 
     for i = 1, self.pitchHeight do
-        local keyEnd = self.y + self:pitchToPixels(self.pitchHeight - i + 0.5)
+        local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
         self.GFX:setColor(self.blackKeyColor)
@@ -228,7 +233,7 @@ function PitchEditor:drawKeyBackgrounds()
         self.GFX:drawLine(self.x, keyEnd, self.x + self.w - 1, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
-            local keyCenterLine = self.y + self:pitchToPixels(self.pitchHeight - i)
+            local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
 
             self.GFX:setColor(self.keyCenterLineColor)
             self.GFX:drawLine(self.x, keyCenterLine, self.x + self.w - 1, keyCenterLine, false)
@@ -249,10 +254,10 @@ function PitchEditor:drawItemEdges()
         local boxHeight = self.h - 2
 
         self.GFX:setColor(self.itemInsideColor)
-        self.GFX:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, 1)
+        self.GFX:drawRectangle(leftBoundPixels + 1, self.y + 2, boxWidth - 2, boxHeight - 2, 1)
 
         self.GFX:setColor(self.itemEdgeColor)
-        self.GFX:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
+        self.GFX:drawRectangle(leftBoundPixels, self.y + 1, boxWidth, boxHeight, 0)
     end
 end
 function PitchEditor:drawEditCursor()
@@ -303,13 +308,12 @@ function PitchEditor:onUpdate()
     self:updateSelectedItems()
 end
 function PitchEditor:onResize()
-    local newWidth = self.GFX.w - self.x
-    local newHeight = self.GFX.h - self.y
-
-    self.w = newWidth
-    self.h = newHeight
-    self.view.x.scale = newWidth
-    self.view.y.scale = newHeight
+    if self.scaleWithWindow then
+        self.w = self.w + self.GFX.wChange
+        self.h = self.h + self.GFX.hChange
+        self.view.x.scale = self.w
+        self.view.y.scale = self.h
+    end
 
     self:recalculateNodeCoordinates()
 end
@@ -379,10 +383,10 @@ function PitchEditor:onMouseWheel()
 end
 function PitchEditor:onMouseHWheel() end
 function PitchEditor:onDraw()
-    --local drawBuffer = 27
+    local drawBuffer = 0
 
-    --gfx.setimgdim(drawBuffer, width, height)
-    --gfx.dest = drawBuffer
+    gfx.setimgdim(drawBuffer, self.w, self.h)
+    gfx.dest = drawBuffer
 
     self:drawKeyBackgrounds()
     self:drawItemEdges()
@@ -391,9 +395,9 @@ function PitchEditor:onDraw()
     self.boxSelect:draw()
 
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    --gfx.dest = -1
-    --gfx.a = 1.0
-    --gfx.blit(drawBuffer, 1.0, 0.0, x, y, width, height, 0, 0, gfx.w, gfx.h, 0.0, 0.0)
+    gfx.dest = -1
+    gfx.a = 1.0
+    gfx.blit(drawBuffer, 1.0, 0, self.x, self.y, self.w, self.h, self.x, self.y, self.w, self.h, 0, 0)
 end
 
 PitchEditor.onKeyPressFunctions = {

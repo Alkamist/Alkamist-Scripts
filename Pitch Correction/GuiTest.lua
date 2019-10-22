@@ -13,5 +13,6 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     h = 700
 }
 
+GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 GFX:setChildren{ pitchEditor }
 GFX:run()

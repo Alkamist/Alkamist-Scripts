@@ -136,12 +136,15 @@ local characterTableInverted = invertTable(characterTable)
 
 local GFX = {
     title =            "",
+    backgroundColor =  {},
     x =                0,
     y =                0,
     w =                0,
     previousW =        0,
+    wChange =          0,
     h =                0,
     previousH =        0,
+    hChange =          0,
     dock =             0,
     focus =            nil,
     windowWasResized = false,
@@ -182,6 +185,10 @@ local GFX = {
     mouseMoved =       false
 }
 
+function GFX:setBackgroundColor(color)
+    self.backgroundColor = color
+    gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
+end
 function GFX:setColor(color)
     gfx.set(color[1], color[2], color[3], color[4])
 end
@@ -227,7 +234,9 @@ function GFX:update()
     self.x =                gfx.x
     self.y =                gfx.y
     self.w =                gfx.w
+    self.wChange =          self.w - self.previousW
     self.h =                gfx.h
+    self.hChange =          self.h - self.previousH
     self.windowWasResized = self.w ~= self.previousW or self.h ~= self.previousH
     self.mouseX =           gfx.mouse_x
     self.mouseXChange =     self.mouseX - self.previousMouseX
@@ -267,10 +276,10 @@ function GFX:processChildren()
         local child = self.children[i]
         self.focus = self.focus or child
 
-        child.previousRelativeMouseX = self.previousMouseX + child.x
-        child.previousRelativeMouseY = self.previousMouseY + child.y
-        child.relativeMouseX =         self.mouseX + child.x
-        child.relativeMouseY =         self.mouseY + child.y
+        child.previousRelativeMouseX = self.previousMouseX - child.x
+        child.previousRelativeMouseY = self.previousMouseY - child.y
+        child.relativeMouseX =         self.mouseX - child.x
+        child.relativeMouseY =         self.mouseY - child.y
         child.mouseIsInside = child.relativeMouseX >= 0 and child.relativeMouseX <= child.w
                           and child.relativeMouseY >= 0 and child.relativeMouseY <= child.h
         child.mouseWasPreviouslyInside = child.previousRelativeMouseX >= 0 and child.previousRelativeMouseX <= child.w
