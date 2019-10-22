@@ -152,20 +152,21 @@ function PitchEditor:drawItemEdges()
         self.GFX:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, 0)
     end
 end
---[[function PitchEditor:drawEditCursor()
-    local project = Alk:getProject()
-    local editCursorPixels = self:timeToPixels(project:getEditCursorTime() - self.leftEdge.current)
-    local playPositionPixels = self:timeToPixels(project:getPlayCursorTime() - self.leftEdge.current)
-    local height = self.height.current
+function PitchEditor:drawEditCursor()
+    local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.leftEdge)
+    local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - self.leftEdge)
 
-    self:setColor(self.editCursorColor)
-    self:drawLine(editCursorPixels, 0, editCursorPixels, height, false)
+    self.GFX:setColor(self.editCursorColor)
+    self.GFX:drawLine(editCursorPixels, 0, editCursorPixels, self.h, false)
 
-    if project:isPlaying() or project:isRecording() then
-        self:setColor(self.playCursorColor)
-        self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
+    local playState = reaper.GetPlayState()
+    local projectIsPlaying = playState & 1 == 1
+    local projectIsRecording = playState & 4 == 4
+    if projectIsPlaying or projectIsRecording then
+        self.GFX:setColor(self.playCursorColor)
+        self.GFX:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
-end]]--
+end
 
 ---------------------- Events ----------------------
 
@@ -190,16 +191,13 @@ function PitchEditor:onKeyPress()
 end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown()
-    --self:addPitchCorrectionNode(self.relativeMouseX.current, self.relativeMouseY.current)
-end
+function PitchEditor:onMouseLeftButtonDown() end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
-    --if not self.leftIsDragging then
-    --    local project = Alk:getProject()
-    --    project:setEditCursorTime(self.leftEdge.current + self.mouseTime.current, false, true)
-    --end
-    --Alk:updateArrange()
+    if not self.leftIsDragging then
+        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+    end
+    reaper.UpdateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
     self.view.x.target = self.relativeMouseX
@@ -246,7 +244,7 @@ function PitchEditor:onDraw()
 
     self:drawKeyBackgrounds()
     self:drawItemEdges()
-    --self:drawEditCursor()
+    self:drawEditCursor()
     --self:drawPitchCorrectionNodes()
     --self.boxSelect:draw()
 
