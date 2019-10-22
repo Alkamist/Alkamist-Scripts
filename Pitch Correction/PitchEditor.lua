@@ -46,19 +46,21 @@ function PitchEditor:new(init)
 
     self.track = {}
     self.items = {}
+    self.nodes = {}
     self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
     }
-    self.boxSelect = BoxSelect:new{ GFX = self.GFX }
+    self.boxSelect = BoxSelect:new{
+        GFX = self.GFX,
+        thingsToSelect = self.nodes
+    }
 
     self.mouseTime  = 0.0
     self.mousePitch = 0.0
     self.leftEdge =   0.0
     self.rightEdge =  0.0
     self.timeWidth =  0.0
-
-    self.nodes = {}
 
     self:updateSelectedItems()
     self:onResize()
@@ -87,9 +89,10 @@ function PitchEditor:updateSelectedItems()
         end
     end
 
-    if #self.items > 0 then
+    local numberOfItems = #self.items
+    if numberOfItems > 0 then
         local leftMostItem = self.items[1]
-        local rightMostItem = self.items[#self.items]
+        local rightMostItem = self.items[numberOfItems]
         self.leftEdge =  reaper.GetMediaItemInfo_Value(leftMostItem, "D_POSITION")
         self.rightEdge = reaper.GetMediaItemInfo_Value(rightMostItem, "D_POSITION") + reaper.GetMediaItemInfo_Value(rightMostItem, "D_LENGTH")
         self.timeWidth = self.rightEdge - self.leftEdge;
@@ -118,6 +121,9 @@ function PitchEditor:pitchToPixels(pitch)
 end
 
 function PitchEditor:insertNode(newNode)
+    newNode.x = self:timeToPixels(newNode.time)
+    newNode.y = self:pitchToPixels(newNode.pitch)
+
     local numberOfNodes = #self.nodes
 
     if numberOfNodes == 0 then
@@ -168,7 +174,8 @@ function PitchEditor:drawKeyBackgrounds()
     end
 end
 function PitchEditor:drawItemEdges()
-    for i = 1, #self.items do
+    local numberOfItems = #self.items
+    for i = 1, numberOfItems do
         local item = self.items[i]
         local leftBoundTime = reaper.GetMediaItemInfo_Value(item, "D_POSITION") - self.leftEdge
         local rightBoundTime = leftBoundTime + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
@@ -200,7 +207,8 @@ function PitchEditor:drawEditCursor()
     end
 end
 function PitchEditor:drawPitchCorrectionNodes()
-    for i = 1, #self.nodes do
+    local numberOfNodes = #self.nodes
+    for i = 1, numberOfNodes do
         local node = self.nodes[i]
         local nextNode = self.nodes[i + 1]
 
@@ -210,14 +218,10 @@ function PitchEditor:drawPitchCorrectionNodes()
             self.GFX:setColor(self.nodeInactiveColor)
         end
 
-        local nodeX = self:timeToPixels(node.time)
-        local nodeY = self:pitchToPixels(node.pitch)
-        self.GFX:drawCircle(nodeX, nodeY, self.nodeCirclePixelRadius, node.isSelected, true)
+        self.GFX:drawCircle(node.x, node.y, self.nodeCirclePixelRadius, node.isSelected, true)
 
         if node.isActive and nextNode then
-            local nextNodeX = self:timeToPixels(nextNode.time)
-            local nextNodeY = self:pitchToPixels(nextNode.pitch)
-            self.GFX:drawLine(nodeX, nodeY, nextNodeX, nextNodeY, true)
+            self.GFX:drawLine(node.x, node.y, nextNode.x, nextNode.y, true)
         end
     end
 end

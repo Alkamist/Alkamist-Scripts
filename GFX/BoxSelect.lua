@@ -53,11 +53,14 @@ end
 function BoxSelect:deactivate()
     self.isActive = false
 
-    for i = 1, #self.thingsToSelect do
+    local numberOfThings = #self.thingsToSelect
+    for i = 1, numberOfThings do
         local thing = self.thingsToSelect[i]
 
         if self:pointIsInside(thing.x, thing.y) then
             thing.isSelected = true
+        else
+            thing.isSelected = false
         end
     end
 end
