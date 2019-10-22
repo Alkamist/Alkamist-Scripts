@@ -115,6 +115,26 @@ function PitchEditor:pitchToPixels(pitch)
     return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
+function PitchEditor:insertNode(newNode)
+    local numberOfNodes = #self.nodes
+
+    if numberOfNodes == 0 then
+        self.nodes[1] = newNode
+        return 1
+    end
+
+    for i = 1, numberOfNodes do
+        local node = self.nodes[i]
+        if node.time >= self.mouseTime then
+            table.insert(self.nodes, i, newNode)
+            return i
+        end
+    end
+
+    self.nodes[numberOfNodes + 1] = newNode
+    return numberOfNodes + 1
+end
+
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawKeyBackgrounds()
@@ -218,28 +238,12 @@ end
 function PitchEditor:onMouseEnter() end
 function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
-    local numberOfNodes = #self.nodes
-    local newNode = {
+    self:insertNode{
         time = self.mouseTime,
         pitch = self.mousePitch,
         isActive = true,
         isSelected = true
     }
-
-    if numberOfNodes == 0 then
-        self.nodes[1] = newNode
-        return
-    end
-
-    for i = 1, numberOfNodes do
-        local node = self.nodes[i]
-        if node.time >= self.mouseTime then
-            table.insert(self.nodes, i, newNode)
-            return
-        end
-    end
-
-    self.nodes[#self.nodes + 1] = newNode
 end
 function PitchEditor:onMouseLeftButtonDrag() end
 function PitchEditor:onMouseLeftButtonUp()
