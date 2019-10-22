@@ -49,6 +49,7 @@ function PitchEditor:new(init)
     self.track = {}
     self.items = {}
     self.nodes = {}
+    self.selectedNodeIndexes = {}
     self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
@@ -59,7 +60,11 @@ function PitchEditor:new(init)
     }
 
     self.mouseTime  = 0.0
+    self.previousMouseTime = 0.0
+    self.mouseTimeChange = 0.0
     self.mousePitch = 0.0
+    self.previousMousePitch = 0.0
+    self.mousePitchChange = 0.0
     self.leftEdge =   0.0
     self.rightEdge =  0.0
     self.timeWidth =  0.0
@@ -122,27 +127,48 @@ function PitchEditor:pitchToPixels(pitch)
     return self.y + self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
 
-function PitchEditor:insertNode(newNode)
-    newNode.x = self:timeToPixels(newNode.time)
-    newNode.y = self:pitchToPixels(newNode.pitch)
-
-    local groupOfNodes = self.nodes
-    local numberOfNodes = #groupOfNodes
-    if numberOfNodes == 0 then
-        groupOfNodes[1] = newNode
+function PitchEditor:insertThingIntoGroup(group, newThing, stoppingConditionFn)
+    local numberInGroup = #group
+    if numberInGroup == 0 then
+        group[1] = newThing
         return 1
     end
 
-    for i = 1, numberOfNodes do
-        local node = groupOfNodes[i]
-        if node.time >= self.mouseTime then
-            table.insert(groupOfNodes, i, newNode)
+    for i = 1, numberInGroup do
+        local thing = group[i]
+        if stoppingConditionFn(thing, newThing) then
+            table.insert(group, i, newThing)
             return i
         end
     end
 
-    groupOfNodes[numberOfNodes + 1] = newNode
-    return numberOfNodes + 1
+    group[numberInGroup + 1] = newThing
+    return numberInGroup + 1
+end
+function PitchEditor:updateSelectedIndexes()
+    self.selectedNodeIndexes = {}
+    local numberOfNodes = #self.nodes
+    for i = 1, numberOfNodes do
+        local node = self.nodes[i]
+        if node.isSelected then
+            self.selectedNodeIndexes[#self.selectedNodeIndexes + 1] = i
+        end
+    end
+end
+function PitchEditor:insertNode(newNode)
+    newNode.x = self:timeToPixels(newNode.time)
+    newNode.y = self:pitchToPixels(newNode.pitch)
+    local newIndex = self:insertThingIntoGroup(self.nodes, newNode, function(node, newNode)
+        return node.time >= self.mouseTime
+    end)
+
+    self:updateSelectedIndexes()
+
+    --local test = ""
+    --for _, index in ipairs(self.selectedNodeIndexes) do
+    --    test = test .. " " .. tostring(index)
+    --end
+    --msg(test)
 end
 function PitchEditor:recalculateNodeCoordinates()
     local numberOfNodes = #self.nodes
@@ -152,14 +178,34 @@ function PitchEditor:recalculateNodeCoordinates()
         node.y = self:pitchToPixels(node.pitch)
     end
 end
---function PitchEditor:editSelectedNodes()
---    local numberOfNodes = #self.nodes
---    for i = 1, numberOfNodes do
---        local node = self.nodes[i]
---
---        node.time =
---    end
---end
+function PitchEditor:moveSelectedNodesWithMouse()
+    local numberOfSelectedNodes = #self.selectedNodeIndexes
+    for i = 1, numberOfSelectedNodes do
+        local nodeIndex = self.selectedNodeIndexes[i]
+        local node = self.nodes[nodeIndex]
+
+        node.x = node.x + self.GFX.mouseXChange
+        node.y = node.y + self.GFX.mouseYChange
+        node.time = node.time + self.mouseTimeChange
+        node.pitch = node.pitch + self.mousePitchChange
+    end
+end
+function PitchEditor:moveSelectedNodesByCoordinates(xChange, yChange)
+    local numberOfSelectedNodes = #self.selectedNodeIndexes
+    for i = 1, numberOfSelectedNodes do
+        local nodeIndex = self.selectedNodeIndexes[i]
+        local node = self.nodes[nodeIndex]
+
+        if xChange then
+            node.x = node.x + xChange
+            node.time = self:pixelsToTime(node.x)
+        end
+        if yChange then
+            node.y = node.y + yChange
+            node.pitch = self:pixelsToPitch(node.y)
+        end
+    end
+end
 
 ---------------------- Drawing Code ----------------------
 
@@ -247,8 +293,12 @@ end
 ---------------------- Events ----------------------
 
 function PitchEditor:onUpdate()
+    self.previousMouseTime = self.mouseTime
+    self.previousMousePitch = self.mousePitch
     self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
     self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
+    self.mouseTimeChange = self.mouseTime - self.previousMouseTime
+    self.mousePitchChange = self.mousePitch - self.previousMousePitch
 
     self:updateSelectedItems()
 end
@@ -277,7 +327,9 @@ function PitchEditor:onMouseLeftButtonDown()
         isSelected = true
     }
 end
-function PitchEditor:onMouseLeftButtonDrag() end
+function PitchEditor:onMouseLeftButtonDrag()
+    self:moveSelectedNodesWithMouse()
+end
 function PitchEditor:onMouseLeftButtonUp()
     if not self.leftIsDragging then
         reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
@@ -308,6 +360,7 @@ function PitchEditor:onMouseRightButtonDrag()
 end
 function PitchEditor:onMouseRightButtonUp()
     self.boxSelect:makeSelection(self.nodes, setNodeSelected, nodeIsSelected, self.GFX.shiftState, self.GFX.controlState)
+    self:updateSelectedIndexes()
 end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
