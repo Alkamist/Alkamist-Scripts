@@ -19,9 +19,17 @@ local PitchEditor = {}
 
 function PitchEditor:new(init)
     local init = init or {}
-    local self = setmetatable(base, { __index = self })
+    local self = setmetatable({}, { __index = self })
+
+    self.GFX = init.GFX
+    self.x =   init.x or 0
+    self.y =   init.y or 0
+    self.w =   init.w or 0
+    self.h =   init.h or 0
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
+    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
+
     self.pitchHeight =        init.pitchHeight        or 128
     self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0}
     self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0}
@@ -30,7 +38,6 @@ function PitchEditor:new(init)
     self.itemEdgeColor =      init.itemEdgeColor      or {1.0, 1.0, 1.0, 0.17}
     self.editCursorColor =    init.editCursorColor    or {1.0, 1.0, 1.0, 0.4}
     self.playCursorColor =    init.playCursorColor    or {1.0, 1.0, 1.0, 0.3}
-    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
 
     self.track = {}
     self.items = {}
@@ -68,17 +75,17 @@ function PitchEditor:updateTimeWidth()
     end
 end
 function PitchEditor:updateSelectedItems()
-    local tracks = Alk:getTracks()
-    local selectedItems = Alk:getSelectedItems()
-    local topMostSelectedItemTrackNumber = #tracks
-    for _, item in ipairs(selectedItems) do
-        local itemTrackNumber = item:getTrack():getNumber()
-        topMostSelectedItemTrackNumber = math.min(itemTrackNumber, topMostSelectedItemTrackNumber)
-    end
-    self.track = tracks[topMostSelectedItemTrackNumber]
-    self.items = self.track:getSelectedItems()
-    self:updateLeftEdge()
-    self:updateTimeWidth()
+    --local tracks = Alk:getTracks()
+    --local selectedItems = Alk:getSelectedItems()
+    --local topMostSelectedItemTrackNumber = #tracks
+    --for _, item in ipairs(selectedItems) do
+    --    local itemTrackNumber = item:getTrack():getNumber()
+    --    topMostSelectedItemTrackNumber = math.min(itemTrackNumber, topMostSelectedItemTrackNumber)
+    --end
+    --self.track = tracks[topMostSelectedItemTrackNumber]
+    --self.items = self.track:getSelectedItems()
+    --self:updateLeftEdge()
+    --self:updateTimeWidth()
 end
 
 function PitchEditor:pixelsToTime(relativePixels)
@@ -196,19 +203,16 @@ function PitchEditor:onMouseLeftButtonUp()
     --Alk:updateArrange()
 end
 function PitchEditor:onMouseMiddleButtonDown()
-    self.view.x.scroll.target = self.relativeMouseX
-    self.view.y.scroll.target = self.relativeMouseY
+    self.view.x.target = self.relativeMouseX
+    self.view.y.target = self.relativeMouseY
 end
 function PitchEditor:onMouseMiddleButtonDrag()
-    local xChange = self.mouseXChange
-    local yChange = self.mouseYChange
-
-    if self.shiftState then
-        self.view.x:changeZoom(self.mouseXChange)
-        self.view.y:changeZoom(self.mouseYChange)
+    if self.GFX.shiftState then
+        self.view.x:changeZoom(self.GFX.mouseXChange)
+        self.view.y:changeZoom(self.GFX.mouseYChange)
     else
-        self.view.x:changeScroll(self.mouseXChange)
-        self.view.y:changeScroll(self.mouseYChange)
+        self.view.x:changeScroll(self.GFX.mouseXChange)
+        self.view.y:changeScroll(self.GFX.mouseYChange)
     end
 end
 function PitchEditor:onMouseMiddleButtonUp() end
@@ -225,13 +229,13 @@ function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
 
-    self.view.x.scroll.target = self.relativeMouseX
-    self.view.y.scroll.target = self.relativeMouseY
+    self.view.x.target = self.relativeMouseX
+    self.view.y.target = self.relativeMouseY
 
-    if self.controlState then
-        self.view.y.changeZoom(self.wheel * ySensitivity)
+    if self.GFX.controlState then
+        self.view.y:changeZoom(self.GFX.wheel * ySensitivity)
     else
-        self.view.x.changeZoom(self.wheel * xSensitivity)
+        self.view.x:changeZoom(self.GFX.wheel * xSensitivity)
     end
 end
 function PitchEditor:onMouseHWheel() end
