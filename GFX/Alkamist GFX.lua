@@ -329,14 +329,14 @@ end
 function GFX:processElement(element)
     self.focus = self.focus or element
 
-    -- Key Press:
+    -- Key Press.
     element.keyWasPressed =            self.char and self.focus == element
 
-    -- Mouse Wheel:
+    -- Mouse Wheel.
     element.wheelMoved =               element.mouseIsInside and (self.wheel > 0 or self.wheel < 0)
     element.hWheelMoved =              element.mouseIsInside and (self.hWheel > 0 or self.hWheel < 0)
 
-    -- Mouse Movement:
+    -- Mouse Movement.
     element.previousRelativeMouseX =   self.previousMouseX - element.x
     element.previousRelativeMouseY =   self.previousMouseY - element.y
     element.relativeMouseX =           self.mouseX - element.x
@@ -348,7 +348,7 @@ function GFX:processElement(element)
     element.mouseJustEntered =         element.mouseIsInside and not element.mouseWasPreviouslyInside
     element.mouseJustLeft =            not element.mouseIsInside and element.mouseWasPreviouslyInside
 
-    -- Mouse Down:
+    -- Mouse Down.
     element.mouseLeftDown =            element.mouseIsInside and self.mouseLeftDown
     element.mouseMiddleDown =          element.mouseIsInside and self.mouseMiddleDown
     element.mouseRightDown =           element.mouseIsInside and self.mouseRightDown
@@ -356,29 +356,46 @@ function GFX:processElement(element)
     if element.mouseMiddleDown then    element.mouseMiddleState = true end
     if element.mouseRightDown  then    element.mouseRightState = true end
 
-    -- Mouse Drag:
-    element.mouseLeftIsDragging =    self.mouseMoved and element.mouseLeftState
-    element.mouseMiddleIsDragging =  self.mouseMoved and element.mouseMiddleState
-    element.mouseRightIsDragging =   self.mouseMoved and element.mouseRightState
-    if element.mouseLeftIsDragging   then element.mouseLeftWasDragged = true end
-    if element.mouseMiddleIsDragging then element.mouseMiddleWasDragged = true end
-    if element.mouseRightIsDragging  then element.mouseRightWasDragged = true end
+    -- Mouse Drag.
+    element.mouseLeftIsDragging =      self.mouseMoved and element.mouseLeftState
+    element.mouseMiddleIsDragging =    self.mouseMoved and element.mouseMiddleState
+    element.mouseRightIsDragging =     self.mouseMoved and element.mouseRightState
+    if element.mouseLeftIsDragging     then element.mouseLeftWasDragged = true end
+    if element.mouseMiddleIsDragging   then element.mouseMiddleWasDragged = true end
+    if element.mouseRightIsDragging    then element.mouseRightWasDragged = true end
 
-    -- Mouse Up:
+    -- Mouse Up.
     element.mouseLeftUp =              element.mouseLeftState and self.mouseLeftUp
     element.mouseMiddleUp =            element.mouseMiddleState and self.mouseMiddleUp
     element.mouseRightUp =             element.mouseRightState and self.mouseRightUp
+    if element.mouseLeftUp   then      element.mouseLeftState = false end
+    if element.mouseMiddleUp then      element.mouseMiddleState = false end
+    if element.mouseRightUp  then      element.mouseRightState = false end
 
-    if element.mouseLeftUp   then element.mouseLeftState = false end
-    if element.mouseMiddleUp then element.mouseMiddleState = false end
-    if element.mouseRightUp  then element.mouseRightState = false end
+    -- Element-Based Events.
+    if element.onUpdate                                              then element:onUpdate()          end
+    if self.windowWasResized           and element.onWindowResize    then element:onWindowResize()    end
+    if element.keyWasPressed           and element.onKeyPress        then element:onKeyPress()        end
+    if element.mouseJustEntered        and element.onMouseEnter      then element:onMouseEnter()      end
+    if element.mouseJustLeft           and element.onMouseLeave      then element:onMouseLeave()      end
+    if element.mouseLeftDown           and element.onMouseLeftDown   then element:onMouseLeftDown()   end
+    if element.mouseLeftIsDragging     and element.onMouseLeftDrag   then element:onMouseLeftDrag()   end
+    if element.mouseLeftUp             and element.onMouseLeftUp     then element:onMouseLeftUp()     end
+    if element.mouseMiddleDown         and element.onMouseMiddleDown then element:onMouseMiddleDown() end
+    if element.mouseMiddleIsDragging   and element.onMouseMiddleDrag then element:onMouseMiddleDrag() end
+    if element.mouseMiddleUp           and element.onMouseMiddleUp   then element:onMouseMiddleUp()   end
+    if element.mouseRightDown          and element.onMouseRightDown  then element:onMouseRightDown()  end
+    if element.mouseRightIsDragging    and element.onMouseRightDrag  then element:onMouseRightDrag()  end
+    if element.mouseRightUp            and element.onMouseRightUp    then element:onMouseRightUp()    end
+    if element.wheelMoved              and element.onMouseWheel      then element:onMouseWheel()      end
+    if element.hWheelMoved             and element.onMouseHWheel     then element:onMouseHWheel()     end
 
-    if element.onUpdate then element:onUpdate() end
+    -- Some extra mouse state handling.
+    if element.mouseLeftUp   then      element.mouseLeftWasDragged = false end
+    if element.mouseMiddleUp then      element.mouseMiddleWasDragged = false end
+    if element.mouseRightUp  then      element.mouseRightWasDragged = false end
 
-    if element.mouseLeftUp   then element.mouseLeftWasDragged = false end
-    if element.mouseMiddleUp then element.mouseMiddleWasDragged = false end
-    if element.mouseRightUp  then element.mouseRightWasDragged = false end
-
+    -- Handle elements that are queued to draw.
     if element.onDraw then
         if element.shouldRedraw then
             element:clearBuffer()
@@ -391,6 +408,7 @@ function GFX:processElement(element)
         end
     end
 
+    -- Recursively handle any child elements the elements may have.
     if element.elements then
         GFX:applyFunctionToElements(element.elements, function(elementOfElement)
             GFX:processElement(elementOfElement)

@@ -17,17 +17,11 @@ function Button:new(init)
     return self
 end
 
-function Button:handleMouseEnter()    self:queueRedraw() end
-function Button:handleMouseLeave()    self:queueRedraw() end
-function Button:handleMouseLeftDown() self:queueRedraw() end
-function Button:handleMouseLeftUp()   self:queueRedraw() end
+function Button:onMouseEnter()    self:queueRedraw() end
+function Button:onMouseLeave()    self:queueRedraw() end
+function Button:onMouseLeftDown() self:queueRedraw() end
+function Button:onMouseLeftUp()   self:queueRedraw() end
 
-function Button:onUpdate()
-    if self.mouseJustEntered then self:handleMouseEnter() end
-    if self.mouseJustLeft    then self:handleMouseLeave() end
-    if self.mouseLeftDown    then self:handleMouseLeftDown() end
-    if self.mouseLeftUp      then self:handleMouseLeftUp() end
-end
 function Button:onDraw()
     self:setColor(self.color)
     self:drawRectangle(0, 0, self.w, self.h, true)
