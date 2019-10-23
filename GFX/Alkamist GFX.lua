@@ -191,7 +191,7 @@ end
 function GFX:setElements(elements)
     self.elements = elements
     for _, element in pairs(self.elements) do
-        GFX:initElement(element)
+        GFX:initElement(element, self)
     end
 end
 
@@ -218,9 +218,9 @@ function GFX:initElement(element, parent)
     element.mouseWasPreviouslyInside = false
     element.mouseJustEntered =         false
     element.mouseJustLeft =            false
-    element.leftDragIsEnabled =        false
-    element.middleDragIsEnabled =      false
-    element.rightDragIsEnabled =       false
+    element.leftWentDownInside =        false
+    element.middleWentDownInside =      false
+    element.rightWentDownInside =       false
     element.leftIsDragging =           false
     element.middleIsDragging =         false
     element.rightIsDragging =          false
@@ -349,15 +349,15 @@ function GFX:processElement(element)
 
     if element.mouseIsInside then
         if self.leftDown then
-            element.leftDragIsEnabled = true
+            element.leftWentDownInside = true
             if element.onMouseLeftButtonDown then element:onMouseLeftButtonDown() end
         end
         if self.middleDown then
-            element.middleDragIsEnabled = true
+            element.middleWentDownInside = true
             if element.onMouseMiddleButtonDown then element:onMouseMiddleButtonDown() end
         end
         if self.rightDown then
-            element.rightDragIsEnabled = true
+            element.rightWentDownInside = true
             if element.onMouseRightButtonDown then element:onMouseRightButtonDown() end
         end
 
@@ -365,33 +365,33 @@ function GFX:processElement(element)
         if element.onMouseHWheel and (self.hWheel > 0 or self.hWheel < 0) then element:onMouseHWheel() end
     end
 
-    if self.mouseMoved and element.leftDragIsEnabled then
+    if self.mouseMoved and element.leftWentDownInside then
         element.leftIsDragging = true
         if element.onMouseLeftButtonDrag then element:onMouseLeftButtonDrag() end
     end
-    if self.mouseMoved and element.middleDragIsEnabled then
+    if self.mouseMoved and element.middleWentDownInside then
         element.middleIsDragging = true
         if element.onMouseMiddleButtonDrag then element:onMouseMiddleButtonDrag() end
     end
-    if self.mouseMoved and element.rightDragIsEnabled then
+    if self.mouseMoved and element.rightWentDownInside then
         element.rightIsDragging = true
         if element.onMouseRightButtonDrag then element:onMouseRightButtonDrag() end
     end
 
-    if self.leftUp then
+    if self.leftUp and element.leftWentDownInside then
         if element.onMouseLeftButtonUp then element:onMouseLeftButtonUp() end
         element.leftIsDragging = false
-        element.leftDragIsEnabled = false
+        element.leftWentDownInside = false
     end
-    if self.middleUp then
+    if self.middleUp and element.middleWentDownInside then
         if element.onMouseMiddleButtonUp then element:onMouseMiddleButtonUp() end
         element.middleIsDragging = false
-        element.middleDragIsEnabled = false
+        element.middleWentDownInside = false
     end
-    if self.rightUp then
+    if self.rightUp and element.rightWentDownInside then
         if element.onMouseRightButtonUp then element:onMouseRightButtonUp() end
         element.rightIsDragging = false
-        element.rightDragIsEnabled = false
+        element.rightWentDownInside = false
     end
 
     if element.onDraw then

@@ -10,8 +10,7 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     y = 200,
     w = 600,
     h = 400,
-    layer = 0,
-    scaleWithWindow = false
+    layer = 0
 }
 
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }

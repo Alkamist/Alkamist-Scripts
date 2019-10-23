@@ -83,9 +83,6 @@ function PitchEditor:new(init)
         boxSelect = self.boxSelect
     }
 
-    self:updateSelectedItems()
-    self:onResize()
-
     return self
 end
 
@@ -320,7 +317,10 @@ end
 
 ---------------------- Events ----------------------
 
---function PitchEditor:onInit() end
+function PitchEditor:onInit()
+    self:updateSelectedItems()
+    self:onResize()
+end
 function PitchEditor:onUpdate()
     self.previousMouseTime = self.mouseTime
     self.previousMousePitch = self.mousePitch
@@ -346,8 +346,8 @@ function PitchEditor:onKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
     if keyPressFunction then keyPressFunction() end
 end
---function PitchEditor:onMouseEnter() end
---function PitchEditor:onMouseLeave() end
+function PitchEditor:onMouseEnter() end
+function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
     self:insertNode{
         time = self.mouseTime,
