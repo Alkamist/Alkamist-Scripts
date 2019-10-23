@@ -146,6 +146,7 @@ local GFX = {
     previousH =        0,
     hChange =          0,
     dock =             0,
+    drawBuffer =       -1,
     focus =            nil,
     windowWasResized = false,
     elements =         {},
@@ -420,20 +421,16 @@ function GFX:processElement(element)
     end
 end
 function GFX:renderElement(element)
-    local xOffset = 0
-    local yOffset = 0
-    if element.parent then
-        xOffset = element.parent.x
-        yOffset = element.parent.y
-    end
-
-    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, xOffset + element.x, yOffset + element.y, element.w, element.h, 0, 0)
     if element.elements then
         GFX:applyFunctionToElements(element.elements, function(elementOfElement)
             GFX:renderElement(elementOfElement)
         end)
     end
+
+    gfx.dest = element.parent.drawBuffer
+
+    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
+    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
 end
 
 function GFX:init(title, x, y, w, h, dock)
