@@ -344,6 +344,7 @@ function PitchEditor:onKeyPress()
     if keyPressFunction then keyPressFunction() end
 end
 function PitchEditor:onMouseLeftDown()
+    self:setFocus(true)
     self:insertNode{
         time = self.mouseTime,
         pitch = self.mousePitch,
@@ -361,6 +362,7 @@ function PitchEditor:onMouseLeftUp()
     end
 end
 function PitchEditor:onMouseMiddleDown()
+    self:setFocus(true)
     self.view.x.target = self.relativeMouseX
     self.view.y.target = self.relativeMouseY
 end
@@ -378,6 +380,7 @@ end
 --function PitchEditor:onMouseMiddleUp()
 --end
 function PitchEditor:onMouseRightDown()
+    self:setFocus(true)
     self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
 end
 function PitchEditor:onMouseRightDrag()
@@ -402,6 +405,8 @@ function PitchEditor:onMouseWheel()
 
     self:recalculateNodeCoordinates()
 end
+function PitchEditor:onGainedFocus() msg("gainedfocus") end
+function PitchEditor:onLostFocus() msg("lostfocus") end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()

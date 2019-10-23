@@ -146,7 +146,6 @@ local GFX = {
     previousH =        0,
     hChange =          0,
     dock =             0,
-    focus =            nil,
     windowWasResized = false,
     elements =         {},
     mouseX =           0,
@@ -235,6 +234,10 @@ function GFX:initElement(element, parent)
     element.shouldRedraw =             true
     element.shouldClearBuffer =        false
     element.isVisible =                true
+    element.hasFocus =                 false
+    element.previouslyHadFocus =       false
+    element.justGainedFocus =          false
+    element.justLostFocus =            false
 
     function element:pointRelativeToParentIsInside(x, y)
         return x >= self.x and x <= self.x + self.w
@@ -331,6 +334,9 @@ function GFX:initElement(element, parent)
     function element:show()
         self:setVisibility(true)
     end
+    function element:setFocus(shouldFocus)
+        self.pendingFocusState = shouldFocus
+    end
 
     if element.onInit then element:onInit() end
 
@@ -341,8 +347,6 @@ function GFX:initElement(element, parent)
     end
 end
 function GFX:processElement(element)
-    self.focus = self.focus or element
-
     local parentXOffset = 0
     local parentYOffset = 0
     if element.parent then
@@ -350,8 +354,19 @@ function GFX:processElement(element)
         parentYOffset = element.parent.y
     end
 
+    -- Focus.
+    element.previouslyHadFocus =       element.hasFocus
+    if element.pendingFocusState == true then
+        element.hasFocus = true
+    elseif element.pendingFocusState == false then
+        element.hasFocus = false
+    end
+    element.justGainedFocus =          element.hasFocus and (not element.previouslyHadFocus)
+    element.justLostFocus =            (not element.hasFocus) and element.previouslyHadFocus
+    element.pendingFocusState =        nil
+
     -- Key Press.
-    element.keyWasPressed =            element.isVisible and self.char and self.focus == element
+    element.keyWasPressed =            element.isVisible and self.char and element.hasFocus
 
     -- Mouse Movement.
     element.previousRelativeMouseX =   self.previousMouseX - element.x - parentXOffset
@@ -410,6 +425,8 @@ function GFX:processElement(element)
     if element.mouseRightUp            and element.onMouseRightUp    then element:onMouseRightUp()    end
     if element.wheelMoved              and element.onMouseWheel      then element:onMouseWheel()      end
     if element.hWheelMoved             and element.onMouseHWheel     then element:onMouseHWheel()     end
+    if element.justGainedFocus         and element.onGainedFocus     then element:onGainedFocus()     end
+    if element.justLostFocus           and element.onLostFocus       then element:onLostFocus()       end
 
     -- Some extra mouse state handling.
     if element.mouseLeftUp   then      element.mouseLeftWasDragged = false end
