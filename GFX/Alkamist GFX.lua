@@ -188,18 +188,27 @@ function GFX:setBackgroundColor(color)
     self.backgroundColor = color
     gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
 end
-function GFX:setElements(elements)
-    self.elements = elements
-    for _, element in pairs(self.elements) do
-        GFX:initElement(element, self)
-    end
-end
 
 local currentBuffer = -1
 local function getDrawBuffer()
     currentBuffer = currentBuffer + 1
     if currentBuffer > 1023 then currentBuffer = 0 end
     return currentBuffer
+end
+
+function GFX:applyFunctionToElements(elements, fn)
+    local numberOfElements = #elements
+    for i = 1, numberOfElements do
+        local element = elements[i]
+        fn(element)
+    end
+end
+function GFX:setElements(elements)
+    self.elements = elements
+
+    GFX:applyFunctionToElements(self.elements, function(element)
+        GFX:initElement(element, self)
+    end)
 end
 function GFX:initElement(element, parent)
     element.GFX =                      self
@@ -262,70 +271,10 @@ function GFX:initElement(element, parent)
     if element.onInit then element:onInit() end
 
     if element.elements then
-        for key, elementOfElement in pairs(element.elements) do
-            self:initElement(elementOfElement, element)
-        end
+        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+            GFX:initElement(elementOfElement, element)
+        end)
     end
-end
-function GFX:init(title, x, y, w, h, dock)
-    gfx.init(title, w, h, dock, x, y)
-
-    self.title = title
-    self.x =     x
-    self.y =     y
-    self.w =     w
-    self.h =     h
-    self.dock =  dock
-end
-
-function GFX:update()
-    local mouseCap = gfx.mouse_cap
-
-    self.previousW =        self.w
-    self.previousH =        self.h
-    self.previousMouseX =   self.mouseX
-    self.previousMouseY =   self.mouseY
-    self.previousMouseCap = self.mouseCap
-
-    self.x =                gfx.x
-    self.y =                gfx.y
-    self.w =                gfx.w
-    self.wChange =          self.w - self.previousW
-    self.h =                gfx.h
-    self.hChange =          self.h - self.previousH
-    self.windowWasResized = self.w ~= self.previousW or self.h ~= self.previousH
-    self.mouseX =           gfx.mouse_x
-    self.mouseXChange =     self.mouseX - self.previousMouseX
-    self.mouseY =           gfx.mouse_y
-    self.mouseYChange =     self.mouseY - self.previousMouseY
-    self.wheel =            gfx.mouse_wheel / 120
-    gfx.mouse_wheel =       0
-    self.hWheel =           gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel =      0
-    self.mouseCap =         gfx.mouse_cap
-    self.char =             characterTableInverted[gfx.getchar()]
-    self.leftState =        self.mouseCap & 1 == 1
-    self.leftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
-    self.leftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
-    self.middleState =      self.mouseCap & 64 == 64
-    self.middleDown =       self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
-    self.middleUp =         self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
-    self.rightState =       self.mouseCap & 2 == 2
-    self.rightDown =        self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
-    self.rightUp =          self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
-    self.shiftState =       self.mouseCap & 8 == 8
-    self.shiftDown =        self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
-    self.shiftUp =          self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
-    self.controlState =     self.mouseCap & 4 == 4
-    self.controlDown =      self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
-    self.controlUp =        self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
-    self.altState =         self.mouseCap & 16 == 16
-    self.altDown =          self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
-    self.altUp =            self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
-    self.windowsState =     self.mouseCap & 32 == 32
-    self.windowsDown =      self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
-    self.windowsUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
-    self.mouseMoved =       self.mouseX ~= self.previousMouseX or self.mouseY ~= self.previousMouseY
 end
 function GFX:processElement(element)
     self.focus = self.focus or element
@@ -407,9 +356,9 @@ function GFX:processElement(element)
     end
 
     if element.elements then
-        for key, elementOfelement in pairs(element.elements) do
-            self:processElement(elementOfelement)
-        end
+        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+            GFX:processElement(elementOfElement)
+        end)
     end
 end
 function GFX:renderElement(element)
@@ -423,10 +372,70 @@ function GFX:renderElement(element)
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
     gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, xOffset + element.x, yOffset + element.y, element.w, element.h, 0, 0)
     if element.elements then
-        for key, elementOfElement in pairs(element.elements) do
-            self:renderElement(elementOfElement)
-        end
+        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+            GFX:renderElement(elementOfElement)
+        end)
     end
+end
+
+function GFX:init(title, x, y, w, h, dock)
+    gfx.init(title, w, h, dock, x, y)
+
+    self.title = title
+    self.x =     x
+    self.y =     y
+    self.w =     w
+    self.h =     h
+    self.dock =  dock
+end
+function GFX:update()
+    local mouseCap = gfx.mouse_cap
+
+    self.previousW =        self.w
+    self.previousH =        self.h
+    self.previousMouseX =   self.mouseX
+    self.previousMouseY =   self.mouseY
+    self.previousMouseCap = self.mouseCap
+
+    self.x =                gfx.x
+    self.y =                gfx.y
+    self.w =                gfx.w
+    self.wChange =          self.w - self.previousW
+    self.h =                gfx.h
+    self.hChange =          self.h - self.previousH
+    self.windowWasResized = self.w ~= self.previousW or self.h ~= self.previousH
+    self.mouseX =           gfx.mouse_x
+    self.mouseXChange =     self.mouseX - self.previousMouseX
+    self.mouseY =           gfx.mouse_y
+    self.mouseYChange =     self.mouseY - self.previousMouseY
+    self.wheel =            gfx.mouse_wheel / 120
+    gfx.mouse_wheel =       0
+    self.hWheel =           gfx.mouse_hwheel / 120
+    gfx.mouse_hwheel =      0
+    self.mouseCap =         gfx.mouse_cap
+    self.char =             characterTableInverted[gfx.getchar()]
+    self.leftState =        self.mouseCap & 1 == 1
+    self.leftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
+    self.leftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
+    self.middleState =      self.mouseCap & 64 == 64
+    self.middleDown =       self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
+    self.middleUp =         self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
+    self.rightState =       self.mouseCap & 2 == 2
+    self.rightDown =        self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
+    self.rightUp =          self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
+    self.shiftState =       self.mouseCap & 8 == 8
+    self.shiftDown =        self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
+    self.shiftUp =          self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
+    self.controlState =     self.mouseCap & 4 == 4
+    self.controlDown =      self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
+    self.controlUp =        self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
+    self.altState =         self.mouseCap & 16 == 16
+    self.altDown =          self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
+    self.altUp =            self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
+    self.windowsState =     self.mouseCap & 32 == 32
+    self.windowsDown =      self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
+    self.windowsUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
+    self.mouseMoved =       self.mouseX ~= self.previousMouseX or self.mouseY ~= self.previousMouseY
 end
 function GFX.run()
     local self = GFX
@@ -435,14 +444,16 @@ function GFX.run()
 
     if self.char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    for key, element in pairs(self.elements) do
-        self:processElement(element)
-    end
+    GFX:applyFunctionToElements(self.elements, function(element)
+        GFX:processElement(element)
+    end)
+
     gfx.dest = -1
     gfx.a = 1.0
-    for key, element in pairs(self.elements) do
-        self:renderElement(element)
-    end
+
+    GFX:applyFunctionToElements(self.elements, function(element)
+        GFX:renderElement(element)
+    end)
 
     if self.char ~= "Escape" and self.char ~= "Close" then reaper.defer(self.run) end
     gfx.update()

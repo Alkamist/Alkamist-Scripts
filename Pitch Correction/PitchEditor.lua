@@ -79,9 +79,7 @@ function PitchEditor:new(init)
     self.rightEdge =  0.0
     self.timeWidth =  0.0
 
-    self.elements = {
-        boxSelect = self.boxSelect
-    }
+    self.elements = { self.boxSelect }
 
     return self
 end
