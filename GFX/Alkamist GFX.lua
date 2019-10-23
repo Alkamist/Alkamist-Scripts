@@ -368,20 +368,16 @@ function GFX:processElement(element)
     element.mouseLeftUp =              element.mouseLeftState and self.mouseLeftUp
     element.mouseMiddleUp =            element.mouseMiddleState and self.mouseMiddleUp
     element.mouseRightUp =             element.mouseRightState and self.mouseRightUp
-    if element.mouseLeftUp   then
-        element.mouseLeftState = false
-        element.mouseLeftWasDragged = false
-    end
-    if element.mouseMiddleUp then
-        element.mouseMiddleState = false
-        element.mouseMiddleWasDragged = false
-    end
-    if element.mouseRightUp  then
-        element.mouseRightState = false
-        element.mouseRightWasDragged = false
-    end
+
+    if element.mouseLeftUp   then element.mouseLeftState = false end
+    if element.mouseMiddleUp then element.mouseMiddleState = false end
+    if element.mouseRightUp  then element.mouseRightState = false end
 
     if element.onUpdate then element:onUpdate() end
+
+    if element.mouseLeftUp   then element.mouseLeftWasDragged = false end
+    if element.mouseMiddleUp then element.mouseMiddleWasDragged = false end
+    if element.mouseRightUp  then element.mouseRightWasDragged = false end
 
     if element.onDraw then
         if element.shouldRedraw then
