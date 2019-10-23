@@ -148,8 +148,7 @@ local GFX = {
     dock =             0,
     focus =            nil,
     windowWasResized = false,
-    children =         {},
-    numberOfChildren = 0,
+    elements =         {},
     mouseX =           0,
     previousMouseX =   0,
     mouseXChange =     0,
@@ -189,28 +188,82 @@ function GFX:setBackgroundColor(color)
     self.backgroundColor = color
     gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
 end
-function GFX:setColor(color)
-    gfx.set(color[1], color[2], color[3], color[4])
-end
-function GFX:drawRectangle(x, y, w, h, filled)
-    gfx.rect(x, y, w, h, filled)
-end
-function GFX:drawLine(x, y, x2, y2, antiAliased)
-    gfx.line(x, y, x2, y2, antiAliased)
-end
-function GFX:drawCircle(x, y, r, filled, antiAliased)
-    gfx.circle(x, y, r, filled, antiAliased)
-end
-
-function GFX:setChildren(children)
-    self.children = children
-    for index, child in pairs(self.children) do
-        self.numberOfChildren = index
+function GFX:setElements(elements)
+    self.elements = elements
+    for _, element in pairs(self.elements) do
+        GFX:initElement(element)
     end
 end
 
+local currentBuffer = -1
+local function getDrawBuffer()
+    currentBuffer = currentBuffer + 1
+    if currentBuffer > 1023 then currentBuffer = 0 end
+    return currentBuffer
+end
+function GFX:initElement(element, parent)
+    element.parent =                   parent
+    element.x =                        element.x or 0
+    element.y =                        element.y or 0
+    element.w =                        element.w or 0
+    element.h =                        element.h or 0
+    element.layer =                    element.layer or 0
+    element.drawBuffer =               getDrawBuffer()
+    element.previousRelativeMouseX =   0
+    element.previousRelativeMouseY =   0
+    element.relativeMouseX =           0
+    element.relativeMouseY =           0
+    element.mouseIsInside =            false
+    element.mouseWasPreviouslyInside = false
+    element.mouseJustEntered =         false
+    element.mouseJustLeft =            false
+    element.leftDragIsEnabled =        false
+    element.middleDragIsEnabled =      false
+    element.rightDragIsEnabled =       false
+    element.leftIsDragging =           false
+    element.middleIsDragging =         false
+    element.rightIsDragging =          false
+    element.shouldRedraw =             true
+    element.shouldClearBuffer =        false
 
+    function element:pointIsInside(x, y)
+        return x >= self.x and x <= self.x + self.w
+           and y >= self.y and y <= self.y + self.h
+    end
+    function element:setColor(color)
+        gfx.set(color[1], color[2], color[3], color[4])
+    end
+    function element:drawRectangle(x, y, w, h, filled)
+        gfx.rect(x, y, w, h, filled)
+    end
+    function element:drawLine(x, y, x2, y2, antiAliased)
+        gfx.line(x, y, x2, y2, antiAliased)
+    end
+    function element:drawCircle(x, y, r, filled, antiAliased)
+        gfx.circle(x, y, r, filled, antiAliased)
+    end
+    function element:clearBuffer()
+        gfx.setimgdim(self.drawBuffer, -1, -1)
+        gfx.setimgdim(self.drawBuffer, self.w, self.h)
+    end
+    function element:queueRedraw()
+        if not self.shouldRedraw then
+            self.shouldRedraw = true
+        end
+    end
+    function element:queueClear()
+        if self.shouldRedraw then
+            self.shouldRedraw = false
+        end
+        self.shouldClearBuffer = true
+    end
 
+    if element.elements then
+        for key, elementOfElement in pairs(element.elements) do
+            self:initElement(elementOfElement, element)
+        end
+    end
+end
 function GFX:init(title, x, y, w, h, dock)
     gfx.init(title, w, h, dock, x, y)
 
@@ -271,84 +324,116 @@ function GFX:update()
     self.windowsUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
     self.mouseMoved =       self.mouseX ~= self.previousMouseX or self.mouseY ~= self.previousMouseY
 end
-function GFX:processChildren()
-    for i = 1, self.numberOfChildren do
-        local child = self.children[i]
-        self.focus = self.focus or child
+function GFX:processElement(element)
+    self.focus = self.focus or element
 
-        child.previousRelativeMouseX = self.previousMouseX - child.x
-        child.previousRelativeMouseY = self.previousMouseY - child.y
-        child.relativeMouseX =         self.mouseX - child.x
-        child.relativeMouseY =         self.mouseY - child.y
-        child.mouseIsInside = child.relativeMouseX >= 0 and child.relativeMouseX <= child.w
-                          and child.relativeMouseY >= 0 and child.relativeMouseY <= child.h
-        child.mouseWasPreviouslyInside = child.previousRelativeMouseX >= 0 and child.previousRelativeMouseX <= child.w
-                                     and child.previousRelativeMouseY >= 0 and child.previousRelativeMouseY <= child.h
-        child.mouseJustEntered = child.mouseIsInside and not child.mouseWasPreviouslyInside
-        child.mouseJustLeft =    not child.mouseIsInside and child.mouseWasPreviouslyInside
+    element.previousRelativeMouseX = self.previousMouseX - element.x
+    element.previousRelativeMouseY = self.previousMouseY - element.y
+    element.relativeMouseX =         self.mouseX - element.x
+    element.relativeMouseY =         self.mouseY - element.y
+    element.mouseIsInside = element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
+                        and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
+    element.mouseWasPreviouslyInside = element.previousRelativeMouseX >= 0 and element.previousRelativeMouseX <= element.w
+                                    and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
+    element.mouseJustEntered = element.mouseIsInside and not element.mouseWasPreviouslyInside
+    element.mouseJustLeft =    not element.mouseIsInside and element.mouseWasPreviouslyInside
 
-        child:onUpdate()
-        if self.windowWasResized             then child:onResize() end
-        if self.focus == child and self.char then child:onKeyPress() end
-        if child.mouseJustEntered            then child:onMouseEnter() end
-        if child.mouseJustLeft               then child:onMouseLeave() end
+    if element.onUpdate                                             then element:onUpdate() end
+    if element.onResize     and self.windowWasResized               then element:onResize() end
+    if element.onKeyPress   and self.char and self.focus == element then element:onKeyPress() end
+    if element.onMouseEnter and element.mouseJustEntered            then element:onMouseEnter() end
+    if element.onMouseLeave and element.mouseJustLeft               then element:onMouseLeave() end
 
-        if child.mouseIsInside then
-            if self.leftDown then
-                child.leftDragIsEnabled = true
-                child:onMouseLeftButtonDown()
-            end
-            if self.middleDown then
-                child.middleDragIsEnabled = true
-                child:onMouseMiddleButtonDown()
-            end
-            if self.rightDown then
-                child.rightDragIsEnabled = true
-                child:onMouseRightButtonDown()
-            end
-
-            if self.wheel > 0 or self.wheel < 0 then   child:onMouseWheel() end
-            if self.hWheel > 0 or self.hWheel < 0 then child:onMouseHWheel() end
+    if element.mouseIsInside then
+        if self.leftDown then
+            element.leftDragIsEnabled = true
+            if element.onMouseLeftButtonDown then element:onMouseLeftButtonDown() end
+        end
+        if self.middleDown then
+            element.middleDragIsEnabled = true
+            if element.onMouseMiddleButtonDown then element:onMouseMiddleButtonDown() end
+        end
+        if self.rightDown then
+            element.rightDragIsEnabled = true
+            if element.onMouseRightButtonDown then element:onMouseRightButtonDown() end
         end
 
-        if self.mouseMoved and child.leftDragIsEnabled then
-            child.leftIsDragging = true
-            child:onMouseLeftButtonDrag()
-        end
-        if self.mouseMoved and child.middleDragIsEnabled then
-            child.middleIsDragging = true
-            child:onMouseMiddleButtonDrag()
-        end
-        if self.mouseMoved and child.rightDragIsEnabled then
-            child.rightIsDragging = true
-            child:onMouseRightButtonDrag()
-        end
+        if element.onMouseWheel  and (self.wheel > 0 or self.wheel < 0)   then element:onMouseWheel() end
+        if element.onMouseHWheel and (self.hWheel > 0 or self.hWheel < 0) then element:onMouseHWheel() end
+    end
 
-        if self.leftUp then
-            child:onMouseLeftButtonUp()
-            child.leftIsDragging = false
-            child.leftDragIsEnabled = false
-        end
-        if self.middleUp then
-            child:onMouseMiddleButtonUp()
-            child.middleIsDragging = false
-            child.middleDragIsEnabled = false
-        end
-        if self.rightUp then
-            child:onMouseRightButtonUp()
-            child.rightIsDragging = false
-            child.rightDragIsEnabled = false
-        end
+    if self.mouseMoved and element.leftDragIsEnabled then
+        element.leftIsDragging = true
+        if element.onMouseLeftButtonDrag then element:onMouseLeftButtonDrag() end
+    end
+    if self.mouseMoved and element.middleDragIsEnabled then
+        element.middleIsDragging = true
+        if element.onMouseMiddleButtonDrag then element:onMouseMiddleButtonDrag() end
+    end
+    if self.mouseMoved and element.rightDragIsEnabled then
+        element.rightIsDragging = true
+        if element.onMouseRightButtonDrag then element:onMouseRightButtonDrag() end
+    end
 
-        child:onDraw()
+    if self.leftUp then
+        if element.onMouseLeftButtonUp then element:onMouseLeftButtonUp() end
+        element.leftIsDragging = false
+        element.leftDragIsEnabled = false
+    end
+    if self.middleUp then
+        if element.onMouseMiddleButtonUp then element:onMouseMiddleButtonUp() end
+        element.middleIsDragging = false
+        element.middleDragIsEnabled = false
+    end
+    if self.rightUp then
+        if element.onMouseRightButtonUp then element:onMouseRightButtonUp() end
+        element.rightIsDragging = false
+        element.rightDragIsEnabled = false
+    end
+
+    if element.onDraw then
+        if element.shouldRedraw then
+            element:clearBuffer()
+            gfx.dest = element.drawBuffer
+            element:onDraw()
+            element.shouldRedraw = false
+        elseif element.shouldClearBuffer then
+            element:clearBuffer()
+            element.shouldClearBuffer = false
+        end
+    end
+
+    if element.elements then
+        for key, elementOfelement in pairs(element.elements) do
+            self:processElement(elementOfelement)
+        end
+    end
+end
+function GFX:renderElement(element)
+    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
+    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
+    if element.elements then
+        for key, elementOfElement in pairs(element.elements) do
+            self:renderElement(elementOfElement)
+        end
     end
 end
 function GFX.run()
     local self = GFX
 
     self:update()
+
     if self.char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
-    self:processChildren()
+
+    for key, element in pairs(self.elements) do
+        self:processElement(element)
+    end
+    gfx.dest = -1
+    gfx.a = 1.0
+    for key, element in pairs(self.elements) do
+        self:renderElement(element)
+    end
+
     if self.char ~= "Escape" and self.char ~= "Close" then reaper.defer(self.run) end
     gfx.update()
 end

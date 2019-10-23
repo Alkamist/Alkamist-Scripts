@@ -7,12 +7,14 @@ GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     GFX = GFX,
-    x = 0,
-    y = 0,
-    w = 1000,
-    h = 700
+    x = 200,
+    y = 200,
+    w = 600,
+    h = 400,
+    layer = 0,
+    scaleWithWindow = false
 }
 
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
-GFX:setChildren{ pitchEditor }
+GFX:setElements{ pitchEditor }
 GFX:run()

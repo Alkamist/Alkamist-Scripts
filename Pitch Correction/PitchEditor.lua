@@ -24,11 +24,12 @@ function PitchEditor:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.GFX = init.GFX
-    self.x =   init.x or 0
-    self.y =   init.y or 0
-    self.w =   init.w or 0
-    self.h =   init.h or 0
+    self.GFX =   init.GFX
+    self.x =     init.x or 0
+    self.y =     init.y or 0
+    self.w =     init.w or 0
+    self.h =     init.h or 0
+    self.layer = init.layer or 0
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
@@ -79,6 +80,10 @@ function PitchEditor:new(init)
     self.leftEdge =   0.0
     self.rightEdge =  0.0
     self.timeWidth =  0.0
+
+    self.elements = {
+        boxSelect = self.boxSelect
+    }
 
     self:updateSelectedItems()
     self:onResize()
@@ -231,8 +236,8 @@ end
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawMainBackground()
-    self.GFX:setColor(self.backgroundColor)
-    self.GFX:drawRectangle(0, 0, self.w, self.h, true)
+    self:setColor(self.backgroundColor)
+    self:drawRectangle(0, 0, self.w, self.h, true)
 end
 function PitchEditor:drawKeyBackgrounds()
     local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
@@ -241,22 +246,22 @@ function PitchEditor:drawKeyBackgrounds()
         local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
-        self.GFX:setColor(self.blackKeyColor)
+        self:setColor(self.blackKeyColor)
         for _, value in ipairs(self.whiteKeyNumbers) do
             if i == value then
-                self.GFX:setColor(self.whiteKeyColor)
+                self:setColor(self.whiteKeyColor)
             end
         end
-        self.GFX:drawRectangle(0, keyEnd, self.w, keyHeight + 1, true)
+        self:drawRectangle(0, keyEnd, self.w, keyHeight + 1, true)
 
-        self.GFX:setColor(self.blackKeyColor)
-        self.GFX:drawLine(0, keyEnd, self.w - 1, keyEnd, false)
+        self:setColor(self.blackKeyColor)
+        self:drawLine(0, keyEnd, self.w - 1, keyEnd, false)
 
         if keyHeight > self.minKeyHeightToDrawCenterline then
             local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
 
-            self.GFX:setColor(self.keyCenterLineColor)
-            self.GFX:drawLine(0, keyCenterLine, self.w - 1, keyCenterLine, false)
+            self:setColor(self.keyCenterLineColor)
+            self:drawLine(0, keyCenterLine, self.w - 1, keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
@@ -273,26 +278,26 @@ function PitchEditor:drawItemEdges()
         local boxWidth = rightBoundPixels - leftBoundPixels
         local boxHeight = self.h - 2
 
-        self.GFX:setColor(self.itemInsideColor)
-        self.GFX:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, true)
+        self:setColor(self.itemInsideColor)
+        self:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, true)
 
-        self.GFX:setColor(self.itemEdgeColor)
-        self.GFX:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, false)
+        self:setColor(self.itemEdgeColor)
+        self:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, false)
     end
 end
 function PitchEditor:drawEditCursor()
     local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.leftEdge)
     local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - self.leftEdge)
 
-    self.GFX:setColor(self.editCursorColor)
-    self.GFX:drawLine(editCursorPixels, 0, editCursorPixels, self.h, false)
+    self:setColor(self.editCursorColor)
+    self:drawLine(editCursorPixels, 0, editCursorPixels, self.h, false)
 
     local playState = reaper.GetPlayState()
     local projectIsPlaying = playState & 1 == 1
     local projectIsRecording = playState & 4 == 4
     if projectIsPlaying or projectIsRecording then
-        self.GFX:setColor(self.playCursorColor)
-        self.GFX:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
+        self:setColor(self.playCursorColor)
+        self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
 function PitchEditor:drawPitchCorrectionNodes()
@@ -302,15 +307,15 @@ function PitchEditor:drawPitchCorrectionNodes()
         local nextNode = self.nodes[i + 1]
 
         if node.isActive then
-            self.GFX:setColor(self.nodeActiveColor)
+            self:setColor(self.nodeActiveColor)
         else
-            self.GFX:setColor(self.nodeInactiveColor)
+            self:setColor(self.nodeInactiveColor)
         end
 
-        self.GFX:drawCircle(node.x, node.y, self.nodeCirclePixelRadius, node.isSelected, true)
+        self:drawCircle(node.x, node.y, self.nodeCirclePixelRadius, node.isSelected, true)
 
         if node.isActive and nextNode then
-            self.GFX:drawLine(node.x, node.y, nextNode.x, nextNode.y, true)
+            self:drawLine(node.x, node.y, nextNode.x, nextNode.y, true)
         end
     end
 end
@@ -326,6 +331,7 @@ function PitchEditor:onUpdate()
     self.mousePitchChange = self.mousePitch - self.previousMousePitch
 
     self:updateSelectedItems()
+    self:queueRedraw()
 end
 function PitchEditor:onResize()
     if self.scaleWithWindow then
@@ -403,22 +409,11 @@ function PitchEditor:onMouseWheel()
 end
 function PitchEditor:onMouseHWheel() end
 function PitchEditor:onDraw()
-    local drawBuffer = 0
-
-    gfx.setimgdim(drawBuffer, self.w, self.h)
-    gfx.dest = drawBuffer
-
     self:drawMainBackground()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
     self:drawPitchCorrectionNodes()
-    self.boxSelect:draw()
-
-    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.dest = -1
-    gfx.a = 1.0
-    gfx.blit(drawBuffer, 1.0, 0, 0, 0, self.w, self.h, self.x, self.y, self.w, self.h, 0, 0)
 end
 
 PitchEditor.onKeyPressFunctions = {
