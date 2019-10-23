@@ -306,6 +306,21 @@ function GFX:initElement(element, parent)
             end
         end
     end
+    function element:setFont(font, size, flags)
+        gfx.setfont(1, font, size)
+    end
+    function element:measureString(str)
+        return gfx.measurestr(str)
+    end
+    function element:drawString(str, x, y, flags, right, bottom)
+        if x then gfx.x = x end
+        if y then gfx.y = y end
+        if flags then
+            gfx.drawstr(str, flags, right, bottom)
+        else
+            gfx.drawstr(str)
+        end
+    end
     function element:clearBuffer()
         gfx.setimgdim(self.drawBuffer, -1, -1)
         gfx.setimgdim(self.drawBuffer, self.w, self.h)

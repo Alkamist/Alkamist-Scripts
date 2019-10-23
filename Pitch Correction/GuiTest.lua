@@ -17,7 +17,8 @@ local testButton1 = Button:new{
     x = 40,
     y = 40,
     w = 120,
-    h = 25
+    h = 25,
+    label = "test1"
 }
 function testButton1:onMouseLeftDown()
     Button.onMouseLeftDown(self)
@@ -37,7 +38,8 @@ local testButton2 = Button:new{
     x = 20,
     y = 20,
     w = 120,
-    h = 25
+    h = 25,
+    label = "test2"
 }
 table.insert(pitchEditor.elements, testButton2)
 
