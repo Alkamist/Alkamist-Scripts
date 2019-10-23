@@ -217,7 +217,6 @@ function GFX:initElement(element, parent)
     element.y =                        element.y or 0
     element.w =                        element.w or 0
     element.h =                        element.h or 0
-    element.layer =                    element.layer or 0
     element.drawBuffer =               getDrawBuffer()
     element.previousRelativeMouseX =   0
     element.previousRelativeMouseY =   0
@@ -251,6 +250,57 @@ function GFX:initElement(element, parent)
     end
     function element:drawCircle(x, y, r, filled, antiAliased)
         gfx.circle(x, y, r, filled, antiAliased)
+    end
+    function element:drawPolygon(filled, ...)
+        if filled then
+            gfx.triangle(...)
+        else
+            local coords = {...}
+
+            -- Duplicate the first pair at the end, so the last line will
+            -- be drawn back to the starting point.
+            table.insert(coords, coords[1])
+            table.insert(coords, coords[2])
+
+            -- Draw a line from each pair of coords to the next pair.
+            for i = 1, #coords - 2, 2 do
+                gfx.line(coords[i], coords[i+1], coords[i+2], coords[i+3])
+            end
+        end
+    end
+    function element:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+        local aa = antiAliased or 1
+        filled = filled or 0
+        w = math.max(0, w - 1)
+        h = math.max(0, h - 1)
+
+        if filled == 0 or false then
+            gfx.roundrect(x, y, w, h, r, aa)
+        else
+            if h >= 2 * r then
+                -- Corners
+                gfx.circle(x + r, y + r, r, 1, aa)			-- top-left
+                gfx.circle(x + w - r, y + r, r, 1, aa)		-- top-right
+                gfx.circle(x + w - r, y + h - r, r , 1, aa) -- bottom-right
+                gfx.circle(x + r, y + h - r, r, 1, aa)		-- bottom-left
+
+                -- Ends
+                gfx.rect(x, y + r, r, h - r * 2)
+                gfx.rect(x + w - r, y + r, r + 1, h - r * 2)
+
+                -- Body + sides
+                gfx.rect(x + r, y, w - r * 2, h + 1)
+            else
+                r = (h / 2 - 1)
+
+                -- Ends
+                gfx.circle(x + r, y + r, r, 1, aa)
+                gfx.circle(x + w - r, y + r, r, 1, aa)
+
+                -- Body
+                gfx.rect(x + r, y, w - (r * 2), h)
+            end
+        end
     end
     function element:clearBuffer()
         gfx.setimgdim(self.drawBuffer, -1, -1)
@@ -388,7 +438,7 @@ function GFX:init(title, x, y, w, h, dock)
     self.h =     h
     self.dock =  dock
 end
-function GFX:update()
+function GFX:updateStates()
     local mouseCap = gfx.mouse_cap
 
     self.previousW =        self.w
@@ -440,7 +490,7 @@ end
 function GFX.run()
     local self = GFX
 
-    self:update()
+    self:updateStates()
 
     if self.char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 

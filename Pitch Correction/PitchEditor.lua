@@ -28,7 +28,6 @@ function PitchEditor:new(init)
     self.y =     init.y or 0
     self.w =     init.w or 0
     self.h =     init.h or 0
-    self.layer = init.layer or 0
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
