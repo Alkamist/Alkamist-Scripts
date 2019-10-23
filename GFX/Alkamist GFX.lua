@@ -160,28 +160,28 @@ local GFX = {
     mouseCap =         0,
     previousMouseCap = 0,
     char =             0,
-    leftState =        false,
-    leftDown =         false,
-    leftUp =           false,
-    middleState =      false,
-    middleDown =       false,
-    middleUp =         false,
-    rightState =       false,
-    rightDown =        false,
-    rightUp =          false,
-    shiftState =       false,
-    shiftDown =        false,
-    shiftUp =          false,
-    controlState =     false,
-    controlDown =      false,
-    controlUp =        false,
-    altState =         false,
-    altDown =          false,
-    altUp =            false,
-    windowsState =     false,
-    windowsDown =      false,
-    windowsUp =        false,
-    mouseMoved =       false
+    mouseLeftState =   false,
+    mouseLeftDown =    false,
+    mouseLeftUp =      false,
+    mouseMiddleState = false,
+    mouseMiddleDown =  false,
+    mouseMiddleUp =    false,
+    mouseRightState =  false,
+    mouseRightDown =   false,
+    mouseRightUp =     false,
+    mouseMoved =       false,
+    shiftKeyState =    false,
+    shiftKeyDown =     false,
+    shiftKeyUp =       false,
+    controlKeyState =  false,
+    controlKeyDown =   false,
+    controlKeyUp =     false,
+    altKeyState =      false,
+    altKeyDown =       false,
+    altKeyUp =         false,
+    windowsKeyState =  false,
+    windowsKeyDown =   false,
+    windowsKeyUp =     false,
 }
 
 function GFX:setBackgroundColor(color)
@@ -226,9 +226,9 @@ function GFX:initElement(element, parent)
     element.mouseWasPreviouslyInside = false
     element.mouseJustEntered =         false
     element.mouseJustLeft =            false
-    element.leftWentDownInside =        false
-    element.middleWentDownInside =      false
-    element.rightWentDownInside =       false
+    element.mouseLeftState =        false
+    element.mouseMiddleState =      false
+    element.mouseRightState =       false
     element.leftIsDragging =           false
     element.middleIsDragging =         false
     element.rightIsDragging =          false
@@ -329,69 +329,59 @@ end
 function GFX:processElement(element)
     self.focus = self.focus or element
 
-    element.previousRelativeMouseX = self.previousMouseX - element.x
-    element.previousRelativeMouseY = self.previousMouseY - element.y
-    element.relativeMouseX =         self.mouseX - element.x
-    element.relativeMouseY =         self.mouseY - element.y
-    element.mouseIsInside = element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
-                        and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
+    -- Key Press:
+    element.keyWasPressed =            self.char and self.focus == element
+
+    -- Mouse Wheel:
+    element.wheelMoved =               element.mouseIsInside and (self.wheel > 0 or self.wheel < 0)
+    element.hWheelMoved =              element.mouseIsInside and (self.hWheel > 0 or self.hWheel < 0)
+
+    -- Mouse Movement:
+    element.previousRelativeMouseX =   self.previousMouseX - element.x
+    element.previousRelativeMouseY =   self.previousMouseY - element.y
+    element.relativeMouseX =           self.mouseX - element.x
+    element.relativeMouseY =           self.mouseY - element.y
+    element.mouseIsInside =            element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
+                                       and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
     element.mouseWasPreviouslyInside = element.previousRelativeMouseX >= 0 and element.previousRelativeMouseX <= element.w
-                                    and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
-    element.mouseJustEntered = element.mouseIsInside and not element.mouseWasPreviouslyInside
-    element.mouseJustLeft =    not element.mouseIsInside and element.mouseWasPreviouslyInside
+                                       and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
+    element.mouseJustEntered =         element.mouseIsInside and not element.mouseWasPreviouslyInside
+    element.mouseJustLeft =            not element.mouseIsInside and element.mouseWasPreviouslyInside
 
-    if element.onUpdate                                             then element:onUpdate() end
-    if element.onResize     and self.windowWasResized               then element:onResize() end
-    if element.onKeyPress   and self.char and self.focus == element then element:onKeyPress() end
-    if element.onMouseEnter and element.mouseJustEntered            then element:onMouseEnter() end
-    if element.onMouseLeave and element.mouseJustLeft               then element:onMouseLeave() end
+    -- Mouse Down:
+    element.mouseLeftDown =            element.mouseIsInside and self.mouseLeftDown
+    element.mouseMiddleDown =          element.mouseIsInside and self.mouseMiddleDown
+    element.mouseRightDown =           element.mouseIsInside and self.mouseRightDown
+    if element.mouseLeftDown   then    element.mouseLeftState = true end
+    if element.mouseMiddleDown then    element.mouseMiddleState = true end
+    if element.mouseRightDown  then    element.mouseRightState = true end
 
-    if element.mouseIsInside then
-        if self.leftDown then
-            element.leftWentDownInside = true
-            if element.onMouseLeftButtonDown then element:onMouseLeftButtonDown() end
-        end
-        if self.middleDown then
-            element.middleWentDownInside = true
-            if element.onMouseMiddleButtonDown then element:onMouseMiddleButtonDown() end
-        end
-        if self.rightDown then
-            element.rightWentDownInside = true
-            if element.onMouseRightButtonDown then element:onMouseRightButtonDown() end
-        end
+    -- Mouse Drag:
+    element.mouseLeftIsDragging =    self.mouseMoved and element.mouseLeftState
+    element.mouseMiddleIsDragging =  self.mouseMoved and element.mouseMiddleState
+    element.mouseRightIsDragging =   self.mouseMoved and element.mouseRightState
+    if element.mouseLeftIsDragging   then element.mouseLeftWasDragged = true end
+    if element.mouseMiddleIsDragging then element.mouseMiddleWasDragged = true end
+    if element.mouseRightIsDragging  then element.mouseRightWasDragged = true end
 
-        if element.onMouseWheel  and (self.wheel > 0 or self.wheel < 0)   then element:onMouseWheel() end
-        if element.onMouseHWheel and (self.hWheel > 0 or self.hWheel < 0) then element:onMouseHWheel() end
+    -- Mouse Up:
+    element.mouseLeftUp =              element.mouseLeftState and self.mouseLeftUp
+    element.mouseMiddleUp =            element.mouseMiddleState and self.mouseMiddleUp
+    element.mouseRightUp =             element.mouseRightState and self.mouseRightUp
+    if element.mouseLeftUp   then
+        element.mouseLeftState = false
+        element.mouseLeftWasDragged = false
     end
-
-    if self.mouseMoved and element.leftWentDownInside then
-        element.leftIsDragging = true
-        if element.onMouseLeftButtonDrag then element:onMouseLeftButtonDrag() end
+    if element.mouseMiddleUp then
+        element.mouseMiddleState = false
+        element.mouseMiddleWasDragged = false
     end
-    if self.mouseMoved and element.middleWentDownInside then
-        element.middleIsDragging = true
-        if element.onMouseMiddleButtonDrag then element:onMouseMiddleButtonDrag() end
-    end
-    if self.mouseMoved and element.rightWentDownInside then
-        element.rightIsDragging = true
-        if element.onMouseRightButtonDrag then element:onMouseRightButtonDrag() end
+    if element.mouseRightUp  then
+        element.mouseRightState = false
+        element.mouseRightWasDragged = false
     end
 
-    if self.leftUp and element.leftWentDownInside then
-        if element.onMouseLeftButtonUp then element:onMouseLeftButtonUp() end
-        element.leftIsDragging = false
-        element.leftWentDownInside = false
-    end
-    if self.middleUp and element.middleWentDownInside then
-        if element.onMouseMiddleButtonUp then element:onMouseMiddleButtonUp() end
-        element.middleIsDragging = false
-        element.middleWentDownInside = false
-    end
-    if self.rightUp and element.rightWentDownInside then
-        if element.onMouseRightButtonUp then element:onMouseRightButtonUp() end
-        element.rightIsDragging = false
-        element.rightWentDownInside = false
-    end
+    if element.onUpdate then element:onUpdate() end
 
     if element.onDraw then
         if element.shouldRedraw then
@@ -464,27 +454,27 @@ function GFX:updateStates()
     gfx.mouse_hwheel =      0
     self.mouseCap =         gfx.mouse_cap
     self.char =             characterTableInverted[gfx.getchar()]
-    self.leftState =        self.mouseCap & 1 == 1
-    self.leftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
-    self.leftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
-    self.middleState =      self.mouseCap & 64 == 64
-    self.middleDown =       self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
-    self.middleUp =         self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
-    self.rightState =       self.mouseCap & 2 == 2
-    self.rightDown =        self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
-    self.rightUp =          self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
-    self.shiftState =       self.mouseCap & 8 == 8
-    self.shiftDown =        self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
-    self.shiftUp =          self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
-    self.controlState =     self.mouseCap & 4 == 4
-    self.controlDown =      self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
-    self.controlUp =        self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
-    self.altState =         self.mouseCap & 16 == 16
-    self.altDown =          self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
-    self.altUp =            self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
-    self.windowsState =     self.mouseCap & 32 == 32
-    self.windowsDown =      self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
-    self.windowsUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
+    self.mouseLeftState =        self.mouseCap & 1 == 1
+    self.mouseLeftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
+    self.mouseLeftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
+    self.mouseMiddleState =      self.mouseCap & 64 == 64
+    self.mouseMiddleDown =       self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
+    self.mouseMiddleUp =         self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
+    self.mouseRightState =       self.mouseCap & 2 == 2
+    self.mouseRightDown =        self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
+    self.mouseRightUp =          self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
+    self.shiftKeyState =       self.mouseCap & 8 == 8
+    self.shiftKeyDown =        self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
+    self.shiftKeyUp =          self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
+    self.controlKeyState =     self.mouseCap & 4 == 4
+    self.controlKeyDown =      self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
+    self.controlKeyUp =        self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
+    self.altKeyState =         self.mouseCap & 16 == 16
+    self.altKeyDown =          self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
+    self.altKeyUp =            self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
+    self.windowsKeyState =     self.mouseCap & 32 == 32
+    self.windowsKeyDown =      self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
+    self.windowsKeyUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
     self.mouseMoved =       self.mouseX ~= self.previousMouseX or self.mouseY ~= self.previousMouseY
 end
 function GFX.run()

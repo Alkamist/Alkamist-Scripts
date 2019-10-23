@@ -314,22 +314,15 @@ end
 
 ---------------------- Events ----------------------
 
-function PitchEditor:onInit()
-    self:updateSelectedItems()
-    self:onResize()
-end
-function PitchEditor:onUpdate()
+function PitchEditor:calculateMouseInfo()
     self.previousMouseTime = self.mouseTime
     self.previousMousePitch = self.mousePitch
     self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
     self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
     self.mouseTimeChange = self.mouseTime - self.previousMouseTime
     self.mousePitchChange = self.mousePitch - self.previousMousePitch
-
-    self:updateSelectedItems()
-    self:queueRedraw()
 end
-function PitchEditor:onResize()
+function PitchEditor:handleWindowResize()
     if self.scaleWithWindow then
         self.w = self.w + self.GFX.wChange
         self.h = self.h + self.GFX.hChange
@@ -339,13 +332,11 @@ function PitchEditor:onResize()
 
     self:recalculateNodeCoordinates()
 end
-function PitchEditor:onKeyPress()
+function PitchEditor:handleKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
     if keyPressFunction then keyPressFunction() end
 end
-function PitchEditor:onMouseEnter() end
-function PitchEditor:onMouseLeave() end
-function PitchEditor:onMouseLeftButtonDown()
+function PitchEditor:handleMouseLeftDown()
     self:insertNode{
         time = self.mouseTime,
         pitch = self.mousePitch,
@@ -353,21 +344,21 @@ function PitchEditor:onMouseLeftButtonDown()
         isSelected = true
     }
 end
-function PitchEditor:onMouseLeftButtonDrag()
+function PitchEditor:handleMouseLeftDrag()
     self:moveSelectedNodesWithMouse()
 end
-function PitchEditor:onMouseLeftButtonUp()
-    if not self.leftIsDragging then
+function PitchEditor:handleMouseLeftUp()
+    if not self.mouseLeftWasDragged then
         reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
         reaper.UpdateArrange()
     end
 end
-function PitchEditor:onMouseMiddleButtonDown()
+function PitchEditor:handleMouseMiddleDown()
     self.view.x.target = self.relativeMouseX
     self.view.y.target = self.relativeMouseY
 end
-function PitchEditor:onMouseMiddleButtonDrag()
-    if self.GFX.shiftState then
+function PitchEditor:handleMouseMiddleDrag()
+    if self.GFX.shiftKeyState then
         self.view.x:changeZoom(self.GFX.mouseXChange)
         self.view.y:changeZoom(self.GFX.mouseYChange)
     else
@@ -377,25 +368,26 @@ function PitchEditor:onMouseMiddleButtonDrag()
 
     self:recalculateNodeCoordinates()
 end
---function PitchEditor:onMouseMiddleButtonUp() end
-function PitchEditor:onMouseRightButtonDown()
+--function PitchEditor:handleMouseMiddleUp()
+--end
+function PitchEditor:handleMouseRightDown()
     self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
 end
-function PitchEditor:onMouseRightButtonDrag()
+function PitchEditor:handleMouseRightDrag()
     self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
 end
-function PitchEditor:onMouseRightButtonUp()
-    self.boxSelect:makeSelection(self.nodes, setNodeSelected, nodeIsSelected, self.GFX.shiftState, self.GFX.controlState)
+function PitchEditor:handleMouseRightUp()
+    self.boxSelect:makeSelection(self.nodes, setNodeSelected, nodeIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
     self:updateSelectedIndexes()
 end
-function PitchEditor:onMouseWheel()
+function PitchEditor:handleMouseWheel()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
 
     self.view.x.target = self.relativeMouseX
     self.view.y.target = self.relativeMouseY
 
-    if self.GFX.controlState then
+    if self.GFX.controlKeyState then
         self.view.y:changeZoom(self.GFX.wheel * ySensitivity)
     else
         self.view.x:changeZoom(self.GFX.wheel * xSensitivity)
@@ -403,7 +395,29 @@ function PitchEditor:onMouseWheel()
 
     self:recalculateNodeCoordinates()
 end
---function PitchEditor:onMouseHWheel() end
+
+
+function PitchEditor:onInit()
+    self:updateSelectedItems()
+    self:handleWindowResize()
+end
+function PitchEditor:onUpdate()
+    self:calculateMouseInfo()
+    self:updateSelectedItems()
+    if self.GFX.windowWasResized  then self:handleWindowResize() end
+    if self.keyWasPressed         then self:handleKeyPress() end
+    if self.mouseLeftDown         then self:handleMouseLeftDown() end
+    if self.mouseLeftIsDragging   then self:handleMouseLeftDrag() end
+    if self.mouseLeftUp           then self:handleMouseLeftUp() end
+    if self.mouseMiddleDown       then self:handleMouseMiddleDown() end
+    if self.mouseMiddleIsDragging then self:handleMouseMiddleDrag() end
+    --if self.mouseMiddleUp         then self:handleMouseMiddleUp() end
+    if self.mouseRightDown        then self:handleMouseRightDown() end
+    if self.mouseRightIsDragging  then self:handleMouseRightDrag() end
+    if self.mouseRightUp          then self:handleMouseRightUp() end
+    if self.wheelMoved            then self:handleMouseWheel() end
+    self:queueRedraw()
+end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
