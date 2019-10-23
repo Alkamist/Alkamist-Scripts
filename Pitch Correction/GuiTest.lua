@@ -21,12 +21,11 @@ local testButton1 = Button:new{
 }
 function testButton1:onMouseLeftDown()
     Button.onMouseLeftDown(self)
-    self:setFocus(true)
-    --if pitchEditor.isVisible then
-    --    pitchEditor:hide()
-    --else
-    --    pitchEditor:show()
-    --end
+    if pitchEditor.isVisible then
+        pitchEditor:hide()
+    else
+        pitchEditor:show()
+    end
 end
 function testButton1:onMouseLeftDrag()
     self.x = self.x + self.GFX.mouseXChange
