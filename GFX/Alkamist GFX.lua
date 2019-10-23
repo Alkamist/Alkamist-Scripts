@@ -240,7 +240,8 @@ function GFX:initElement(element, parent)
            and y >= self.y and y <= self.y + self.h
     end
     function element:setColor(color)
-        gfx.set(color[1], color[2], color[3], color[4], gfx.mode)
+        local mode = color[5] or 0
+        gfx.set(color[1], color[2], color[3], color[4], mode)
     end
     function element:setBlendMode(mode)
         gfx.mode = mode

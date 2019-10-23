@@ -33,16 +33,16 @@ function PitchEditor:new(init)
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
     self.pitchHeight =        init.pitchHeight        or 128
 
-    self.backgroundColor =    init.backgroundColor    or {0.2, 0.2, 0.2, 1.0}
-    self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0}
-    self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0}
-    self.keyCenterLineColor = init.keyCenterLineColor or {1.0, 1.0, 1.0, 0.12}
-    self.itemInsideColor =    init.itemInsideColor    or {1.0, 1.0, 1.0, 0.02}
-    self.itemEdgeColor =      init.itemEdgeColor      or {1.0, 1.0, 1.0, 0.15}
-    self.editCursorColor =    init.editCursorColor    or {1.0, 1.0, 1.0, 0.34}
-    self.playCursorColor =    init.playCursorColor    or {1.0, 1.0, 1.0, 0.2}
-    self.nodeActiveColor =    init.nodeActiveColor    or {0.3, 0.6, 1.0, 1.0}
-    self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0, 0.6, 0.3, 1.0}
+    self.backgroundColor =    init.backgroundColor    or {0.2,  0.2,  0.2,  1.0,  0 }
+    self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0,  0 }
+    self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0,  0 }
+    self.keyCenterLineColor = init.keyCenterLineColor or {1.0,  1.0,  1.0,  0.12, 1 }
+    self.itemInsideColor =    init.itemInsideColor    or {1.0,  1.0,  1.0,  0.02, 1 }
+    self.itemEdgeColor =      init.itemEdgeColor      or {1.0,  1.0,  1.0,  0.15, 1 }
+    self.editCursorColor =    init.editCursorColor    or {1.0,  1.0,  1.0,  0.34, 1 }
+    self.playCursorColor =    init.playCursorColor    or {1.0,  1.0,  1.0,  0.2,  1 }
+    self.nodeActiveColor =    init.nodeActiveColor    or {0.3,  0.6,  1.0,  1.0,  0 }
+    self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0,  0.6,  0.3,  1.0,  0 }
 
     self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
 
@@ -228,12 +228,10 @@ end
 ---------------------- Drawing Code ----------------------
 
 function PitchEditor:drawMainBackground()
-    self:setBlendMode(0)
     self:setColor(self.backgroundColor)
     self:drawRectangle(0, 0, self.w, self.h, true)
 end
 function PitchEditor:drawKeyBackgrounds()
-    self:setBlendMode(0)
     local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
 
     for i = 1, self.pitchHeight do
@@ -262,7 +260,6 @@ function PitchEditor:drawKeyBackgrounds()
     end
 end
 function PitchEditor:drawItemEdges()
-    self:setBlendMode(1)
     local numberOfItems = #self.items
     for i = 1, numberOfItems do
         local item = self.items[i]
@@ -281,7 +278,6 @@ function PitchEditor:drawItemEdges()
     end
 end
 function PitchEditor:drawEditCursor()
-    self:setBlendMode(1)
     local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.leftEdge)
     local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - self.leftEdge)
 
@@ -297,7 +293,6 @@ function PitchEditor:drawEditCursor()
     end
 end
 function PitchEditor:drawPitchCorrectionNodes()
-    self:setBlendMode(0)
     local numberOfNodes = #self.nodes
     for i = 1, numberOfNodes do
         local node = self.nodes[i]

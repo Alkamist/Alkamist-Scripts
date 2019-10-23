@@ -13,8 +13,8 @@ function BoxSelect:new(init)
     self.y1 = 0
     self.y2 = 0
 
-    self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.3}
-    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.7}
+    self.insideColor = init.insideColor or {0.0, 0.0, 0.0, 0.3, 0}
+    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.7, 0}
 
     self.shouldRedraw = false
 
@@ -64,7 +64,6 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
 end
 
 function BoxSelect:onDraw()
-    self:setBlendMode(0)
     self:setColor(self.edgeColor)
     self:drawRectangle(0, 0, self.w, self.h, false)
 
