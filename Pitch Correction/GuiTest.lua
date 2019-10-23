@@ -6,7 +6,6 @@ local GFX = require("GFX.Alkamist GFX")
 GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
-    GFX = GFX,
     x = 200,
     y = 200,
     w = 600,

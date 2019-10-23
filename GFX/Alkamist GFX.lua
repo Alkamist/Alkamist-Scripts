@@ -202,6 +202,7 @@ local function getDrawBuffer()
     return currentBuffer
 end
 function GFX:initElement(element, parent)
+    element.GFX =                      self
     element.parent =                   parent
     element.x =                        element.x or 0
     element.y =                        element.y or 0
@@ -257,6 +258,8 @@ function GFX:initElement(element, parent)
         end
         self.shouldClearBuffer = true
     end
+
+    if element.onInit then element:onInit() end
 
     if element.elements then
         for key, elementOfElement in pairs(element.elements) do

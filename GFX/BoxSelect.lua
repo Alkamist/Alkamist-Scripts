@@ -4,7 +4,6 @@ function BoxSelect:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.GFX = init.GFX
     self.x = 0
     self.y = 0
     self.w = 0

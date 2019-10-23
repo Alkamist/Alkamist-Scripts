@@ -24,7 +24,6 @@ function PitchEditor:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.GFX =   init.GFX
     self.x =     init.x or 0
     self.y =     init.y or 0
     self.w =     init.w or 0
@@ -67,7 +66,6 @@ function PitchEditor:new(init)
         }
     }
     self.boxSelect = BoxSelect:new{
-        GFX = self.GFX,
         thingsToSelect = self.nodes
     }
 
@@ -322,6 +320,7 @@ end
 
 ---------------------- Events ----------------------
 
+--function PitchEditor:onInit() end
 function PitchEditor:onUpdate()
     self.previousMouseTime = self.mouseTime
     self.previousMousePitch = self.mousePitch
@@ -347,8 +346,8 @@ function PitchEditor:onKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
     if keyPressFunction then keyPressFunction() end
 end
-function PitchEditor:onMouseEnter() end
-function PitchEditor:onMouseLeave() end
+--function PitchEditor:onMouseEnter() end
+--function PitchEditor:onMouseLeave() end
 function PitchEditor:onMouseLeftButtonDown()
     self:insertNode{
         time = self.mouseTime,
@@ -381,7 +380,7 @@ function PitchEditor:onMouseMiddleButtonDrag()
 
     self:recalculateNodeCoordinates()
 end
-function PitchEditor:onMouseMiddleButtonUp() end
+--function PitchEditor:onMouseMiddleButtonUp() end
 function PitchEditor:onMouseRightButtonDown()
     self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
 end
@@ -407,7 +406,7 @@ function PitchEditor:onMouseWheel()
 
     self:recalculateNodeCoordinates()
 end
-function PitchEditor:onMouseHWheel() end
+--function PitchEditor:onMouseHWheel() end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
