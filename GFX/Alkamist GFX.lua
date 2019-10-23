@@ -410,8 +410,15 @@ function GFX:processElement(element)
     end
 end
 function GFX:renderElement(element)
+    local xOffset = 0
+    local yOffset = 0
+    if element.parent then
+        xOffset = element.parent.x
+        yOffset = element.parent.y
+    end
+
     --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
+    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, xOffset + element.x, yOffset + element.y, element.w, element.h, 0, 0)
     if element.elements then
         for key, elementOfElement in pairs(element.elements) do
             self:renderElement(elementOfElement)
