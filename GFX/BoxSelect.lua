@@ -26,8 +26,6 @@ function BoxSelect:startSelection(startingX, startingY)
     self.x2 = startingX
     self.y1 = startingY
     self.y2 = startingY
-
-    self:queueRedraw()
 end
 
 function BoxSelect:editSelection(editX, editY)
