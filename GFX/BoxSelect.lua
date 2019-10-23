@@ -47,7 +47,7 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
     for i = 1, numberOfThings do
         local thing = listOfThings[i]
 
-        if self:pointIsInside(thing.x, thing.y) then
+        if self:pointRelativeToParentIsInside(thing.x, thing.y) then
             if shouldInvert then
                 setSelectedFn(thing, not getSelectedFn(thing))
             else

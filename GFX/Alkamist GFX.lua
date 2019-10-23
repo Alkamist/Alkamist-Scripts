@@ -146,7 +146,6 @@ local GFX = {
     previousH =        0,
     hChange =          0,
     dock =             0,
-    drawBuffer =       -1,
     focus =            nil,
     windowWasResized = false,
     elements =         {},
@@ -208,11 +207,11 @@ function GFX:setElements(elements)
     self.elements = elements
 
     GFX:applyFunctionToElements(self.elements, function(element)
-        GFX:initElement(element, self)
+        GFX:initElement(element, nil)
     end)
 end
 function GFX:initElement(element, parent)
-    element.GFX =                      self
+    element.GFX =                      GFX
     element.parent =                   parent
     element.x =                        element.x or 0
     element.y =                        element.y or 0
@@ -227,16 +226,17 @@ function GFX:initElement(element, parent)
     element.mouseWasPreviouslyInside = false
     element.mouseJustEntered =         false
     element.mouseJustLeft =            false
-    element.mouseLeftState =        false
-    element.mouseMiddleState =      false
-    element.mouseRightState =       false
+    element.mouseLeftState =           false
+    element.mouseMiddleState =         false
+    element.mouseRightState =          false
     element.leftIsDragging =           false
     element.middleIsDragging =         false
     element.rightIsDragging =          false
     element.shouldRedraw =             true
     element.shouldClearBuffer =        false
+    element.isVisible =                true
 
-    function element:pointIsInside(x, y)
+    function element:pointRelativeToParentIsInside(x, y)
         return x >= self.x and x <= self.x + self.w
            and y >= self.y and y <= self.y + self.h
     end
@@ -322,6 +322,15 @@ function GFX:initElement(element, parent)
         end
         self.shouldClearBuffer = true
     end
+    function element:setVisibility(visibility)
+        self.isVisible = visibility
+    end
+    function element:hide()
+        self:setVisibility(false)
+    end
+    function element:show()
+        self:setVisibility(true)
+    end
 
     if element.onInit then element:onInit() end
 
@@ -334,24 +343,31 @@ end
 function GFX:processElement(element)
     self.focus = self.focus or element
 
+    local parentXOffset = 0
+    local parentYOffset = 0
+    if element.parent then
+        parentXOffset = element.parent.x
+        parentYOffset = element.parent.y
+    end
+
     -- Key Press.
-    element.keyWasPressed =            self.char and self.focus == element
+    element.keyWasPressed =            element.isVisible and self.char and self.focus == element
+
+    -- Mouse Movement.
+    element.previousRelativeMouseX =   self.previousMouseX - element.x - parentXOffset
+    element.previousRelativeMouseY =   self.previousMouseY - element.y - parentYOffset
+    element.relativeMouseX =           self.mouseX - element.x - parentXOffset
+    element.relativeMouseY =           self.mouseY - element.y - parentYOffset
+    element.mouseIsInside =            element.isVisible and element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
+                                       and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
+    element.mouseWasPreviouslyInside = element.isVisible and element.previousRelativeMouseX >= 0 and element.previousRelativeMouseX <= element.w
+                                       and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
+    element.mouseJustEntered =         element.mouseIsInside and not element.mouseWasPreviouslyInside
+    element.mouseJustLeft =            not element.mouseIsInside and element.mouseWasPreviouslyInside
 
     -- Mouse Wheel.
     element.wheelMoved =               element.mouseIsInside and (self.wheel > 0 or self.wheel < 0)
     element.hWheelMoved =              element.mouseIsInside and (self.hWheel > 0 or self.hWheel < 0)
-
-    -- Mouse Movement.
-    element.previousRelativeMouseX =   self.previousMouseX - element.x
-    element.previousRelativeMouseY =   self.previousMouseY - element.y
-    element.relativeMouseX =           self.mouseX - element.x
-    element.relativeMouseY =           self.mouseY - element.y
-    element.mouseIsInside =            element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
-                                       and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
-    element.mouseWasPreviouslyInside = element.previousRelativeMouseX >= 0 and element.previousRelativeMouseX <= element.w
-                                       and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
-    element.mouseJustEntered =         element.mouseIsInside and not element.mouseWasPreviouslyInside
-    element.mouseJustLeft =            not element.mouseIsInside and element.mouseWasPreviouslyInside
 
     -- Mouse Down.
     element.mouseLeftDown =            element.mouseIsInside and self.mouseLeftDown
@@ -427,10 +443,16 @@ function GFX:renderElement(element)
         end)
     end
 
-    gfx.dest = element.parent.drawBuffer
+    if element.isVisible then
+        if element.parent then
+            gfx.dest = element.parent.drawBuffer
+        else
+            gfx.dest = -1
+        end
 
-    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
+        --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
+        gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
+    end
 end
 
 function GFX:init(title, x, y, w, h, dock)
@@ -469,27 +491,27 @@ function GFX:updateStates()
     gfx.mouse_hwheel =      0
     self.mouseCap =         gfx.mouse_cap
     self.char =             characterTableInverted[gfx.getchar()]
-    self.mouseLeftState =        self.mouseCap & 1 == 1
-    self.mouseLeftDown =         self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
-    self.mouseLeftUp =           self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
-    self.mouseMiddleState =      self.mouseCap & 64 == 64
-    self.mouseMiddleDown =       self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
-    self.mouseMiddleUp =         self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
-    self.mouseRightState =       self.mouseCap & 2 == 2
-    self.mouseRightDown =        self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
-    self.mouseRightUp =          self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
-    self.shiftKeyState =       self.mouseCap & 8 == 8
-    self.shiftKeyDown =        self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
-    self.shiftKeyUp =          self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
-    self.controlKeyState =     self.mouseCap & 4 == 4
-    self.controlKeyDown =      self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
-    self.controlKeyUp =        self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
-    self.altKeyState =         self.mouseCap & 16 == 16
-    self.altKeyDown =          self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
-    self.altKeyUp =            self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
-    self.windowsKeyState =     self.mouseCap & 32 == 32
-    self.windowsKeyDown =      self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
-    self.windowsKeyUp =        self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
+    self.mouseLeftState =   self.mouseCap & 1 == 1
+    self.mouseLeftDown =    self.mouseCap & 1 == 1 and self.previousMouseCap & 1 == 0
+    self.mouseLeftUp =      self.mouseCap & 1 == 0 and self.previousMouseCap & 1 == 1
+    self.mouseMiddleState = self.mouseCap & 64 == 64
+    self.mouseMiddleDown =  self.mouseCap & 64 == 64 and self.previousMouseCap & 64 == 0
+    self.mouseMiddleUp =    self.mouseCap & 64 == 0 and self.previousMouseCap & 64 == 64
+    self.mouseRightState =  self.mouseCap & 2 == 2
+    self.mouseRightDown =   self.mouseCap & 2 == 2 and self.previousMouseCap & 2 == 0
+    self.mouseRightUp =     self.mouseCap & 2 == 0 and self.previousMouseCap & 2 == 2
+    self.shiftKeyState =    self.mouseCap & 8 == 8
+    self.shiftKeyDown =     self.mouseCap & 8 == 8 and self.previousMouseCap & 8 == 0
+    self.shiftKeyUp =       self.mouseCap & 8 == 0 and self.previousMouseCap & 8 == 8
+    self.controlKeyState =  self.mouseCap & 4 == 4
+    self.controlKeyDown =   self.mouseCap & 4 == 4 and self.previousMouseCap & 4 == 0
+    self.controlKeyUp =     self.mouseCap & 4 == 0 and self.previousMouseCap & 4 == 4
+    self.altKeyState =      self.mouseCap & 16 == 16
+    self.altKeyDown =       self.mouseCap & 16 == 16 and self.previousMouseCap & 16 == 0
+    self.altKeyUp =         self.mouseCap & 16 == 0 and self.previousMouseCap & 16 == 16
+    self.windowsKeyState =  self.mouseCap & 32 == 32
+    self.windowsKeyDown =   self.mouseCap & 32 == 32 and self.previousMouseCap & 32 == 0
+    self.windowsKeyUp =     self.mouseCap & 32 == 0 and self.previousMouseCap & 32 == 32
     self.mouseMoved =       self.mouseX ~= self.previousMouseX or self.mouseY ~= self.previousMouseY
 end
 function GFX.run()

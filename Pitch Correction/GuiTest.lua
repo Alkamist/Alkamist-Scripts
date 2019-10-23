@@ -10,7 +10,7 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     x = 200,
     y = 200,
     w = 600,
-    h = 400
+    h = 300
 }
 
 local testButton1 = Button:new{
@@ -19,11 +19,29 @@ local testButton1 = Button:new{
     w = 120,
     h = 25
 }
+function testButton1:onMouseLeftDown()
+    Button.onMouseLeftDown(self)
+    if pitchEditor.isVisible then
+        pitchEditor:hide()
+    else
+        pitchEditor:show()
+    end
+end
 function testButton1:onMouseLeftDrag()
     self.x = self.x + self.GFX.mouseXChange
     self.y = self.y + self.GFX.mouseYChange
 end
 
+
+local testButton2 = Button:new{
+    x = 20,
+    y = 20,
+    w = 120,
+    h = 25
+}
+table.insert(pitchEditor.elements, testButton2)
+
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
+--GFX:setElements{ pitchEditor }
 GFX:setElements{ pitchEditor, testButton1 }
 GFX:run()
