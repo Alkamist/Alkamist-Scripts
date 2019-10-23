@@ -240,7 +240,10 @@ function GFX:initElement(element, parent)
            and y >= self.y and y <= self.y + self.h
     end
     function element:setColor(color)
-        gfx.set(color[1], color[2], color[3], color[4])
+        gfx.set(color[1], color[2], color[3], color[4], gfx.mode)
+    end
+    function element:setBlendMode(mode)
+        gfx.mode = mode
     end
     function element:drawRectangle(x, y, w, h, filled)
         gfx.rect(x, y, w, h, filled)
@@ -499,13 +502,15 @@ function GFX.run()
     if self.char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
     GFX:applyFunctionToElements(self.elements, function(element)
+        gfx.a = 1.0
+        gfx.mode = 0
         GFX:processElement(element)
     end)
 
-    gfx.dest = -1
-    gfx.a = 1.0
-
     GFX:applyFunctionToElements(self.elements, function(element)
+        gfx.dest = -1
+        gfx.a = 1.0
+        gfx.mode = 0
         GFX:renderElement(element)
     end)
 

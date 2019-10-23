@@ -64,6 +64,7 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
 end
 
 function BoxSelect:onDraw()
+    self:setBlendMode(0)
     self:setColor(self.edgeColor)
     self:drawRectangle(0, 0, self.w, self.h, false)
 

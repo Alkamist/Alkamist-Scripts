@@ -20,6 +20,10 @@ local testButton1 = Button:new{
     w = 120,
     h = 25
 }
+function testButton1:onMouseLeftDrag()
+    self.x = self.x + self.GFX.mouseXChange
+    self.y = self.y + self.GFX.mouseYChange
+end
 
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 GFX:setElements{ pitchEditor, testButton1 }
