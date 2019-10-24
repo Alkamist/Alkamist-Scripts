@@ -104,6 +104,11 @@ function PitchEditor:new(init)
     self.rightEdge =            0.0
     self.timeWidth =            0.0
 
+    self.altKeyWasDownOnPointEdit =      false
+    self.mouseOverPitchCorrectionIndex = nil
+    self.newPitchCorrectionPoint =       nil
+    self.pitchCorrectionEditPoint =      nil
+
     return self
 end
 
@@ -391,17 +396,16 @@ function PitchEditor:onMouseLeftDown()
     self.mouseTimeOnLeftDown = self.mouseTime
     self.mousePitchOnLeftDown = self.mousePitch
 
+    self.altKeyWasDownOnPointEdit = false
+
     if self.mouseOverPitchCorrectionIndex then
         local point =     self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex]
         local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex + 1]
         self.pitchCorrectionEditPoint = point
 
-        if not self.GFX.shiftKeyState then
-            self:unselectAllPitchCorrectionPoints()
-        end
-
         point.isSelected = true
         if self.GFX.altKeyState then
+            self.altKeyWasDownOnPointEdit = true
             self.pitchCorrections:applyFunctionToAllPoints(function(point)
                 if point.isSelected then
                     point.isActive = not point.isActive
@@ -435,7 +439,7 @@ function PitchEditor:onMouseLeftDrag()
             isSelected = true
         }
         self.newPitchCorrectionPoint = self.pitchCorrections.points[newPointIndex]
-    else
+    elseif not self.altKeyWasDownOnPointEdit then
         self.pitchCorrections:applyFunctionToAllPoints(function(point)
             if point.isSelected then
                 point.x =     point.x + self.GFX.mouseXChange
