@@ -204,8 +204,8 @@ function PitchEditor:updatePitchCorrectionMouseOver()
         segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange and self.pitchCorrections.points[segmentIndex].isActive
     end
 
-    if pointIsClose or segmentIsClose then
-        if segmentIsClose then
+    if pointIsClose or segmentIsClose or self.pitchCorrectionEditPoint then
+        if segmentIsClose or self.pitchCorrectionEditPoint then
             self.mouseOverPitchCorrectionIndex = segmentIndex
             self.mouseIsOverPoint = false
         end
