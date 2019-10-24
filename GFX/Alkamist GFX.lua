@@ -210,32 +210,35 @@ function GFX:setElements(elements)
     end)
 end
 function GFX:initElement(element, parent)
-    element.GFX =                      GFX
-    element.parent =                   parent
-    element.elements =                 element.elements or {}
-    element.x =                        element.x or 0
-    element.y =                        element.y or 0
-    element.w =                        element.w or 0
-    element.h =                        element.h or 0
-    element.drawBuffer =               getDrawBuffer()
-    element.previousMouseX =   0
-    element.previousMouseY =   0
-    element.mouseX =           0
-    element.mouseY =           0
-    element.mouseIsInside =            false
-    element.mouseWasPreviouslyInside = false
-    element.mouseJustEntered =         false
-    element.mouseJustLeft =            false
-    element.mouseLeftState =           false
-    element.mouseMiddleState =         false
-    element.mouseRightState =          false
-    element.leftIsDragging =           false
-    element.middleIsDragging =         false
-    element.rightIsDragging =          false
-    element.shouldRedraw =             true
-    element.shouldClearBuffer =        false
-    element.isVisible =                true
-    element.currentColor =             self.backgroundColor
+    element.GFX =                       GFX
+    element.parent =                    parent
+    element.elements =                  element.elements or {}
+    element.x =                         element.x or 0
+    element.y =                         element.y or 0
+    element.w =                         element.w or 0
+    element.h =                         element.h or 0
+    element.drawBuffer =                getDrawBuffer()
+    element.previousMouseX =            0
+    element.previousMouseY =            0
+    element.mouseX =                    0
+    element.mouseY =                    0
+    element.mouseIsInside =             false
+    element.mouseWasPreviouslyInside =  false
+    element.mouseJustEntered =          false
+    element.mouseJustLeft =             false
+    element.mouseLeftState =            false
+    element.mouseMiddleState =          false
+    element.mouseRightState =           false
+    element.leftIsDragging =            false
+    element.middleIsDragging =          false
+    element.rightIsDragging =           false
+    element.justStartedLeftDragging =   false
+    element.justStartedMiddleDragging = false
+    element.justStartedRightDragging =  false
+    element.shouldRedraw =              true
+    element.shouldClearBuffer =         false
+    element.isVisible =                 true
+    element.currentColor =              self.backgroundColor
 
     function element:setColor(color)
         self.currentColor = color
@@ -392,6 +395,9 @@ function GFX:processElement(element)
     element.mouseLeftIsDragging =      self.mouseMoved and element.mouseLeftState
     element.mouseMiddleIsDragging =    self.mouseMoved and element.mouseMiddleState
     element.mouseRightIsDragging =     self.mouseMoved and element.mouseRightState
+    element.justStartedLeftDragging =  element.mouseLeftIsDragging and not element.mouseLeftWasDragged
+    element.justStartedMiddleDragging =element.mouseMiddleIsDragging and not element.mouseMiddleWasDragged
+    element.justStartedRightDragging = element.mouseRightIsDragging and not element.mouseRightWasDragged
     if element.mouseLeftIsDragging     then element.mouseLeftWasDragged = true end
     if element.mouseMiddleIsDragging   then element.mouseMiddleWasDragged = true end
     if element.mouseRightIsDragging    then element.mouseRightWasDragged = true end

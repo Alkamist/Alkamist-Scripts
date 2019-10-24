@@ -61,7 +61,6 @@ function PolyLine:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.parent = init.parent
     self.points = {}
 
     if init.isHorizontal ~= nil then self.isHorizontal = init.isHorizontal else self.isHorizontal = true end
@@ -109,26 +108,6 @@ function PolyLine:applyFunctionToSpecificPoints(specificIndexes, fn)
         local point = self.points[pointIndex]
         fn(point, i)
     end
-end
-function PolyLine:moveAllPoints(xChange, yChange)
-    self:applyFunctionToAllPoints(function(point)
-        point.x = point.x + xChange
-        point.y = point.y + yChange
-    end)
-    self:sortPoints()
-end
-function PolyLine:moveAllPointsWithMouse()
-    self:moveAllPoints(self.parent.GFX.mouseXChange, self.parent.GFX.mouseYChange)
-end
-function PolyLine:moveSpecificPoints(indexesToMove, xChange, yChange)
-    self:applyFunctionToSpecificPoints(indexesToMove, function(point)
-        point.x = point.x + xChange
-        point.y = point.y + yChange
-    end)
-    self:sortPoints()
-end
-function PolyLine:moveSpecificPointsWithMouse(indexesToMove)
-    self:moveSpecificPoints(indexesToMove, self.parent.GFX.mouseXChange, self.parent.GFX.mouseYChange)
 end
 function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
     local numberOfPoints = #self.points
