@@ -22,6 +22,22 @@ local function getWhiteKeyNumbers()
     end
     return whiteKeys
 end
+local function arrayRemove(t, fn)
+    local n = #t
+    local j = 1
+    for i = 1, n do
+        if not fn(i, j) then
+            if i ~= j then
+                t[j] = t[i]
+                t[i] = nil
+            end
+            j = j + 1
+        else
+            t[i] = nil
+        end
+    end
+    return t
+end
 
 --==============================================================
 --== Initialization ============================================
@@ -70,7 +86,6 @@ function PitchEditor:new(init)
     self.track = {}
     self.items = {}
 
-    self.selectedPitchCorrectionIndexes = {}
     self.pitchCorrections = PolyLine:new{
         parent = self
     }
@@ -159,13 +174,14 @@ end
 --== Pitch Correction Nodes ====================================
 --==============================================================
 
-function PitchEditor:insertPitchCorrectionPoint(time, pitch)
+function PitchEditor:insertPitchCorrectionPoint(point)
     self.pitchCorrections:insertPoint{
-        x = self:timeToPixels(time),
-        y = self:pitchToPixels(pitch),
-        time = time,
-        pitch = pitch,
-        isActive = math.random() > 0.5
+        x =          self:timeToPixels(point.time),
+        y =          self:pitchToPixels(point.pitch),
+        time =       point.time,
+        pitch =      point.pitch,
+        isSelected = point.isSelected,
+        isActive =   point.isActive
     }
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
@@ -174,20 +190,19 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
         point.y = self:pitchToPixels(point.pitch)
     end)
 end
-function PitchEditor:updateSelectedPitchCorrectionIndexes()
-    self.selectedPitchCorrectionIndexes = {}
-    self.pitchCorrections:applyFunctionToAllPoints(function(point, pointIndex)
-        if point.isSelected then
-            self.selectedPitchCorrectionIndexes[#self.selectedPitchCorrectionIndexes + 1] = pointIndex
-        end
-    end)
-end
 function PitchEditor:updatePitchCorrectionMouseOver()
     local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
     local pointIndex,   pointDistance =   self.pitchCorrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
 
-    local pointIsClose =   pointDistance <= self.pitchCorrectionEditPixelRange
-    local segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
+    local pointIsClose = false
+    local segmentIsClose = false
+
+    if pointDistance then
+        pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
+    end
+    if segmentDistance then
+        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
+    end
 
     if pointIsClose or segmentIsClose then
         if segmentIsClose then
@@ -337,7 +352,11 @@ function PitchEditor:onInit()
     local time = self.timeWidth / 2000
     local timeIncrement = time
     for i = 1, 2000 do
-        self:insertPitchCorrectionPoint(time, 20.0 * math.random() + 50)
+        self:insertPitchCorrectionPoint{
+            time = time,
+            pitch = 20.0 * math.random() + 50,
+            isActive = math.random() > 0.5
+        }
         time = time + timeIncrement
     end
 end
@@ -362,16 +381,15 @@ function PitchEditor:onWindowResize()
 end
 function PitchEditor:onKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
-    if keyPressFunction then keyPressFunction() end
+    if keyPressFunction then keyPressFunction(self) end
 end
 function PitchEditor:onMouseLeftDown()
-    self:insertPitchCorrectionPoint(self.mouseTime, self.mousePitch)
-    --self:insertNode{
-    --    time = self.mouseTime,
-    --    pitch = self.mousePitch,
-    --    isActive = true,
-    --    isSelected = true
-    --}
+    self:insertPitchCorrectionPoint{
+        time = self.mouseTime,
+        pitch = self.mousePitch,
+        isActive = true,
+        isSelected = true
+    }
 end
 function PitchEditor:onMouseLeftDrag()
     --self.pitchCorrections:moveAllPointsWithMouse()
@@ -437,18 +455,11 @@ function PitchEditor:onDraw()
 end
 
 PitchEditor.onKeyPressFunctions = {
-    ["Left"] = function()
-        msg("left")
+    ["Delete"] = function(self)
+        arrayRemove(self.pitchCorrections.points, function(index)
+            return self.pitchCorrections.points[index].isSelected
+        end)
     end,
-    ["Right"] = function()
-        msg("right")
-    end,
-    ["Up"] = function()
-        msg("up")
-    end,
-    ["Down"] = function()
-        msg("down")
-    end
 }
 
 return PitchEditor
