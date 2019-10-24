@@ -40,26 +40,22 @@ function PitchEditor:new(init)
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-    self.pitchHeight =        init.pitchHeight        or 128
+    self.pitchHeight =                  init.pitchHeight        or 128
 
-    self.backgroundColor =    init.backgroundColor    or { 0.2,  0.2,  0.2,  1.0,  0 }
-    self.blackKeyColor =      init.blackKeyColor      or { 0.25, 0.25, 0.25, 1.0,  0 }
-    self.whiteKeyColor =      init.whiteKeyColor      or { 0.34, 0.34, 0.34, 1.0,  0 }
-    self.keyCenterLineColor = init.keyCenterLineColor or { 1.0,  1.0,  1.0,  0.12, 1 }
-    self.itemInsideColor =    init.itemInsideColor    or { 1.0,  1.0,  1.0,  0.02, 1 }
-    self.itemEdgeColor =      init.itemEdgeColor      or { 1.0,  1.0,  1.0,  0.15, 1 }
-    self.editCursorColor =    init.editCursorColor    or { 1.0,  1.0,  1.0,  0.34, 1 }
-    self.playCursorColor =    init.playCursorColor    or { 1.0,  1.0,  1.0,  0.2,  1 }
-    self.nodeActiveColor =    init.nodeActiveColor    or { 0.3,  0.6,  1.0,  1.0,  0 }
-    self.nodeInactiveColor =  init.nodeInactiveColor  or { 1.0,  0.6,  0.3,  1.0,  0 }
+    self.backgroundColor =               init.backgroundColor               or { 0.2,  0.2,  0.2,  1.0,  0 }
+    self.blackKeyColor =                 init.blackKeyColor                 or { 0.25, 0.25, 0.25, 1.0,  0 }
+    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.34, 0.34, 0.34, 1.0,  0 }
+    self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.12, 1 }
+    self.itemInsideColor =               init.itemInsideColor               or { 1.0,  1.0,  1.0,  0.02, 1 }
+    self.itemEdgeColor =                 init.itemEdgeColor                 or { 1.0,  1.0,  1.0,  0.15, 1 }
+    self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
+    self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
+    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.3,  0.6,  1.0,  1.0,  0 }
+    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 1.0,  0.6,  0.3,  1.0,  0 }
 
-    self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
+    self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
 
-    if init.scaleWithWindow ~= nil then
-        self.scaleWithWindow = init.scaleWithWindow
-    else
-        self.scaleWithWindow = true
-    end
+    if init.scaleWithWindow ~= nil then self.scaleWithWindow = init.scaleWithWindow else self.scaleWithWindow = true end
 
     self.view = {
         x = ViewAxis:new{
@@ -74,7 +70,8 @@ function PitchEditor:new(init)
     self.items = {}
 
     self.pitchCorrections = PolyLine:new{
-        parent = self
+        parent = self,
+        color = self.pitchCorrectionActiveColor
     }
     self.boxSelect = BoxSelect:new{
         parent = self,
@@ -253,6 +250,15 @@ function PitchEditor:drawEditCursor()
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
+function PitchEditor:drawPitchCorrections()
+    self.pitchCorrections:draw()
+    if self.mouseOverPitchCorrectionLineIndex then
+        local point =     self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex]
+        local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex + 1]
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+end
 
 --==============================================================
 --== Events ====================================================
@@ -273,6 +279,14 @@ end
 function PitchEditor:onUpdate()
     if self.isVisible then
         self:calculateMouseInformation()
+        local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
+
+        if segmentDistance <= self.pitchCorrectionEditPixelRange then
+            self.mouseOverPitchCorrectionLineIndex = segmentIndex
+        else
+            self.mouseOverPitchCorrectionLineIndex = nil
+        end
+
         self:queueRedraw()
     end
 
@@ -293,6 +307,7 @@ function PitchEditor:onKeyPress()
     if keyPressFunction then keyPressFunction() end
 end
 function PitchEditor:onMouseLeftDown()
+    self:insertPitchCorrectionPoint(self.mouseTime, self.mousePitch)
     --self:insertNode{
     --    time = self.mouseTime,
     --    pitch = self.mousePitch,
@@ -301,11 +316,11 @@ function PitchEditor:onMouseLeftDown()
     --}
 end
 function PitchEditor:onMouseLeftDrag()
-    self.pitchCorrections:moveAllPointsWithMouse()
-    self.pitchCorrections:applyFunctionToAllPoints(function(point)
-        point.time =  self:pixelsToTime(point.x)
-        point.pitch = self:pixelsToPitch(point.y)
-    end)
+    --self.pitchCorrections:moveAllPointsWithMouse()
+    --self.pitchCorrections:applyFunctionToAllPoints(function(point)
+    --    point.time =  self:pixelsToTime(point.x)
+    --    point.pitch = self:pixelsToPitch(point.y)
+    --end)
 end
 function PitchEditor:onMouseLeftUp()
     if not self.mouseLeftWasDragged then
@@ -359,7 +374,7 @@ function PitchEditor:onDraw()
     self:drawKeyBackgrounds()
     self:drawItemEdges()
     self:drawEditCursor()
-    self.pitchCorrections:draw()
+    self:drawPitchCorrections()
     --self.boxSelect:draw()
 end
 

@@ -127,7 +127,7 @@ end
 function PolyLine:moveSpecificPointsWithMouse(indexesToMove)
     self:moveSpecificPoints(indexesToMove, self.parent.GFX.mouseXChange, self.parent.GFX.mouseYChange)
 end
-function PolyLine:getIndexOfSegmentClosestToPoint(x, y)
+function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
     local numberOfPoints = #self.points
     if numberOfPoints < 1 then return nil end
 
@@ -139,8 +139,8 @@ function PolyLine:getIndexOfSegmentClosestToPoint(x, y)
         local nextPoint = self.points[i + 1]
 
         local lineDistance
-        if nextNode then
-            lineDistance = minimumDistanceBetweenPointAndLineSegment(x, y, node.x, node.y, nextNode.x, nextNode.y)
+        if nextPoint then
+            lineDistance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
         end
         lowestDistance = lowestDistance or lineDistance
 
@@ -150,7 +150,7 @@ function PolyLine:getIndexOfSegmentClosestToPoint(x, y)
         end
     end
 
-    return lowestDistanceIndex
+    return lowestDistanceIndex, lowestDistance
 end
 function PolyLine:draw()
     local numberOfPoints = #self.points
