@@ -5,6 +5,46 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local ViewAxis =  require("GFX.ViewAxis")
 local BoxSelect = require("GFX.BoxSelect")
 
+--==============================================================
+--== Local Functions ===========================================
+--==============================================================
+
+local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt(dx * dx + dy * dy)
+end
+local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
+    local A = pointX - lineX1
+    local B = pointY - lineY1
+    local C = lineX2 - lineX1
+    local D = lineY2 - lineY1
+    local dotProduct = A * C + B * D
+    local lengthSquared = C * C + D * D
+    local param = -1
+    local xx
+    local yy
+
+    if lengthSquared ~= 0 then
+        param = dotProduct / lengthSquared
+    end
+
+    if param < 0 then
+        xx = lineX1
+        yy = lineY1
+    elseif param > 1 then
+        xx = lineX2
+        yy = lineY2
+    else
+        xx = lineX1 + param * C
+        yy = lineY1 + param * D
+    end
+
+    local dx = pointX - xx
+    local dy = pointY - yy
+
+    return math.sqrt(dx * dx + dy * dy)
+end
 local function nodeIsSelected(node)                return node.isSelected end
 local function setNodeSelected(node, shouldSelect) node.isSelected = shouldSelect end
 local function getWhiteKeyNumbers()
@@ -17,6 +57,10 @@ local function getWhiteKeyNumbers()
     end
     return whiteKeys
 end
+
+--==============================================================
+--== Initialization ============================================
+--==============================================================
 
 local PitchEditor = {}
 
@@ -33,16 +77,16 @@ function PitchEditor:new(init)
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
     self.pitchHeight =        init.pitchHeight        or 128
 
-    self.backgroundColor =    init.backgroundColor    or {0.2,  0.2,  0.2,  1.0,  0 }
-    self.blackKeyColor =      init.blackKeyColor      or {0.25, 0.25, 0.25, 1.0,  0 }
-    self.whiteKeyColor =      init.whiteKeyColor      or {0.34, 0.34, 0.34, 1.0,  0 }
-    self.keyCenterLineColor = init.keyCenterLineColor or {1.0,  1.0,  1.0,  0.12, 1 }
-    self.itemInsideColor =    init.itemInsideColor    or {1.0,  1.0,  1.0,  0.02, 1 }
-    self.itemEdgeColor =      init.itemEdgeColor      or {1.0,  1.0,  1.0,  0.15, 1 }
-    self.editCursorColor =    init.editCursorColor    or {1.0,  1.0,  1.0,  0.34, 1 }
-    self.playCursorColor =    init.playCursorColor    or {1.0,  1.0,  1.0,  0.2,  1 }
-    self.nodeActiveColor =    init.nodeActiveColor    or {0.3,  0.6,  1.0,  1.0,  0 }
-    self.nodeInactiveColor =  init.nodeInactiveColor  or {1.0,  0.6,  0.3,  1.0,  0 }
+    self.backgroundColor =    init.backgroundColor    or { 0.2,  0.2,  0.2,  1.0,  0 }
+    self.blackKeyColor =      init.blackKeyColor      or { 0.25, 0.25, 0.25, 1.0,  0 }
+    self.whiteKeyColor =      init.whiteKeyColor      or { 0.34, 0.34, 0.34, 1.0,  0 }
+    self.keyCenterLineColor = init.keyCenterLineColor or { 1.0,  1.0,  1.0,  0.12, 1 }
+    self.itemInsideColor =    init.itemInsideColor    or { 1.0,  1.0,  1.0,  0.02, 1 }
+    self.itemEdgeColor =      init.itemEdgeColor      or { 1.0,  1.0,  1.0,  0.15, 1 }
+    self.editCursorColor =    init.editCursorColor    or { 1.0,  1.0,  1.0,  0.34, 1 }
+    self.playCursorColor =    init.playCursorColor    or { 1.0,  1.0,  1.0,  0.2,  1 }
+    self.nodeActiveColor =    init.nodeActiveColor    or { 0.3,  0.6,  1.0,  1.0,  0 }
+    self.nodeInactiveColor =  init.nodeInactiveColor  or { 1.0,  0.6,  0.3,  1.0,  0 }
 
     self.nodeCirclePixelRadius = init.nodeCirclePixelRadius or 3
 
@@ -65,6 +109,7 @@ function PitchEditor:new(init)
         }
     }
     self.boxSelect = BoxSelect:new{
+        parent = self,
         thingsToSelect = self.nodes
     }
 
@@ -77,11 +122,15 @@ function PitchEditor:new(init)
     self.leftEdge =   0.0
     self.rightEdge =  0.0
     self.timeWidth =  0.0
-
-    self.elements = { self.boxSelect }
+    self.mouseOverNodeIndex = false
+    self.mouseIsOverLine =    false
 
     return self
 end
+
+--==============================================================
+--== Helpful Functions =========================================
+--==============================================================
 
 function PitchEditor:updateSelectedItems()
     local numberOfSelectedItems = reaper.CountSelectedMediaItems(0)
@@ -117,7 +166,6 @@ function PitchEditor:updateSelectedItems()
         self.timeWidth = 0
     end
 end
-
 function PitchEditor:pixelsToTime(relativePixels)
     if self.w <= 0 then return 0.0 end
     return self.timeWidth * (self.view.x.scroll + relativePixels / (self.w * self.view.x.zoom))
@@ -134,6 +182,18 @@ function PitchEditor:pitchToPixels(pitch)
     if self.pitchHeight <= 0 then return 0 end
     return self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
 end
+function PitchEditor:calculateMouseInformation()
+    self.previousMouseTime = self.mouseTime
+    self.previousMousePitch = self.mousePitch
+    self.mouseTime =  self:pixelsToTime(self.mouseX)
+    self.mousePitch = self:pixelsToPitch(self.mouseY)
+    self.mouseTimeChange = self.mouseTime - self.previousMouseTime
+    self.mousePitchChange = self.mousePitch - self.previousMousePitch
+end
+
+--==============================================================
+--== Pitch Correction Nodes ====================================
+--==============================================================
 
 function PitchEditor:insertThingIntoGroup(group, newThing, stoppingConditionFn)
     local numberInGroup = #group
@@ -224,8 +284,43 @@ function PitchEditor:moveSelectedNodesByCoordinateChange(xChange, yChange)
 
     self:sortNodes()
 end
+function PitchEditor:getIndexOfNodeClosestToMouse()
+    local numberOfNodes = #self.nodes
+    if numberOfNodes < 1 then return nil end
 
----------------------- Drawing Code ----------------------
+    local node
+    local nextNode
+    local lowestDistance
+    local isLine = false
+
+    for i = 1, numberOfNodes do
+        node = self.nodes[i]
+        if i < numberOfNodes then nextNode = self.nodes[i + 1] end
+
+        local nodeDistance = distanceBetweenTwoPoints(node.x, node.y, self.mouseX, self.mouseY)
+        lowestDistance = lowestDistance or nodeDistance
+        local lineDistance = nodeDistance
+        if nextNode then
+            lineDistance = minimumDistanceBetweenPointAndLineSegment(node.x, node.y, node.x, node.y, nextNode.x, nextNode.y)
+        end
+
+        if nodeDistance < lowestDistance then
+            lowestDistance = nodeDistance
+            lowestDistanceIndex = i
+            isLine = false
+        end
+        if lineDistance < lowestDistance then
+            lowestDistance = lineDistance
+            lowestDistanceIndex = i
+            isLine = true
+        end
+    end
+    return lowestDistanceIndex, isLine
+end
+
+--==============================================================
+--== Drawing Code ==============================================
+--==============================================================
 
 function PitchEditor:drawMainBackground()
     self:setColor(self.backgroundColor)
@@ -304,7 +399,20 @@ function PitchEditor:drawPitchCorrectionNodes()
             self:setColor(self.nodeInactiveColor)
         end
 
+        local normalColor = self.currentColor
+        local brightenedColor = {self.currentColor[1] + 0.2, self.currentColor[2] + 0.2, self.currentColor[3] + 0.2, self.currentColor[4]}
+
+        if i == self.mouseOverNodeIndex and not self.mouseIsOverLine then
+            self:setColor(brightenedColor)
+        end
+
         self:drawCircle(node.x, node.y, self.nodeCirclePixelRadius, node.isSelected, true)
+
+        if i == self.mouseOverNodeIndex and self.mouseIsOverLine then
+            self:setColor(brightenedColor)
+        else
+            self:setColor(normalColor)
+        end
 
         if node.isActive and nextNode then
             self:drawLine(node.x, node.y, nextNode.x, nextNode.y, true)
@@ -312,22 +420,41 @@ function PitchEditor:drawPitchCorrectionNodes()
     end
 end
 
----------------------- Events ----------------------
+--==============================================================
+--== Events ====================================================
+--==============================================================
 
 function PitchEditor:onInit()
     self:updateSelectedItems()
     self:onWindowResize()
+    self:calculateMouseInformation()
+
+    local time = self.timeWidth / 2000
+    local timeIncrement = time
+    for i = 1, 2000 do
+        self:insertNode{
+            time = time,
+            pitch = 20.0 * math.random() + 50,
+            isActive = true,
+            isSelected = false
+        }
+        time = time + timeIncrement
+    end
+
+    self:sortNodes()
+    self:recalculateNodeCoordinates()
 end
 function PitchEditor:onUpdate()
-    self.previousMouseTime = self.mouseTime
-    self.previousMousePitch = self.mousePitch
-    self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
-    self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
-    self.mouseTimeChange = self.mouseTime - self.previousMouseTime
-    self.mousePitchChange = self.mousePitch - self.previousMousePitch
+    if self.isVisible then
+        self:calculateMouseInformation()
+
+        --self.mouseOverNodeIndex, self.mouseIsOverLine = self:getIndexOfNodeClosestToMouse()
+        --msg(self.mouseOverNodeIndex)
+        --msg(self.mouseIsOverLine)
+        self:queueRedraw()
+    end
 
     self:updateSelectedItems()
-    self:queueRedraw()
 end
 function PitchEditor:onWindowResize()
     if self.scaleWithWindow then
@@ -361,8 +488,8 @@ function PitchEditor:onMouseLeftUp()
     end
 end
 function PitchEditor:onMouseMiddleDown()
-    self.view.x.target = self.relativeMouseX
-    self.view.y.target = self.relativeMouseY
+    self.view.x.target = self.mouseX
+    self.view.y.target = self.mouseY
 end
 function PitchEditor:onMouseMiddleDrag()
     if self.GFX.shiftKeyState then
@@ -378,10 +505,10 @@ end
 --function PitchEditor:onMouseMiddleUp()
 --end
 function PitchEditor:onMouseRightDown()
-    self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+    self.boxSelect:startSelection(self.mouseX, self.mouseY)
 end
 function PitchEditor:onMouseRightDrag()
-    self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+    self.boxSelect:editSelection(self.mouseX, self.mouseY)
 end
 function PitchEditor:onMouseRightUp()
     self.boxSelect:makeSelection(self.nodes, setNodeSelected, nodeIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
@@ -391,8 +518,8 @@ function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
 
-    self.view.x.target = self.relativeMouseX
-    self.view.y.target = self.relativeMouseY
+    self.view.x.target = self.mouseX
+    self.view.y.target = self.mouseY
 
     if self.GFX.controlKeyState then
         self.view.y:changeZoom(self.GFX.wheel * ySensitivity)
@@ -408,6 +535,7 @@ function PitchEditor:onDraw()
     self:drawItemEdges()
     self:drawEditCursor()
     self:drawPitchCorrectionNodes()
+    self.boxSelect:draw()
 end
 
 PitchEditor.onKeyPressFunctions = {

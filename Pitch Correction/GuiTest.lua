@@ -12,6 +12,7 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     w = 600,
     h = 300
 }
+pitchEditor.elements = pitchEditor.elements or {}
 
 local testButton1 = Button:new{
     x = 40,

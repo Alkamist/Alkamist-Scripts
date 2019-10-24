@@ -212,15 +212,16 @@ end
 function GFX:initElement(element, parent)
     element.GFX =                      GFX
     element.parent =                   parent
+    element.elements =                 element.elements or {}
     element.x =                        element.x or 0
     element.y =                        element.y or 0
     element.w =                        element.w or 0
     element.h =                        element.h or 0
     element.drawBuffer =               getDrawBuffer()
-    element.previousRelativeMouseX =   0
-    element.previousRelativeMouseY =   0
-    element.relativeMouseX =           0
-    element.relativeMouseY =           0
+    element.previousMouseX =   0
+    element.previousMouseY =   0
+    element.mouseX =           0
+    element.mouseY =           0
     element.mouseIsInside =            false
     element.mouseWasPreviouslyInside = false
     element.mouseJustEntered =         false
@@ -234,12 +235,10 @@ function GFX:initElement(element, parent)
     element.shouldRedraw =             true
     element.shouldClearBuffer =        false
     element.isVisible =                true
+    element.currentColor =             self.backgroundColor
 
-    function element:pointRelativeToParentIsInside(x, y)
-        return x >= self.x and x <= self.x + self.w
-           and y >= self.y and y <= self.y + self.h
-    end
     function element:setColor(color)
+        self.currentColor = color
         local mode = color[5] or 0
         gfx.set(color[1], color[2], color[3], color[4], mode)
     end
@@ -366,14 +365,14 @@ function GFX:processElement(element)
     element.keyWasPressed =            element.isVisible and self.char
 
     -- Mouse Movement.
-    element.previousRelativeMouseX =   self.previousMouseX - element.x - parentXOffset
-    element.previousRelativeMouseY =   self.previousMouseY - element.y - parentYOffset
-    element.relativeMouseX =           self.mouseX - element.x - parentXOffset
-    element.relativeMouseY =           self.mouseY - element.y - parentYOffset
-    element.mouseIsInside =            element.isVisible and element.relativeMouseX >= 0 and element.relativeMouseX <= element.w
-                                       and element.relativeMouseY >= 0 and element.relativeMouseY <= element.h
-    element.mouseWasPreviouslyInside = element.isVisible and element.previousRelativeMouseX >= 0 and element.previousRelativeMouseX <= element.w
-                                       and element.previousRelativeMouseY >= 0 and element.previousRelativeMouseY <= element.h
+    element.previousMouseX =           self.previousMouseX - element.x - parentXOffset
+    element.previousMouseY =           self.previousMouseY - element.y - parentYOffset
+    element.mouseX =                   self.mouseX - element.x - parentXOffset
+    element.mouseY =                   self.mouseY - element.y - parentYOffset
+    element.mouseIsInside =            element.isVisible and element.mouseX >= 0 and element.mouseX <= element.w
+                                       and element.mouseY >= 0 and element.mouseY <= element.h
+    element.mouseWasPreviouslyInside = element.isVisible and element.previousMouseX >= 0 and element.previousMouseX <= element.w
+                                       and element.previousMouseY >= 0 and element.previousMouseY <= element.h
     element.mouseJustEntered =         element.mouseIsInside and not element.mouseWasPreviouslyInside
     element.mouseJustLeft =            not element.mouseIsInside and element.mouseWasPreviouslyInside
 
