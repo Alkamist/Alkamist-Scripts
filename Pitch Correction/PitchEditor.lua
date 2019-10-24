@@ -191,32 +191,42 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
     end)
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
-    local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
-    local pointIndex,   pointDistance =   self.pitchCorrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
+    if not self.newPitchCorrectionPoint then
+        local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
+        local pointIndex,   pointDistance =   self.pitchCorrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
 
-    local pointIsClose = false
-    local segmentIsClose = false
+        local pointIsClose = false
+        local segmentIsClose = false
 
-    if pointDistance then
-        pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
-    end
-    if segmentDistance then
-        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
-    end
-
-    if pointIsClose or segmentIsClose then
-        if segmentIsClose then
-            self.mouseOverPitchCorrectionIndex = segmentIndex
-            self.mouseIsOverPoint = false
+        if pointDistance then
+            pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
         end
-        if pointIsClose then
-            self.mouseOverPitchCorrectionIndex = pointIndex
-            self.mouseIsOverPoint = true
+        if segmentDistance then
+            segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
+        end
+
+        if pointIsClose or segmentIsClose then
+            if segmentIsClose then
+                self.mouseOverPitchCorrectionIndex = segmentIndex
+                self.mouseIsOverPoint = false
+            end
+            if pointIsClose then
+                self.mouseOverPitchCorrectionIndex = pointIndex
+                self.mouseIsOverPoint = true
+            end
+        else
+            self.mouseOverPitchCorrectionIndex = nil
+            self.mouseIsOverPoint = nil
         end
     else
         self.mouseOverPitchCorrectionIndex = nil
         self.mouseIsOverPoint = nil
     end
+end
+function PitchEditor:unselectAllPitchCorrectionPoints()
+    self.pitchCorrections:applyFunctionToAllPoints(function(point)
+        point.isSelected = false
+    end)
 end
 
 --==============================================================
@@ -349,21 +359,24 @@ function PitchEditor:onInit()
     self:onWindowResize()
     self:calculateMouseInformation()
 
-    local time = self.timeWidth / 2000
-    local timeIncrement = time
-    for i = 1, 2000 do
-        self:insertPitchCorrectionPoint{
-            time = time,
-            pitch = 20.0 * math.random() + 50,
-            isActive = math.random() > 0.5
-        }
-        time = time + timeIncrement
-    end
+    --local time = self.timeWidth / 2000
+    --local timeIncrement = time
+    --for i = 1, 2000 do
+    --    self:insertPitchCorrectionPoint{
+    --        time = time,
+    --        pitch = 20.0 * math.random() + 50,
+    --        isActive = math.random() > 0.5
+    --    }
+    --    time = time + timeIncrement
+    --end
 end
 function PitchEditor:onUpdate()
     if self.isVisible then
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
+        if self.newPitchCorrectionPoint then
+            self.newPitchCorrectionPoint.isActive = self.GFX.altKeyState
+        end
         self:queueRedraw()
     end
 
@@ -387,25 +400,38 @@ function PitchEditor:onMouseLeftDown()
     self.mouseTimeOnLeftDown = self.mouseTime
     self.mousePitchOnLeftDown = self.mousePitch
 
+    if self.mouseOverPitchCorrectionIndex then
+        if not self.GFX.shiftKeyState then
+            self:unselectAllPitchCorrectionPoints()
+        end
 
+        local point = self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex]
+        local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex + 1]
+
+        point.isSelected = true
+
+        if not self.mouseIsOverPoint then
+            if nextPoint then nextPoint.isSelected = true end
+        end
+    end
 end
 function PitchEditor:onMouseLeftDrag()
-    if self.justStartedLeftDragging then
+    if (not self.newPitchCorrectionPoint) and self.justStartedLeftDragging then
+        self:unselectAllPitchCorrectionPoints()
         self:insertPitchCorrectionPoint{
             time = self.mouseTimeOnLeftDown,
             pitch = self.mousePitchOnLeftDown,
             isActive = true,
             isSelected = false
         }
-        self.editPointIndex = self:insertPitchCorrectionPoint{
+        local newPointIndex = self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.mousePitch,
             isActive = true,
             isSelected = true
         }
-    end
-
-    if self.editPointIndex then
+        self.newPitchCorrectionPoint = self.pitchCorrections.points[newPointIndex]
+    else
         self.pitchCorrections:applyFunctionToAllPoints(function(point)
             if point.isSelected then
                 point.x =     point.x + self.GFX.mouseXChange
@@ -418,6 +444,8 @@ function PitchEditor:onMouseLeftDrag()
     end
 end
 function PitchEditor:onMouseLeftUp()
+    self.newPitchCorrectionPoint = nil
+
     if not self.mouseLeftWasDragged then
         reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
         reaper.UpdateArrange()
