@@ -201,7 +201,7 @@ function PitchEditor:updatePitchCorrectionMouseOver()
         pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
     end
     if segmentDistance then
-        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
+        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange and self.pitchCorrections.points[segmentIndex].isActive
     end
 
     if pointIsClose or segmentIsClose then
@@ -293,7 +293,6 @@ function PitchEditor:drawEditCursor()
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
-
 function PitchEditor:drawPitchCorrectionSegment(index)
     local point =     self.pitchCorrections.points[index]
     local nextPoint = self.pitchCorrections.points[index + 1]
