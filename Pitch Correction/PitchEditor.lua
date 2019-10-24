@@ -392,15 +392,22 @@ function PitchEditor:onMouseLeftDown()
     self.mousePitchOnLeftDown = self.mousePitch
 
     if self.mouseOverPitchCorrectionIndex then
-        if not self.GFX.shiftKeyState then
-            self:unselectAllPitchCorrectionPoints()
-        end
-
         local point =     self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex]
         local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex + 1]
         self.pitchCorrectionEditPoint = point
 
+        if not self.GFX.shiftKeyState then
+            self:unselectAllPitchCorrectionPoints()
+        end
+
         point.isSelected = true
+        if self.GFX.altKeyState then
+            self.pitchCorrections:applyFunctionToAllPoints(function(point)
+                if point.isSelected then
+                    point.isActive = not point.isActive
+                end
+            end)
+        end
 
         if not self.mouseIsOverPoint then
             if nextPoint then nextPoint.isSelected = true end
