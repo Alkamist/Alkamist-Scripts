@@ -374,6 +374,7 @@ function PitchEditor:onUpdate()
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
         self:queueRedraw()
+        self:recalculatePitchCorrectionCoordinates()
     end
 
     self:updateSelectedItems()
