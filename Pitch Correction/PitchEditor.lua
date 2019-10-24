@@ -10,8 +10,8 @@ local PolyLine =       require("GFX.PolyLine")
 --== Local Functions ===========================================
 --==============================================================
 
-local function nodeIsSelected(node)                return node.isSelected end
-local function setNodeSelected(node, shouldSelect) node.isSelected = shouldSelect end
+local function pointIsSelected(point)                return point.isSelected end
+local function setPointSelected(point, shouldSelect) point.isSelected = shouldSelect end
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
     local whiteKeys = {}
@@ -39,20 +39,21 @@ function PitchEditor:new(init)
     self.h =     init.h or 0
 
     self.whiteKeyNumbers =    getWhiteKeyNumbers()
-    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-    self.pitchHeight =                  init.pitchHeight        or 128
+    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline   or 16
+    self.pitchHeight =                  init.pitchHeight                    or 128
 
     self.backgroundColor =               init.backgroundColor               or { 0.2,  0.2,  0.2,  1.0,  0 }
-    self.blackKeyColor =                 init.blackKeyColor                 or { 0.25, 0.25, 0.25, 1.0,  0 }
-    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.34, 0.34, 0.34, 1.0,  0 }
+    self.blackKeyColor =                 init.blackKeyColor                 or { 0.2,  0.2,  0.2,  1.0,  0 }
+    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.28, 0.28, 0.28, 1.0,  0 }
     self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.12, 1 }
     self.itemInsideColor =               init.itemInsideColor               or { 1.0,  1.0,  1.0,  0.02, 1 }
     self.itemEdgeColor =                 init.itemEdgeColor                 or { 1.0,  1.0,  1.0,  0.15, 1 }
     self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
     self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
-    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.3,  0.6,  1.0,  1.0,  0 }
-    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 1.0,  0.6,  0.3,  1.0,  0 }
+    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24,  0.54,  0.8,  1.0,  0 }
+    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.8,  0.24,  0.24,  1.0,  0 }
 
+    self.pitchCorrectionPixelRadius    = init.pitchCorrectionPixelRadius    or 3
     self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
 
     if init.scaleWithWindow ~= nil then self.scaleWithWindow = init.scaleWithWindow else self.scaleWithWindow = true end
@@ -69,9 +70,9 @@ function PitchEditor:new(init)
     self.track = {}
     self.items = {}
 
+    self.selectedPitchCorrectionIndexes = {}
     self.pitchCorrections = PolyLine:new{
-        parent = self,
-        color = self.pitchCorrectionActiveColor
+        parent = self
     }
     self.boxSelect = BoxSelect:new{
         parent = self,
@@ -163,7 +164,8 @@ function PitchEditor:insertPitchCorrectionPoint(time, pitch)
         x = self:timeToPixels(time),
         y = self:pitchToPixels(pitch),
         time = time,
-        pitch = pitch
+        pitch = pitch,
+        isActive = math.random() > 0.5
     }
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
@@ -172,14 +174,14 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
         point.y = self:pitchToPixels(point.pitch)
     end)
 end
---[[function PitchEditor:recalculateNodeCoordinates()
-    local numberOfNodes = #self.nodes
-    for i = 1, numberOfNodes do
-        local node = self.nodes[i]
-        node.x = self:timeToPixels(node.time)
-        node.y = self:pitchToPixels(node.pitch)
-    end
-end]]--
+function PitchEditor:updateSelectedPitchCorrectionIndexes()
+    self.selectedPitchCorrectionIndexes = {}
+    self.pitchCorrections:applyFunctionToAllPoints(function(point, pointIndex)
+        if point.isSelected then
+            self.selectedPitchCorrectionIndexes[#self.selectedPitchCorrectionIndexes + 1] = pointIndex
+        end
+    end)
+end
 
 --==============================================================
 --== Drawing Code ==============================================
@@ -250,14 +252,50 @@ function PitchEditor:drawEditCursor()
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
-function PitchEditor:drawPitchCorrections()
-    self.pitchCorrections:draw()
-    if self.mouseOverPitchCorrectionLineIndex then
-        local point =     self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex]
-        local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex + 1]
-        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+
+function PitchEditor:drawPitchCorrectionSegment(index)
+    local point =     self.pitchCorrections.points[index]
+    local nextPoint = self.pitchCorrections.points[index + 1]
+    if point.isActive and nextPoint then
         self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
     end
+end
+function PitchEditor:drawPitchCorrectionPoint(index)
+    local point = self.pitchCorrections.points[index]
+
+    if point.isActive then
+        self:setColor(self.pitchCorrectionActiveColor)
+    else
+        self:setColor(self.pitchCorrectionInactiveColor)
+    end
+
+    self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+
+    if point.isSelected then
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+    end
+end
+function PitchEditor:drawPitchCorrections()
+    -- Draw the active line segments.
+    self:setColor(self.pitchCorrectionActiveColor)
+    self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
+        self:drawPitchCorrectionSegment(index)
+    end)
+
+    -- Highlight the segment the mouse is over.
+    if self.mouseOverPitchCorrectionLineIndex then
+        local mouseOverSegment = self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex]
+        if mouseOverSegment.isActive then
+            self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+            self:drawPitchCorrectionSegment(self.mouseOverPitchCorrectionLineIndex)
+        end
+    end
+
+    -- Draw the points.
+    self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
+        self:drawPitchCorrectionPoint(index)
+    end)
 end
 
 --==============================================================
@@ -279,8 +317,8 @@ end
 function PitchEditor:onUpdate()
     if self.isVisible then
         self:calculateMouseInformation()
-        local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
 
+        local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
         if segmentDistance <= self.pitchCorrectionEditPixelRange then
             self.mouseOverPitchCorrectionLineIndex = segmentIndex
         else
@@ -346,13 +384,13 @@ end
 --function PitchEditor:onMouseMiddleUp()
 --end
 function PitchEditor:onMouseRightDown()
-    --self.boxSelect:startSelection(self.mouseX, self.mouseY)
+    self.boxSelect:startSelection(self.mouseX, self.mouseY)
 end
 function PitchEditor:onMouseRightDrag()
-    --self.boxSelect:editSelection(self.mouseX, self.mouseY)
+    self.boxSelect:editSelection(self.mouseX, self.mouseY)
 end
 function PitchEditor:onMouseRightUp()
-    --self.boxSelect:makeSelection(self.pitchCorrections, setNodeSelected, nodeIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
+    self.boxSelect:makeSelection(self.pitchCorrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
 end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
@@ -375,7 +413,7 @@ function PitchEditor:onDraw()
     self:drawItemEdges()
     self:drawEditCursor()
     self:drawPitchCorrections()
-    --self.boxSelect:draw()
+    self.boxSelect:draw()
 end
 
 PitchEditor.onKeyPressFunctions = {

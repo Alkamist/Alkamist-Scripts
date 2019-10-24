@@ -29,7 +29,6 @@ function BoxSelect:pointIsInside(x, y)
 end
 
 function BoxSelect:startSelection(startingX, startingY)
-    self.isActive = true
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
@@ -37,6 +36,8 @@ function BoxSelect:startSelection(startingX, startingY)
 end
 
 function BoxSelect:editSelection(editX, editY)
+    self.isActive = true
+
     self.x2 = editX
     self.y2 = editY
 

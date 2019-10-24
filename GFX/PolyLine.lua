@@ -29,6 +29,11 @@ local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1,
 
     return math.sqrt(dx * dx + dy * dy)
 end
+local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt(dx * dx + dy * dy)
+end
 local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
     local numberInGroup = #group
     if numberInGroup == 0 then
@@ -60,8 +65,6 @@ function PolyLine:new(init)
     self.points = {}
 
     if init.isHorizontal ~= nil then self.isHorizontal = init.isHorizontal else self.isHorizontal = true end
-
-    self.color = init.color or { 0.7, 0.7, 0.7, 1.0, 0 }
 
     return self
 end
@@ -96,7 +99,7 @@ function PolyLine:applyFunctionToAllPoints(fn)
     local numberOfPoints = #self.points
     for i = 1, numberOfPoints do
         local point = self.points[i]
-        fn(point)
+        fn(point, i)
     end
 end
 function PolyLine:applyFunctionToSpecificPoints(specificIndexes, fn)
@@ -104,7 +107,7 @@ function PolyLine:applyFunctionToSpecificPoints(specificIndexes, fn)
     for i = 1, numberOfPoints do
         local pointIndex = self.specificIndexes[i]
         local point = self.points[pointIndex]
-        fn(point)
+        fn(point, i)
     end
 end
 function PolyLine:moveAllPoints(xChange, yChange)
@@ -138,32 +141,40 @@ function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
         local point =     self.points[i]
         local nextPoint = self.points[i + 1]
 
-        local lineDistance
+        local distance
         if nextPoint then
-            lineDistance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
+            distance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
         end
-        lowestDistance = lowestDistance or lineDistance
+        lowestDistance = lowestDistance or distance
 
-        if lineDistance and lineDistance < lowestDistance then
-            lowestDistance = lineDistance
+        if distance and distance < lowestDistance then
+            lowestDistance = distance
             lowestDistanceIndex = i
         end
     end
 
     return lowestDistanceIndex, lowestDistance
 end
-function PolyLine:draw()
+function PolyLine:getIndexAndDistanceOfPointClosestToPoint(x, y)
     local numberOfPoints = #self.points
+    if numberOfPoints < 1 then return nil end
+
+    local lowestDistance
+    local lowestDistanceIndex = 1
+
     for i = 1, numberOfPoints do
         local point =     self.points[i]
-        local nextPoint = self.points[i + 1]
 
-        self.parent:setColor(self.color)
+        local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
+        lowestDistance = lowestDistance or distance
 
-        if nextPoint then
-            self.parent:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+        if distance and distance < lowestDistance then
+            lowestDistance = distance
+            lowestDistanceIndex = i
         end
     end
+
+    return lowestDistanceIndex, lowestDistance
 end
 
 return PolyLine
