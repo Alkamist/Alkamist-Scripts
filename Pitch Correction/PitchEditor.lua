@@ -182,6 +182,27 @@ function PitchEditor:updateSelectedPitchCorrectionIndexes()
         end
     end)
 end
+function PitchEditor:updatePitchCorrectionMouseOver()
+    local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
+    local pointIndex,   pointDistance =   self.pitchCorrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
+
+    local pointIsClose =   pointDistance <= self.pitchCorrectionEditPixelRange
+    local segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange
+
+    if pointIsClose or segmentIsClose then
+        if segmentIsClose then
+            self.mouseOverPitchCorrectionIndex = segmentIndex
+            self.mouseOverPitchCorrectionIsLine = true
+        end
+        if pointIsClose then
+            self.mouseOverPitchCorrectionIndex = pointIndex
+            self.mouseOverPitchCorrectionIsLine = false
+        end
+    else
+        self.mouseOverPitchCorrectionIndex = nil
+        self.mouseOverPitchCorrectionIsLine = nil
+    end
+end
 
 --==============================================================
 --== Drawing Code ==============================================
@@ -256,12 +277,22 @@ end
 function PitchEditor:drawPitchCorrectionSegment(index)
     local point =     self.pitchCorrections.points[index]
     local nextPoint = self.pitchCorrections.points[index + 1]
+    local mouseIsOverSegment = index == self.mouseOverPitchCorrectionIndex and self.mouseOverPitchCorrectionIsLine
+
+    self:setColor(self.pitchCorrectionActiveColor)
+
     if point.isActive and nextPoint then
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+
+    if mouseIsOverSegment and point.isActive then
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
         self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
     end
 end
 function PitchEditor:drawPitchCorrectionPoint(index)
     local point = self.pitchCorrections.points[index]
+    local mouseIsOverPoint = index == self.mouseOverPitchCorrectionIndex and (not self.mouseOverPitchCorrectionIsLine)
 
     if point.isActive then
         self:setColor(self.pitchCorrectionActiveColor)
@@ -275,6 +306,11 @@ function PitchEditor:drawPitchCorrectionPoint(index)
         self:setColor{1.0, 1.0, 1.0, 0.4, 1}
         self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
     end
+
+    if mouseIsOverPoint then
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+    end
 end
 function PitchEditor:drawPitchCorrections()
     -- Draw the active line segments.
@@ -282,15 +318,6 @@ function PitchEditor:drawPitchCorrections()
     self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
         self:drawPitchCorrectionSegment(index)
     end)
-
-    -- Highlight the segment the mouse is over.
-    if self.mouseOverPitchCorrectionLineIndex then
-        local mouseOverSegment = self.pitchCorrections.points[self.mouseOverPitchCorrectionLineIndex]
-        if mouseOverSegment.isActive then
-            self:setColor{1.0, 1.0, 1.0, 0.4, 1}
-            self:drawPitchCorrectionSegment(self.mouseOverPitchCorrectionLineIndex)
-        end
-    end
 
     -- Draw the points.
     self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
@@ -317,14 +344,7 @@ end
 function PitchEditor:onUpdate()
     if self.isVisible then
         self:calculateMouseInformation()
-
-        local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
-        if segmentDistance <= self.pitchCorrectionEditPixelRange then
-            self.mouseOverPitchCorrectionLineIndex = segmentIndex
-        else
-            self.mouseOverPitchCorrectionLineIndex = nil
-        end
-
+        self:updatePitchCorrectionMouseOver()
         self:queueRedraw()
     end
 
