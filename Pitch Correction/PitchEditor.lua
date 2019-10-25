@@ -406,7 +406,9 @@ function PitchEditor:onMouseLeftDown()
 
         local pointWasAlreadySelected = point.isSelected
         if not pointWasAlreadySelected then
-            self:unselectAllPitchCorrectionPoints()
+            if not self.GFX.shiftKeyState then
+                self:unselectAllPitchCorrectionPoints()
+            end
             point.isSelected = true
         end
 
@@ -458,17 +460,17 @@ function PitchEditor:onMouseLeftDrag()
     end
 end
 function PitchEditor:onMouseLeftUp()
+    if not self.mouseLeftWasDragged and not self.pitchCorrectionEditPoint then
+        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+        reaper.UpdateArrange()
+    end
+
     if self.newPitchCorrectionPoint then
         self.newPitchCorrectionPoint.isSelected = false
     end
 
     self.newPitchCorrectionPoint = nil
     self.pitchCorrectionEditPoint = nil
-
-    if not self.mouseLeftWasDragged then
-        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
-        reaper.UpdateArrange()
-    end
 end
 function PitchEditor:onMouseMiddleDown()
     self.view.x.target = self.mouseX

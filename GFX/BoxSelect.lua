@@ -59,7 +59,7 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
                 setSelectedFn(thing, true)
             end
         else
-            if not shouldAdd then
+            if not shouldAdd and not shouldInvert then
                 setSelectedFn(thing, false)
             end
         end
