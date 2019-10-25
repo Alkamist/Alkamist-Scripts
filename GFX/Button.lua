@@ -14,7 +14,7 @@ function Button:new(init)
     self.labelFontSize =  init.labelFontSize or 14
 
 
-    self.color =          init.color          or {0.4, 0.4, 0.4, 1.0,   0}
+    self.color =          init.color          or {0.3, 0.3, 0.3, 1.0,   0}
     self.edgeColor =      init.edgeColor      or {1.0, 1.0, 1.0, 0.1,   1}
     self.mouseOverColor = init.mouseOverColor or {1.0, 1.0, 1.0, 0.15,  1}
     self.mouseHoldColor = init.mouseHoldColor or {1.0, 1.0, 1.0, -0.15, 1}
@@ -38,7 +38,8 @@ function Button:onDraw()
     self:drawRectangle(0, 0, self.w, self.h, true)
 
     self:setColor(self.edgeColor)
-    self:drawRoundRectangle(0, 0, self.w, self.h, 2, false, true)
+    self:drawRectangle(0, 0, self.w, self.h, false)
+    --self:drawRoundRectangle(0, 0, self.w, self.h, 2, false, true)
 
     self:drawLabel()
 

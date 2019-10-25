@@ -67,10 +67,10 @@ function PitchEditor:new(init)
     self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline   or 16
     self.pitchHeight =                  init.pitchHeight                    or 128
 
-    self.backgroundColor =               init.backgroundColor               or { 0.2,  0.2,  0.2,  1.0,  0 }
-    self.blackKeyColor =                 init.blackKeyColor                 or { 0.2,  0.2,  0.2,  1.0,  0 }
-    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.28, 0.28, 0.28, 1.0,  0 }
-    self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.12, 1 }
+    self.backgroundColor =               init.backgroundColor               or { 0.22, 0.22, 0.22, 1.0,  0 }
+    self.blackKeyColor =                 init.blackKeyColor                 or { 0.22, 0.22, 0.22, 1.0,  0 }
+    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.29, 0.29, 0.29, 1.0,  0 }
+    self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.09, 1 }
     self.itemInsideColor =               init.itemInsideColor               or { 1.0,  1.0,  1.0,  0.02, 1 }
     self.itemEdgeColor =                 init.itemEdgeColor                 or { 1.0,  1.0,  1.0,  0.15, 1 }
     self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
