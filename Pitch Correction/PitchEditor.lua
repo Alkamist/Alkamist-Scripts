@@ -413,7 +413,7 @@ function PitchEditor:drawPitchCorrectionSegment(index)
         self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
     end
 
-    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint then
+    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
         self:setColor{1.0, 1.0, 1.0, 0.4, 1}
         self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
     end
@@ -435,7 +435,7 @@ function PitchEditor:drawPitchCorrectionPoint(index)
         self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
     end
 
-    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint then
+    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
         self:setColor{1.0, 1.0, 1.0, 0.3, 1}
         self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
     end
