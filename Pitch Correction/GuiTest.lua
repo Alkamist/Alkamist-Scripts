@@ -7,16 +7,16 @@ local Button = require("GFX.Button")
 GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
-    x = 200,
-    y = 200,
-    w = 600,
-    h = 300
+    x = 0,
+    y = 25,
+    w = 1000,
+    h = 700 - 25
 }
 pitchEditor.elements = pitchEditor.elements or {}
 
 local testButton1 = Button:new{
-    x = 40,
-    y = 40,
+    x = 0,
+    y = 0,
     w = 120,
     h = 25,
     label = "test1"
@@ -29,20 +29,20 @@ function testButton1:onMouseLeftDown()
         pitchEditor:show()
     end
 end
-function testButton1:onMouseLeftDrag()
-    self.x = self.x + self.GFX.mouseXChange
-    self.y = self.y + self.GFX.mouseYChange
-end
+--function testButton1:onMouseLeftDrag()
+--    self.x = self.x + self.GFX.mouseXChange
+--    self.y = self.y + self.GFX.mouseYChange
+--end
 
 
-local testButton2 = Button:new{
-    x = 20,
-    y = 20,
-    w = 120,
-    h = 25,
-    label = "test2"
-}
-table.insert(pitchEditor.elements, testButton2)
+--local testButton2 = Button:new{
+--    x = 20,
+--    y = 20,
+--    w = 120,
+--    h = 25,
+--    label = "test2"
+--}
+--table.insert(pitchEditor.elements, testButton2)
 
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 --GFX:setElements{ pitchEditor }
