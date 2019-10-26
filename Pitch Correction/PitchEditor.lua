@@ -293,6 +293,11 @@ function PitchEditor:handlePitchCorrectionPointLeftUp()
     self.newPitchCorrectionPoint = nil
     self.pitchCorrectionEditPoint = nil
 end
+function PitchEditor:handlePitchCorrectionPointLeftDoubleClick()
+    if self.mouseOverPitchCorrectionIndex and not self.newPitchCorrectionPoint then
+        self:snapSelectedPitchCorrectionsToNearestPitch()
+    end
+end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
     self.pitchCorrections:applyFunctionToAllPoints(function(point)
         point.x = self:timeToPixels(point.time)
@@ -330,6 +335,13 @@ end
 function PitchEditor:unselectAllPitchCorrectionPoints()
     self.pitchCorrections:applyFunctionToAllPoints(function(point)
         point.isSelected = false
+    end)
+end
+function PitchEditor:snapSelectedPitchCorrectionsToNearestPitch()
+    self.pitchCorrections:applyFunctionToAllPoints(function(point)
+        if point.isSelected then
+            point.pitch = round(point.pitch)
+        end
     end)
 end
 
@@ -510,7 +522,9 @@ function PitchEditor:onMouseLeftUp()
     end
     self:handlePitchCorrectionPointLeftUp()
 end
---function PitchEditor:onMouseLeftDoubleClick() end
+function PitchEditor:onMouseLeftDoubleClick()
+    self:handlePitchCorrectionPointLeftDoubleClick()
+end
 function PitchEditor:onMouseMiddleDown()
     self.view.x.target = self.mouseX
     self.view.y.target = self.mouseY
