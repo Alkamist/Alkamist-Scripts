@@ -2,9 +2,10 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ViewAxis =       require("GFX.ViewAxis")
-local BoxSelect =      require("GFX.BoxSelect")
-local PolyLine =       require("GFX.PolyLine")
+local ViewAxis =            require("GFX.ViewAxis")
+local BoxSelect =           require("GFX.BoxSelect")
+local PolyLine =            require("GFX.PolyLine")
+local PitchCorrectedTake =  require("Pitch Correction.PitchCorrectedTake")
 
 --==============================================================
 --== Local Functions ===========================================
@@ -64,15 +65,14 @@ function PitchEditor:new(init)
     self.h = init.h or 0
 
     self.whiteKeyNumbers =               getWhiteKeyNumbers()
-    self.minKeyHeightToDrawCenterline =  init.minKeyHeightToDrawCenterline   or 16
-    self.pitchHeight =                   init.pitchHeight                    or 128
+    self.minKeyHeightToDrawCenterline =  init.minKeyHeightToDrawCenterline  or 16
+    self.pitchHeight =                   init.pitchHeight                   or 128
 
     self.backgroundColor =               init.backgroundColor               or { 0.22, 0.22, 0.22, 1.0,  0 }
     self.blackKeyColor =                 init.blackKeyColor                 or { 0.22, 0.22, 0.22, 1.0,  0 }
     self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.29, 0.29, 0.29, 1.0,  0 }
     self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.09, 1 }
-    self.itemInsideColor =               init.itemInsideColor               or { 1.0,  1.0,  1.0,  0.02, 1 }
-    self.itemEdgeColor =                 init.itemEdgeColor                 or { 1.0,  1.0,  1.0,  0.15, 1 }
+    self.edgeColor =                     init.edgeColor                     or { 1.0,  1.0,  1.0,  -0.1, 1 }
     self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
     self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
     self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24,  0.54,  0.8,  1.0,  0 }
@@ -93,12 +93,11 @@ function PitchEditor:new(init)
     }
 
     self.track = {}
-    self.items = {}
+    self.take =  PitchCorrectedTake:new()
 
-    self.pitchCorrections = PolyLine:new()
     self.boxSelect = BoxSelect:new{
         parent = self,
-        thingsToSelect = self.pitchCorrections.points
+        thingsToSelect = self.take.corrections
     }
 
     self.mouseTime =                 0.0
@@ -114,10 +113,6 @@ function PitchEditor:new(init)
     self.previousSnappedMousePitch = 0.0
     self.snappedMousePitchChange =   0.0
 
-    self.leftEdge =                  0.0
-    self.rightEdge =                 0.0
-    self.timeWidth =                 0.0
-
     self.altKeyWasDownOnPointEdit =      false
     self.mouseOverPitchCorrectionIndex = nil
     self.newPitchCorrectionPoint =       nil
@@ -130,51 +125,29 @@ end
 --== Helpful Functions =========================================
 --==============================================================
 
-function PitchEditor:updateSelectedItems()
-    local numberOfSelectedItems = reaper.CountSelectedMediaItems(0)
-    local topMostSelectedItemTrackNumber = reaper.CountTracks(0)
+function PitchEditor:updateEditorTakeWithSelectedItems()
+    local item = reaper.GetSelectedMediaItem(0, 0)
+    local take
+    if item then take = reaper.GetActiveTake(item) end
+    self.take:set(take)
 
-    self.items = {}
-
-    for i = 1, numberOfSelectedItems do
-        local item =        reaper.GetSelectedMediaItem(0, i - 1)
-        local track =       reaper.GetMediaItemTrack(item)
-        local trackNumber = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
-        topMostSelectedItemTrackNumber = math.min(topMostSelectedItemTrackNumber, trackNumber)
-    end
-    self.track = reaper.GetTrack(0, topMostSelectedItemTrackNumber - 1)
-
-    for i = 1, numberOfSelectedItems do
-        local item = reaper.GetSelectedMediaItem(0, i - 1)
-        if self.track == reaper.GetMediaItemTrack(item) then
-            self.items[#self.items + 1] = item
-        end
-    end
-
-    local numberOfItems = #self.items
-    if numberOfItems > 0 then
-        local leftMostItem = self.items[1]
-        local rightMostItem = self.items[numberOfItems]
-        self.leftEdge =  reaper.GetMediaItemInfo_Value(leftMostItem, "D_POSITION")
-        self.rightEdge = reaper.GetMediaItemInfo_Value(rightMostItem, "D_POSITION") + reaper.GetMediaItemInfo_Value(rightMostItem, "D_LENGTH")
-        self.timeWidth = self.rightEdge - self.leftEdge;
+    if self.take.pointer then
+        self.track = self.take.track
     else
-        self.leftEdge = 0
-        self.rightEdge = 0
-        self.timeWidth = 0
+        self.track = nil
     end
 end
-function PitchEditor:pixelsToTime(relativePixels)
+function PitchEditor:pixelsToTime(pixelsRelativeToEditor)
     if self.w <= 0 then return 0.0 end
-    return self.timeWidth * (self.view.x.scroll + relativePixels / (self.w * self.view.x.zoom))
+    return self.take.length * (self.view.x.scroll + pixelsRelativeToEditor / (self.w * self.view.x.zoom))
 end
 function PitchEditor:timeToPixels(time)
-    if self.timeWidth <= 0 then return 0 end
-    return self.view.x.zoom * self.w * (time / self.timeWidth - self.view.x.scroll)
+    if self.take.length <= 0 then return 0 end
+    return self.view.x.zoom * self.w * (time / self.take.length - self.view.x.scroll)
 end
-function PitchEditor:pixelsToPitch(relativePixels)
+function PitchEditor:pixelsToPitch(pixelsRelativeToEditor)
     if self.h <= 0 then return 0.0 end
-    return self.pitchHeight * (1.0 - (self.view.y.scroll + relativePixels / (self.h * self.view.y.zoom))) - 0.5
+    return self.pitchHeight * (1.0 - (self.view.y.scroll + pixelsRelativeToEditor / (self.h * self.view.y.zoom))) - 0.5
 end
 function PitchEditor:pitchToPixels(pitch)
     if self.pitchHeight <= 0 then return 0 end
@@ -199,7 +172,7 @@ end
 --==============================================================
 
 function PitchEditor:insertPitchCorrectionPoint(point)
-    return self.pitchCorrections:insertPoint{
+    self.take.corrections:insertPoint{
         x =          self:timeToPixels(point.time),
         y =          self:pitchToPixels(point.pitch),
         time =       point.time,
@@ -209,15 +182,15 @@ function PitchEditor:insertPitchCorrectionPoint(point)
     }
 end
 function PitchEditor:handlePitchCorrectionPointLeftDown()
-    self.mouseTimeOnLeftDown = self.mouseTime
-    self.mousePitchOnLeftDown = self.mousePitch
+    self.mouseTimeOnLeftDown =         self.mouseTime
+    self.mousePitchOnLeftDown =        self.mousePitch
     self.snappedMousePitchOnLeftDown = self.snappedMousePitch
 
     self.altKeyWasDownOnPointEdit = false
 
     if self.mouseOverPitchCorrectionIndex then
-        local point =     self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex]
-        local nextPoint = self.pitchCorrections.points[self.mouseOverPitchCorrectionIndex + 1]
+        local point =     self.take.corrections.points[self.mouseOverPitchCorrectionIndex]
+        local nextPoint = self.take.corrections.points[self.mouseOverPitchCorrectionIndex + 1]
         self.pitchCorrectionEditPoint = point
 
         local pointWasAlreadySelected = point.isSelected
@@ -230,7 +203,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDown()
 
         if self.GFX.altKeyState then
             self.altKeyWasDownOnPointEdit = true
-            self.pitchCorrections:applyFunctionToAllPoints(function(point)
+            self.take.corrections:applyFunctionToAllPoints(function(point)
                 if point.isSelected then
                     point.isActive = not point.isActive
                 end
@@ -256,25 +229,27 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
     if not self.pitchCorrectionEditPoint and self.justStartedLeftDragging then
         self:unselectAllPitchCorrectionPoints()
 
-        local firstPointIndex = self:insertPitchCorrectionPoint{
+        self:insertPitchCorrectionPoint{
             time = self.mouseTimeOnLeftDown,
             pitch = mousePitchOnLeftDown,
             isActive = true,
             isSelected = false
         }
+        local firstPointIndex = self.take.corrections.mostRecentInsertedIndex
 
-        local previousPoint = self.pitchCorrections.points[firstPointIndex - 1]
+        local previousPoint = self.take.corrections.points[firstPointIndex - 1]
         if previousPoint and self.GFX.altKeyState then previousPoint.isActive = true end
 
-        local newPointIndex = self:insertPitchCorrectionPoint{
+        self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = mousePitch,
             isActive = false,
             isSelected = true
         }
-        self.newPitchCorrectionPoint = self.pitchCorrections.points[newPointIndex]
+        local newPointIndex = self.take.corrections.mostRecentInsertedIndex
+        self.newPitchCorrectionPoint = self.take.corrections.points[newPointIndex]
     elseif not self.altKeyWasDownOnPointEdit then
-        self.pitchCorrections:applyFunctionToAllPoints(function(point)
+        self.take.corrections:applyFunctionToAllPoints(function(point)
             if point.isSelected then
                 point.time =  point.time + self.mouseTimeChange
                 point.pitch = point.pitch + mousePitchChange
@@ -282,7 +257,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
                 point.y =     self:pitchToPixels(point.pitch)
             end
         end)
-        self.pitchCorrections:sortPoints()
+        self.take.corrections:sortPoints()
     end
 end
 function PitchEditor:handlePitchCorrectionPointLeftUp()
@@ -299,14 +274,14 @@ function PitchEditor:handlePitchCorrectionPointLeftDoubleClick()
     end
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
-    self.pitchCorrections:applyFunctionToAllPoints(function(point)
+    self.take.corrections:applyFunctionToAllPoints(function(point)
         point.x = self:timeToPixels(point.time)
         point.y = self:pitchToPixels(point.pitch)
     end)
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
-    local segmentIndex, segmentDistance = self.pitchCorrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
-    local pointIndex,   pointDistance =   self.pitchCorrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
+    local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
+    local pointIndex,   pointDistance =   self.take.corrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
 
     local pointIsClose = false
     local segmentIsClose = false
@@ -315,7 +290,7 @@ function PitchEditor:updatePitchCorrectionMouseOver()
         pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
     end
     if segmentDistance then
-        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange and self.pitchCorrections.points[segmentIndex].isActive
+        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange and self.take.corrections.points[segmentIndex].isActive
     end
 
     if pointIsClose or segmentIsClose or self.pitchCorrectionEditPoint then
@@ -333,12 +308,12 @@ function PitchEditor:updatePitchCorrectionMouseOver()
     end
 end
 function PitchEditor:unselectAllPitchCorrectionPoints()
-    self.pitchCorrections:applyFunctionToAllPoints(function(point)
+    self.take.corrections:applyFunctionToAllPoints(function(point)
         point.isSelected = false
     end)
 end
 function PitchEditor:snapSelectedPitchCorrectionsToNearestPitch()
-    self.pitchCorrections:applyFunctionToAllPoints(function(point)
+    self.take.corrections:applyFunctionToAllPoints(function(point)
         if point.isSelected then
             point.pitch = round(point.pitch)
         end
@@ -381,27 +356,16 @@ function PitchEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
-function PitchEditor:drawItemEdges()
-    local numberOfItems = #self.items
-    for i = 1, numberOfItems do
-        local item = self.items[i]
-        local leftBoundTime = reaper.GetMediaItemInfo_Value(item, "D_POSITION") - self.leftEdge
-        local rightBoundTime = leftBoundTime + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-        local leftBoundPixels = self:timeToPixels(leftBoundTime)
-        local rightBoundPixels = self:timeToPixels(rightBoundTime)
-        local boxWidth = rightBoundPixels - leftBoundPixels
-        local boxHeight = self.h - 2
-
-        self:setColor(self.itemInsideColor)
-        self:drawRectangle(leftBoundPixels + 1, 2, boxWidth - 2, boxHeight - 2, true)
-
-        self:setColor(self.itemEdgeColor)
-        self:drawRectangle(leftBoundPixels, 1, boxWidth, boxHeight, false)
-    end
+function PitchEditor:drawEdges()
+    self:setColor(self.edgeColor)
+    local leftEdgePixels =  self:timeToPixels(0.0)
+    local rightEdgePixels = self:timeToPixels(self.take.length)
+    self:drawLine(leftEdgePixels, 0, leftEdgePixels, self.h, false)
+    self:drawLine(rightEdgePixels, 0, rightEdgePixels, self.h, false)
 end
 function PitchEditor:drawEditCursor()
-    local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.leftEdge)
-    local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - self.leftEdge)
+    local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.take.leftTime)
+    local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - self.take.leftTime)
 
     self:setColor(self.editCursorColor)
     self:drawLine(editCursorPixels, 0, editCursorPixels, self.h, false)
@@ -415,8 +379,8 @@ function PitchEditor:drawEditCursor()
     end
 end
 function PitchEditor:drawPitchCorrectionSegment(index)
-    local point =     self.pitchCorrections.points[index]
-    local nextPoint = self.pitchCorrections.points[index + 1]
+    local point =     self.take.corrections.points[index]
+    local nextPoint = self.take.corrections.points[index + 1]
     local mouseIsOverSegment = index == self.mouseOverPitchCorrectionIndex and (not self.mouseIsOverPoint)
 
     self:setColor(self.pitchCorrectionActiveColor)
@@ -431,7 +395,7 @@ function PitchEditor:drawPitchCorrectionSegment(index)
     end
 end
 function PitchEditor:drawPitchCorrectionPoint(index)
-    local point = self.pitchCorrections.points[index]
+    local point = self.take.corrections.points[index]
     local mouseIsOverThisPoint = index == self.mouseOverPitchCorrectionIndex and self.mouseIsOverPoint
 
     if point.isActive then
@@ -455,12 +419,12 @@ end
 function PitchEditor:drawPitchCorrections()
     -- Draw the active line segments.
     self:setColor(self.pitchCorrectionActiveColor)
-    self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
+    self.take.corrections:applyFunctionToAllPoints(function(point, index)
         self:drawPitchCorrectionSegment(index)
     end)
 
     -- Draw the points.
-    self.pitchCorrections:applyFunctionToAllPoints(function(point, index)
+    self.take.corrections:applyFunctionToAllPoints(function(point, index)
         self:drawPitchCorrectionPoint(index)
     end)
 end
@@ -470,20 +434,20 @@ end
 --==============================================================
 
 function PitchEditor:onInit()
-    self:updateSelectedItems()
+    self:updateEditorTakeWithSelectedItems()
     self:onWindowResize()
     self:calculateMouseInformation()
 
-    --local time = self.timeWidth / 2000
-    --local timeIncrement = time
-    --for i = 1, 2000 do
-    --    self:insertPitchCorrectionPoint{
-    --        time = time,
-    --        pitch = 20.0 * math.random() + 50,
-    --        isActive = math.random() > 0.5
-    --    }
-    --    time = time + timeIncrement
-    --end
+    local time = self.take.length / 100
+    local timeIncrement = time
+    for i = 1, 100 do
+        self:insertPitchCorrectionPoint{
+            time = time,
+            pitch = 20.0 * math.random() + 50,
+            isActive = math.random() > 0.5
+        }
+        time = time + timeIncrement
+    end
 end
 function PitchEditor:onUpdate()
     if self.isVisible then
@@ -493,7 +457,7 @@ function PitchEditor:onUpdate()
         self:recalculatePitchCorrectionCoordinates()
     end
 
-    self:updateSelectedItems()
+    self:updateEditorTakeWithSelectedItems()
 end
 function PitchEditor:onWindowResize()
     if self.scaleWithWindow then
@@ -517,7 +481,7 @@ function PitchEditor:onMouseLeftDrag()
 end
 function PitchEditor:onMouseLeftUp()
     if not self.mouseLeftWasDragged and not self.pitchCorrectionEditPoint then
-        reaper.SetEditCurPos(self.leftEdge + self.mouseTime, false, true)
+        reaper.SetEditCurPos(self.take.leftTime + self.mouseTime, false, true)
         reaper.UpdateArrange()
     end
     self:handlePitchCorrectionPointLeftUp()
@@ -549,7 +513,7 @@ function PitchEditor:onMouseRightDrag()
     self.boxSelect:editSelection(self.mouseX, self.mouseY)
 end
 function PitchEditor:onMouseRightUp()
-    self.boxSelect:makeSelection(self.pitchCorrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
+    self.boxSelect:makeSelection(self.take.corrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
 end
 --function PitchEditor:onMouseRightDoubleClick() end
 function PitchEditor:onMouseWheel()
@@ -570,7 +534,7 @@ end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
-    self:drawItemEdges()
+    self:drawEdges()
     self:drawEditCursor()
     self:drawPitchCorrections()
     self.boxSelect:draw()
@@ -578,8 +542,8 @@ end
 
 PitchEditor.onKeyPressFunctions = {
     ["Delete"] = function(self)
-        arrayRemove(self.pitchCorrections.points, function(index)
-            return self.pitchCorrections.points[index].isSelected
+        arrayRemove(self.take.corrections.points, function(index)
+            return self.take.corrections.points[index].isSelected
         end)
     end,
 }

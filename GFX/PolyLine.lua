@@ -62,6 +62,7 @@ function PolyLine:new(init)
     local self = setmetatable({}, { __index = self })
 
     self.points = {}
+    self.mostRecentInsertedIndex = nil
 
     if init.isHorizontal ~= nil then self.isHorizontal = init.isHorizontal else self.isHorizontal = true end
 
@@ -70,7 +71,6 @@ end
 
 function PolyLine:insertPoint(point)
     local newIndex
-
     if self.isHorizontal then
         newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
             return pointInLoop.x >= pointToInsert.x
@@ -80,8 +80,7 @@ function PolyLine:insertPoint(point)
             return pointInLoop.y >= pointToInsert.y
         end)
     end
-
-    return newIndex
+    self.mostRecentInsertedIndex = newIndex
 end
 function PolyLine:sortPoints()
     if self.isHorizontal then
