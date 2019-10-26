@@ -1,10 +1,10 @@
 local reaper = reaper
 local gfx = gfx
+local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local ViewAxis =            require("GFX.ViewAxis")
 local BoxSelect =           require("GFX.BoxSelect")
-local PolyLine =            require("GFX.PolyLine")
 local PitchCorrectedTake =  require("Pitch Correction.PitchCorrectedTake")
 
 --==============================================================
@@ -48,6 +48,49 @@ local function round(number, places)
                           or math.ceil(number * places - 0.5) / places
     end
 end
+local function drawPeaks(parent, color, x, y, w, h, take, startingTime, timeLength, numberOfChannels)
+    local x =               round(x)
+    local y =               round(y)
+    local w =               round(w)
+    local h =               round(h)
+    local numberOfSamples = math.max(1, w)
+    local peakrate =        round(w / timeLength)
+    local item =            reaper.GetMediaItemTake_Item(take)
+    local itemStart =       reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+
+    --local wantExtraType = 115  -- 's' char to get spectral information
+    local wantExtraType = 0
+
+    local reaperArray = reaper.new_array(numberOfSamples * numberOfChannels * 3)
+    reaperArray.clear()
+    local value = reaper.GetMediaItemTake_Peaks(take, peakrate, itemStart + startingTime, numberOfChannels, numberOfSamples, wantExtraType, reaperArray)
+    local sampleCount = (value & 0xfffff)
+    local extraType =   (value & 0x1000000) >> 24
+    local outputMode =  (value & 0xf00000) >> 20
+
+    local peaks = {}
+
+    parent:setColor(color)
+    if sampleCount > 0 then
+        for i = 1, numberOfSamples do
+            peaks[i] = reaperArray.table(i)
+        end
+
+        for i = 1, numberOfSamples do
+            local peakMax = peaks[i][1]
+            local peakMin = peaks[i][2]
+            parent:drawLine(x + i, y - peakMax * h, x + i, y + peakMin * h, true)
+            --local spectralPeak = reaperArray[numberOfSamples * 2 + i]
+            --local peak = {
+            --    max =          reaperArray[i],
+            --    min =          reaperArray[numberOfSamples + i],
+            --    lowFrequency = spectral & 0x7fff,
+            --    tonality =     (spectral>>15) / 16384
+            --}
+            --self.peaks[i] = peak
+        end
+    end
+end
 
 --==============================================================
 --== Initialization ============================================
@@ -75,8 +118,9 @@ function PitchEditor:new(init)
     self.edgeColor =                     init.edgeColor                     or { 1.0,  1.0,  1.0,  -0.1, 1 }
     self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
     self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
-    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24,  0.54,  0.8,  1.0,  0 }
-    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.8,  0.24,  0.24,  1.0,  0 }
+    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24, 0.54, 0.8,  1.0,  0 }
+    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.8,  0.24, 0.24, 1.0,  0 }
+    self.peakColor =                     init.peakColor                     or {1.0,   1.0,  1.0,  0.05, 1 }
 
     self.pitchCorrectionPixelRadius    = init.pitchCorrectionPixelRadius    or 3
     self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
@@ -356,6 +400,66 @@ function PitchEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
+function PitchEditor:drawPeaks()
+    local x =                round( math.max(self:timeToPixels(0.0), 0) )
+    local y =                round( self.h * 0.5 )
+    local w =                round( math.min(self:timeToPixels(self.take.length) - x, self.w - x) )
+    local h =                200
+    local numberOfSamples =  math.max(1, w)
+    local numberOfChannels = 1
+    local startTime =        math.max(self:pixelsToTime(0), 0)
+    local timeLength =       math.min(self:pixelsToTime(self.w), self.take.length) - startTime
+    local peakrate =         w / timeLength
+
+    --local wantExtraType = 115  -- 's' char to get spectral information
+    local wantExtraType = 0
+
+    local reaperArray = reaper.new_array(numberOfSamples * numberOfChannels * 3)
+    reaperArray.clear()
+    local value = reaper.GetMediaItemTake_Peaks(self.take.pointer,
+                                                peakrate,
+                                                self.take.leftTime + startTime,
+                                                numberOfChannels,
+                                                numberOfSamples,
+                                                wantExtraType,
+                                                reaperArray)
+    local sampleCount = (value & 0xfffff)
+    local extraType =   (value & 0x1000000) >> 24
+    local outputMode =  (value & 0xf00000) >> 20
+
+    local peaks = {}
+
+    self:setColor(self.peakColor)
+    if sampleCount > 0 then
+        for i = 1, numberOfSamples do
+            peaks[i] = reaperArray.table(i)
+        end
+
+        for i = 1, numberOfSamples do
+            local peak = peaks[i]
+            local nextPeak = peaks[i + 1]
+
+            local peakMax = peak[1]
+            local peakMin = peak[2]
+
+            if nextPeak then
+                local nextPeakMax = nextPeak[1]
+                local nextPeakMin = nextPeak[2]
+
+                self:drawLine(x + i, y - peakMax * h, x + i, y + nextPeakMax * h, true)
+                --self:drawLine(x + i, y - peakMin * h, x + i + 1, y - nextPeakMin * h, true)
+            end
+            --local spectralPeak = reaperArray[numberOfSamples * 2 + i]
+            --local peak = {
+            --    max =          reaperArray[i],
+            --    min =          reaperArray[numberOfSamples + i],
+            --    lowFrequency = spectral & 0x7fff,
+            --    tonality =     (spectral>>15) / 16384
+            --}
+            --self.peaks[i] = peak
+        end
+    end
+end
 function PitchEditor:drawEdges()
     self:setColor(self.edgeColor)
     local leftEdgePixels =  self:timeToPixels(0.0)
@@ -534,6 +638,7 @@ end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
+    self:drawPeaks()
     self:drawEdges()
     self:drawEditCursor()
     self:drawPitchCorrections()

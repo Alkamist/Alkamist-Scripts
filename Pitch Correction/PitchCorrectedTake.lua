@@ -1,7 +1,7 @@
 local reaper = reaper
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local PolyLine = require("GFX.PolyLine")
+local PolyLine =       require("GFX.PolyLine")
 
 local function mainCommand(id)
     if type(id) == "string" then
@@ -67,8 +67,10 @@ function PitchCorrectedTake:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.pitches     = PolyLine:new()
+    self.parent =      init.parent
+    self.pitches =     PolyLine:new()
     self.corrections = PolyLine:new()
+    self:set(init.take)
 
     return self
 end
@@ -183,11 +185,6 @@ function PitchCorrectedTake:analyzePitch(settings)
     mainCommand(analyzerID)
 
     self:getPitchPointsFromExtState(analysisTake)
-    --self:savePoints()
-    --self:loadSavedPoints()
-    --self.minTimePerPoint = self:getMinTimePerPoint()
-    --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
-
     reaper.DeleteTrackMediaItem(self.track, analysisItem)
 end
 

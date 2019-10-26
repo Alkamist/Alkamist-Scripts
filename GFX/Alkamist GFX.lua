@@ -241,6 +241,7 @@ function GFX:initElement(element, parent)
     element.timeOfPreviousLeftDown =    nil
     element.timeOfPreviousMiddleDown =  nil
     element.timeOfPreviousRightDown =   nil
+    element.currentColor =              nil
 
     function element:setColor(color)
         self.currentColor = color
