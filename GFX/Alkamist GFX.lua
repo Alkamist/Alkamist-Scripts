@@ -238,7 +238,9 @@ function GFX:initElement(element, parent)
     element.shouldRedraw =              true
     element.shouldClearBuffer =         false
     element.isVisible =                 true
-    element.currentColor =              self.backgroundColor
+    element.timeOfPreviousLeftDown =    nil
+    element.timeOfPreviousMiddleDown =  nil
+    element.timeOfPreviousRightDown =   nil
 
     function element:setColor(color)
         self.currentColor = color
@@ -347,6 +349,18 @@ function GFX:initElement(element, parent)
     function element:show()
         self:setVisibility(true)
     end
+    function element:getTimeSinceLastLeftDown()
+        if element.timeOfPreviousLeftDown == nil then return nil end
+        return reaper.time_precise() - element.timeOfPreviousLeftDown
+    end
+    function element:getTimeSinceLastMiddleDown()
+        if element.timeOfPreviousMiddleDown == nil then return nil end
+        return reaper.time_precise() - element.timeOfPreviousMiddleDown
+    end
+    function element:getTimeSinceLastRightDown()
+        if element.timeOfPreviousRightDown == nil then return nil end
+        return reaper.time_precise() - element.timeOfPreviousRightDown
+    end
 
     if element.onInit then element:onInit() end
 
@@ -384,12 +398,40 @@ function GFX:processElement(element)
     element.hWheelMoved =              element.mouseIsInside and (self.hWheel > 0 or self.hWheel < 0)
 
     -- Mouse Down.
+    element.mouseLeftDoubleClicked = false
+    element.mouseMiddleDoubleClicked = false
+    element.mouseRightDoubleClicked = false
+
     element.mouseLeftDown =            element.mouseIsInside and self.mouseLeftDown
+    if element.mouseLeftDown then
+        local timeSince = element:getTimeSinceLastLeftDown()
+        element.timeOfPreviousLeftDown = reaper.time_precise()
+        element.mouseLeftState = true
+        if timeSince and timeSince <= 0.5 then
+            element.mouseLeftDoubleClicked = true
+            element.timeOfPreviousLeftDown = nil
+        end
+    end
     element.mouseMiddleDown =          element.mouseIsInside and self.mouseMiddleDown
+    if element.mouseMiddleDown then
+        local timeSince = element:getTimeSinceLastMiddleDown()
+        element.timeOfPreviousMiddleDown = reaper.time_precise()
+        element.mouseMiddleState = true
+        if timeSince and timeSince <= 0.5 then
+            element.mouseMiddleDoubleClicked = true
+            element.timeOfPreviousMiddleDown = nil
+        end
+    end
     element.mouseRightDown =           element.mouseIsInside and self.mouseRightDown
-    if element.mouseLeftDown   then    element.mouseLeftState = true end
-    if element.mouseMiddleDown then    element.mouseMiddleState = true end
-    if element.mouseRightDown  then    element.mouseRightState = true end
+    if element.mouseRightDown then
+        local timeSince = element:getTimeSinceLastRightDown()
+        element.timeOfPreviousRightDown = reaper.time_precise()
+        element.mouseRightState = true
+        if timeSince and timeSince <= 0.5 then
+            element.mouseRightDoubleClicked = true
+            element.timeOfPreviousRightDown = nil
+        end
+    end
 
     -- Mouse Drag.
     element.mouseLeftIsDragging =      self.mouseMoved and element.mouseLeftState
@@ -411,27 +453,30 @@ function GFX:processElement(element)
     if element.mouseRightUp  then      element.mouseRightState = false end
 
     -- Element-Based Events.
-    if element.onUpdate                                              then element:onUpdate()          end
-    if self.windowWasResized           and element.onWindowResize    then element:onWindowResize()    end
-    if element.keyWasPressed           and element.onKeyPress        then element:onKeyPress()        end
-    if element.mouseJustEntered        and element.onMouseEnter      then element:onMouseEnter()      end
-    if element.mouseJustLeft           and element.onMouseLeave      then element:onMouseLeave()      end
-    if element.mouseLeftDown           and element.onMouseLeftDown   then element:onMouseLeftDown()   end
-    if element.mouseLeftIsDragging     and element.onMouseLeftDrag   then element:onMouseLeftDrag()   end
-    if element.mouseLeftUp             and element.onMouseLeftUp     then element:onMouseLeftUp()     end
-    if element.mouseMiddleDown         and element.onMouseMiddleDown then element:onMouseMiddleDown() end
-    if element.mouseMiddleIsDragging   and element.onMouseMiddleDrag then element:onMouseMiddleDrag() end
-    if element.mouseMiddleUp           and element.onMouseMiddleUp   then element:onMouseMiddleUp()   end
-    if element.mouseRightDown          and element.onMouseRightDown  then element:onMouseRightDown()  end
-    if element.mouseRightIsDragging    and element.onMouseRightDrag  then element:onMouseRightDrag()  end
-    if element.mouseRightUp            and element.onMouseRightUp    then element:onMouseRightUp()    end
-    if element.wheelMoved              and element.onMouseWheel      then element:onMouseWheel()      end
-    if element.hWheelMoved             and element.onMouseHWheel     then element:onMouseHWheel()     end
+    if element.onUpdate                                                      then element:onUpdate()                 end
+    if self.windowWasResized            and element.onWindowResize           then element:onWindowResize()           end
+    if element.keyWasPressed            and element.onKeyPress               then element:onKeyPress()               end
+    if element.mouseJustEntered         and element.onMouseEnter             then element:onMouseEnter()             end
+    if element.mouseJustLeft            and element.onMouseLeave             then element:onMouseLeave()             end
+    if element.mouseLeftDown            and element.onMouseLeftDown          then element:onMouseLeftDown()          end
+    if element.mouseLeftIsDragging      and element.onMouseLeftDrag          then element:onMouseLeftDrag()          end
+    if element.mouseLeftUp              and element.onMouseLeftUp            then element:onMouseLeftUp()            end
+    if element.mouseLeftDoubleClicked   and element.onMouseLeftDoubleClick   then element:onMouseLeftDoubleClick()   end
+    if element.mouseMiddleDown          and element.onMouseMiddleDown        then element:onMouseMiddleDown()        end
+    if element.mouseMiddleIsDragging    and element.onMouseMiddleDrag        then element:onMouseMiddleDrag()        end
+    if element.mouseMiddleUp            and element.onMouseMiddleUp          then element:onMouseMiddleUp()          end
+    if element.mouseMiddleDoubleClicked and element.onMouseMiddleDoubleClick then element:onMouseMiddleDoubleClick() end
+    if element.mouseRightDown           and element.onMouseRightDown         then element:onMouseRightDown()         end
+    if element.mouseRightIsDragging     and element.onMouseRightDrag         then element:onMouseRightDrag()         end
+    if element.mouseRightUp             and element.onMouseRightUp           then element:onMouseRightUp()           end
+    if element.mouseRightDoubleClicked  and element.onMouseRightDoubleClick  then element:onMouseRightDoubleClick()  end
+    if element.wheelMoved               and element.onMouseWheel             then element:onMouseWheel()             end
+    if element.hWheelMoved              and element.onMouseHWheel            then element:onMouseHWheel()            end
 
     -- Some extra mouse state handling.
-    if element.mouseLeftUp   then      element.mouseLeftWasDragged = false end
-    if element.mouseMiddleUp then      element.mouseMiddleWasDragged = false end
-    if element.mouseRightUp  then      element.mouseRightWasDragged = false end
+    if element.mouseLeftUp   then element.mouseLeftWasDragged = false end
+    if element.mouseMiddleUp then element.mouseMiddleWasDragged = false end
+    if element.mouseRightUp  then element.mouseRightWasDragged = false end
 
     -- Handle elements that are queued to draw.
     if element.onDraw then

@@ -58,14 +58,14 @@ function PitchEditor:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.x =     init.x or 0
-    self.y =     init.y or 0
-    self.w =     init.w or 0
-    self.h =     init.h or 0
+    self.x = init.x or 0
+    self.y = init.y or 0
+    self.w = init.w or 0
+    self.h = init.h or 0
 
-    self.whiteKeyNumbers =    getWhiteKeyNumbers()
-    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline   or 16
-    self.pitchHeight =                  init.pitchHeight                    or 128
+    self.whiteKeyNumbers =               getWhiteKeyNumbers()
+    self.minKeyHeightToDrawCenterline =  init.minKeyHeightToDrawCenterline   or 16
+    self.pitchHeight =                   init.pitchHeight                    or 128
 
     self.backgroundColor =               init.backgroundColor               or { 0.22, 0.22, 0.22, 1.0,  0 }
     self.blackKeyColor =                 init.blackKeyColor                 or { 0.22, 0.22, 0.22, 1.0,  0 }
@@ -510,6 +510,7 @@ function PitchEditor:onMouseLeftUp()
     end
     self:handlePitchCorrectionPointLeftUp()
 end
+--function PitchEditor:onMouseLeftDoubleClick() end
 function PitchEditor:onMouseMiddleDown()
     self.view.x.target = self.mouseX
     self.view.y.target = self.mouseY
@@ -525,8 +526,8 @@ function PitchEditor:onMouseMiddleDrag()
 
     self:recalculatePitchCorrectionCoordinates()
 end
---function PitchEditor:onMouseMiddleUp()
---end
+--function PitchEditor:onMouseMiddleUp() end
+--function PitchEditor:onMouseMiddleDoubleClick() end
 function PitchEditor:onMouseRightDown()
     self.boxSelect:startSelection(self.mouseX, self.mouseY)
 end
@@ -536,6 +537,7 @@ end
 function PitchEditor:onMouseRightUp()
     self.boxSelect:makeSelection(self.pitchCorrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
 end
+--function PitchEditor:onMouseRightDoubleClick() end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
