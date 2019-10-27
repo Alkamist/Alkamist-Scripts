@@ -165,11 +165,15 @@ end
 local function addEdgePointsToCorrection(correctionIndex, corrections, envelope, playrate)
     local correction =         corrections[correctionIndex]
     local previousCorrection = corrections[correctionIndex - 1]
+    local nextCorrection =     corrections[correctionIndex + 1]
     local edgePointSpacing = 0.005
 
     if correction.isActive then
         if previousCorrection == nil or (previousCorrection and not previousCorrection.isActive) then
             reaper.InsertEnvelopePoint(envelope, (correction.time - edgePointSpacing) * playrate, 0.0, 0, 0, false, true)
+        end
+        if nextCorrection == nil then
+            reaper.InsertEnvelopePoint(envelope, (correction.time + edgePointSpacing) * playrate, 0.0, 0, 0, false, true)
         end
     else
         reaper.InsertEnvelopePoint(envelope, (correction.time + edgePointSpacing) * playrate, 0.0, 0, 0, false, true)
