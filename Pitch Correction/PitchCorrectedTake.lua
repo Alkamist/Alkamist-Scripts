@@ -3,6 +3,10 @@ local reaper = reaper
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local PolyLine = require("GFX.PolyLine")
 
+--==============================================================
+--== Helpful Functions =========================================
+--==============================================================
+
 local function mainCommand(id)
     if type(id) == "string" then
         reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
@@ -57,6 +61,10 @@ local function getValuesFromStringLine(str)
     end
     return values
 end
+
+--==============================================================
+--== Pitch Correction Functions ================================
+--==============================================================
 
 local function lerp(x1, x2, ratio)
     return (1.0 - ratio) * x1 + ratio * x2
@@ -122,6 +130,51 @@ end
 local function clearEnvelopeUnderCorrection(correction, nextCorrection, envelope, playrate)
     reaper.DeleteEnvelopePointRange(envelope, correction.time * playrate, nextCorrection.time * playrate)
 end
+local function addZeroPointsToEnvelope(pitchIndex, pitchPoints, zeroPointThreshold, zeroPointSpacing, envelope, playrate)
+    local point =         pitchPoints[pitchIndex]
+    local previousPoint = pitchPoints[pitchIndex - 1]
+    local nextPoint =     pitchPoints[pitchIndex + 1]
+
+    local timeToPrevPoint = 0.0
+    local timeToNextPoint = 0.0
+
+    if previousPoint then
+        timeToPrevPoint = point.time - previousPoint.time
+    end
+
+    if nextPoint then
+        timeToNextPoint = nextPoint.time - point.time
+    end
+
+    if zeroPointThreshold then
+        local scaledZeroPointThreshold = zeroPointThreshold / playrate
+
+        if timeToPrevPoint >= scaledZeroPointThreshold or previousPoint == nil then
+            local zeroPointTime = playrate * (point.time - zeroPointSpacing)
+            reaper.DeleteEnvelopePointRange(envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
+            reaper.InsertEnvelopePoint(envelope, zeroPointTime, 0, 0, 0, false, true)
+        end
+
+        if timeToNextPoint >= scaledZeroPointThreshold or nextPoint == nil then
+            local zeroPointTime = playrate * (point.time + zeroPointSpacing)
+            reaper.DeleteEnvelopePointRange(envelope, zeroPointTime - zeroPointSpacing * 0.5, zeroPointTime + zeroPointSpacing * 0.5)
+            reaper.InsertEnvelopePoint(envelope, zeroPointTime, 0, 0, 0, false, true)
+        end
+    end
+end
+local function addEdgePointsToCorrection(correctionIndex, corrections, envelope, playrate)
+    local correction =         corrections[correctionIndex]
+    local previousCorrection = corrections[correctionIndex - 1]
+    local edgePointSpacing = 0.005
+
+    if correction.isActive then
+        if previousCorrection == nil or (previousCorrection and not previousCorrection.isActive) then
+            reaper.InsertEnvelopePoint(envelope, (correction.time - edgePointSpacing) * playrate, 0.0, 0, 0, false, true)
+        end
+    else
+        reaper.InsertEnvelopePoint(envelope, (correction.time + edgePointSpacing) * playrate, 0.0, 0, 0, false, true)
+    end
+end
 local function correctPitchPoints(correction, nextCorrection, pitchPoints, envelope, playrate)
     if nextCorrection then
         clearEnvelopeUnderCorrection(correction, nextCorrection, envelope, playrate)
@@ -132,15 +185,15 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
                 local driftCorrection = getDriftCorrection(correction, nextCorrection, i, pitchPoints)
                 local modCorrection =   getModCorrection(correction, nextCorrection, pitchPoint, driftCorrection)
                 addPitchCorrectionToEnvelope(driftCorrection + modCorrection, pitchPoint.time, envelope, playrate)
-                --addZeroPointsToEnvelope(point, node.zeroPointThreshold, node.zeroPointSpacing)
+                addZeroPointsToEnvelope(i, pitchPoints, 0.04, 0.005, envelope, playrate)
             end
         end
-
-        --addEdgePointsToNode(node, points[1].envelope, points[1].playrate)
     end
 end
 
-
+--==============================================================
+--== Pitch Corrected Take ======================================
+--==============================================================
 
 local PitchCorrectedTake = {}
 
@@ -308,12 +361,14 @@ function PitchCorrectedTake:correctSelectedPitchPoints()
     reaper.UpdateArrange()
 end
 function PitchCorrectedTake:correctAllPitchPoints()
+    self:clearEnvelope()
     local corrections = self.corrections.points
     local pitchPoints = self.pitches.points
     for i = 1, #corrections do
         local correction =     corrections[i]
         local nextCorrection = corrections[i + 1]
 
+        addEdgePointsToCorrection(i, corrections, self.envelope, self.playrate)
         if correction.isActive and nextCorrection then
             correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
         end
