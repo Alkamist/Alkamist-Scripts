@@ -78,7 +78,8 @@ function PitchEditor:new(init)
     self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24, 0.54, 0.8,  1.0,  0 }
     self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.8,  0.24, 0.24, 1.0,  0 }
     self.peakColor =                     init.peakColor                     or {1.0,   1.0,  1.0,  1.0,  0 }
-    self.pitchLineColor =                init.pitchLineColor                or {0.5,   1.0,  0.5,  1.0,  0 }
+    self.pitchLineColor =                init.pitchLineColor                or {0.3,   0.7,  0.3,  1.0,  0 }
+    self.correctedPitchLineColor =       init.correctedPitchLineColor       or {0.5,   1.0,  0.5,  1.0,  0 }
 
     self.pitchCorrectionPixelRadius    = init.pitchCorrectionPixelRadius    or 3
     self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
@@ -202,7 +203,7 @@ end
 --==============================================================
 
 function PitchEditor:insertPitchCorrectionPoint(point)
-    self.take.corrections:insertPoint{
+    self.take:insertPitchCorrectionPoint{
         x =          self:timeToPixels(point.time),
         y =          self:pitchToPixels(point.pitch),
         time =       point.time,
@@ -292,6 +293,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
             end
         end
         self.take.corrections:sortPoints()
+        self.take:correctAllPitchPoints()
     end
 end
 function PitchEditor:handlePitchCorrectionPointLeftUp()
@@ -426,19 +428,31 @@ function PitchEditor:recalculateTakePitchCoordinates()
 end
 
 function PitchEditor:drawTakePitchLines()
-    self:setColor(self.pitchLineColor)
     local pitches = self.take.pitches.points
+    local envelope = self.take.envelope
+    local playrate = self.take.playrate
     for i = 1, #pitches do
         local point =     pitches[i]
         local nextPoint = pitches[i + 1]
 
-        if nextPoint then
-            if nextPoint.time - point.time <= self.take.minimumTimePerPoint * 1.1 then
-                self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-            end
-        end
+        local _, envelopeValue = reaper.Envelope_Evaluate(envelope, point.time * playrate, 44100, 0)
+        local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
 
+        --if nextPoint then
+        --    if nextPoint.time - point.time <= self.take.minimumTimePerPoint * 1.1 then
+        --        self:setColor(self.pitchLineColor)
+        --        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+        --
+        --        self:setColor(self.correctedPitchLineColor)
+        --        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+        --    end
+        --end
+
+        self:setColor(self.pitchLineColor)
         self:drawCircle(point.x, point.y, 2, true, true)
+
+        self:setColor(self.correctedPitchLineColor)
+        self:drawCircle(point.x, correctedPointY, 2, true, true)
     end
 end
 
@@ -545,16 +559,16 @@ function PitchEditor:onInit()
     self:onWindowResize()
     self:calculateMouseInformation()
 
-    local time = self.take.length / 100
-    local timeIncrement = time
-    for i = 1, 100 do
-        self:insertPitchCorrectionPoint{
-            time = time,
-            pitch = 20.0 * math.random() + 50,
-            isActive = math.random() > 0.5
-        }
-        time = time + timeIncrement
-    end
+    --local time = self.take.length / 100
+    --local timeIncrement = time
+    --for i = 1, 100 do
+    --    self:insertPitchCorrectionPoint{
+    --        time = time,
+    --        pitch = 20.0 * math.random() + 50,
+    --        isActive = math.random() > 0.5
+    --    }
+    --    time = time + timeIncrement
+    --end
 end
 function PitchEditor:onUpdate()
     if self.isVisible then
@@ -662,6 +676,8 @@ PitchEditor.onKeyPressFunctions = {
         arrayRemove(self.take.corrections.points, function(index)
             return self.take.corrections.points[index].isSelected
         end)
+        self.take:clearEnvelope()
+        self.take:correctAllPitchPoints()
     end,
 }
 

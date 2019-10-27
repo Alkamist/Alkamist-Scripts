@@ -58,6 +58,88 @@ local function getValuesFromStringLine(str)
     return values
 end
 
+local function lerp(x1, x2, ratio)
+    return (1.0 - ratio) * x1 + ratio * x2
+end
+local function getLerpPitch(correction, nextCorrection, pitchPoint)
+    local timeRatio = (pitchPoint.time - correction.time) / (nextCorrection.time - correction.time)
+    return lerp(correction.pitch, nextCorrection.pitch, timeRatio)
+end
+local function getAveragePitch(index, group, timeRadius)
+    local startingPoint = group[index]
+    local pitchSum = startingPoint.pitch
+    local numPoints = 1
+
+    local i = index
+    local currentPoint = startingPoint
+    while true do
+        i = i + 1
+        currentPoint = group[i]
+        if currentPoint == nil then break end
+
+        if (currentPoint.time - startingPoint.time) >= timeRadius then
+            break
+        end
+
+        pitchSum = pitchSum + currentPoint.pitch
+        numPoints = numPoints + 1
+    end
+
+    local i = index
+    currentPoint = startingPoint
+    while true do
+        i = i - 1
+        currentPoint = group[i]
+        if currentPoint == nil then break end
+
+        if (startingPoint.time - currentPoint.time) >= timeRadius then
+            break
+        end
+
+        pitchSum = pitchSum + currentPoint.pitch
+        numPoints = numPoints + 1
+    end
+
+    return pitchSum / numPoints
+end
+local function getPitchCorrection(currentPitch, targetPitch, correctionStrength)
+    return (targetPitch - currentPitch) * correctionStrength
+end
+local function getModCorrection(correction, nextCorrection, pitchPoint, currentCorrection)
+    return getPitchCorrection(pitchPoint.pitch + currentCorrection,
+                              getLerpPitch(correction, nextCorrection, pitchPoint),
+                              correction.modCorrection)
+end
+local function getDriftCorrection(correction, nextCorrection, pitchIndex, pitchPoints)
+    local pitchPoint = pitchPoints[pitchIndex]
+    return getPitchCorrection(getAveragePitch(pitchIndex, pitchPoints, correction.driftTime * 0.5),
+                              getLerpPitch(correction, nextCorrection, pitchPoint),
+                              correction.driftCorrection)
+end
+local function addPitchCorrectionToEnvelope(correction, time, envelope, playrate)
+    reaper.InsertEnvelopePoint(envelope, time * playrate, correction, 0, 0, false, true)
+end
+local function clearEnvelopeUnderCorrection(correction, nextCorrection, envelope, playrate)
+    reaper.DeleteEnvelopePointRange(envelope, correction.time * playrate, nextCorrection.time * playrate)
+end
+local function correctPitchPoints(correction, nextCorrection, pitchPoints, envelope, playrate)
+    if nextCorrection then
+        clearEnvelopeUnderCorrection(correction, nextCorrection, envelope, playrate)
+
+        for i = 1, #pitchPoints do
+            local pitchPoint = pitchPoints[i]
+            if pitchPoint.time >= correction.time and pitchPoint.time <= nextCorrection.time then
+                local driftCorrection = getDriftCorrection(correction, nextCorrection, i, pitchPoints)
+                local modCorrection =   getModCorrection(correction, nextCorrection, pitchPoint, driftCorrection)
+                addPitchCorrectionToEnvelope(driftCorrection + modCorrection, pitchPoint.time, envelope, playrate)
+                --addZeroPointsToEnvelope(point, node.zeroPointThreshold, node.zeroPointSpacing)
+            end
+        end
+
+        --addEdgePointsToNode(node, points[1].envelope, points[1].playrate)
+    end
+end
+
 
 
 local PitchCorrectedTake = {}
@@ -98,7 +180,7 @@ function PitchCorrectedTake:activateEnvelope()
         mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
         pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
     end
-    mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+    --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
     return pitchEnvelope
 end
 function PitchCorrectedTake:set(take)
@@ -133,6 +215,8 @@ function PitchCorrectedTake:set(take)
 
     self.pitches.points     = {}
     self.corrections.points = {}
+
+    self:clearEnvelope()
     --self:loadSavedPoints()
     --self.minTimePerPoint = self:getMinTimePerPoint()
     --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
@@ -187,6 +271,7 @@ function PitchCorrectedTake:analyzePitch(settings)
     reaper.DeleteTrackMediaItem(self.track, analysisItem)
 
     self:updateMinimumTimePerPoint()
+    self:clearEnvelope()
 end
 function PitchCorrectedTake:updateMinimumTimePerPoint()
     self.minimumTimePerPoint = self.length
@@ -200,6 +285,52 @@ function PitchCorrectedTake:updateMinimumTimePerPoint()
             self.minimumTimePerPoint = math.min(self.minimumTimePerPoint, timeFromLastPoint)
         end
     end
+end
+function PitchCorrectedTake:correctSelectedPitchPoints()
+    local corrections = self.corrections.points
+    local pitchPoints = self.pitches.points
+    for i = 1, #corrections do
+        local correction =     corrections[i]
+        local nextCorrection = corrections[i + 1]
+
+        if correction.isSelected then
+            if correction.isActive and nextCorrection then
+                correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
+            end
+
+            local previousCorrection = corrections[i - 1]
+            if previousCorrection and previousCorrection.isActive then
+                correctPitchPoints(previousCorrection, correction, pitchPoints, self.envelope, self.playrate)
+            end
+        end
+    end
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:correctAllPitchPoints()
+    local corrections = self.corrections.points
+    local pitchPoints = self.pitches.points
+    for i = 1, #corrections do
+        local correction =     corrections[i]
+        local nextCorrection = corrections[i + 1]
+
+        if correction.isActive and nextCorrection then
+            correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
+        end
+    end
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:clearEnvelope()
+    reaper.DeleteEnvelopePointRange(self.envelope, 0, self.length * self.playrate)
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:insertPitchCorrectionPoint(point)
+    point.driftTime =       point.driftTime       or 0.12
+    point.driftCorrection = point.driftCorrection or 1.0
+    point.modCorrection =   point.modCorrection   or 0.2
+    self.corrections:insertPoint(point)
 end
 
 return PitchCorrectedTake
