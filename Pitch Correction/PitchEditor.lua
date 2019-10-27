@@ -414,8 +414,7 @@ end
 --==============================================================
 
 function PitchEditor:analyzeTakePitches(settings)
-    self.take:analyzePitch(settings)
-    self:recalculateTakePitchCoordinates()
+    self.take:prepareToAnalyzePitch(settings)
 end
 function PitchEditor:recalculateTakePitchCoordinates()
     local points = self.take.pitches.points
@@ -441,7 +440,7 @@ function PitchEditor:drawTakePitchLines()
         local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
 
         if previousPoint then
-            if point.time - previousPoint.time <= self.take.minimumTimePerPoint * 1.1 then
+            if point.time - previousPoint.time <= self.take.pitchPointSpacing * 1.1 then
                 self:setColor(self.pitchLineColor)
                 self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
 
@@ -587,9 +586,10 @@ function PitchEditor:onUpdate()
     if self.isVisible then
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
-        self:queueRedraw()
+        self.take:analyzePitch()
         self:recalculatePitchCorrectionCoordinates()
         self:recalculateTakePitchCoordinates()
+        self:queueRedraw()
     end
 
     --[[if self:projectHasChanged() then

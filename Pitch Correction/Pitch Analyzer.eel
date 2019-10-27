@@ -134,23 +134,25 @@ function getFrequency(spos srate winSamples maxlen windowStep minF maxF YINthres
     freq
 );
 
-function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSlimit lowRMSlimitdB overlap YINthresh)
-  local(item take startOffset sourceSampleRate numStretchMarkers itemSource accessor bufferSize seekPosition length rms spos)
+function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSlimit lowRMSlimitdB overlap YINthresh startTime timeWindow)
+  local(item take startOffset sourceSampleRate itemSource accessor bufferSize seekPosition length rms spos)
 (
     #pitchData = "";
     take = GetMediaItemTakeByGUID(0, #takeGUID);
+
     TakeIsMIDI(take) == 0 ?
     (
         item =              GetMediaItemTakeInfo_Value(take, "P_ITEM");
-        length =            GetMediaItemInfo_Value(item, "D_LENGTH");
+        //length =            GetMediaItemInfo_Value(item, "D_LENGTH");
+        length =            timeWindow;
         startOffset =       GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
-        numStretchMarkers = GetTakeNumStretchMarkers(take);
         itemSource =        GetMediaItemTake_Source(take);
         sourceSampleRate =  GetMediaSourceSampleRate(itemSource);
 
         bufferSize = floor(sourceSampleRate * windowStep);
 
-        seekPosition = 0;
+        //seekPosition = 0;
+        seekPosition = startTime;
         spos = 0;
         memset(0, 0, bufferSize); // clear samplebuffer
 
@@ -159,16 +161,16 @@ function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSli
         while (
             GetAudioAccessorSamples(accessor, sourceSampleRate, 1, seekPosition, bufferSize, spos);
 
-            // Get RMS
-            rms = 0; i = 0; loop(bufferSize, rms = rms + abs(spos[i]); i +=1;); rms = rms / bufferSize;
+            // Get RMS.
+            rms = 0; i = 0; loop(bufferSize, rms = rms + abs(spos[i]); i += 1;); rms = rms / bufferSize;
 
-            // Seek transient
+            // Seek transient.
             rmsdB = 20 * log10(rms * 2);
             last_rmsdB = 20 * log10(last_rms * 2);
 
             last_rms = rms;
 
-            // Perform Pitch detection
+            // Perform pitch detection.
             rms > lowRMSlimit ? (
                 frequency = getFrequency(spos, sourceSampleRate, bufferSize, maxlen, windowStep, minF, maxF, YINthresh);
                 note = 69 + 12 * log(frequency / 440) / log(2);
@@ -190,7 +192,7 @@ function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSli
             );
 
             seekPosition += windowStep / overlap;
-            seekPosition < length - windowStep;
+            seekPosition < startTime + length - windowStep;
         );
 
         DestroyAudioAccessor(accessor);
@@ -198,7 +200,7 @@ function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSli
 );
 
 function calculatePitchDataAndWriteToExtState()
-  local(windowStep minFreq maxFreq YINthresh overlap lowRMSLimitdB lowRMSLimitdB)
+  local(windowStep minFreq maxFreq YINthresh overlap lowRMSLimitdB lowRMSLimitdB startTime timeWindow)
 (
     GetExtState(#takeGUID,      "Alkamist_PitchCorrection", "TAKEGUID");
     GetExtState(#windowStep,    "Alkamist_PitchCorrection", "WINDOWSTEP");
@@ -207,6 +209,8 @@ function calculatePitchDataAndWriteToExtState()
     GetExtState(#YINthresh,     "Alkamist_PitchCorrection", "YINTHRESH");
     GetExtState(#overlap,       "Alkamist_PitchCorrection", "OVERLAP");
     GetExtState(#lowRMSLimitdB, "Alkamist_PitchCorrection", "LOWRMSLIMDB");
+    GetExtState(#startTime,     "Alkamist_PitchCorrection", "STARTTIME");
+    GetExtState(#timeWindow,    "Alkamist_PitchCorrection", "TIMEWINDOW");
 
     // Convert the parameters from strings to numbers.
     match("%f", #windowStep,    windowStep);
@@ -215,6 +219,8 @@ function calculatePitchDataAndWriteToExtState()
     match("%f", #YINthresh,     YINthresh);
     match("%f", #overlap,       overlap);
     match("%f", #lowRMSLimitdB, lowRMSLimitdB);
+    match("%f", #startTime,     startTime);
+    match("%f", #timeWindow,    timeWindow);
 
     lowRMSlimit = exp(lowRMSLimitdB * 0.11512925464970228420089957273422);
 
@@ -226,7 +232,9 @@ function calculatePitchDataAndWriteToExtState()
                            lowRMSlimit,
                            lowRMSLimitdB,
                            overlap,
-                           YINthresh);
+                           YINthresh,
+                           startTime,
+                           timeWindow);
 
     SetExtState("Alkamist_PitchCorrection", "PITCHDATA", #pitchData, 0)
 );
