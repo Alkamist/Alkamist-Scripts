@@ -278,7 +278,7 @@ function PitchCorrectedTake:set(take)
     --self.minTimePerPoint = self:getMinTimePerPoint()
     --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 end
-function PitchCorrectedTake:getPitchPointsFromExtState(analysisTake)
+function PitchCorrectedTake:getPitchPointsFromExtState()
     local pointString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
 
     self.pitches.points = {}
@@ -289,7 +289,7 @@ function PitchCorrectedTake:getPitchPointsFromExtState(analysisTake)
         local pointTime =  values[1] - self.startOffset
         local point = {
             time =       pointTime,
-            sourceTime = getSourcePosition(analysisTake, pointTime),
+            --sourceTime = getSourcePosition(analysisTake, pointTime),
             pitch =      values[2],
             rms =        values[3]
         }
@@ -310,13 +310,13 @@ function PitchCorrectedTake:analyzePitch(settings)
     local analysisItem =   reaper.AddMediaItemToTrack(self.track)
     local analysisTake =   reaper.AddTakeToMediaItem(analysisItem)
 
-    reaper.SetMediaItemTake_Source(analysisTake, self.source)
-    reaper.SetMediaItemTakeInfo_Value(analysisTake, "D_STARTOFFS", leftBound)
-    reaper.SetMediaItemInfo_Value(analysisItem, "D_LENGTH", analysisLength)
-    reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
+    --reaper.SetMediaItemTake_Source(analysisTake, self.source)
+    --reaper.SetMediaItemTakeInfo_Value(analysisTake, "D_STARTOFFS", leftBound)
+    --reaper.SetMediaItemInfo_Value(analysisItem, "D_LENGTH", analysisLength)
+    --reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
 
-    local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
-    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID",    self.GUID,                 false)
+    --local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID",    self.GUID,                false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP",  settings.windowStep,       true)
     reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ",     settings.minimumFrequency, true)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ",     settings.maximumFrequency, true)
@@ -326,8 +326,8 @@ function PitchCorrectedTake:analyzePitch(settings)
 
     mainCommand(analyzerID)
 
-    self:getPitchPointsFromExtState(analysisTake)
-    reaper.DeleteTrackMediaItem(self.track, analysisItem)
+    self:getPitchPointsFromExtState()
+    --reaper.DeleteTrackMediaItem(self.track, analysisItem)
 
     self:updateMinimumTimePerPoint()
     self:clearEnvelope()

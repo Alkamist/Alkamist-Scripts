@@ -176,18 +176,16 @@ function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSli
 
                 frequency > 0 && strlen(#pitchData) < 64000 ?
                 (
+                    strcat(#pitchData, sprintf(#, "%f", seekPosition + startOffset));
+                    strcat(#pitchData, " ");
 
-                    str_insert(#pitchData, sprintf(#, "%f", seekPosition + startOffset), strlen(#pitchData));
-                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
+                    strcat(#pitchData, sprintf(#, "%f", note));
+                    strcat(#pitchData, " ");
 
-                    str_insert(#pitchData, sprintf(#, "%f", note),                       strlen(#pitchData));
-                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
+                    strcat(#pitchData, sprintf(#, "%f", rms));
+                    strcat(#pitchData, " ");
 
-                    str_insert(#pitchData, sprintf(#, "%f", rms),                        strlen(#pitchData));
-                    str_insert(#pitchData, " ",                                          strlen(#pitchData));
-
-                    str_insert(#pitchData, "\n",                                         strlen(#pitchData));
-
+                    strcat(#pitchData, "\n");
                 );
             );
 
