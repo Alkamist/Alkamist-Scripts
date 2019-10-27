@@ -279,6 +279,7 @@ function PitchCorrectedTake:getPitchPointsFromExtState(analysisTake)
 
     self.pitches.points = {}
 
+    local i = 1
     for line in pointString:gmatch("([^\r\n]+)") do
         local values =     getValuesFromStringLine(line)
         local pointTime =  values[1] - self.startOffset
@@ -288,7 +289,8 @@ function PitchCorrectedTake:getPitchPointsFromExtState(analysisTake)
             pitch =      values[2],
             rms =        values[3]
         }
-        self.pitches.points[#self.pitches.points + 1] = point
+        self.pitches.points[i] = point
+        i = i + 1
     end
 end
 function PitchCorrectedTake:analyzePitch(settings)
@@ -384,7 +386,7 @@ end
 function PitchCorrectedTake:insertPitchCorrectionPoint(point)
     point.driftTime =       point.driftTime       or 0.12
     point.driftCorrection = point.driftCorrection or 1.0
-    point.modCorrection =   point.modCorrection   or 0.2
+    point.modCorrection =   point.modCorrection   or 0.0
     self.corrections:insertPoint(point)
 end
 

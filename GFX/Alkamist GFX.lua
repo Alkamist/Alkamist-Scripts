@@ -195,19 +195,13 @@ local function getDrawBuffer()
     return currentBuffer
 end
 
-function GFX:applyFunctionToElements(elements, fn)
-    local numberOfElements = #elements
-    for i = 1, numberOfElements do
-        local element = elements[i]
-        fn(element)
-    end
-end
 function GFX:setElements(elements)
     self.elements = elements
 
-    GFX:applyFunctionToElements(self.elements, function(element)
+    for i = 1, #elements do
+        local element = elements[i]
         GFX:initElement(element, nil)
-    end)
+    end
 end
 function GFX:initElement(element, parent)
     element.GFX =                       GFX
@@ -365,10 +359,12 @@ function GFX:initElement(element, parent)
 
     if element.onInit then element:onInit() end
 
-    if element.elements then
-        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            local elementOfElement = elementsOfElement[i]
             GFX:initElement(elementOfElement, element)
-        end)
+        end
     end
 end
 function GFX:processElement(element)
@@ -493,17 +489,21 @@ function GFX:processElement(element)
     end
 
     -- Recursively handle any child elements the elements may have.
-    if element.elements then
-        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            local elementOfElement = elementsOfElement[i]
             GFX:processElement(elementOfElement)
-        end)
+        end
     end
 end
 function GFX:renderElement(element)
-    if element.elements then
-        GFX:applyFunctionToElements(element.elements, function(elementOfElement)
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            local elementOfElement = elementsOfElement[i]
             GFX:renderElement(elementOfElement)
-        end)
+        end
     end
 
     if element.isVisible then
@@ -579,23 +579,26 @@ function GFX:updateStates()
 end
 function GFX.run()
     local self = GFX
+    local elements = self.elements
 
     self:updateStates()
 
     if self.char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    GFX:applyFunctionToElements(self.elements, function(element)
+    for i = 1, #elements do
+        local element = elements[i]
         gfx.a = 1.0
         gfx.mode = 0
         GFX:processElement(element)
-    end)
+    end
 
-    GFX:applyFunctionToElements(self.elements, function(element)
+    for i = 1, #elements do
+        local element = elements[i]
         gfx.dest = -1
         gfx.a = 1.0
         gfx.mode = 0
         GFX:renderElement(element)
-    end)
+    end
 
     if self.char ~= "Escape" and self.char ~= "Close" then reaper.defer(self.run) end
     gfx.update()

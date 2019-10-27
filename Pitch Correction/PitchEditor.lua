@@ -8,7 +8,7 @@ local BoxSelect =           require("GFX.BoxSelect")
 local PitchCorrectedTake =  require("Pitch Correction.PitchCorrectedTake")
 
 --==============================================================
---== Local Functions ===========================================
+--== Helpful Functions =========================================
 --==============================================================
 
 local function pointIsSelected(point)                return point.isSelected end
@@ -559,9 +559,9 @@ function PitchEditor:onInit()
     self:onWindowResize()
     self:calculateMouseInformation()
 
-    --local time = self.take.length / 100
+    --local time = self.take.length / 2000
     --local timeIncrement = time
-    --for i = 1, 100 do
+    --for i = 1, 2000 do
     --    self:insertPitchCorrectionPoint{
     --        time = time,
     --        pitch = 20.0 * math.random() + 50,
@@ -632,8 +632,6 @@ function PitchEditor:onMouseMiddleDrag()
     self:recalculatePitchCorrectionCoordinates()
     self:recalculateTakePitchCoordinates()
 end
---function PitchEditor:onMouseMiddleUp() end
---function PitchEditor:onMouseMiddleDoubleClick() end
 function PitchEditor:onMouseRightDown()
     self.boxSelect:startSelection(self.mouseX, self.mouseY)
 end
@@ -643,7 +641,6 @@ end
 function PitchEditor:onMouseRightUp()
     self.boxSelect:makeSelection(self.take.corrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
 end
---function PitchEditor:onMouseRightDoubleClick() end
 function PitchEditor:onMouseWheel()
     local xSensitivity = 55.0
     local ySensitivity = 55.0
