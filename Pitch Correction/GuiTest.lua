@@ -6,6 +6,15 @@ local Button = require("GFX.Button")
 
 GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
+local pitchDetectionSettings = {
+    windowStep =       0.04,
+    overlap =          2.0,
+    minimumFrequency = 80,
+    maximumFrequency = 1000,
+    YINThresh =        0.2,
+    lowRMSLimitdB =    -60
+}
+
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     x = 0,
     y = 25,
@@ -24,9 +33,7 @@ local testButton1 = Button:new{
 function testButton1:onMouseLeftDown()
     Button.onMouseLeftDown(self)
     if pitchEditor.isVisible then
-        pitchEditor:hide()
-    else
-        pitchEditor:show()
+        pitchEditor:analyzeTakePitches(pitchDetectionSettings)
     end
 end
 --function testButton1:onMouseLeftDrag()

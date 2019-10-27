@@ -93,21 +93,6 @@ function PolyLine:sortPoints()
         end)
     end
 end
-function PolyLine:applyFunctionToAllPoints(fn)
-    local numberOfPoints = #self.points
-    for i = 1, numberOfPoints do
-        local point = self.points[i]
-        fn(point, i)
-    end
-end
-function PolyLine:applyFunctionToSpecificPoints(specificIndexes, fn)
-    local numberOfPoints = #self.specificIndexes
-    for i = 1, numberOfPoints do
-        local pointIndex = self.specificIndexes[i]
-        local point = self.points[pointIndex]
-        fn(point, i)
-    end
-end
 function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
     local numberOfPoints = #self.points
     if numberOfPoints < 1 then return nil end

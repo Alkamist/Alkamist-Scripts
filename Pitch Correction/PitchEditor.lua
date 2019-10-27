@@ -48,49 +48,6 @@ local function round(number, places)
                           or math.ceil(number * places - 0.5) / places
     end
 end
-local function drawPeaks(parent, color, x, y, w, h, take, startingTime, timeLength, numberOfChannels)
-    local x =               round(x)
-    local y =               round(y)
-    local w =               round(w)
-    local h =               round(h)
-    local numberOfSamples = math.max(1, w)
-    local peakrate =        round(w / timeLength)
-    local item =            reaper.GetMediaItemTake_Item(take)
-    local itemStart =       reaper.GetMediaItemInfo_Value(item, "D_POSITION")
-
-    --local wantExtraType = 115  -- 's' char to get spectral information
-    local wantExtraType = 0
-
-    local reaperArray = reaper.new_array(numberOfSamples * numberOfChannels * 3)
-    reaperArray.clear()
-    local value = reaper.GetMediaItemTake_Peaks(take, peakrate, itemStart + startingTime, numberOfChannels, numberOfSamples, wantExtraType, reaperArray)
-    local sampleCount = (value & 0xfffff)
-    local extraType =   (value & 0x1000000) >> 24
-    local outputMode =  (value & 0xf00000) >> 20
-
-    local peaks = {}
-
-    parent:setColor(color)
-    if sampleCount > 0 then
-        for i = 1, numberOfSamples do
-            peaks[i] = reaperArray.table(i)
-        end
-
-        for i = 1, numberOfSamples do
-            local peakMax = peaks[i][1]
-            local peakMin = peaks[i][2]
-            parent:drawLine(x + i, y - peakMax * h, x + i, y + peakMin * h, true)
-            --local spectralPeak = reaperArray[numberOfSamples * 2 + i]
-            --local peak = {
-            --    max =          reaperArray[i],
-            --    min =          reaperArray[numberOfSamples + i],
-            --    lowFrequency = spectral & 0x7fff,
-            --    tonality =     (spectral>>15) / 16384
-            --}
-            --self.peaks[i] = peak
-        end
-    end
-end
 
 --==============================================================
 --== Initialization ============================================
@@ -120,7 +77,8 @@ function PitchEditor:new(init)
     self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
     self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.24, 0.54, 0.8,  1.0,  0 }
     self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.8,  0.24, 0.24, 1.0,  0 }
-    self.peakColor =                     init.peakColor                     or {1.0,   1.0,  1.0,  0.05, 1 }
+    self.peakColor =                     init.peakColor                     or {1.0,   1.0,  1.0,  1.0,  0 }
+    self.pitchLineColor =                init.pitchLineColor                or {0.5,   1.0,  0.5,  1.0,  0 }
 
     self.pitchCorrectionPixelRadius    = init.pitchCorrectionPixelRadius    or 3
     self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
@@ -169,6 +127,34 @@ end
 --== Helpful Functions =========================================
 --==============================================================
 
+function PitchEditor:projectHasChanged()
+    local projectChangeCount = reaper.GetProjectStateChangeCount(0)
+    if projectChangeCount ~= self.previousProjectChangeCount then
+        self.previousProjectChangeCount = projectChangeCount
+        return true
+    end
+end
+--[[function PitchEditor:updatePeaks()
+    local numberOfSamples = math.floor(self.take.sampleRate * self.take.length)
+    local numberOfChannels = 1
+    --local wantExtraType = 115  -- 's' char to get spectral information
+    local wantExtraType = 0
+
+    self.peaks = reaper.new_array(numberOfSamples * numberOfChannels * 3)
+    self.peaks.clear()
+    local value = reaper.GetMediaItemTake_Peaks(self.take.pointer,
+                                                self.take.sampleRate / 2,
+                                                self.take.leftTime,
+                                                numberOfChannels,
+                                                numberOfSamples,
+                                                wantExtraType,
+                                                self.peaks)
+    local sampleCount = (value & 0xfffff)
+    local extraType =   (value & 0x1000000) >> 24
+    local outputMode =  (value & 0xf00000) >> 20
+
+    self.numberOfPeaks = sampleCount
+end]]--
 function PitchEditor:updateEditorTakeWithSelectedItems()
     local item = reaper.GetSelectedMediaItem(0, 0)
     local take
@@ -247,11 +233,13 @@ function PitchEditor:handlePitchCorrectionPointLeftDown()
 
         if self.GFX.altKeyState then
             self.altKeyWasDownOnPointEdit = true
-            self.take.corrections:applyFunctionToAllPoints(function(point)
-                if point.isSelected then
-                    point.isActive = not point.isActive
+            local corrections = self.take.corrections.points
+            for i = 1, #corrections do
+                local correction = corrections[i]
+                if correction.isSelected then
+                    correction.isActive = not correction.isActive
                 end
-            end)
+            end
         end
 
         if not self.mouseIsOverPoint then
@@ -293,14 +281,16 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
         local newPointIndex = self.take.corrections.mostRecentInsertedIndex
         self.newPitchCorrectionPoint = self.take.corrections.points[newPointIndex]
     elseif not self.altKeyWasDownOnPointEdit then
-        self.take.corrections:applyFunctionToAllPoints(function(point)
-            if point.isSelected then
-                point.time =  point.time + self.mouseTimeChange
-                point.pitch = point.pitch + mousePitchChange
-                point.x =     self:timeToPixels(point.time)
-                point.y =     self:pitchToPixels(point.pitch)
+        local corrections = self.take.corrections.points
+        for i = 1, #corrections do
+            local correction = corrections[i]
+            if correction.isSelected then
+                correction.time =  correction.time + self.mouseTimeChange
+                correction.pitch = correction.pitch + mousePitchChange
+                correction.x =     self:timeToPixels(correction.time)
+                correction.y =     self:pitchToPixels(correction.pitch)
             end
-        end)
+        end
         self.take.corrections:sortPoints()
     end
 end
@@ -318,10 +308,12 @@ function PitchEditor:handlePitchCorrectionPointLeftDoubleClick()
     end
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
-    self.take.corrections:applyFunctionToAllPoints(function(point)
-        point.x = self:timeToPixels(point.time)
-        point.y = self:pitchToPixels(point.pitch)
-    end)
+    local corrections = self.take.corrections.points
+    for i = 1, #corrections do
+        local correction = corrections[i]
+        correction.x = self:timeToPixels(correction.time)
+        correction.y = self:pitchToPixels(correction.pitch)
+    end
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
     local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
@@ -352,16 +344,102 @@ function PitchEditor:updatePitchCorrectionMouseOver()
     end
 end
 function PitchEditor:unselectAllPitchCorrectionPoints()
-    self.take.corrections:applyFunctionToAllPoints(function(point)
-        point.isSelected = false
-    end)
+    local corrections = self.take.corrections.points
+    for i = 1, #corrections do
+        local correction = corrections[i]
+        correction.isSelected = false
+    end
 end
 function PitchEditor:snapSelectedPitchCorrectionsToNearestPitch()
-    self.take.corrections:applyFunctionToAllPoints(function(point)
-        if point.isSelected then
-            point.pitch = round(point.pitch)
+    local corrections = self.take.corrections.points
+    for i = 1, #corrections do
+        local correction = corrections[i]
+        correction.pitch = round(correction.pitch)
+    end
+end
+
+function PitchEditor:drawPitchCorrectionSegment(i, group)
+    local point =     group[i]
+    local nextPoint = group[i + 1]
+    if nextPoint == nil then return end
+    local mouseIsOverSegment = i == self.mouseOverPitchCorrectionIndex and (not self.mouseIsOverPoint)
+
+    self:setColor(self.pitchCorrectionActiveColor)
+
+    if point.isActive then
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+
+    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+end
+function PitchEditor:drawPitchCorrectionPoint(i, group)
+    local point = group[i]
+    local mouseIsOverThisPoint = i == self.mouseOverPitchCorrectionIndex and self.mouseIsOverPoint
+
+    if point.isActive then
+        self:setColor(self.pitchCorrectionActiveColor)
+    else
+        self:setColor(self.pitchCorrectionInactiveColor)
+    end
+
+    self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+
+    if point.isSelected then
+        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
+        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+    end
+
+    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
+        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
+        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
+    end
+end
+function PitchEditor:drawPitchCorrections()
+    self:setColor(self.pitchCorrectionActiveColor)
+
+    local corrections = self.take.corrections.points
+    for i = 1, #corrections do
+        if i == 1 then self:drawPitchCorrectionSegment(1, corrections) end
+        self:drawPitchCorrectionSegment(i + 1, corrections)
+        self:drawPitchCorrectionPoint(i, corrections)
+    end
+end
+
+--==============================================================
+--== Item Pitches ==============================================
+--==============================================================
+
+function PitchEditor:analyzeTakePitches(settings)
+    self.take:analyzePitch(settings)
+    self:recalculateTakePitchCoordinates()
+end
+function PitchEditor:recalculateTakePitchCoordinates()
+    local points = self.take.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        point.x = self:timeToPixels(point.time)
+        point.y = self:pitchToPixels(point.pitch)
+    end
+end
+
+function PitchEditor:drawTakePitchLines()
+    self:setColor(self.pitchLineColor)
+    local pitches = self.take.pitches.points
+    for i = 1, #pitches do
+        local point =     pitches[i]
+        local nextPoint = pitches[i + 1]
+
+        if nextPoint then
+            if nextPoint.time - point.time <= self.take.minimumTimePerPoint * 1.1 then
+                self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+            end
         end
-    end)
+
+        self:drawCircle(point.x, point.y, 2, true, true)
+    end
 end
 
 --==============================================================
@@ -400,66 +478,41 @@ function PitchEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
-function PitchEditor:drawPeaks()
+--[[function PitchEditor:drawPeaks()
+    self:setColor(self.peakColor)
+
     local x =                round( math.max(self:timeToPixels(0.0), 0) )
     local y =                round( self.h * 0.5 )
-    local w =                round( math.min(self:timeToPixels(self.take.length) - x, self.w - x) )
+    local rawW =             self:timeToPixels(self.take.length) - x
+    local w =                round( math.max(math.min(rawW, self.w - x), 1) )
     local h =                200
-    local numberOfSamples =  math.max(1, w)
-    local numberOfChannels = 1
-    local startTime =        math.max(self:pixelsToTime(0), 0)
-    local timeLength =       math.min(self:pixelsToTime(self.w), self.take.length) - startTime
-    local peakrate =         w / timeLength
+    local startTime =        math.min(math.max(self:pixelsToTime(0), 0.0), self.take.length)
+    local startTimeSamples = math.max(math.min(math.floor(startTime * self.take.sampleRate * 0.5), self.numberOfPeaks), 1)
+    local timeLength =       math.max(math.min(self:pixelsToTime(self.w), self.take.length) - startTime, 0.0)
 
-    --local wantExtraType = 115  -- 's' char to get spectral information
-    local wantExtraType = 0
+    local peakSkip = math.max(self.numberOfPeaks - startTimeSamples, 1) / w
 
-    local reaperArray = reaper.new_array(numberOfSamples * numberOfChannels * 3)
-    reaperArray.clear()
-    local value = reaper.GetMediaItemTake_Peaks(self.take.pointer,
-                                                peakrate,
-                                                self.take.leftTime + startTime,
-                                                numberOfChannels,
-                                                numberOfSamples,
-                                                wantExtraType,
-                                                reaperArray)
-    local sampleCount = (value & 0xfffff)
-    local extraType =   (value & 0x1000000) >> 24
-    local outputMode =  (value & 0xf00000) >> 20
+    for i = round(startTimeSamples / peakSkip), w - 1 do
+        local index = math.max(round(i * peakSkip), 1)
 
-    local peaks = {}
+        local peakMax = self.peaks[index]
+        local peakMin = self.peaks[self.numberOfPeaks + index]
 
-    self:setColor(self.peakColor)
-    if sampleCount > 0 then
-        for i = 1, numberOfSamples do
-            peaks[i] = reaperArray.table(i)
-        end
-
-        for i = 1, numberOfSamples do
-            local peak = peaks[i]
-            local nextPeak = peaks[i + 1]
-
-            local peakMax = peak[1]
-            local peakMin = peak[2]
-
-            if nextPeak then
-                local nextPeakMax = nextPeak[1]
-                local nextPeakMin = nextPeak[2]
-
-                self:drawLine(x + i, y - peakMax * h, x + i, y + nextPeakMax * h, true)
-                --self:drawLine(x + i, y - peakMin * h, x + i + 1, y - nextPeakMin * h, true)
-            end
-            --local spectralPeak = reaperArray[numberOfSamples * 2 + i]
-            --local peak = {
-            --    max =          reaperArray[i],
-            --    min =          reaperArray[numberOfSamples + i],
-            --    lowFrequency = spectral & 0x7fff,
-            --    tonality =     (spectral>>15) / 16384
-            --}
-            --self.peaks[i] = peak
-        end
+        --if peakRate < sampleRate then
+            local drawX = x + i
+            local drawY1 = y - peakMax * h
+            local drawY2 = y - peakMin * h
+            self:drawLine(drawX, drawY1, drawX, drawY2, true)
+        --else
+        --    local drawX = x + (i - 1) * sampleSpacing
+        --    local waveHeight = peakMax * h
+        --    local drawY = y - math.max(waveHeight, 0)
+        --    local drawW = math.max(sampleSpacing - 1, 1)
+        --    local drawH = math.abs(waveHeight)
+        --    self:drawRectangle(drawX, drawY, drawW, drawH, true)
+        --end
     end
-end
+end]]--
 function PitchEditor:drawEdges()
     self:setColor(self.edgeColor)
     local leftEdgePixels =  self:timeToPixels(0.0)
@@ -481,56 +534,6 @@ function PitchEditor:drawEditCursor()
         self:setColor(self.playCursorColor)
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
-end
-function PitchEditor:drawPitchCorrectionSegment(index)
-    local point =     self.take.corrections.points[index]
-    local nextPoint = self.take.corrections.points[index + 1]
-    local mouseIsOverSegment = index == self.mouseOverPitchCorrectionIndex and (not self.mouseIsOverPoint)
-
-    self:setColor(self.pitchCorrectionActiveColor)
-
-    if point.isActive and nextPoint then
-        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-
-    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
-        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
-        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-end
-function PitchEditor:drawPitchCorrectionPoint(index)
-    local point = self.take.corrections.points[index]
-    local mouseIsOverThisPoint = index == self.mouseOverPitchCorrectionIndex and self.mouseIsOverPoint
-
-    if point.isActive then
-        self:setColor(self.pitchCorrectionActiveColor)
-    else
-        self:setColor(self.pitchCorrectionInactiveColor)
-    end
-
-    self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
-
-    if point.isSelected then
-        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
-        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
-    end
-
-    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
-        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
-        self:drawCircle(point.x, point.y, self.pitchCorrectionPixelRadius, true, true)
-    end
-end
-function PitchEditor:drawPitchCorrections()
-    -- Draw the active line segments.
-    self:setColor(self.pitchCorrectionActiveColor)
-    self.take.corrections:applyFunctionToAllPoints(function(point, index)
-        self:drawPitchCorrectionSegment(index)
-    end)
-
-    -- Draw the points.
-    self.take.corrections:applyFunctionToAllPoints(function(point, index)
-        self:drawPitchCorrectionPoint(index)
-    end)
 end
 
 --==============================================================
@@ -559,7 +562,12 @@ function PitchEditor:onUpdate()
         self:updatePitchCorrectionMouseOver()
         self:queueRedraw()
         self:recalculatePitchCorrectionCoordinates()
+        self:recalculateTakePitchCoordinates()
     end
+
+    --[[if self:projectHasChanged() then
+        self:updatePeaks()
+    end]]--
 
     self:updateEditorTakeWithSelectedItems()
 end
@@ -572,6 +580,7 @@ function PitchEditor:onWindowResize()
     end
 
     self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
 end
 function PitchEditor:onKeyPress()
     local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
@@ -607,6 +616,7 @@ function PitchEditor:onMouseMiddleDrag()
     end
 
     self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
 end
 --function PitchEditor:onMouseMiddleUp() end
 --function PitchEditor:onMouseMiddleDoubleClick() end
@@ -634,12 +644,14 @@ function PitchEditor:onMouseWheel()
     end
 
     self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
 end
 function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
-    self:drawPeaks()
+    --self:drawPeaks()
     self:drawEdges()
+    self:drawTakePitchLines()
     self:drawEditCursor()
     self:drawPitchCorrections()
     self.boxSelect:draw()

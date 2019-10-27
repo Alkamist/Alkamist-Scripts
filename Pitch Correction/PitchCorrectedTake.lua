@@ -1,7 +1,7 @@
 local reaper = reaper
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local PolyLine =       require("GFX.PolyLine")
+local PolyLine = require("GFX.PolyLine")
 
 local function mainCommand(id)
     if type(id) == "string" then
@@ -60,7 +60,6 @@ end
 
 
 
-
 local PitchCorrectedTake = {}
 
 function PitchCorrectedTake:new(init)
@@ -92,7 +91,6 @@ function PitchCorrectedTake:clear()
     self.rightTime =          nil
     self.pitches.points =     {}
     self.corrections.points = {}
-
 end
 function PitchCorrectedTake:activateEnvelope()
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
@@ -117,14 +115,15 @@ function PitchCorrectedTake:set(take)
     end
 
     self.pointer =      take
-    self.takeName =     reaper.GetTakeName(self.pointer)
-    self.takeGUID =     reaper.BR_GetMediaItemTakeGUID(self.pointer)
-    self.takeSource =   reaper.GetMediaItemTake_Source(self.pointer)
-    self.takeFileName = reaper.GetMediaSourceFileName(self.takeSource, ""):match("[^/\\]+$")
+    self.name =         reaper.GetTakeName(self.pointer)
+    self.GUID =         reaper.BR_GetMediaItemTakeGUID(self.pointer)
+    self.source =       reaper.GetMediaItemTake_Source(self.pointer)
+    self.fileName =     reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
+    self.sampleRate =   reaper.GetMediaSourceSampleRate(self.source)
     self.playrate =     reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
     self.startOffset =  getSourcePosition(self.pointer, 0.0)
     self.envelope =     self:activateEnvelope()
-    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.takeSource)
+    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
 
     self.item =         reaper.GetMediaItemTake_Item(self.pointer)
     self.track =        reaper.GetMediaItem_Track(self.item)
@@ -156,7 +155,7 @@ function PitchCorrectedTake:getPitchPointsFromExtState(analysisTake)
     end
 end
 function PitchCorrectedTake:analyzePitch(settings)
-    local analyzerID = Reaper.getEELCommandID("Pitch Analyzer")
+    local analyzerID = getEELCommandID("Pitch Analyzer")
     if not analyzerID then
         reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
         return 0
@@ -168,13 +167,13 @@ function PitchCorrectedTake:analyzePitch(settings)
     local analysisItem =   reaper.AddMediaItemToTrack(self.track)
     local analysisTake =   reaper.AddTakeToMediaItem(analysisItem)
 
-    reaper.SetMediaItemTake_Source(analysisTake, self.takeSource)
+    reaper.SetMediaItemTake_Source(analysisTake, self.source)
     reaper.SetMediaItemTakeInfo_Value(analysisTake, "D_STARTOFFS", leftBound)
     reaper.SetMediaItemInfo_Value(analysisItem, "D_LENGTH", analysisLength)
     reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
 
     local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
-    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID",    takeGUID,                  false)
+    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID",    self.GUID,                 false)
     reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP",  settings.windowStep,       true)
     reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ",     settings.minimumFrequency, true)
     reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ",     settings.maximumFrequency, true)
@@ -186,6 +185,21 @@ function PitchCorrectedTake:analyzePitch(settings)
 
     self:getPitchPointsFromExtState(analysisTake)
     reaper.DeleteTrackMediaItem(self.track, analysisItem)
+
+    self:updateMinimumTimePerPoint()
+end
+function PitchCorrectedTake:updateMinimumTimePerPoint()
+    self.minimumTimePerPoint = self.length
+    local points = self.pitches.points
+    local numberOfPoints = #points
+    for i = 1, numberOfPoints do
+        local point =     points[i]
+        local nextPoint = points[i + 1]
+        if nextPoint then
+            local timeFromLastPoint = nextPoint.time - point.time
+            self.minimumTimePerPoint = math.min(self.minimumTimePerPoint, timeFromLastPoint)
+        end
+    end
 end
 
 return PitchCorrectedTake
