@@ -327,11 +327,12 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP",     settings.overlap,          false)
     reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB,    false)
 
-    self.pitchPointSpacing =      settings.windowStep / settings.overlap
-    self.analysisStartTime =      0.0
-    self.analysisTimeWindow =     20 * self.pitchPointSpacing
-    self.numberOfAnalysisLoops =  math.ceil(self.length / self.analysisTimeWindow)
-    self.analysisLoopsCompleted = 0
+    local numberOfPitchPointsPerLoop = 5
+    self.pitchPointSpacing =           settings.windowStep / settings.overlap
+    self.analysisStartTime =           0.0
+    self.analysisTimeWindow =          numberOfPitchPointsPerLoop * self.pitchPointSpacing
+    self.numberOfAnalysisLoops =       math.ceil(self.length / self.analysisTimeWindow)
+    self.analysisLoopsCompleted =      0
 
     --reaper.DeleteTrackMediaItem(self.track, analysisItem)
 
