@@ -55,54 +55,49 @@ function parab(array, index)
     //c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
     -b / (2 * a);
 );
-//function findIndexOfFirstMinimum(array, arrayLength, threshold)
-//  local(i, indexOfFirstMinimumBelowThreshold, indexOfGlobalMinimum, minimumValue)
-//(
-//    indexOfFirstMinimumBelowThreshold = -1;
-//    indexOfGlobalMinimum = 0;
-//    minimumValue = array[0];
-//    i = 1;
-//    loop(arrayLength,
-//        // Find the global minimum in the case that there are no minimums below the threshold.
-//        array[i] < minimumValue ? (
-//            minimumValue = array[i];
-//            indexOfGlobalMinimum = i;
-//        );
-//        // If there exists a minimum below the threshold, use the first one you find.
-//        array[i] < threshold ? (
-//            indexOfFirstMinimumBelowThreshold = i;
-//            break;
-//        );
-//    );
-//
-//    indexOfFirstMinimumBelowThreshold == -1 ? (
-//        indexOfFirstMinimumBelowThreshold = indexOfGlobalMinimum;
-//    ):(
-//        indexOfFirstMinimumBelowThreshold = parab(array, indexOfFirstMinimumBelowThreshold);
-//    );
-//
-//    indexOfFirstMinimumBelowThreshold;
-//);
 function findIndexOfFirstMinimum(array, arrayLength, threshold)
-  local(i, minimumValue, indexOfMinimumValue)
+  local(i, minimumValue, indexOfMinimum, firstMinimumWasRecorded)
 (
     i = 1;
     minimumValue = threshold;
-    indexOfMinimumValue = -1;
-    loop(arrayLength - 10,
-        array[i] < minimumValue ? (
-            minimumValue = array[i];
-            indexOfMinimumValue = i;
-        );
-        array[i] > threshold ? (
-            minimumValue < threshold ? (
-                minimumValue = -10;
+    indexOfMinimum = -1;
+    firstMinimumWasRecorded = 0;
+
+    while(
+        array[i] < threshold ? (
+            array[i] > minimumValue ? firstMinimumWasRecorded = 1;
+            firstMinimumWasRecorded == 0 ? (
+                minimumValue = array[i];
+                indexOfMinimum = i;
             );
         );
+
         i += 1;
+        (i < arrayLength) && (firstMinimumWasRecorded == 0);
     );
-    indexOfMinimumValue == -1 ? -1 : parab(array, indexOfMinimumValue);
+
+    indexOfMinimum == -1 ? -1 : parab(array, indexOfMinimum);
 );
+//function findIndexOfFirstMinimum(array, arrayLength, threshold)
+//  local(i, minimumValue, indexOfMinimumValue)
+//(
+//    i = 1;
+//    minimumValue = threshold;
+//    indexOfMinimumValue = -1;
+//    loop(arrayLength - 1,
+//        array[i] < minimumValue ? (
+//            minimumValue = array[i];
+//            indexOfMinimumValue = i;
+//        );
+//        array[i] > threshold ? (
+//            minimumValue < threshold ? (
+//                minimumValue = -10;
+//            );
+//        );
+//        i += 1;
+//    );
+//    indexOfMinimumValue == -1 ? -1 : parab(array, indexOfMinimumValue);
+//);
 function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
   local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, indexOfFirstMinimum, i)
 (
