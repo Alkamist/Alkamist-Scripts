@@ -8,11 +8,11 @@ GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
 local pitchDetectionSettings = {
     windowStep =       0.04,
-    overlap =          2.0,
+    windowOverlap =    2.0,
     minimumFrequency = 80,
     maximumFrequency = 1000,
-    YINThresh =        0.2,
-    lowRMSLimitdB =    -60
+    threshold =        0.2,
+    minimumRMSdB =     -60.0
 }
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{

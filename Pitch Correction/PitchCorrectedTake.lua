@@ -2,7 +2,8 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local PolyLine = require("GFX.PolyLine")
+local PolyLine =       require("GFX.PolyLine")
+local PitchDetection = require("Pitch Correction.PitchDetection")
 
 --==============================================================
 --== Helpful Functions =========================================
@@ -283,26 +284,26 @@ function PitchCorrectedTake:set(take)
     --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 end
 function PitchCorrectedTake:getPitchPointsFromExtState()
-    local pointString = reaper.GetExtState("Alkamist_PitchCorrection", "PITCHDATA")
+    local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
 
     local points = self.pitches.points
 
     for line in pointString:gmatch("([^\r\n]+)") do
         local values =     getValuesFromStringLine(line)
-        local pointTime =  values[1] - self.startOffset
+        local pointTime =  values[1]
         local point = {
-            time =       pointTime,
+            time =  pointTime,
             --sourceTime = getSourcePosition(analysisTake, pointTime),
-            pitch =      values[2],
-            rms =        values[3]
+            pitch = values[2],
+            --rms =        values[3]
         }
         points[#points + 1] = point
     end
 end
 function PitchCorrectedTake:prepareToAnalyzePitch(settings)
-    self.analyzerID = getEELCommandID("Pitch Analyzer")
+    self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
     if not self.analyzerID then
-        reaper.MB("Pitch Analyzer.eel not found!", "Error!", 0)
+        reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
         return 0
     end
 
@@ -319,16 +320,16 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     --reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
     --local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
 
-    reaper.SetExtState("Alkamist_PitchCorrection", "TAKEGUID",    self.GUID,                 false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "WINDOWSTEP",  settings.windowStep,       false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MINFREQ",     settings.minimumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "MAXFREQ",     settings.maximumFrequency, false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "YINTHRESH",   settings.YINThresh,        false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "OVERLAP",     settings.overlap,          false)
-    reaper.SetExtState("Alkamist_PitchCorrection", "LOWRMSLIMDB", settings.lowRMSLimitdB,    false)
+    reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID",         self.GUID,                 false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP",       settings.windowStep,       false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWOVERLAP",    settings.windowOverlap,    false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMFREQUENCY", settings.minimumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MAXIMUMFREQUENCY", settings.maximumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD",        settings.threshold,        false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
 
     local numberOfPitchPointsPerLoop = 5
-    self.pitchPointSpacing =           settings.windowStep / settings.overlap
+    self.pitchPointSpacing =           settings.windowStep / settings.windowOverlap
     self.analysisStartTime =           0.0
     self.analysisTimeWindow =          numberOfPitchPointsPerLoop * self.pitchPointSpacing
     self.numberOfAnalysisLoops =       math.ceil(self.length / self.analysisTimeWindow)
@@ -340,9 +341,12 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
 end
 function PitchCorrectedTake:analyzePitch()
     if self.analysisLoopsCompleted < self.numberOfAnalysisLoops then
-        reaper.SetExtState("Alkamist_PitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
-        reaper.SetExtState("Alkamist_PitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
-
+        reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
+        reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
+        --local pitchPoints = PitchDetection:getPitchPoints(self.pointer, self.analysisStartTime, self.analysisTimeWindow, 0.04, 2.0, -60.0, 80, 1000, 0.10)
+        --for i = 1, #pitchPoints do
+        --    self.pitches.points[#self.pitches.points + 1] = pitchPoints[i]
+        --end
         self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
         mainCommand(self.analyzerID)
         self:getPitchPointsFromExtState()

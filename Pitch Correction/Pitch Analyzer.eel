@@ -61,46 +61,6 @@ function findMin(istart iend thresh srate minLook)
     );
     minLook + parab(return_ind) - istart;
 );
-function lim(val, min0, max0)(
-    min0 ==0 & max0 ? (min0 =0; max0 = 1);
-    val = max(min0, min(val, max0)) ;
-    val
-);
-function round(num)
-  local(mult ret)
-(
-    num >= 0 ?
-    (
-        mult = 1;
-    ) : (
-        mult = -1;
-    );
-    abs(num) - floor(abs(num)) >= 0.5 ?
-    (
-        ret = mult * ceil(abs(num));
-    ) : (
-        ret = mult * floor(abs(num));
-    );
-    ret;
-);
-
-function cmnd(tau istart iwinend) //Cumulative Mean Normalized Difference (YIN eq. 8)
-  local(i return)
-(
-    dbufstart = 127127;
-
-    i = 0;
-    loop(tau + 1,
-        dbufstart[i] = d(i, istart, iwinend);
-        i += 1;
-    );
-    tau == 0 ? (
-        return = 1;
-    ):(
-        return = dbufstart[tau] / avg(dbufstart, dbufstart + tau + 1);
-    );
-    return;
-);
 
 function getFrequency(spos srate winSamples maxlen windowStep minF maxF YINthresh)
   local(maxLook minLook dpos cmndpos i freq)
@@ -165,10 +125,10 @@ function getPitchDataByTakeGUID(pitchData takeGUID windowStep minF maxF lowRMSli
             rms = 0; i = 0; loop(bufferSize, rms = rms + abs(spos[i]); i += 1;); rms = rms / bufferSize;
 
             // Seek transient.
-            rmsdB = 20 * log10(rms * 2);
-            last_rmsdB = 20 * log10(last_rms * 2);
+            //rmsdB = 20 * log10(rms * 2);
+            //last_rmsdB = 20 * log10(last_rms * 2);
 
-            last_rms = rms;
+            //last_rms = rms;
 
             // Perform pitch detection.
             rms > lowRMSlimit ? (

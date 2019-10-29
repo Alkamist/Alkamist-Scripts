@@ -1,0 +1,182 @@
+//function imsg(message)
+//(
+//    #temp = sprintf(#, "%i", message);
+//    #temp += "\n";
+//    ShowConsoleMsg(#temp);
+//);
+//function fmsg(message)
+//(
+//    #temp = sprintf(#, "%f", message);
+//    #temp += "\n";
+//    ShowConsoleMsg(#temp);
+//);
+//function msg(message)
+//(
+//    #temp = message;
+//    #temp += "\n";
+//    ShowConsoleMsg(#temp);
+//);
+
+function d(array, arrayLength, lag)
+  local(i, sum)
+(
+    i = 0;
+    sum = 0;
+    loop(arrayLength - lag,
+        sum += sqr(array[i] - array[i + lag]);
+        i += 1;
+    );
+    sum;
+);
+function average(array, arrayLength)
+  local(i, sum)
+(
+    i = 0;
+    sum = 0;
+    loop(arrayLength,
+        sum += array[i];
+        i += 1;
+    );
+    sum / arrayLength;
+);
+function parab(array, index)
+  local(x1, y1, x2, y2, x3, y3, denominator, a, b, c)
+(
+    x1 = index - 1;
+    y1 = array[x1];
+    x2 = index;
+    y2 = array[x2];
+    x3 = index + 1;
+    y3 = array[x3];
+
+    denominator = (x1 - x2) * (x1 - x3) * (x2 - x3);
+    a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denominator;
+    b = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / denominator;
+    //c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
+    -b / (2 * a);
+);
+function findIndexOfFirstMinimum(array, arrayLength, sampleRate, threshold)
+  local(i, minimumValue, indexOfMinimumValue)
+(
+    i = 1;
+    minimumValue = threshold;
+    indexOfMinimumValue = -sampleRate;
+    loop(arrayLength - 10,
+        array[i] < minimumValue ? (
+            minimumValue = array[i];
+            indexOfMinimumValue = i;
+        );
+        array[i] > threshold ? (
+            minimumValue < threshold ? (
+                minimumValue = -10;
+            );
+        );
+        i += 1;
+    );
+    parab(array, indexOfMinimumValue);
+);
+function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
+  local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, i)
+(
+    minimumLookIndex = floor(sampleRate / maximumFrequency);
+    maximumLookIndex = floor(min(sampleRate / minimumFrequency, arrayLength));
+    lookWindowLength = maximumLookIndex - minimumLookIndex;
+
+    differences = array + arrayLength + 100;
+    cmnds = differences + lookWindowLength + 100;
+    cmnds[0] = 1;
+
+    i = 0;
+    loop(lookWindowLength,
+        differences[i] = d(array, arrayLength, minimumLookIndex + i);
+        i += 1;
+    );
+
+    i = 1;
+    loop(lookWindowLength,
+        cmnds[i] = differences[i] / average(differences, i);
+        i += 1;
+    );
+
+    sampleRate / (minimumLookIndex + findIndexOfFirstMinimum(cmnds, lookWindowLength, sampleRate, threshold));
+);
+function writePitchPointsToExtState()
+  local(windowStep, windowOverlap, minimumFrequency, maximumFrequency, threshold, minimumRMSdB,
+        minimumRMS, startTime, timeWindow, take, sampleRate, windowSamples, seekPosition, accessor,
+        sampleArray, rms, frequency, pitch, i)
+(
+    GetExtState(#takeGUID,         "AlkamistPitchCorrection", "TAKEGUID");
+    GetExtState(#windowStep,       "AlkamistPitchCorrection", "WINDOWSTEP");
+    GetExtState(#windowOverlap,    "AlkamistPitchCorrection", "WINDOWOVERLAP");
+    GetExtState(#minimumFrequency, "AlkamistPitchCorrection", "MINIMUMFREQUENCY");
+    GetExtState(#maximumFrequency, "AlkamistPitchCorrection", "MAXIMUMFREQUENCY");
+    GetExtState(#threshold,        "AlkamistPitchCorrection", "THRESHOLD");
+    GetExtState(#minimumRMSdB,     "AlkamistPitchCorrection", "MINIMUMRMSDB");
+    GetExtState(#startTime,        "AlkamistPitchCorrection", "STARTTIME");
+    GetExtState(#timeWindow,       "AlkamistPitchCorrection", "TIMEWINDOW");
+
+    // Convert the parameters from strings to numbers.
+    match("%f", #windowStep,       windowStep);
+    match("%f", #windowOverlap,    windowOverlap);
+    match("%f", #minimumFrequency, minimumFrequency);
+    match("%f", #maximumFrequency, maximumFrequency);
+    match("%f", #threshold,        threshold);
+    match("%f", #minimumRMSdB,     minimumRMSdB);
+    match("%f", #startTime,        startTime);
+    match("%f", #timeWindow,       timeWindow);
+
+    minimumRMS = exp(minimumRMSdB * 0.11512925464970228420089957273422);
+
+    #pitchPoints = "";
+
+    take =          GetMediaItemTakeByGUID(0, #takeGUID);
+    sampleRate =    GetMediaSourceSampleRate(GetMediaItemTake_Source(take));
+    windowSamples = floor(sampleRate * windowStep);
+    seekPosition =  startTime;
+    accessor =      CreateTakeAudioAccessor(take);
+    sampleArray = 0;
+    memset(0, 0, windowSamples); // Clear the sample buffer.
+
+    while (
+        GetAudioAccessorSamples(accessor, sampleRate, 1, seekPosition, windowSamples, sampleArray);
+
+        // Get RMS.
+        rms = 0;
+        i = 0;
+        loop(windowSamples,
+            rms = rms + abs(sampleArray[i]);
+            i += 1;
+        );
+        rms = rms / windowSamples;
+
+        // Perform pitch detection.
+        rms > minimumRMS ? (
+            frequency = getFrequency(sampleArray, windowSamples, sampleRate, minimumFrequency, maximumFrequency, threshold);
+            pitch = 69 + 12 * log(frequency / 440) / log(2);
+            pitch = min(max(pitch, 0), 127);
+
+            frequency > 0 && strlen(#pitchPoints) < 64000 ?
+            (
+                strcat(#pitchPoints, sprintf(#, "%f", seekPosition));
+                strcat(#pitchPoints, " ");
+
+                strcat(#pitchPoints, sprintf(#, "%f", pitch));
+                strcat(#pitchPoints, " ");
+
+                strcat(#pitchPoints, sprintf(#, "%f", rms));
+                strcat(#pitchPoints, " ");
+
+                strcat(#pitchPoints, "\n");
+            );
+        );
+
+        seekPosition += windowStep / windowOverlap;
+        seekPosition < startTime + timeWindow;
+    );
+
+    DestroyAudioAccessor(accessor);
+
+    SetExtState("AlkamistPitchCorrection", "PITCHPOINTS", #pitchPoints, 0);
+);
+
+writePitchPointsToExtState();
