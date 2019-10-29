@@ -80,25 +80,20 @@ function findIndexOfFirstMinimum(array, arrayLength, threshold)
     indexOfMinimum == -1 ? -1 : parabolicInterpolationOfArray(array, indexOfMinimum);
 );
 function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
-  local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, indexOfFirstMinimum, i)
+  local(minimumLookIndex, maximumLookIndex, lookWindowLength, cmnds, sumOfDifferences, lag, currentDifference, frequency, indexOfFirstMinimum, i)
 (
     minimumLookIndex = floor(sampleRate / maximumFrequency);
     maximumLookIndex = floor(min(sampleRate / minimumFrequency, arrayLength));
     lookWindowLength = maximumLookIndex - minimumLookIndex;
 
-    differences = array + arrayLength + 100;
-    cmnds = differences + lookWindowLength + 100;
-    cmnds[0] = 1;
-
+    cmnds = array + arrayLength + 100;
+    sumOfDifferences = 0;
     i = 0;
     loop(lookWindowLength,
-        differences[i] = d(array, arrayLength, minimumLookIndex + i);
-        i += 1;
-    );
-
-    i = 1;
-    loop(lookWindowLength,
-        cmnds[i] = differences[i] / average(differences, i);
+        lag = minimumLookIndex + i;
+        currentDifference = d(array, arrayLength, lag);
+        sumOfDifferences = sumOfDifferences + currentDifference;
+        cmnds[i] = currentDifference * lag / sumOfDifferences;
         i += 1;
     );
 

@@ -343,13 +343,13 @@ function PitchCorrectedTake:analyzePitch()
     if self.analysisLoopsCompleted < self.numberOfAnalysisLoops then
         reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
         reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
-        local pitchPoints = PitchDetection:getPitchPoints(self.pointer, self.analysisStartTime, self.analysisTimeWindow, 0.04, 2.0, -60.0, 80, 1000, 0.2)
-        for i = 1, #pitchPoints do
-            self.pitches.points[#self.pitches.points + 1] = pitchPoints[i]
-        end
+        --local pitchPoints = PitchDetection:getPitchPoints(self.pointer, self.analysisStartTime, self.analysisTimeWindow, 0.04, 2.0, -60.0, 80, 1000, 0.2)
+        --for i = 1, #pitchPoints do
+        --    self.pitches.points[#self.pitches.points + 1] = pitchPoints[i]
+        --end
         self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
-        --mainCommand(self.analyzerID)
-        --self:getPitchPointsFromExtState()
+        mainCommand(self.analyzerID)
+        self:getPitchPointsFromExtState()
         self.analysisLoopsCompleted = self.analysisLoopsCompleted + 1
     end
 end

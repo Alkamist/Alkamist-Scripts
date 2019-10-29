@@ -9,13 +9,6 @@ local function d(array, lag)
     end
     return sum
 end
-local function average(array, lengthOfAverage)
-    local sum = 0
-    for i = 1, lengthOfAverage do
-        sum = sum + array[i]
-    end
-    return sum / lengthOfAverage
-end
 local function parabolicInterpolationOfArray(array, index)
     local x1 = index - 1
     local y1 = array[x1]
@@ -49,31 +42,6 @@ local function findIndexOfFirstMinimum(array, threshold)
         return parabolicInterpolationOfArray(array, indexOfMinimum)
     end
 end
---local function getFrequency(array, sampleRate, minimumFrequency, maximumFrequency, threshold)
---    local minimumLookIndex = math.floor(sampleRate / maximumFrequency)
---    local maximumLookIndex = math.floor(math.min(sampleRate / minimumFrequency, #array))
---    local lookWindowLength = maximumLookIndex - minimumLookIndex
---
---    local differences = {}
---    local cmnds = {
---        [1] = 1
---    }
---
---    for i = 1, lookWindowLength do
---        differences[i] = d(array, minimumLookIndex + i - 1)
---    end
---    for i = 2, lookWindowLength do
---        cmnds[i] = differences[i] / average(differences, i - 1)
---    end
---
---    local indexOfFirstMinimum = findIndexOfFirstMinimum(cmnds, threshold)
---
---    local frequency = 0
---    if indexOfFirstMinimum > -1 then
---        frequency = sampleRate / (minimumLookIndex + indexOfFirstMinimum)
---    end
---    return frequency
---end
 local function getFrequency(array, sampleRate, minimumFrequency, maximumFrequency, threshold)
     local minimumLookIndex =  math.floor(sampleRate / maximumFrequency)
     local maximumLookIndex =  math.floor(math.min(sampleRate / minimumFrequency, #array))
