@@ -191,7 +191,7 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
                 local driftCorrection = getDriftCorrection(correction, nextCorrection, i, pitchPoints)
                 local modCorrection =   getModCorrection(correction, nextCorrection, pitchPoint, driftCorrection)
                 addPitchCorrectionToEnvelope(driftCorrection + modCorrection, pitchPoint.time, envelope, playrate)
-                addZeroPointsToEnvelope(i, pitchPoints, 0.04, 0.005, envelope, playrate)
+                addZeroPointsToEnvelope(i, pitchPoints, 0.2, 0.005, envelope, playrate)
             end
         end
     end

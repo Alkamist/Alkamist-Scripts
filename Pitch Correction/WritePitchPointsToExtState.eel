@@ -29,17 +29,6 @@ function d(array, arrayLength, lag)
     );
     sum;
 );
-function average(array, arrayLength)
-  local(i, sum)
-(
-    i = 0;
-    sum = 0;
-    loop(arrayLength,
-        sum += array[i];
-        i += 1;
-    );
-    sum / arrayLength;
-);
 function parabolicInterpolationOfArray(array, index)
   local(x1, y1, x2, y2, x3, y3, denominator, a, b, c)
 (

@@ -440,7 +440,7 @@ function PitchEditor:drawTakePitchLines()
         local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
 
         if previousPoint then
-            if point.time - previousPoint.time <= self.take.pitchPointSpacing * 1.1 then
+            if point.time - previousPoint.time <= self.take.pitchPointSpacing * 4.0 then
                 self:setColor(self.pitchLineColor)
                 self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
 
