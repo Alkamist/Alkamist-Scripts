@@ -55,12 +55,40 @@ function parab(array, index)
     //c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom;
     -b / (2 * a);
 );
-function findIndexOfFirstMinimum(array, arrayLength, sampleRate, threshold)
+//function findIndexOfFirstMinimum(array, arrayLength, threshold)
+//  local(i, indexOfFirstMinimumBelowThreshold, indexOfGlobalMinimum, minimumValue)
+//(
+//    indexOfFirstMinimumBelowThreshold = -1;
+//    indexOfGlobalMinimum = 0;
+//    minimumValue = array[0];
+//    i = 1;
+//    loop(arrayLength,
+//        // Find the global minimum in the case that there are no minimums below the threshold.
+//        array[i] < minimumValue ? (
+//            minimumValue = array[i];
+//            indexOfGlobalMinimum = i;
+//        );
+//        // If there exists a minimum below the threshold, use the first one you find.
+//        array[i] < threshold ? (
+//            indexOfFirstMinimumBelowThreshold = i;
+//            break;
+//        );
+//    );
+//
+//    indexOfFirstMinimumBelowThreshold == -1 ? (
+//        indexOfFirstMinimumBelowThreshold = indexOfGlobalMinimum;
+//    ):(
+//        indexOfFirstMinimumBelowThreshold = parab(array, indexOfFirstMinimumBelowThreshold);
+//    );
+//
+//    indexOfFirstMinimumBelowThreshold;
+//);
+function findIndexOfFirstMinimum(array, arrayLength, threshold)
   local(i, minimumValue, indexOfMinimumValue)
 (
     i = 1;
     minimumValue = threshold;
-    indexOfMinimumValue = -sampleRate;
+    indexOfMinimumValue = -1;
     loop(arrayLength - 10,
         array[i] < minimumValue ? (
             minimumValue = array[i];
@@ -73,10 +101,10 @@ function findIndexOfFirstMinimum(array, arrayLength, sampleRate, threshold)
         );
         i += 1;
     );
-    parab(array, indexOfMinimumValue);
+    indexOfMinimumValue == -1 ? -1 : parab(array, indexOfMinimumValue);
 );
 function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
-  local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, i)
+  local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, indexOfFirstMinimum, i)
 (
     minimumLookIndex = floor(sampleRate / maximumFrequency);
     maximumLookIndex = floor(min(sampleRate / minimumFrequency, arrayLength));
@@ -98,7 +126,14 @@ function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumF
         i += 1;
     );
 
-    sampleRate / (minimumLookIndex + findIndexOfFirstMinimum(cmnds, lookWindowLength, sampleRate, threshold));
+    indexOfFirstMinimum = findIndexOfFirstMinimum(cmnds, lookWindowLength, threshold);
+    frequency = 0;
+
+    indexOfFirstMinimum > -1 ? (
+        frequency = sampleRate / (minimumLookIndex + indexOfFirstMinimum);
+    );
+
+    frequency;
 );
 function writePitchPointsToExtState()
   local(windowStep, windowOverlap, minimumFrequency, maximumFrequency, threshold, minimumRMSdB,
