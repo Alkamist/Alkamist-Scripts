@@ -1,22 +1,23 @@
-//function imsg(message)
-//(
-//    #temp = sprintf(#, "%i", message);
-//    #temp += "\n";
-//    ShowConsoleMsg(#temp);
-//);
-//function fmsg(message)
-//(
-//    #temp = sprintf(#, "%f", message);
-//    #temp += "\n";
-//    ShowConsoleMsg(#temp);
-//);
-//function msg(message)
-//(
-//    #temp = message;
-//    #temp += "\n";
-//    ShowConsoleMsg(#temp);
-//);
+function imsg(message)
+(
+    #temp = sprintf(#, "%i", message);
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
+function fmsg(message)
+(
+    #temp = sprintf(#, "%f", message);
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
+function msg(message)
+(
+    #temp = message;
+    #temp += "\n";
+    ShowConsoleMsg(#temp);
+);
 
+// The difference equation from http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf Figure (6)
 function d(array, arrayLength, lag)
   local(i, sum)
 (
@@ -39,7 +40,7 @@ function average(array, arrayLength)
     );
     sum / arrayLength;
 );
-function parab(array, index)
+function parabolicInterpolationOfArray(array, index)
   local(x1, y1, x2, y2, x3, y3, denominator, a, b, c)
 (
     x1 = index - 1;
@@ -76,28 +77,8 @@ function findIndexOfFirstMinimum(array, arrayLength, threshold)
         (i < arrayLength) && (firstMinimumWasRecorded == 0);
     );
 
-    indexOfMinimum == -1 ? -1 : parab(array, indexOfMinimum);
+    indexOfMinimum == -1 ? -1 : parabolicInterpolationOfArray(array, indexOfMinimum);
 );
-//function findIndexOfFirstMinimum(array, arrayLength, threshold)
-//  local(i, minimumValue, indexOfMinimumValue)
-//(
-//    i = 1;
-//    minimumValue = threshold;
-//    indexOfMinimumValue = -1;
-//    loop(arrayLength - 1,
-//        array[i] < minimumValue ? (
-//            minimumValue = array[i];
-//            indexOfMinimumValue = i;
-//        );
-//        array[i] > threshold ? (
-//            minimumValue < threshold ? (
-//                minimumValue = -10;
-//            );
-//        );
-//        i += 1;
-//    );
-//    indexOfMinimumValue == -1 ? -1 : parab(array, indexOfMinimumValue);
-//);
 function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
   local(minimumLookIndex, maximumLookIndex, lookWindowLength, differences, cmnds, frequency, indexOfFirstMinimum, i)
 (

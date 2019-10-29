@@ -5,9 +5,16 @@ local math = math
 local function d(array, lag)
     local sum = 0
     for i = 1, #array - lag do
-        sum = sum + (array[i] * array[i + lag]) ^ 2
+        sum = sum + (array[i] - array[i + lag]) ^ 2
     end
     return sum
+end
+local function average(array, lengthOfAverage)
+    local sum = 0
+    for i = 1, lengthOfAverage do
+        sum = sum + array[i]
+    end
+    return sum / lengthOfAverage
 end
 local function parabolicInterpolationOfArray(array, index)
     local x1 = index - 1
@@ -24,29 +31,49 @@ local function parabolicInterpolationOfArray(array, index)
     return -b / (2.0 * a)
 end
 local function findIndexOfFirstMinimum(array, threshold)
-    local indexOfFirstMinimumBelowThreshold
-    local indexOfGlobalMinimum = 1
-    local minimumValue = array[1]
-    for i = 1, #array do
+    local minimumValue = threshold
+    local indexOfMinimum = -1;
+
+    for i = 2, #array - 1 do
         local value = array[i]
-        -- Find the global minimum in the case that there are no minimums below the threshold.
-        if value < minimumValue then
-            minimumValue = value
-            indexOfGlobalMinimum = i
-        end
-        -- If there exists a minimum below the threshold, use the first one you find.
         if value < threshold then
-            indexOfFirstMinimumBelowThreshold = i
-            break
+            if value > minimumValue then break end
+            minimumValue = value
+            indexOfMinimum = i
         end
     end
 
-    if indexOfFirstMinimumBelowThreshold == nil then
-        return indexOfGlobalMinimum
+    if indexOfMinimum == -1 then
+        return -1
+    else
+        return parabolicInterpolationOfArray(array, indexOfMinimum)
     end
-
-    return parabolicInterpolationOfArray(array, indexOfFirstMinimumBelowThreshold)
 end
+--local function getFrequency(array, sampleRate, minimumFrequency, maximumFrequency, threshold)
+--    local minimumLookIndex = math.floor(sampleRate / maximumFrequency)
+--    local maximumLookIndex = math.floor(math.min(sampleRate / minimumFrequency, #array))
+--    local lookWindowLength = maximumLookIndex - minimumLookIndex
+--
+--    local differences = {}
+--    local cmnds = {
+--        [1] = 1
+--    }
+--
+--    for i = 1, lookWindowLength do
+--        differences[i] = d(array, minimumLookIndex + i - 1)
+--    end
+--    for i = 2, lookWindowLength do
+--        cmnds[i] = differences[i] / average(differences, i - 1)
+--    end
+--
+--    local indexOfFirstMinimum = findIndexOfFirstMinimum(cmnds, threshold)
+--
+--    local frequency = 0
+--    if indexOfFirstMinimum > -1 then
+--        frequency = sampleRate / (minimumLookIndex + indexOfFirstMinimum)
+--    end
+--    return frequency
+--end
 local function getFrequency(array, sampleRate, minimumFrequency, maximumFrequency, threshold)
     local minimumLookIndex =  math.floor(sampleRate / maximumFrequency)
     local maximumLookIndex =  math.floor(math.min(sampleRate / minimumFrequency, #array))
@@ -60,22 +87,22 @@ local function getFrequency(array, sampleRate, minimumFrequency, maximumFrequenc
         local currentDifference = d(array, lag)
         sumOfDifferences = sumOfDifferences + currentDifference
 
-        if lag >= minimumLookIndex then
-            cmnds[cmndIndex] = currentDifference * lag / sumOfDifferences
-            cmndIndex = cmndIndex + 1
-        end
+        cmnds[cmndIndex] = currentDifference * lag / sumOfDifferences
+        cmndIndex = cmndIndex + 1
     end
 
-    local relativeIndexOfMinimum = minimumLookIndex + findIndexOfFirstMinimum(cmnds, threshold)
-    return sampleRate / relativeIndexOfMinimum
+    local indexOfFirstMinimum = findIndexOfFirstMinimum(cmnds, threshold)
+    local frequency = 0
+    if indexOfFirstMinimum > -1 then
+        frequency = sampleRate / (minimumLookIndex + indexOfFirstMinimum)
+    end
+    return frequency
 end
 
 local PitchDetection = {}
 
 function PitchDetection:getPitchPoints(take, startingTime, timeWindow, windowStep, windowOverlap, lowRMSLimitdB, minimumFrequency, maximumFrequency, threshold)
     local lowRMSLimit =   math.exp(lowRMSLimitdB * 0.11512925464970228420089957273422)
-    local item =          reaper.GetMediaItemTakeInfo_Value(take, "P_ITEM")
-    --local startOffset =   reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS")
     local source =        reaper.GetMediaItemTake_Source(take)
     local sampleRate =    reaper.GetMediaSourceSampleRate(source)
     local windowSamples = math.floor(sampleRate * windowStep)
