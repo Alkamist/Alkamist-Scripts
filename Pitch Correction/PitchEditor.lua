@@ -692,7 +692,7 @@ PitchEditor.onKeyPressFunctions = {
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.snappedMousePitch,
-            isActive = true,
+            isActive = false,
             isSelected = false
         }
         self.take:correctAllPitchPoints()
@@ -704,13 +704,15 @@ PitchEditor.onKeyPressFunctions = {
             isActive = false,
             isSelected = false
         }
+        local previousPoint = self.take.corrections.points[self.take.corrections.mostRecentInsertedIndex - 1]
+        if previousPoint then previousPoint.isActive = true end
         self.take:correctAllPitchPoints()
     end,
     ["S"] = function(self)
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.mousePitch,
-            isActive = true,
+            isActive = false,
             isSelected = false
         }
         self.take:correctAllPitchPoints()
@@ -722,6 +724,8 @@ PitchEditor.onKeyPressFunctions = {
             isActive = false,
             isSelected = false
         }
+        local previousPoint = self.take.corrections.points[self.take.corrections.mostRecentInsertedIndex - 1]
+        if previousPoint then previousPoint.isActive = true end
         self.take:correctAllPitchPoints()
     end,
 }
