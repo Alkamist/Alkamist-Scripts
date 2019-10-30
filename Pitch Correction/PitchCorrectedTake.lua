@@ -371,7 +371,6 @@ function PitchCorrectedTake:set(take)
     self:loadPitchCorrections()
     self:correctAllPitchPoints()
 end
-
 function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
     local tolerance = tolerance or 0.0001
     local newPoints = {}
@@ -461,6 +460,35 @@ function PitchCorrectedTake:analyzePitch()
         end
     end
 end
+function PitchCorrectedTake:correctAllPitchPoints()
+    self:clearEnvelope()
+    local corrections = self.corrections.points
+    local pitchPoints = self.pitches.points
+    for i = 1, #corrections do
+        local correction =     corrections[i]
+        local nextCorrection = corrections[i + 1]
+
+        addEdgePointsToCorrection(i, corrections, self.envelope, self.playrate)
+        if correction.isActive and nextCorrection then
+            correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
+        end
+    end
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:clearEnvelope()
+    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.takeSourceLength * self.playrate)
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:insertPitchCorrectionPoint(point)
+    point.driftTime =       point.driftTime       or defaultDriftTime
+    point.driftCorrection = point.driftCorrection or defaultDriftCorrection
+    point.modCorrection =   point.modCorrection   or defaultModCorrection
+    self.corrections:insertPoint(point)
+end
+
+--== Pitch Point Saving ======================================
 
 function PitchCorrectedTake:updatePitchPointTimes()
     local points = self.pitches.points
@@ -509,8 +537,11 @@ function PitchCorrectedTake:savePitchPoints()
     local file = io.open(fullFileName, "w")
     if file then
         file:write(saveString)
+        file:close()
     end
 end
+
+--== Pitch Correction Saving ======================================
 
 function PitchCorrectedTake:updatePitchCorrectionTimes()
     local points = self.corrections.points
@@ -571,34 +602,6 @@ function PitchCorrectedTake:savePitchCorrections()
     if file then
         file:write(saveString)
     end
-end
-
-function PitchCorrectedTake:correctAllPitchPoints()
-    self:clearEnvelope()
-    local corrections = self.corrections.points
-    local pitchPoints = self.pitches.points
-    for i = 1, #corrections do
-        local correction =     corrections[i]
-        local nextCorrection = corrections[i + 1]
-
-        addEdgePointsToCorrection(i, corrections, self.envelope, self.playrate)
-        if correction.isActive and nextCorrection then
-            correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
-        end
-    end
-    reaper.Envelope_SortPoints(self.envelope)
-    reaper.UpdateArrange()
-end
-function PitchCorrectedTake:clearEnvelope()
-    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.takeSourceLength * self.playrate)
-    reaper.Envelope_SortPoints(self.envelope)
-    reaper.UpdateArrange()
-end
-function PitchCorrectedTake:insertPitchCorrectionPoint(point)
-    point.driftTime =       point.driftTime       or defaultDriftTime
-    point.driftCorrection = point.driftCorrection or defaultDriftCorrection
-    point.modCorrection =   point.modCorrection   or defaultModCorrection
-    self.corrections:insertPoint(point)
 end
 
 return PitchCorrectedTake
