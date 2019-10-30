@@ -165,6 +165,7 @@ function PitchEditor:updateEditorTakeWithSelectedItems()
     if self.take.pointer then
         self.track = self.take.track
         self.take:updatePitchPointTimes()
+        self.take:updatePitchCorrectionTimes()
     else
         self.track = nil
     end
