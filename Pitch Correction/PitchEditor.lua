@@ -572,13 +572,14 @@ function PitchEditor:onInit()
     self:onWindowResize()
     self:calculateMouseInformation()
 
-    --local time = self.take.length / 2000
+    --local time = self.take.sourceLength / 1000
     --local timeIncrement = time
-    --for i = 1, 2000 do
+    --for i = 1, 1000 do
     --    self:insertPitchCorrectionPoint{
     --        time = time,
     --        pitch = 20.0 * math.random() + 50,
-    --        isActive = math.random() > 0.5
+    --        isActive = math.random() > 0.5,
+    --        isSelected = false
     --    }
     --    time = time + timeIncrement
     --end

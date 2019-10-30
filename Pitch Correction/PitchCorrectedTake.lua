@@ -315,7 +315,7 @@ function PitchCorrectedTake:clear()
     self.playrate =           1.0
     self.startOffset =        0.0
     self.envelope =           nil
-    self.takeSourceLength =   0.0
+    self.sourceLength =   0.0
     self.item =               nil
     self.track =              nil
     self.length =             0.0
@@ -348,7 +348,7 @@ function PitchCorrectedTake:updateInformation()
     self.length =       reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
     self.leftTime =     reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime =    self.leftTime + self.length
-    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
+    _, _, self.sourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
 end
 function PitchCorrectedTake:set(take)
     if take == nil then
@@ -435,7 +435,7 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
 
     if analyzeFullSource then
         self.analysisStartTime =     0.0
-        self.numberOfAnalysisLoops = math.ceil(self.takeSourceLength / self.analysisTimeWindow)
+        self.numberOfAnalysisLoops = math.ceil(self.sourceLength / self.analysisTimeWindow)
     end
 
     self:clearEnvelope()
@@ -477,11 +477,12 @@ function PitchCorrectedTake:correctAllPitchPoints()
     reaper.UpdateArrange()
 end
 function PitchCorrectedTake:clearEnvelope()
-    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.takeSourceLength * self.playrate)
+    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.sourceLength * self.playrate)
     reaper.Envelope_SortPoints(self.envelope)
     reaper.UpdateArrange()
 end
 function PitchCorrectedTake:insertPitchCorrectionPoint(point)
+    point.sourceTime =      getSourceTime(self.pointer, point.time)
     point.driftTime =       point.driftTime       or defaultDriftTime
     point.driftCorrection = point.driftCorrection or defaultDriftCorrection
     point.modCorrection =   point.modCorrection   or defaultModCorrection
