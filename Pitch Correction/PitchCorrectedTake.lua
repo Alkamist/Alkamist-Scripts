@@ -528,7 +528,7 @@ function PitchCorrectedTake:correctAllPitchPoints()
     reaper.UpdateArrange()
 end
 function PitchCorrectedTake:clearEnvelope()
-    reaper.DeleteEnvelopePointRange(self.envelope, 0, self.length * self.playrate)
+    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.takeSourceLength * self.playrate)
     reaper.Envelope_SortPoints(self.envelope)
     reaper.UpdateArrange()
 end
