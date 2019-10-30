@@ -230,35 +230,56 @@ end
 --== Saving Logic ==============================================
 --==============================================================
 
-local function encodeSaveString(tableToEncode, memberNames, memberDefaults)
-    local saveTable = {}
-    for i = 1, #tableToEncode do
-        local point = tableToEncode[i]
-        saveTable[i] = {}
-        for j = 1, #memberNames do
-            local name = memberNames[j]
+local function encodeTimeSeries(timeSeries, info, members)
+    local saveTable = { points = {} }
+
+    for key, value in pairs(info) do
+        saveTable[key] = value
+    end
+
+    local numberOfPoints = #timeSeries
+    local numberOfMembers = #members
+    saveTable.numberOfPoints = numberOfPoints
+
+    for name, defaultValue in pairs(members) do
+        for i = 1, numberOfPoints do
+            local point = timeSeries[i]
             local value = point[name]
-            if value == nil then value = memberDefaults[j] end
+            if value == nil then value = defaultValue end
             if value == nil then value = 0 end
-            saveTable[i][name] = value
+            saveTable.points[name] = saveTable.points[name] or {}
+            saveTable.points[name][i] = value
         end
     end
+
     return Json.encode(saveTable, { indent = true })
 end
-local function decodeSaveString(stringToDecode, memberNames, memberDefaults)
+local function decodeTimeSeries(stringToDecode, wantedInfo, wantedPointMembers)
     local decodedTable = Json.decode(stringToDecode)
-    local outputTable = {}
-    for i = 1, #decodedTable do
-        local point = decodedTable[i]
-        outputTable[i] = {}
-        for j = 1, #memberNames do
-            local name = memberNames[j]
-            local value = point[name]
-            if value == nil then value = memberDefaults[j] end
-            if value == nil then value = 0 end
-            outputTable[i][name] = value
+    local outputTable = { points = {} }
+
+    for name, defaultValue in pairs(wantedInfo) do
+        local decodedValue = decodedTable[name]
+        if decodedValue == nil then decodedValue = defaultValue end
+        outputTable[name] = decodedValue
+    end
+
+    local numberOfPoints = decodedTable.numberOfPoints
+
+    for name, defaultValue in pairs(wantedPointMembers) do
+        for i = 1, numberOfPoints do
+            local pointMember = decodedTable.points[name]
+            local value = defaultValue
+            if pointMember then
+                value = pointMember[i]
+                if value == nil then value = defaultValue end
+                if value == nil then value = 0 end
+            end
+            outputTable.points[i] = outputTable.points[i] or {}
+            outputTable.points[i][name] = value
         end
     end
+
     return outputTable
 end
 
@@ -440,12 +461,24 @@ function PitchCorrectedTake:analyzePitch()
         end
     end
 end
+
 function PitchCorrectedTake:updatePitchPointTimes()
     local points = self.pitches.points
     for i = 1, #points do
         local point = points[i]
         point.time = getRealTime(self.pointer, point.sourceTime)
     end
+end
+function PitchCorrectedTake:getPitchPointSaveInfo()
+    local info = {
+        ["leftBound"] =  self.startOffset,
+        ["rightBound"] = getSourceTime(self.pointer, self.length)
+    }
+    local members = {
+        ["sourceTime"] =      0.0,
+        ["pitch"] =           0.0
+    }
+    return info, members
 end
 function PitchCorrectedTake:loadPitchPoints()
     local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
@@ -455,9 +488,13 @@ function PitchCorrectedTake:loadPitchPoints()
     if file then
         local saveString = file:read("*all")
         file:close()
-        self.pitches.points = decodeSaveString(saveString,
-                                            {"sourceTime", "pitch"},
-                                            {0.0,          0.0})
+
+        local info, members = self:getPitchPointSaveInfo()
+        local decodedTable = decodeTimeSeries(saveString, info, members)
+        local decodedLeftBound = decodedTable.leftBound
+        local decodedRightBound = decodedTable.rightBound
+        self.pitches.points = decodedTable.points
+
         self:updatePitchPointTimes()
     end
 end
@@ -466,9 +503,8 @@ function PitchCorrectedTake:savePitchPoints()
     local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
     reaper.RecursiveCreateDirectory(pathName, 0)
 
-    local saveString = encodeSaveString(self.pitches.points,
-                                        {"sourceTime", "pitch"},
-                                        {0.0,          0.0})
+    local info, members = self:getPitchPointSaveInfo()
+    local saveString = encodeTimeSeries(self.pitches.points, info, members)
 
     local file = io.open(fullFileName, "w")
     if file then
@@ -483,6 +519,22 @@ function PitchCorrectedTake:updatePitchCorrectionTimes()
         point.time = getRealTime(self.pointer, point.sourceTime)
     end
 end
+function PitchCorrectedTake:getPitchCorrectionSaveInfo()
+    local info = {
+        ["leftBound"] =  self.startOffset,
+        ["rightBound"] = getSourceTime(self.pointer, self.length)
+    }
+    local members = {
+        ["sourceTime"] =      0.0,
+        ["pitch"] =           0.0,
+        ["isSelected"] =      false,
+        ["isActive"] =        false,
+        ["modCorrection"] =   defaultModCorrection,
+        ["driftCorrection"] = defaultDriftCorrection,
+        ["driftTime"] =       defaultDriftTime,
+    }
+    return info, members
+end
 function PitchCorrectedTake:loadPitchCorrections()
     local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
     local fullFileName = pathName .. "\\" .. self.name .. ".correction"
@@ -491,9 +543,13 @@ function PitchCorrectedTake:loadPitchCorrections()
     if file then
         local saveString = file:read("*all")
         file:close()
-        self.corrections.points = decodeSaveString(saveString,
-                                                   {"sourceTime", "pitch", "isSelected", "isActive", "modCorrection",      "driftCorrection",      "driftTime",},
-                                                   {0.0,          0.0,     false,        false,      defaultModCorrection, defaultDriftCorrection, defaultDriftTime})
+
+        local info, members = self:getPitchCorrectionSaveInfo()
+        local decodedTable = decodeTimeSeries(saveString, info, members)
+        local decodedLeftBound = decodedTable.leftBound
+        local decodedRightBound = decodedTable.rightBound
+        self.corrections.points = decodedTable.points
+
         self:updatePitchCorrectionTimes()
     end
 end
@@ -508,9 +564,8 @@ function PitchCorrectedTake:savePitchCorrections()
         correction.sourceTime = getSourceTime(self.pointer, correction.time)
     end
 
-    local saveString = encodeSaveString(corrections,
-                                        {"sourceTime", "pitch", "isSelected", "isActive", "modCorrection",      "driftCorrection",      "driftTime",},
-                                        {0.0,          0.0,     false,        false,      defaultModCorrection, defaultDriftCorrection, defaultDriftTime})
+    local info, members = self:getPitchCorrectionSaveInfo()
+    local saveString = encodeTimeSeries(corrections, info, members)
 
     local file = io.open(fullFileName, "w")
     if file then
