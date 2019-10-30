@@ -282,6 +282,24 @@ function PitchCorrectedTake:set(take)
     --self.minTimePerPoint = self:getMinTimePerPoint()
     --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 end
+function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
+    local tolerance = tolerance or 0.0001
+    local newPoints = {}
+    local points = self.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        local pointIsDuplicate = false
+        for j = 1, #newPoints do
+            if math.abs(point.time - newPoints[j].time) < tolerance then
+                pointIsDuplicate = true
+            end
+        end
+        if not pointIsDuplicate then
+            newPoints[#newPoints + 1] = point
+        end
+    end
+    self.pitches.points = newPoints
+end
 function PitchCorrectedTake:getPitchPointsFromExtState()
     local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
 
@@ -307,6 +325,7 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     end
 
     self.pitches.points = {}
+    self.newPointsHaveBeenInitialized = false
 
     --local leftBound =      getSourcePosition(self.pointer, 0.0)
     --local rightBound =     getSourcePosition(self.pointer, self.length)
@@ -342,22 +361,16 @@ function PitchCorrectedTake:analyzePitch()
     if self.analysisLoopsCompleted < self.numberOfAnalysisLoops then
         reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
         reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
-        self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
+
         mainCommand(self.analyzerID)
         self:getPitchPointsFromExtState()
+
+        self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
         self.analysisLoopsCompleted = self.analysisLoopsCompleted + 1
-    end
-end
-function PitchCorrectedTake:updateMinimumTimePerPoint()
-    self.minimumTimePerPoint = self.length
-    local points = self.pitches.points
-    local numberOfPoints = #points
-    for i = 1, numberOfPoints do
-        local point =     points[i]
-        local nextPoint = points[i + 1]
-        if nextPoint then
-            local timeFromLastPoint = nextPoint.time - point.time
-            self.minimumTimePerPoint = math.min(self.minimumTimePerPoint, timeFromLastPoint)
+    else
+        if not self.newPointsHaveBeenInitialized then
+            self:removeDuplicatePitchPoints()
+            self.newPointsHaveBeenInitialized = true
         end
     end
 end
