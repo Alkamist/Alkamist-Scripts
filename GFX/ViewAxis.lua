@@ -21,11 +21,11 @@ end
 
 function ViewAxis:changeZoom(change)
     local target = self.target / self.scale
-    local sensitivity = 0.007
-    local change = math.max(sensitivity * change, -0.99)
+    local sensitivity = 0.01
+    local change = 2 ^ (sensitivity * change)
 
-    self.zoom = self.zoom * (1.0 + change)
-    self.scroll = self.scroll + change * target / self.zoom
+    self.zoom = self.zoom * change
+    self.scroll = self.scroll + (change - 1.0) * target / self.zoom
 end
 
 return ViewAxis
