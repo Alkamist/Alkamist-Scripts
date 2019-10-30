@@ -54,84 +54,6 @@ local function getSourceTime(take, time)
     reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
     return sourceTime
 end
---[[local function getStretchMarkers(take)
-    local stretchMarkers = {}
-    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
-    for i = 1, numStretchMarkers do
-        local _, time, sourceTime = reaper.GetTakeStretchMarker(take, i - 1)
-        stretchMarkers[i] = {
-            time = time,
-            sourceTime = sourceTime,
-            slope = reaper.GetTakeStretchMarkerSlope(take, i - 1)
-        }
-    end
-    for i = 1, numStretchMarkers do
-        local marker = stretchMarkers[i]
-        local nextMarker = stretchMarkers[i + 1]
-        local markerLength = 0.0
-        local markerSourceLength = 0.0
-        local markerRate = 1.0
-
-        if nextMarker then
-            markerLength = nextMarker.time - marker.time
-            markerSourceLength = nextMarker.sourceTime - marker.sourceTime
-            markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
-        else
-            markerLength = 0.0
-            markerSourceLength = 0.0
-            markerRate = 1.0
-        end
-
-        marker.rate = markerRate
-        marker.length = markerLength
-        marker.sourceLength = markerSourceLength
-    end
-    return stretchMarkers
-end
-local function getRealTime(take, sourceTime)
-    if sourceTime == nil then return nil end
-
-    local startOffset = getSourceTime(take, 0.0)
-    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
-    local stretchMarkers = getStretchMarkers(take)
-    local numberOfStretchMarkers = #stretchMarkers
-
-    if numberOfStretchMarkers < 1 then
-        return (sourceTime - startOffset) / playrate
-    end
-
-    local markerIndex = 0
-    for i = 1, numberOfStretchMarkers do
-        local marker = stretchMarkers[i]
-        if sourceTime < marker.sourceTime then
-            markerIndex = i - 1
-            break
-        end
-        if index == numberOfStretchMarkers then
-            markerIndex = i
-        end
-    end
-
-    if markerIndex == 0 then
-        return (sourceTime - startOffset) / playrate
-    end
-
-    local activeMarker = stretchMarkers[markerIndex]
-    local relativeSourcePosition = sourceTime - activeMarker.sourceTime
-
-    local actualSlope = 0.0
-    if activeMarker.sourceLength > 0 and activeMarker.length > 0 then
-        actualSlope = (activeMarker.sourceLength / activeMarker.length - activeMarker.rate) / (0.5 * activeMarker.sourceLength)
-    end
-
-    local currentMarkerRate = activeMarker.rate + relativeSourcePosition * actualSlope
-    local averageMarkerRate = (activeMarker.rate + currentMarkerRate) * 0.5
-    local scaledOffset = relativeSourcePosition / averageMarkerRate
-
-    local realTime = activeMarker.time + scaledOffset
-
-    return realTime / playrate
-end]]--
 local function getRealTime(take, sourceTime)
     if reaper.GetTakeNumStretchMarkers(take) < 1 then
         local startOffset = getSourceTime(take, 0.0)
@@ -139,12 +61,14 @@ local function getRealTime(take, sourceTime)
         return (sourceTime - startOffset) / playrate
     end
 
+    local tolerance = 0.000001
+
     local guessTime = 0.0
     local guessSourceTime = getSourceTime(take, guessTime)
     local numberOfLoops = 0
     while true do
         local error = sourceTime - guessSourceTime
-        if math.abs(error) < 0.0001 then break end
+        if math.abs(error) < tolerance then break end
 
         local testGuessSourceTime = getSourceTime(take, guessTime + error)
         local seekRatio = math.abs( error / (testGuessSourceTime - guessSourceTime) )
@@ -353,19 +277,19 @@ end
 
 function PitchCorrectedTake:clear()
     self.pointer =            nil
-    self.takeName =           nil
+    self.takeName =           ""
     self.takeGUID =           nil
     self.takeSource =         nil
-    self.takeFileName =       nil
-    self.playrate =           nil
-    self.startOffset =        nil
+    self.takeFileName =       ""
+    self.playrate =           1.0
+    self.startOffset =        0.0
     self.envelope =           nil
-    self.takeSourceLength =   nil
+    self.takeSourceLength =   0.0
     self.item =               nil
     self.track =              nil
-    self.length =             nil
-    self.leftTime =           nil
-    self.rightTime =          nil
+    self.length =             0.0
+    self.leftTime =           0.0
+    self.rightTime =          0.0
     self.pitches.points =     {}
     self.corrections.points = {}
 end
@@ -387,9 +311,6 @@ function PitchCorrectedTake:set(take)
         self:clear()
         return
     end
-    --if take == self.pointer then
-    --    return
-    --end
 
     self.pointer =      take
     self.name =         reaper.GetTakeName(self.pointer)
@@ -412,9 +333,6 @@ function PitchCorrectedTake:set(take)
     self.corrections.points = {}
 
     self:clearEnvelope()
-    --self:loadSavedPoints()
-    --self.minTimePerPoint = self:getMinTimePerPoint()
-    --self.minSourceTimePerPoint = self:getMinSourceTimePerPoint()
 end
 function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
     local tolerance = tolerance or 0.0001
@@ -504,8 +422,8 @@ function PitchCorrectedTake:analyzePitch()
     else
         if not self.newPointsHaveBeenInitialized then
             self:removeDuplicatePitchPoints()
-            self.newPointsHaveBeenInitialized = true
             self:savePitchPoints()
+            self.newPointsHaveBeenInitialized = true
         end
     end
 end

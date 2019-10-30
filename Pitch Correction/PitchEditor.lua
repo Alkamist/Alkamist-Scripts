@@ -163,6 +163,7 @@ function PitchEditor:updateEditorTakeWithSelectedItems()
 
     if self.take.pointer then
         self.track = self.take.track
+        self.take:updatePitchPointTimes()
     else
         self.track = nil
     end
@@ -576,23 +577,19 @@ function PitchEditor:onInit()
     --end
 end
 function PitchEditor:onUpdate()
-    self:updateEditorTakeWithSelectedItems()
+    if self:projectHasChanged() then
+        self:updateEditorTakeWithSelectedItems()
+        --self:updatePeaks()
+    end
 
     if self.isVisible then
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
         self.take:analyzePitch()
-        --if not self.take.isAnalyzingPitch then
-        --    self.take:updatePitchPointTimes()
-        --end
         self:recalculatePitchCorrectionCoordinates()
         self:recalculateTakePitchCoordinates()
         self:queueRedraw()
     end
-
-    --[[if self:projectHasChanged() then
-        self:updatePeaks()
-    end]]--
 end
 function PitchEditor:onWindowResize()
     if self.scaleWithWindow then
