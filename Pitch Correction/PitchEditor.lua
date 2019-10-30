@@ -73,6 +73,7 @@ function PitchEditor:new(init)
     self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.29, 0.29, 0.29, 1.0,  0 }
     self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.09, 1 }
     self.edgeColor =                     init.edgeColor                     or { 1.0,  1.0,  1.0,  -0.1, 1 }
+    self.edgeShade =                     init.edgeShade                     or { 1.0,  1.0,  1.0,  -0.04, 1 }
     self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
     self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
     self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.3, 0.6, 0.9,    1.0,  0 }
@@ -539,6 +540,11 @@ function PitchEditor:drawEdges()
     local rightEdgePixels = self:timeToPixels(self.take.length)
     self:drawLine(leftEdgePixels, 0, leftEdgePixels, self.h, false)
     self:drawLine(rightEdgePixels, 0, rightEdgePixels, self.h, false)
+
+    self:setColor(self.edgeShade)
+    self:drawRectangle(0, 0, leftEdgePixels, self.h, true)
+    local rightShadeStart = rightEdgePixels + 1
+    self:drawRectangle(rightShadeStart, 0, self.w - rightShadeStart, self.h, true)
 end
 function PitchEditor:drawEditCursor()
     local editCursorPixels =   self:timeToPixels(reaper.GetCursorPosition() - self.take.leftTime)
