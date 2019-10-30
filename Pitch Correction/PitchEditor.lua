@@ -675,10 +675,10 @@ function PitchEditor:onDraw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
     --self:drawPeaks()
-    self:drawEdges()
     self:drawTakePitchLines()
     self:drawEditCursor()
     self:drawPitchCorrections()
+    self:drawEdges()
     self.boxSelect:draw()
 end
 

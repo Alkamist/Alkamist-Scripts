@@ -198,7 +198,7 @@ function writePitchPointsToExtState()
         );
 
         seekPosition += windowStep / windowOverlap;
-        seekPosition < startTime + timeWindow;
+        seekPosition < startTime + timeWindow - windowStep;
     );
 
     //DestroyAudioAccessor(accessor);

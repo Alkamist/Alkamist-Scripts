@@ -386,7 +386,7 @@ function PitchCorrectedTake:getPitchPointsFromExtState()
         points[#points + 1] = point
     end
 end
-function PitchCorrectedTake:prepareToAnalyzePitch(settings)
+function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
     self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
     if not self.analyzerID then
         reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
@@ -404,12 +404,19 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
 
     local numberOfPitchPointsPerLoop =  10
-    self.analysisStartTime =            0.0
     self.analysisTimeWindow =           numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
-    self.numberOfAnalysisLoops =        math.ceil(self.takeSourceLength / self.analysisTimeWindow)
     self.analysisLoopsCompleted =       0
     self.isAnalyzingPitch =             true
     self.newPointsHaveBeenInitialized = false
+
+    self.analysisStartTime =     self.startOffset
+    local analysisLength =       getSourceTime(self.pointer, self.length) - self.analysisStartTime
+    self.numberOfAnalysisLoops = math.ceil(analysisLength / self.analysisTimeWindow)
+
+    if analyzeFullSource then
+        self.analysisStartTime =     0.0
+        self.numberOfAnalysisLoops = math.ceil(self.takeSourceLength / self.analysisTimeWindow)
+    end
 
     self:clearEnvelope()
 end
