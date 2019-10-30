@@ -47,12 +47,116 @@ local function getEELCommandID(name)
 
     return nil
 end
-local function getSourcePosition(take, time)
+local function getSourceTime(take, time)
     if time == nil then return nil end
     local tempMarkerIndex = reaper.SetTakeStretchMarker(take, -1, time * reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE"))
-    local _, realTime, sourceTime = reaper.GetTakeStretchMarker(take, tempMarkerIndex)
+    local _, _, sourceTime = reaper.GetTakeStretchMarker(take, tempMarkerIndex)
     reaper.DeleteTakeStretchMarkers(take, tempMarkerIndex)
     return sourceTime
+end
+--[[local function getStretchMarkers(take)
+    local stretchMarkers = {}
+    local numStretchMarkers = reaper.GetTakeNumStretchMarkers(take)
+    for i = 1, numStretchMarkers do
+        local _, time, sourceTime = reaper.GetTakeStretchMarker(take, i - 1)
+        stretchMarkers[i] = {
+            time = time,
+            sourceTime = sourceTime,
+            slope = reaper.GetTakeStretchMarkerSlope(take, i - 1)
+        }
+    end
+    for i = 1, numStretchMarkers do
+        local marker = stretchMarkers[i]
+        local nextMarker = stretchMarkers[i + 1]
+        local markerLength = 0.0
+        local markerSourceLength = 0.0
+        local markerRate = 1.0
+
+        if nextMarker then
+            markerLength = nextMarker.time - marker.time
+            markerSourceLength = nextMarker.sourceTime - marker.sourceTime
+            markerRate = markerSourceLength / markerLength * (1.0 - marker.slope)
+        else
+            markerLength = 0.0
+            markerSourceLength = 0.0
+            markerRate = 1.0
+        end
+
+        marker.rate = markerRate
+        marker.length = markerLength
+        marker.sourceLength = markerSourceLength
+    end
+    return stretchMarkers
+end
+local function getRealTime(take, sourceTime)
+    if sourceTime == nil then return nil end
+
+    local startOffset = getSourceTime(take, 0.0)
+    local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+    local stretchMarkers = getStretchMarkers(take)
+    local numberOfStretchMarkers = #stretchMarkers
+
+    if numberOfStretchMarkers < 1 then
+        return (sourceTime - startOffset) / playrate
+    end
+
+    local markerIndex = 0
+    for i = 1, numberOfStretchMarkers do
+        local marker = stretchMarkers[i]
+        if sourceTime < marker.sourceTime then
+            markerIndex = i - 1
+            break
+        end
+        if index == numberOfStretchMarkers then
+            markerIndex = i
+        end
+    end
+
+    if markerIndex == 0 then
+        return (sourceTime - startOffset) / playrate
+    end
+
+    local activeMarker = stretchMarkers[markerIndex]
+    local relativeSourcePosition = sourceTime - activeMarker.sourceTime
+
+    local actualSlope = 0.0
+    if activeMarker.sourceLength > 0 and activeMarker.length > 0 then
+        actualSlope = (activeMarker.sourceLength / activeMarker.length - activeMarker.rate) / (0.5 * activeMarker.sourceLength)
+    end
+
+    local currentMarkerRate = activeMarker.rate + relativeSourcePosition * actualSlope
+    local averageMarkerRate = (activeMarker.rate + currentMarkerRate) * 0.5
+    local scaledOffset = relativeSourcePosition / averageMarkerRate
+
+    local realTime = activeMarker.time + scaledOffset
+
+    return realTime / playrate
+end]]--
+local function getRealTime(take, sourceTime)
+    if reaper.GetTakeNumStretchMarkers(take) < 1 then
+        local startOffset = getSourceTime(take, 0.0)
+        local playrate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+        return (sourceTime - startOffset) / playrate
+    end
+
+    local guessTime = 0.0
+    local guessSourceTime = getSourceTime(take, guessTime)
+    local numberOfLoops = 0
+    while true do
+        local error = sourceTime - guessSourceTime
+        if math.abs(error) < 0.0001 then break end
+
+        local testGuessSourceTime = getSourceTime(take, guessTime + error)
+        local seekRatio = math.abs( error / (testGuessSourceTime - guessSourceTime) )
+
+        guessTime = guessTime + error * seekRatio
+        guessSourceTime = getSourceTime(take, guessTime)
+
+        numberOfLoops = numberOfLoops + 1
+        if numberOfLoops > 100 then break end
+    end
+
+    return guessTime
 end
 local function getValuesFromStringLine(str)
     local values = {}
@@ -126,9 +230,6 @@ local function getDriftCorrection(correction, nextCorrection, pitchIndex, pitchP
                               getLerpPitch(correction, nextCorrection, pitchPoint),
                               correction.driftCorrection)
 end
-local function addPitchCorrectionToEnvelope(correction, time, envelope, playrate)
-    reaper.InsertEnvelopePoint(envelope, time * playrate, correction, 0, 0, false, true)
-end
 local function clearEnvelopeUnderCorrection(correction, nextCorrection, envelope, playrate)
     reaper.DeleteEnvelopePointRange(envelope, correction.time * playrate, nextCorrection.time * playrate)
 end
@@ -190,7 +291,7 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
             if pitchPoint.time >= correction.time and pitchPoint.time <= nextCorrection.time then
                 local driftCorrection = getDriftCorrection(correction, nextCorrection, i, pitchPoints)
                 local modCorrection =   getModCorrection(correction, nextCorrection, pitchPoint, driftCorrection)
-                addPitchCorrectionToEnvelope(driftCorrection + modCorrection, pitchPoint.time, envelope, playrate)
+                reaper.InsertEnvelopePoint(envelope, pitchPoint.time * playrate, driftCorrection + modCorrection, 0, 0, false, true)
                 addZeroPointsToEnvelope(i, pitchPoints, 0.2, 0.005, envelope, playrate)
             end
         end
@@ -198,7 +299,7 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
 end
 
 --==============================================================
---== Pitch Point Saving ========================================
+--== Saving Logic ==============================================
 --==============================================================
 
 local function encodeSaveString(tableToEncode, memberNames, memberDefaults)
@@ -286,9 +387,9 @@ function PitchCorrectedTake:set(take)
         self:clear()
         return
     end
-    if take == self.pointer then
-        return
-    end
+    --if take == self.pointer then
+    --    return
+    --end
 
     self.pointer =      take
     self.name =         reaper.GetTakeName(self.pointer)
@@ -297,7 +398,7 @@ function PitchCorrectedTake:set(take)
     self.fileName =     reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
     self.sampleRate =   reaper.GetMediaSourceSampleRate(self.source)
     self.playrate =     reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
-    self.startOffset =  getSourcePosition(self.pointer, 0.0)
+    self.startOffset =  getSourceTime(self.pointer, 0.0)
     self.envelope =     self:activateEnvelope()
     _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
 
@@ -339,12 +440,12 @@ function PitchCorrectedTake:getPitchPointsFromExtState()
     local points = self.pitches.points
 
     for line in pointString:gmatch("([^\r\n]+)") do
-        local values =     getValuesFromStringLine(line)
-        local pointTime =  values[1]
+        local values =    getValuesFromStringLine(line)
+        local pointTime = values[1]
         local point = {
-            time =  pointTime,
-            --sourceTime = getSourcePosition(analysisTake, pointTime),
-            pitch = values[2],
+            time =       getRealTime(self.pointer, pointTime),
+            sourceTime = pointTime,
+            pitch =      values[2],
             --rms =        values[3]
         }
         points[#points + 1] = point
@@ -360,8 +461,8 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     self.pitches.points = {}
     self.newPointsHaveBeenInitialized = false
 
-    --local leftBound =      getSourcePosition(self.pointer, 0.0)
-    --local rightBound =     getSourcePosition(self.pointer, self.length)
+    --local leftBound =      getSourceTime(self.pointer, 0.0)
+    --local rightBound =     getSourceTime(self.pointer, self.length)
     --local analysisLength = rightBound - leftBound
     --local analysisItem =   reaper.AddMediaItemToTrack(self.track)
     --local analysisTake =   reaper.AddTakeToMediaItem(analysisItem)
@@ -390,7 +491,8 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     self:clearEnvelope()
 end
 function PitchCorrectedTake:analyzePitch()
-    if self.analysisLoopsCompleted < self.numberOfAnalysisLoops then
+    self.isAnalyzingPitch = self.analysisLoopsCompleted < self.numberOfAnalysisLoops
+    if self.isAnalyzingPitch then
         reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
         reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
 
@@ -407,6 +509,13 @@ function PitchCorrectedTake:analyzePitch()
         end
     end
 end
+function PitchCorrectedTake:updatePitchPointTimes()
+    local points = self.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        point.time = getRealTime(self.pointer, point.sourceTime)
+    end
+end
 function PitchCorrectedTake:loadPitchPoints()
     local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
     local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
@@ -416,8 +525,9 @@ function PitchCorrectedTake:loadPitchPoints()
         local saveString = file:read("*all")
         file:close()
         self.pitches.points = decodeSaveString(saveString,
-                                               {"time", "pitch"},
-                                               {0.0,    0.0})
+                                               {"sourceTime", "pitch"},
+                                               {0.0,          0.0})
+        self:updatePitchPointTimes()
     end
 end
 function PitchCorrectedTake:savePitchPoints()
@@ -426,8 +536,8 @@ function PitchCorrectedTake:savePitchPoints()
     reaper.RecursiveCreateDirectory(pathName, 0)
 
     local saveString = encodeSaveString(self.pitches.points,
-                                        {"time", "pitch"},
-                                        {0.0,    0.0})
+                                        {"sourceTime", "pitch"},
+                                        {0.0,          0.0})
 
     local file, err = io.open(fullFileName, "w")
     file:write(saveString)

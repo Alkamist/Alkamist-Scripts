@@ -122,7 +122,8 @@ function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumF
 function writePitchPointsToExtState()
   local(windowStep, windowOverlap, minimumFrequency, maximumFrequency, threshold, minimumRMSdB,
         minimumRMS, startTime, timeWindow, take, sampleRate, windowSamples, seekPosition, accessor,
-        sampleArray, rms, frequency, pitch, pitchDetectionSampleRate, downsampleMultiplier, downsampledArraySize, i)
+        sampleArray, rms, frequency, pitch, pitchDetectionSampleRate, downsampleMultiplier, downsampledArraySize,
+        source, i)
 (
     GetExtState(#takeGUID,         "AlkamistPitchCorrection", "TAKEGUID");
     GetExtState(#windowStep,       "AlkamistPitchCorrection", "WINDOWSTEP");
@@ -149,17 +150,19 @@ function writePitchPointsToExtState()
     #pitchPoints = "";
 
     take =          GetMediaItemTakeByGUID(0, #takeGUID);
+    source =        GetMediaItemTake_Source(take);
     sampleRate =    GetMediaSourceSampleRate(GetMediaItemTake_Source(take));
     windowSamples = floor(sampleRate * windowStep);
     seekPosition =  startTime;
-    accessor =      CreateTakeAudioAccessor(take);
+    //accessor =      CreateTakeAudioAccessor(take);
     sampleArray =   0;
     memset(0, 0, windowSamples); // Clear the sample buffer.
 
     pitchDetectionSampleRate = 7350;
 
     while (
-        GetAudioAccessorSamples(accessor, sampleRate, 1, seekPosition, windowSamples, sampleArray);
+        //GetAudioAccessorSamples(accessor, sampleRate, 1, seekPosition, windowSamples, sampleArray);
+        PCM_Source_GetPeaks(source, sampleRate, seekPosition, 1, windowSamples, 0, sampleArray);
         downsampleMultiplier = downsampleArray(sampleArray, windowSamples, sampleRate, pitchDetectionSampleRate);
         downsampledArraySize = floor(windowSamples / downsampleMultiplier);
 
@@ -198,7 +201,7 @@ function writePitchPointsToExtState()
         seekPosition < startTime + timeWindow;
     );
 
-    DestroyAudioAccessor(accessor);
+    //DestroyAudioAccessor(accessor);
 
     SetExtState("AlkamistPitchCorrection", "PITCHPOINTS", #pitchPoints, 0);
 );

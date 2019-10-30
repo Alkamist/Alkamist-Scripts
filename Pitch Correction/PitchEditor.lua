@@ -425,49 +425,6 @@ function PitchEditor:recalculateTakePitchCoordinates()
     end
 end
 
-function PitchEditor:drawTakePitchLines()
-    local pitches = self.take.pitches.points
-    local envelope = self.take.envelope
-    local playrate = self.take.playrate
-
-    local previousPoint
-    local previousPointCorrectedY
-    for i = 1, #pitches do
-        local point =     pitches[i]
-        local nextPoint = pitches[i + 1]
-
-        local _, envelopeValue = reaper.Envelope_Evaluate(envelope, point.time * playrate, 44100, 0)
-        local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
-
-        if previousPoint then
-            if point.time - previousPoint.time <= 0.1 then
-                self:setColor(self.pitchLineColor)
-                self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
-
-                self:setColor(self.correctedPitchLineColor)
-                self:drawLine(previousPoint.x, previousPointCorrectedY, point.x, correctedPointY, true)
-            end
-
-            --self:setColor(self.pitchLineColor)
-            --self:drawRectangle(previousPoint.x - 1, previousPoint.y - 1, 3, 3, true)
-
-            self:setColor(self.correctedPitchLineColor)
-            self:drawRectangle(previousPoint.x - 1, previousPointCorrectedY - 1, 3, 3, true)
-        end
-
-        if nextPoint == nil then
-            --self:setColor(self.pitchLineColor)
-            --self:drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
-
-            self:setColor(self.correctedPitchLineColor)
-            self:drawRectangle(point.x - 1, correctedPointY - 1, 3, 3, true)
-        end
-
-        previousPoint = point
-        previousPointCorrectedY = correctedPointY
-    end
-end
-
 --==============================================================
 --== Drawing Code ==============================================
 --==============================================================
@@ -502,6 +459,42 @@ function PitchEditor:drawKeyBackgrounds()
         end
 
         previousKeyEnd = keyEnd
+    end
+end
+function PitchEditor:drawTakePitchLines()
+    local pitches = self.take.pitches.points
+    local envelope = self.take.envelope
+    local playrate = self.take.playrate
+
+    local previousPoint
+    local previousPointCorrectedY
+    for i = 1, #pitches do
+        local point =     pitches[i]
+        local nextPoint = pitches[i + 1]
+
+        local _, envelopeValue = reaper.Envelope_Evaluate(envelope, point.time * playrate, 44100, 0)
+        local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
+
+        if previousPoint then
+            if point.time - previousPoint.time <= 0.1 then
+                self:setColor(self.pitchLineColor)
+                self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
+
+                self:setColor(self.correctedPitchLineColor)
+                self:drawLine(previousPoint.x, previousPointCorrectedY, point.x, correctedPointY, true)
+            end
+
+            self:setColor(self.correctedPitchLineColor)
+            self:drawRectangle(previousPoint.x - 1, previousPointCorrectedY - 1, 3, 3, true)
+        end
+
+        if nextPoint == nil then
+            self:setColor(self.correctedPitchLineColor)
+            self:drawRectangle(point.x - 1, correctedPointY - 1, 3, 3, true)
+        end
+
+        previousPoint = point
+        previousPointCorrectedY = correctedPointY
     end
 end
 --[[function PitchEditor:drawPeaks()
@@ -583,10 +576,15 @@ function PitchEditor:onInit()
     --end
 end
 function PitchEditor:onUpdate()
+    self:updateEditorTakeWithSelectedItems()
+
     if self.isVisible then
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
         self.take:analyzePitch()
+        --if not self.take.isAnalyzingPitch then
+        --    self.take:updatePitchPointTimes()
+        --end
         self:recalculatePitchCorrectionCoordinates()
         self:recalculateTakePitchCoordinates()
         self:queueRedraw()
@@ -595,8 +593,6 @@ function PitchEditor:onUpdate()
     --[[if self:projectHasChanged() then
         self:updatePeaks()
     end]]--
-
-    self:updateEditorTakeWithSelectedItems()
 end
 function PitchEditor:onWindowResize()
     if self.scaleWithWindow then
