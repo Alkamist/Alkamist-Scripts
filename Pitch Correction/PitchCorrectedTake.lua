@@ -2,7 +2,8 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local PolyLine =       require("GFX.PolyLine")
+local PolyLine = require("GFX.PolyLine")
+local Json = require("Json")
 
 --==============================================================
 --== Helpful Functions =========================================
@@ -197,6 +198,56 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
 end
 
 --==============================================================
+--== Pitch Point Saving ========================================
+--==============================================================
+
+--local function getSaveString(timeSeries, memberNames, memberDefaults, saveTitle)
+--    local keyString = table.concat(memberNames, " ")
+--
+--    local innerConcat = {}
+--    local outerConcat = {}
+--    for i = 1, #timeSeries do
+--        local point = timeSeries[i]
+--        for j = 1, #memberNames do
+--            innerConcat[j] = point[memberNames[j]] or memberDefaults[j] or 0
+--        end
+--        outerConcat[i] = table.concat(innerConcat, " ")
+--    end
+--    local dataString = table.concat(outerConcat, "\n")
+--
+--    return table.concat({
+--        "<", saveTitle or "", " ", keyString, "\n",
+--        dataString, "\n",
+--        ">\n"
+--    })
+--end
+local function encodeSaveString(tableToEncode, memberNames, memberDefaults)
+    local saveTable = {}
+    for i = 1, #tableToEncode do
+        local point = tableToEncode[i]
+        saveTable[i] = {}
+        for j = 1, #memberNames do
+            local name = memberNames[j]
+            saveTable[i][name] = point[name] or memberDefaults[j] or 0
+        end
+    end
+    return Json.encode(saveTable)
+end
+local function decodeSaveString(stringToDecode, memberNames, memberDefaults)
+    local decodedTable = Json.decode(stringToDecode)
+    local outputTable = {}
+    for i = 1, #decodedTable do
+        local point = decodedTable[i]
+        outputTable[i] = {}
+        for j = 1, #memberNames do
+            local name = memberNames[j]
+            outputTable[i][name] = point[name] or memberDefaults[j] or 0
+        end
+    end
+    return outputTable
+end
+
+--==============================================================
 --== Pitch Corrected Take ======================================
 --==============================================================
 
@@ -371,6 +422,8 @@ function PitchCorrectedTake:analyzePitch()
         if not self.newPointsHaveBeenInitialized then
             self:removeDuplicatePitchPoints()
             self.newPointsHaveBeenInitialized = true
+            local test = encodeSaveString(self.pitches.points, {"time", "pitch"}, {0.0, 50.0})
+            self.pitches.points = decodeSaveString(test, {"time", "pitch"}, {0.0, 50.0})
         end
     end
 end
