@@ -428,6 +428,7 @@ function PitchCorrectedTake:analyzePitch()
         if not self.newPointsHaveBeenInitialized then
             self:removeDuplicatePitchPoints()
             self:savePitchPoints()
+            self:correctAllPitchPoints()
             self.newPointsHaveBeenInitialized = true
         end
     end

@@ -1,4 +1,7 @@
 local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
+    if pointX == nil or pointY == nil or lineX1 == nil or lineY1 == nil or lineX2 == nil or lineY2 == nil then
+        return 0.0
+    end
     local A = pointX - lineX1
     local B = pointY - lineY1
     local C = lineX2 - lineX1
@@ -30,6 +33,9 @@ local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1,
     return math.sqrt(dx * dx + dy * dy)
 end
 local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    if x1 == nil or y1 == nil or x2 == nil or y2 == nil then
+        return 0.0
+    end
     local dx = x1 - x2
     local dy = y1 - y2
     return math.sqrt(dx * dx + dy * dy)
