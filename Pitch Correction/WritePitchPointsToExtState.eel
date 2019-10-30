@@ -29,7 +29,7 @@ function downsampleArray(array, arrayLength, sampleRate, newSampleRate)
 (
     i = 0;
     loop(arrayLength,
-        array[i] = lowpassFilter(array[i], newSampleRate * 0.25, sampleRate);
+        array[i] = lowpassFilter(array[i], newSampleRate * 0.1, sampleRate);
         i += 1;
     );
     downsampleMultiplier = floor(sampleRate / newSampleRate);
@@ -175,6 +175,7 @@ function writePitchPointsToExtState()
         // Perform pitch detection.
         rms > minimumRMS ? (
             frequency = getFrequency(sampleArray, downsampledArraySize, pitchDetectionSampleRate, minimumFrequency, maximumFrequency, threshold);
+
             pitch = 69 + 12 * log(frequency / 440) / log(2);
             pitch = min(max(pitch, 0), 127);
 
