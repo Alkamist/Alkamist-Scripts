@@ -440,7 +440,7 @@ function PitchEditor:drawTakePitchLines()
         local correctedPointY = self:pitchToPixels(point.pitch + envelopeValue)
 
         if previousPoint then
-            if point.time - previousPoint.time <= self.take.pitchPointSpacing * 4.0 then
+            if point.time - previousPoint.time <= 0.1 then
                 self:setColor(self.pitchLineColor)
                 self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
 
@@ -689,13 +689,17 @@ PitchEditor.onKeyPressFunctions = {
         self.take:correctAllPitchPoints()
     end,
     ["s"] = function(self)
-        self:insertPitchCorrectionPoint{
-            time = self.mouseTime,
-            pitch = self.snappedMousePitch,
-            isActive = false,
-            isSelected = false
-        }
-        self.take:correctAllPitchPoints()
+        --if self.GFX.controlKeyState then
+        --    self.take:savePitchPoints()
+        --else
+            self:insertPitchCorrectionPoint{
+                time = self.mouseTime,
+                pitch = self.snappedMousePitch,
+                isActive = false,
+                isSelected = false
+            }
+            self.take:correctAllPitchPoints()
+        --end
     end,
     ["d"] = function(self)
         self:insertPitchCorrectionPoint{

@@ -201,26 +201,6 @@ end
 --== Pitch Point Saving ========================================
 --==============================================================
 
---local function getSaveString(timeSeries, memberNames, memberDefaults, saveTitle)
---    local keyString = table.concat(memberNames, " ")
---
---    local innerConcat = {}
---    local outerConcat = {}
---    for i = 1, #timeSeries do
---        local point = timeSeries[i]
---        for j = 1, #memberNames do
---            innerConcat[j] = point[memberNames[j]] or memberDefaults[j] or 0
---        end
---        outerConcat[i] = table.concat(innerConcat, " ")
---    end
---    local dataString = table.concat(outerConcat, "\n")
---
---    return table.concat({
---        "<", saveTitle or "", " ", keyString, "\n",
---        dataString, "\n",
---        ">\n"
---    })
---end
 local function encodeSaveString(tableToEncode, memberNames, memberDefaults)
     local saveTable = {}
     for i = 1, #tableToEncode do
@@ -264,6 +244,8 @@ function PitchCorrectedTake:new(init)
 
     self.numberOfAnalysisLoops  = 0
     self.analysisLoopsCompleted = 0
+
+    self.newPointsHaveBeenInitialized = true
 
     return self
 end
@@ -325,7 +307,7 @@ function PitchCorrectedTake:set(take)
     self.leftTime =     reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
     self.rightTime =    self.leftTime + self.length
 
-    self.pitches.points     = {}
+    self:loadPitchPoints()
     self.corrections.points = {}
 
     self:clearEnvelope()
@@ -398,9 +380,8 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
 
     local numberOfPitchPointsPerLoop = 10
-    self.pitchPointSpacing =           settings.windowStep / settings.windowOverlap
     self.analysisStartTime =           0.0
-    self.analysisTimeWindow =          numberOfPitchPointsPerLoop * self.pitchPointSpacing
+    self.analysisTimeWindow =          numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
     self.numberOfAnalysisLoops =       math.ceil(self.length / self.analysisTimeWindow)
     self.analysisLoopsCompleted =      0
 
@@ -422,31 +403,34 @@ function PitchCorrectedTake:analyzePitch()
         if not self.newPointsHaveBeenInitialized then
             self:removeDuplicatePitchPoints()
             self.newPointsHaveBeenInitialized = true
-            local test = encodeSaveString(self.pitches.points, {"time", "pitch"}, {0.0, 50.0})
-            self.pitches.points = decodeSaveString(test, {"time", "pitch"}, {0.0, 50.0})
+            self:savePitchPoints()
         end
     end
 end
-function PitchCorrectedTake:correctSelectedPitchPoints()
-    local corrections = self.corrections.points
-    local pitchPoints = self.pitches.points
-    for i = 1, #corrections do
-        local correction =     corrections[i]
-        local nextCorrection = corrections[i + 1]
+function PitchCorrectedTake:loadPitchPoints()
+    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
 
-        if correction.isSelected then
-            if correction.isActive and nextCorrection then
-                correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
-            end
-
-            local previousCorrection = corrections[i - 1]
-            if previousCorrection and previousCorrection.isActive then
-                correctPitchPoints(previousCorrection, correction, pitchPoints, self.envelope, self.playrate)
-            end
-        end
+    local file = io.open(fullFileName)
+    if file then
+        local saveString = file:read("*all")
+        file:close()
+        self.pitches.points = decodeSaveString(saveString,
+                                               {"time", "pitch"},
+                                               {0.0,    0.0})
     end
-    reaper.Envelope_SortPoints(self.envelope)
-    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:savePitchPoints()
+    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
+    reaper.RecursiveCreateDirectory(pathName, 0)
+
+    local saveString = encodeSaveString(self.pitches.points,
+                                        {"time", "pitch"},
+                                        {0.0,    0.0})
+
+    local file, err = io.open(fullFileName, "w")
+    file:write(saveString)
 end
 function PitchCorrectedTake:correctAllPitchPoints()
     self:clearEnvelope()
