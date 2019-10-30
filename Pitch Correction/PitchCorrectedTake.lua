@@ -290,6 +290,7 @@ function PitchCorrectedTake:clear()
     self.length =             0.0
     self.leftTime =           0.0
     self.rightTime =          0.0
+    self.isAnalyzingPitch =   false
     self.pitches.points =     {}
     self.corrections.points = {}
 end
@@ -302,6 +303,22 @@ function PitchCorrectedTake:activateEnvelope()
     --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
     return pitchEnvelope
 end
+function PitchCorrectedTake:updateInformation()
+    self.name =         reaper.GetTakeName(self.pointer)
+    self.GUID =         reaper.BR_GetMediaItemTakeGUID(self.pointer)
+    self.source =       reaper.GetMediaItemTake_Source(self.pointer)
+    self.fileName =     reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
+    self.sampleRate =   reaper.GetMediaSourceSampleRate(self.source)
+    self.playrate =     reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
+    self.startOffset =  getSourceTime(self.pointer, 0.0)
+    self.envelope =     self:activateEnvelope()
+    self.item =         reaper.GetMediaItemTake_Item(self.pointer)
+    self.track =        reaper.GetMediaItem_Track(self.item)
+    self.length =       reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    self.leftTime =     reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    self.rightTime =    self.leftTime + self.length
+    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
+end
 function PitchCorrectedTake:set(take)
     if take == nil then
         self:clear()
@@ -311,24 +328,14 @@ function PitchCorrectedTake:set(take)
         self:clear()
         return
     end
+    if take == self.pointer then
+        self:updateInformation()
+        self:updatePitchPointTimes()
+        return
+    end
 
-    self.pointer =      take
-    self.name =         reaper.GetTakeName(self.pointer)
-    self.GUID =         reaper.BR_GetMediaItemTakeGUID(self.pointer)
-    self.source =       reaper.GetMediaItemTake_Source(self.pointer)
-    self.fileName =     reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
-    self.sampleRate =   reaper.GetMediaSourceSampleRate(self.source)
-    self.playrate =     reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
-    self.startOffset =  getSourceTime(self.pointer, 0.0)
-    self.envelope =     self:activateEnvelope()
-    _, _, self.takeSourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
-
-    self.item =         reaper.GetMediaItemTake_Item(self.pointer)
-    self.track =        reaper.GetMediaItem_Track(self.item)
-    self.length =       reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    self.leftTime =     reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-    self.rightTime =    self.leftTime + self.length
-
+    self.pointer = take
+    self:updateInformation()
     self:loadPitchPoints()
     self.corrections.points = {}
 
@@ -377,18 +384,6 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     end
 
     self.pitches.points = {}
-    self.newPointsHaveBeenInitialized = false
-
-    --local leftBound =      getSourceTime(self.pointer, 0.0)
-    --local rightBound =     getSourceTime(self.pointer, self.length)
-    --local analysisLength = rightBound - leftBound
-    --local analysisItem =   reaper.AddMediaItemToTrack(self.track)
-    --local analysisTake =   reaper.AddTakeToMediaItem(analysisItem)
-    --reaper.SetMediaItemTake_Source(analysisTake, self.source)
-    --reaper.SetMediaItemTakeInfo_Value(analysisTake, "D_STARTOFFS", leftBound)
-    --reaper.SetMediaItemInfo_Value(analysisItem, "D_LENGTH", analysisLength)
-    --reaper.SetMediaItemInfo_Value(analysisItem, "B_LOOPSRC", 0)
-    --local analysisTakeGUID = reaper.BR_GetMediaItemTakeGUID(analysisTake)
 
     reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID",         self.GUID,                 false)
     reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP",       settings.windowStep,       false)
@@ -398,13 +393,13 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD",        settings.threshold,        false)
     reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
 
-    local numberOfPitchPointsPerLoop = 10
-    self.analysisStartTime =           0.0
-    self.analysisTimeWindow =          numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
-    self.numberOfAnalysisLoops =       math.ceil(self.length / self.analysisTimeWindow)
-    self.analysisLoopsCompleted =      0
-
-    --reaper.DeleteTrackMediaItem(self.track, analysisItem)
+    local numberOfPitchPointsPerLoop =  10
+    self.analysisStartTime =            0.0
+    self.analysisTimeWindow =           numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
+    self.numberOfAnalysisLoops =        math.ceil(self.takeSourceLength / self.analysisTimeWindow)
+    self.analysisLoopsCompleted =       0
+    self.isAnalyzingPitch =             true
+    self.newPointsHaveBeenInitialized = false
 
     self:clearEnvelope()
 end
@@ -443,8 +438,8 @@ function PitchCorrectedTake:loadPitchPoints()
         local saveString = file:read("*all")
         file:close()
         self.pitches.points = decodeSaveString(saveString,
-                                               {"sourceTime", "pitch"},
-                                               {0.0,          0.0})
+                                            {"sourceTime", "pitch"},
+                                            {0.0,          0.0})
         self:updatePitchPointTimes()
     end
 end

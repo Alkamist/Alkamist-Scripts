@@ -578,7 +578,9 @@ function PitchEditor:onInit()
 end
 function PitchEditor:onUpdate()
     if self:projectHasChanged() then
-        self:updateEditorTakeWithSelectedItems()
+        if not self.take.isAnalyzingPitch then
+            self:updateEditorTakeWithSelectedItems()
+        end
         --self:updatePeaks()
     end
 
