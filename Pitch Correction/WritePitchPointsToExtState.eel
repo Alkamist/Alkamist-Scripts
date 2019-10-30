@@ -17,6 +17,30 @@ function msg(message)
     ShowConsoleMsg(#temp);
 );
 
+function lowpassFilter(sample, frequency, sampleRate)
+  local(output, strength)
+(
+    strength = frequency * 2 / sampleRate;
+    output = strength * sample + (1 - strength) * output;
+    output;
+);
+function downsampleArray(array, arrayLength, sampleRate, newSampleRate)
+  local(i, downsampleMultiplier)
+(
+    i = 0;
+    loop(arrayLength,
+        array[i] = lowpassFilter(array[i], newSampleRate * 0.25, sampleRate);
+        i += 1;
+    );
+    downsampleMultiplier = floor(sampleRate / newSampleRate);
+    i = 0;
+    loop(arrayLength / downsampleMultiplier,
+        array[i] = array[i * downsampleMultiplier];
+        i += 1;
+    );
+    downsampleMultiplier;
+);
+
 // The difference equation from http://audition.ens.fr/adc/pdf/2002_JASA_YIN.pdf Figure (6)
 function d(array, arrayLength, lag)
   local(i, sum)
@@ -98,7 +122,7 @@ function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumF
 function writePitchPointsToExtState()
   local(windowStep, windowOverlap, minimumFrequency, maximumFrequency, threshold, minimumRMSdB,
         minimumRMS, startTime, timeWindow, take, sampleRate, windowSamples, seekPosition, accessor,
-        sampleArray, rms, frequency, pitch, i)
+        sampleArray, rms, frequency, pitch, pitchDetectionSampleRate, downsampleMultiplier, downsampledArraySize, i)
 (
     GetExtState(#takeGUID,         "AlkamistPitchCorrection", "TAKEGUID");
     GetExtState(#windowStep,       "AlkamistPitchCorrection", "WINDOWSTEP");
@@ -129,24 +153,28 @@ function writePitchPointsToExtState()
     windowSamples = floor(sampleRate * windowStep);
     seekPosition =  startTime;
     accessor =      CreateTakeAudioAccessor(take);
-    sampleArray = 0;
+    sampleArray =   0;
     memset(0, 0, windowSamples); // Clear the sample buffer.
+
+    pitchDetectionSampleRate = 7350;
 
     while (
         GetAudioAccessorSamples(accessor, sampleRate, 1, seekPosition, windowSamples, sampleArray);
+        downsampleMultiplier = downsampleArray(sampleArray, windowSamples, sampleRate, pitchDetectionSampleRate);
+        downsampledArraySize = floor(windowSamples / downsampleMultiplier);
 
         // Get RMS.
         rms = 0;
         i = 0;
-        loop(windowSamples,
+        loop(downsampledArraySize,
             rms = rms + abs(sampleArray[i]);
             i += 1;
         );
-        rms = rms / windowSamples;
+        rms = rms / downsampledArraySize;
 
         // Perform pitch detection.
         rms > minimumRMS ? (
-            frequency = getFrequency(sampleArray, windowSamples, sampleRate, minimumFrequency, maximumFrequency, threshold);
+            frequency = getFrequency(sampleArray, downsampledArraySize, pitchDetectionSampleRate, minimumFrequency, maximumFrequency, threshold);
             pitch = 69 + 12 * log(frequency / 440) / log(2);
             pitch = min(max(pitch, 0), 127);
 

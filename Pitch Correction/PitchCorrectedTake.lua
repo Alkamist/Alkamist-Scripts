@@ -328,7 +328,7 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings)
     reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD",        settings.threshold,        false)
     reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
 
-    local numberOfPitchPointsPerLoop = 5
+    local numberOfPitchPointsPerLoop = 10
     self.pitchPointSpacing =           settings.windowStep / settings.windowOverlap
     self.analysisStartTime =           0.0
     self.analysisTimeWindow =          numberOfPitchPointsPerLoop * self.pitchPointSpacing
