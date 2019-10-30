@@ -3,7 +3,11 @@ local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local PolyLine = require("GFX.PolyLine")
-local Json = require("Json")
+local Json = require("dkjson")
+
+local defaultModCorrection = 0.0
+local defaultDriftCorrection = 1.0
+local defaultDriftTime = 0.12
 
 --==============================================================
 --== Helpful Functions =========================================
@@ -233,10 +237,13 @@ local function encodeSaveString(tableToEncode, memberNames, memberDefaults)
         saveTable[i] = {}
         for j = 1, #memberNames do
             local name = memberNames[j]
-            saveTable[i][name] = point[name] or memberDefaults[j] or 0
+            local value = point[name]
+            if value == nil then value = memberDefaults[j] end
+            if value == nil then value = 0 end
+            saveTable[i][name] = value
         end
     end
-    return Json.encode(saveTable)
+    return Json.encode(saveTable, { indent = true })
 end
 local function decodeSaveString(stringToDecode, memberNames, memberDefaults)
     local decodedTable = Json.decode(stringToDecode)
@@ -246,7 +253,10 @@ local function decodeSaveString(stringToDecode, memberNames, memberDefaults)
         outputTable[i] = {}
         for j = 1, #memberNames do
             local name = memberNames[j]
-            outputTable[i][name] = point[name] or memberDefaults[j] or 0
+            local value = point[name]
+            if value == nil then value = memberDefaults[j] end
+            if value == nil then value = 0 end
+            outputTable[i][name] = value
         end
     end
     return outputTable
@@ -337,10 +347,10 @@ function PitchCorrectedTake:set(take)
     self.pointer = take
     self:updateInformation()
     self:loadPitchPoints()
-    self.corrections.points = {}
-
-    self:clearEnvelope()
+    self:loadPitchCorrections()
+    self:correctAllPitchPoints()
 end
+
 function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
     local tolerance = tolerance or 0.0001
     local newPoints = {}
@@ -452,9 +462,54 @@ function PitchCorrectedTake:savePitchPoints()
                                         {"sourceTime", "pitch"},
                                         {0.0,          0.0})
 
-    local file, err = io.open(fullFileName, "w")
-    file:write(saveString)
+    local file = io.open(fullFileName, "w")
+    if file then
+        file:write(saveString)
+    end
 end
+
+function PitchCorrectedTake:updatePitchCorrectionTimes()
+    local points = self.corrections.points
+    for i = 1, #points do
+        local point = points[i]
+        point.time = getRealTime(self.pointer, point.sourceTime)
+    end
+end
+function PitchCorrectedTake:loadPitchCorrections()
+    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.name .. ".correction"
+
+    local file = io.open(fullFileName)
+    if file then
+        local saveString = file:read("*all")
+        file:close()
+        self.corrections.points = decodeSaveString(saveString,
+                                                   {"sourceTime", "pitch", "isSelected", "isActive", "modCorrection",      "driftCorrection",      "driftTime",},
+                                                   {0.0,          0.0,     false,        false,      defaultModCorrection, defaultDriftCorrection, defaultDriftTime})
+        self:updatePitchCorrectionTimes()
+    end
+end
+function PitchCorrectedTake:savePitchCorrections()
+    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    local fullFileName = pathName .. "\\" .. self.name .. ".correction"
+    reaper.RecursiveCreateDirectory(pathName, 0)
+
+    local corrections = self.corrections.points
+    for i = 1, #corrections do
+        local correction = corrections[i]
+        correction.sourceTime = getSourceTime(self.pointer, correction.time)
+    end
+
+    local saveString = encodeSaveString(corrections,
+                                        {"sourceTime", "pitch", "isSelected", "isActive", "modCorrection",      "driftCorrection",      "driftTime",},
+                                        {0.0,          0.0,     false,        false,      defaultModCorrection, defaultDriftCorrection, defaultDriftTime})
+
+    local file = io.open(fullFileName, "w")
+    if file then
+        file:write(saveString)
+    end
+end
+
 function PitchCorrectedTake:correctAllPitchPoints()
     self:clearEnvelope()
     local corrections = self.corrections.points
@@ -477,9 +532,9 @@ function PitchCorrectedTake:clearEnvelope()
     reaper.UpdateArrange()
 end
 function PitchCorrectedTake:insertPitchCorrectionPoint(point)
-    point.driftTime =       point.driftTime       or 0.12
-    point.driftCorrection = point.driftCorrection or 1.0
-    point.modCorrection =   point.modCorrection   or 0.0
+    point.driftTime =       point.driftTime       or defaultDriftTime
+    point.driftCorrection = point.driftCorrection or defaultDriftCorrection
+    point.modCorrection =   point.modCorrection   or defaultModCorrection
     self.corrections:insertPoint(point)
 end
 

@@ -684,17 +684,25 @@ PitchEditor.onKeyPressFunctions = {
         self.take:correctAllPitchPoints()
     end,
     ["s"] = function(self)
-        --if self.GFX.controlKeyState then
-        --    self.take:savePitchPoints()
-        --else
-            self:insertPitchCorrectionPoint{
-                time = self.mouseTime,
-                pitch = self.snappedMousePitch,
-                isActive = false,
-                isSelected = false
-            }
-            self.take:correctAllPitchPoints()
-        --end
+        self:insertPitchCorrectionPoint{
+            time = self.mouseTime,
+            pitch = self.snappedMousePitch,
+            isActive = false,
+            isSelected = false
+        }
+        self.take:correctAllPitchPoints()
+    end,
+    ["S"] = function(self)
+        self:insertPitchCorrectionPoint{
+            time = self.mouseTime,
+            pitch = self.mousePitch,
+            isActive = false,
+            isSelected = false
+        }
+        self.take:correctAllPitchPoints()
+    end,
+    ["Control+s"] = function(self)
+        self.take:savePitchCorrections()
     end,
     ["d"] = function(self)
         self:insertPitchCorrectionPoint{
@@ -705,15 +713,6 @@ PitchEditor.onKeyPressFunctions = {
         }
         local previousPoint = self.take.corrections.points[self.take.corrections.mostRecentInsertedIndex - 1]
         if previousPoint then previousPoint.isActive = true end
-        self.take:correctAllPitchPoints()
-    end,
-    ["S"] = function(self)
-        self:insertPitchCorrectionPoint{
-            time = self.mouseTime,
-            pitch = self.mousePitch,
-            isActive = false,
-            isSelected = false
-        }
         self.take:correctAllPitchPoints()
     end,
     ["D"] = function(self)
