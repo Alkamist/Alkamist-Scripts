@@ -247,6 +247,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDown()
                     correction.isActive = not correction.isActive
                 end
             end
+            self.take:correctAllPitchPoints()
         end
 
         if not self.mouseIsOverPoint then
