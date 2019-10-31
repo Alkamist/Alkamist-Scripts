@@ -112,8 +112,11 @@ local function getAveragePitch(correction, nextCorrection, index, group, timeRad
     local pitchSum = startingPoint.pitch
     local numPoints = 1
 
-    local i = index
     local currentPoint = startingPoint
+    local smallestTimeToBoundary = math.min(math.abs(currentPoint.time - correction.time), math.abs(currentPoint.time - nextCorrection.time))
+    local timeRadius = math.min(timeRadius, smallestTimeToBoundary)
+
+    local i = index
     while true do
         i = i + 1
         currentPoint = group[i]
