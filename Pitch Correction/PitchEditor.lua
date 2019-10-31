@@ -199,6 +199,10 @@ function PitchEditor:calculateMouseInformation()
     self.snappedMousePitch = round(self.mousePitch)
     self.snappedMousePitchChange = self.snappedMousePitch - self.previousSnappedMousePitch
 end
+function PitchEditor:setEditCursorToMousePosition()
+    reaper.SetEditCurPos(self.take.leftTime + self.mouseTime, false, true)
+    reaper.UpdateArrange()
+end
 
 --==============================================================
 --== Pitch Correction Points ===================================
@@ -624,8 +628,7 @@ function PitchEditor:onMouseLeftDrag()
 end
 function PitchEditor:onMouseLeftUp()
     if not self.mouseLeftWasDragged and not self.pitchCorrectionEditPoint then
-        reaper.SetEditCurPos(self.take.leftTime + self.mouseTime, false, true)
-        reaper.UpdateArrange()
+        self:setEditCursorToMousePosition()
     end
     self:handlePitchCorrectionPointLeftUp()
 end
@@ -690,6 +693,10 @@ PitchEditor.onKeyPressFunctions = {
             return self.take.corrections.points[index].isSelected
         end)
         self.take:correctAllPitchPoints()
+    end,
+    ["e"] = function(self)
+        self:setEditCursorToMousePosition()
+        reaper.Main_OnCommandEx(1007, 0, 0)
     end,
     ["s"] = function(self)
         self:insertPitchCorrectionPoint{
