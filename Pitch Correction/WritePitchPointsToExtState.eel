@@ -166,7 +166,16 @@ function writePitchPointsToExtState()
 
     while (
         //GetAudioAccessorSamples(accessor, sampleRate, 1, seekPosition, windowSamples, sampleArray);
-        PCM_Source_GetPeaks(source, sampleRate, seekPosition, 1, windowSamples, 0, sampleArray);
+        PCM_Source_GetPeaks(source, sampleRate, seekPosition, 2, windowSamples, 0, sampleArray);
+
+        // Mix the left and right channels.
+        i = 0;
+        loop(windowSamples,
+            sampleArray[i] = (sampleArray[2 * i] + sampleArray[2 * i + 1]) * 0.5;
+            i += 1;
+        );
+
+        // Downsample the buffer for a faster processing speed.
         downsampleMultiplier = downsampleArray(sampleArray, windowSamples, sampleRate, pitchDetectionSampleRate);
         downsampledArraySize = floor(windowSamples / downsampleMultiplier);
 
