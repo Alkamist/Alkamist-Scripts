@@ -5,8 +5,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local PolyLine = require("GFX.PolyLine")
 local Json = require("dkjson")
 
-local defaultModCorrection = 1.0
-local defaultDriftCorrection = 0.0
+local defaultModCorrection = 0.0
+local defaultDriftCorrection = 1.0
 local defaultDriftTime = 0.12
 
 --==============================================================
@@ -107,7 +107,7 @@ local function getLerpPitch(correction, nextCorrection, pitchPoint)
     local timeRatio = (pitchPoint.time - correction.time) / (nextCorrection.time - correction.time)
     return lerp(correction.pitch, nextCorrection.pitch, timeRatio)
 end
-local function getAveragePitch(index, group, timeRadius)
+local function getAveragePitch(correction, nextCorrection, index, group, timeRadius)
     local startingPoint = group[index]
     local pitchSum = startingPoint.pitch
     local numPoints = 1
@@ -119,7 +119,8 @@ local function getAveragePitch(index, group, timeRadius)
         currentPoint = group[i]
         if currentPoint == nil then break end
 
-        if (currentPoint.time - startingPoint.time) >= timeRadius then
+        if (currentPoint.time - startingPoint.time) >= timeRadius
+        or currentPoint.time > nextCorrection.time then
             break
         end
 
@@ -134,7 +135,8 @@ local function getAveragePitch(index, group, timeRadius)
         currentPoint = group[i]
         if currentPoint == nil then break end
 
-        if (startingPoint.time - currentPoint.time) >= timeRadius then
+        if (startingPoint.time - currentPoint.time) >= timeRadius
+        or currentPoint.time < correction.time then
             break
         end
 
@@ -154,7 +156,7 @@ local function getModCorrection(correction, nextCorrection, pitchPoint, currentC
 end
 local function getDriftCorrection(correction, nextCorrection, pitchIndex, pitchPoints)
     local pitchPoint = pitchPoints[pitchIndex]
-    return getPitchCorrection(getAveragePitch(pitchIndex, pitchPoints, correction.driftTime * 0.5),
+    return getPitchCorrection(getAveragePitch(correction, nextCorrection, pitchIndex, pitchPoints, correction.driftTime * 0.5),
                               getLerpPitch(correction, nextCorrection, pitchPoint),
                               correction.driftCorrection)
 end
