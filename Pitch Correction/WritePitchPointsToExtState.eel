@@ -93,18 +93,34 @@ function findIndexOfFirstMinimum(array, arrayLength, threshold)
     indexOfMinimum == -1 ? -1 : parabolicInterpolationOfArray(array, indexOfMinimum);
 );
 function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
-  local(minimumLookIndex, maximumLookIndex, lookWindowLength, cmnds, sumOfDifferences, lag, currentDifference, frequency, indexOfFirstMinimum, i)
+  local(minimumLookIndex, maximumLookIndex, lookWindowLength, cmnds, startPoint, delta, sumOfDifferences, lag, currentDifference, frequency, indexOfFirstMinimum, i, j)
 (
     minimumLookIndex = floor(sampleRate / maximumFrequency);
     maximumLookIndex = floor(min(sampleRate / minimumFrequency, arrayLength));
     lookWindowLength = maximumLookIndex - minimumLookIndex;
 
     cmnds = array + arrayLength + 100;
+    cmnds[0] = 1;
+    startPoint = 0;
+    endPoint = 0;
+    i = 1;
+    loop(maximumLookIndex - 1,
+        cmnds[i] = 0;
+        startPoint = floor(maximumLookIndex * 0.5) - floor(i * 0.5);
+        j = startPoint;
+        loop(maximumLookIndex,
+            delta = array[i + j] - array[j];
+            cmnds[i] += delta * delta;
+            j += 1;
+        );
+        i += 1;
+    );
+
     sumOfDifferences = 0;
     i = 0;
     loop(lookWindowLength,
         lag = minimumLookIndex + i;
-        currentDifference = d(array, arrayLength, lag);
+        currentDifference = cmnds[lag];
         sumOfDifferences = sumOfDifferences + currentDifference;
         cmnds[i] = currentDifference * lag / sumOfDifferences;
         i += 1;
@@ -119,6 +135,33 @@ function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumF
 
     frequency;
 );
+//function getFrequency(array, arrayLength, sampleRate, minimumFrequency, maximumFrequency, threshold)
+//  local(minimumLookIndex, maximumLookIndex, lookWindowLength, cmnds, sumOfDifferences, lag, currentDifference, frequency, indexOfFirstMinimum, i)
+//(
+//    minimumLookIndex = floor(sampleRate / maximumFrequency);
+//    maximumLookIndex = floor(min(sampleRate / minimumFrequency, arrayLength));
+//    lookWindowLength = maximumLookIndex - minimumLookIndex;
+//
+//    cmnds = array + arrayLength + 100;
+//    sumOfDifferences = 0;
+//    i = 0;
+//    loop(lookWindowLength,
+//        lag = minimumLookIndex + i;
+//        currentDifference = d(array, arrayLength, lag);
+//        sumOfDifferences = sumOfDifferences + currentDifference;
+//        cmnds[i] = currentDifference * lag / sumOfDifferences;
+//        i += 1;
+//    );
+//
+//    indexOfFirstMinimum = findIndexOfFirstMinimum(cmnds, lookWindowLength, threshold);
+//    frequency = 0;
+//
+//    indexOfFirstMinimum > -1 ? (
+//        frequency = sampleRate / (minimumLookIndex + indexOfFirstMinimum);
+//    );
+//
+//    frequency;
+//);
 function writePitchPointsToExtState()
   local(windowStep, windowOverlap, minimumFrequency, maximumFrequency, threshold, minimumRMSdB,
         minimumRMS, startTime, timeWindow, take, sampleRate, windowSamples, seekPosition, accessor,
