@@ -5,8 +5,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local PolyLine = require("GFX.PolyLine")
 local Json = require("dkjson")
 
-local defaultModCorrection = 0.0
-local defaultDriftCorrection = 1.0
+local defaultModCorrection = 1.0
+local defaultDriftCorrection = 0.0
 local defaultDriftTime = 0.12
 
 --==============================================================
@@ -602,6 +602,7 @@ function PitchCorrectedTake:savePitchCorrections()
     local file = io.open(fullFileName, "w")
     if file then
         file:write(saveString)
+        file:close()
     end
 end
 
