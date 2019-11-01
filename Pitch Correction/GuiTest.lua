@@ -23,23 +23,34 @@ local pitchEditor = require("Pitch Correction.PitchEditor"):new{
 }
 pitchEditor.elements = pitchEditor.elements or {}
 
-local testButton1 = Button:new{
+local analyzeButton = Button:new{
     x = 0,
     y = 0,
-    w = 120,
+    w = 80,
     h = 25,
-    label = "test1"
+    label = "Analyze Pitch",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
-function testButton1:onMouseLeftDown()
+function analyzeButton:onMouseLeftDown()
     Button.onMouseLeftDown(self)
     if pitchEditor.isVisible then
         pitchEditor:analyzeTakePitches(pitchDetectionSettings)
     end
 end
---function testButton1:onMouseLeftDrag()
---    self.x = self.x + self.GFX.mouseXChange
---    self.y = self.y + self.GFX.mouseYChange
---end
+
+local fixErrorButton = Button:new{
+    x = 81,
+    y = 0,
+    w = 80,
+    h = 25,
+    label = "Fix Errors"
+}
+function fixErrorButton:onMouseLeftDown()
+    Button.onMouseLeftDown(self)
+    if pitchEditor.isVisible then
+        pitchEditor:toggleFixErrorMode()
+    end
+end
 
 
 --local testButton2 = Button:new{
@@ -53,5 +64,5 @@ end
 
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 --GFX:setElements{ pitchEditor }
-GFX:setElements{ pitchEditor, testButton1 }
+GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }
 GFX:run()

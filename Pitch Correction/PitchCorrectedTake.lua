@@ -434,6 +434,7 @@ function PitchCorrectedTake:clearPitchPointsWithinTimeRange(leftTime, rightTime)
     end)
 end
 function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
+    if self.pointer == nil then return end
     self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
     if not self.analyzerID then
         reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)

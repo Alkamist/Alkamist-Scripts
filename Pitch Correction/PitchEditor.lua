@@ -116,10 +116,9 @@ function PitchEditor:new(init)
     self.previousSnappedMousePitch = 0.0
     self.snappedMousePitchChange =   0.0
 
-    self.altKeyWasDownOnPointEdit =      false
-    self.mouseOverPitchCorrectionIndex = nil
-    self.newPitchCorrectionPoint =       nil
-    self.pitchCorrectionEditPoint =      nil
+    self.altKeyWasDownOnPointEdit =  false
+    self.fixErrorMode =              false
+    self.enablePitchCorrections =    true
 
     return self
 end
@@ -209,6 +208,7 @@ end
 --==============================================================
 
 function PitchEditor:insertPitchCorrectionPoint(point)
+    if not self.enablePitchCorrections then return end
     self.take:insertPitchCorrectionPoint{
         x =          self:timeToPixels(point.time),
         y =          self:pitchToPixels(point.pitch),
@@ -219,6 +219,7 @@ function PitchEditor:insertPitchCorrectionPoint(point)
     }
 end
 function PitchEditor:handlePitchCorrectionPointLeftDown()
+    if not self.enablePitchCorrections then return end
     self.mouseTimeOnLeftDown =         self.mouseTime
     self.mousePitchOnLeftDown =        self.mousePitch
     self.snappedMousePitchOnLeftDown = self.snappedMousePitch
@@ -256,6 +257,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDown()
     end
 end
 function PitchEditor:handlePitchCorrectionPointLeftDrag()
+    if not self.enablePitchCorrections then return end
     local mousePitch =           self.snappedMousePitch
     local mousePitchChange =     self.snappedMousePitchChange
     local mousePitchOnLeftDown = self.snappedMousePitchOnLeftDown
@@ -304,6 +306,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
     end
 end
 function PitchEditor:handlePitchCorrectionPointLeftUp()
+    if not self.enablePitchCorrections then return end
     if self.newPitchCorrectionPoint then
         self.newPitchCorrectionPoint.isSelected = false
     end
@@ -312,11 +315,13 @@ function PitchEditor:handlePitchCorrectionPointLeftUp()
     self.pitchCorrectionEditPoint = nil
 end
 function PitchEditor:handlePitchCorrectionPointLeftDoubleClick()
+    if not self.enablePitchCorrections then return end
     if self.mouseOverPitchCorrectionIndex and not self.newPitchCorrectionPoint then
         self:snapSelectedPitchCorrectionsToNearestPitch()
     end
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
+    if not self.enablePitchCorrections then return end
     local corrections = self.take.corrections.points
     for i = 1, #corrections do
         local correction = corrections[i]
@@ -325,6 +330,7 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
     end
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
+    if not self.enablePitchCorrections then return end
     local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
     local pointIndex,   pointDistance =   self.take.corrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
 
@@ -353,6 +359,7 @@ function PitchEditor:updatePitchCorrectionMouseOver()
     end
 end
 function PitchEditor:unselectAllPitchCorrectionPoints()
+    if not self.enablePitchCorrections then return end
     local corrections = self.take.corrections.points
     for i = 1, #corrections do
         local correction = corrections[i]
@@ -360,61 +367,19 @@ function PitchEditor:unselectAllPitchCorrectionPoints()
     end
 end
 function PitchEditor:snapSelectedPitchCorrectionsToNearestPitch()
+    if not self.enablePitchCorrections then return end
     local corrections = self.take.corrections.points
     for i = 1, #corrections do
         local correction = corrections[i]
         correction.pitch = round(correction.pitch)
     end
 end
-
-function PitchEditor:drawPitchCorrectionSegment(i, group)
-    local point =     group[i]
-    local nextPoint = group[i + 1]
-    if nextPoint == nil then return end
-    local mouseIsOverSegment = i == self.mouseOverPitchCorrectionIndex and (not self.mouseIsOverPoint)
-
-    self:setColor(self.pitchCorrectionActiveColor)
-
-    if point.isActive then
-        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-
-    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
-        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
-        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-end
-function PitchEditor:drawPitchCorrectionPoint(i, group)
-    local point = group[i]
-    local mouseIsOverThisPoint = i == self.mouseOverPitchCorrectionIndex and self.mouseIsOverPoint
-
-    if point.isActive then
-        self:setColor(self.pitchCorrectionActiveColor)
-    else
-        self:setColor(self.pitchCorrectionInactiveColor)
-    end
-
-    self:drawCircle(point.x, point.y, 3, true, true)
-
-    if point.isSelected then
-        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
-        self:drawCircle(point.x, point.y, 3, true, true)
-    end
-
-    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
-        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
-        self:drawCircle(point.x, point.y, 3, true, true)
-    end
-end
-function PitchEditor:drawPitchCorrections()
-    self:setColor(self.pitchCorrectionActiveColor)
-
-    local corrections = self.take.corrections.points
-    for i = 1, #corrections do
-        if i == 1 then self:drawPitchCorrectionSegment(1, corrections) end
-        self:drawPitchCorrectionSegment(i + 1, corrections)
-        self:drawPitchCorrectionPoint(i, corrections)
-    end
+function PitchEditor:deleteSelectedPitchCorrectionPoints()
+    if not self.enablePitchCorrections then return end
+    arrayRemove(self.take.corrections.points, function(index)
+        return self.take.corrections.points[index].isSelected
+    end)
+    self.take:correctAllPitchPoints()
 end
 
 --==============================================================
@@ -430,6 +395,13 @@ function PitchEditor:recalculateTakePitchCoordinates()
         local point = points[i]
         point.x = self:timeToPixels(point.time)
         point.y = self:pitchToPixels(point.pitch)
+    end
+end
+function PitchEditor:toggleFixErrorMode()
+    self.fixErrorMode =           not self.fixErrorMode
+    self.enablePitchCorrections = not self.fixErrorMode
+    if self.enablePitchCorrections then
+        self:recalculatePitchCorrectionCoordinates()
     end
 end
 
@@ -485,20 +457,32 @@ function PitchEditor:drawTakePitchLines()
 
         if previousPoint then
             if point.time - previousPoint.time <= 0.1 then
-                self:setColor(self.pitchLineColor)
-                self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
-
-                self:setColor(self.correctedPitchLineColor)
-                self:drawLine(previousPoint.x, previousPointCorrectedY, point.x, correctedPointY, true)
+                if self.fixErrorMode then
+                    self:setColor(self.correctedPitchLineColor)
+                    self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
+                else
+                    self:setColor(self.pitchLineColor)
+                    self:drawLine(previousPoint.x, previousPoint.y, point.x, point.y, true)
+                    self:setColor(self.correctedPitchLineColor)
+                    self:drawLine(previousPoint.x, previousPointCorrectedY, point.x, correctedPointY, true)
+                end
             end
 
             self:setColor(self.correctedPitchLineColor)
-            self:drawRectangle(previousPoint.x - 1, previousPointCorrectedY - 1, 3, 3, true)
+            if self.fixErrorMode then
+                self:drawRectangle(previousPoint.x - 1, previousPoint.y - 1, 3, 3, true)
+            else
+                self:drawRectangle(previousPoint.x - 1, previousPointCorrectedY - 1, 3, 3, true)
+            end
         end
 
         if nextPoint == nil then
             self:setColor(self.correctedPitchLineColor)
-            self:drawRectangle(point.x - 1, correctedPointY - 1, 3, 3, true)
+            if self.fixErrorMode then
+                self:drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
+            else
+                self:drawRectangle(point.x - 1, correctedPointY - 1, 3, 3, true)
+            end
         end
 
         previousPoint = point
@@ -565,6 +549,58 @@ function PitchEditor:drawEditCursor()
     if projectIsPlaying or projectIsRecording then
         self:setColor(self.playCursorColor)
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
+    end
+end
+
+function PitchEditor:drawPitchCorrectionSegment(i, group)
+    local point =     group[i]
+    local nextPoint = group[i + 1]
+    if nextPoint == nil then return end
+    local mouseIsOverSegment = i == self.mouseOverPitchCorrectionIndex and (not self.mouseIsOverPoint)
+
+    self:setColor(self.pitchCorrectionActiveColor)
+
+    if point.isActive then
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+
+    if mouseIsOverSegment and point.isActive and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
+        self:setColor{1.0, 1.0, 1.0, 0.4, 1}
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+end
+function PitchEditor:drawPitchCorrectionPoint(i, group)
+    local point = group[i]
+    local mouseIsOverThisPoint = i == self.mouseOverPitchCorrectionIndex and self.mouseIsOverPoint
+
+    if point.isActive then
+        self:setColor(self.pitchCorrectionActiveColor)
+    else
+        self:setColor(self.pitchCorrectionInactiveColor)
+    end
+
+    self:drawCircle(point.x, point.y, 3, true, true)
+
+    if point.isSelected then
+        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
+        self:drawCircle(point.x, point.y, 3, true, true)
+    end
+
+    if mouseIsOverThisPoint and not self.newPitchCorrectionPoint and not self.pitchCorrectionEditPoint then
+        self:setColor{1.0, 1.0, 1.0, 0.3, 1}
+        self:drawCircle(point.x, point.y, 3, true, true)
+    end
+end
+function PitchEditor:drawPitchCorrections()
+    if self.enablePitchCorrections then
+        self:setColor(self.pitchCorrectionActiveColor)
+
+        local corrections = self.take.corrections.points
+        for i = 1, #corrections do
+            if i == 1 then self:drawPitchCorrectionSegment(1, corrections) end
+            self:drawPitchCorrectionSegment(i + 1, corrections)
+            self:drawPitchCorrectionPoint(i, corrections)
+        end
     end
 end
 
@@ -690,16 +726,15 @@ end
 
 PitchEditor.onKeyPressFunctions = {
     ["Delete"] = function(self)
-        arrayRemove(self.take.corrections.points, function(index)
-            return self.take.corrections.points[index].isSelected
-        end)
-        self.take:correctAllPitchPoints()
+        if not self.enablePitchCorrections then return end
+        self:deleteSelectedPitchCorrectionPoints()
     end,
     ["e"] = function(self)
         self:setEditCursorToMousePosition()
         reaper.Main_OnCommandEx(1007, 0, 0)
     end,
     ["s"] = function(self)
+        if not self.enablePitchCorrections then return end
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.snappedMousePitch,
@@ -709,6 +744,7 @@ PitchEditor.onKeyPressFunctions = {
         self.take:correctAllPitchPoints()
     end,
     ["S"] = function(self)
+        if not self.enablePitchCorrections then return end
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.mousePitch,
@@ -718,9 +754,11 @@ PitchEditor.onKeyPressFunctions = {
         self.take:correctAllPitchPoints()
     end,
     ["Control+s"] = function(self)
+        if not self.enablePitchCorrections then return end
         self.take:savePitchCorrections()
     end,
     ["d"] = function(self)
+        if not self.enablePitchCorrections then return end
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.snappedMousePitch,
@@ -732,6 +770,7 @@ PitchEditor.onKeyPressFunctions = {
         self.take:correctAllPitchPoints()
     end,
     ["D"] = function(self)
+        if not self.enablePitchCorrections then return end
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
             pitch = self.mousePitch,
