@@ -95,6 +95,22 @@ local function getValuesFromStringLine(str)
     end
     return values
 end
+local function arrayRemove(t, fn)
+    local n = #t
+    local j = 1
+    for i = 1, n do
+        if not fn(i, j) then
+            if i ~= j then
+                t[j] = t[i]
+                t[i] = nil
+            end
+            j = j + 1
+        else
+            t[i] = nil
+        end
+    end
+    return t
+end
 
 --==============================================================
 --== Pitch Correction Functions ================================
@@ -411,6 +427,12 @@ function PitchCorrectedTake:getPitchPointsFromExtState()
         points[#points + 1] = point
     end
 end
+function PitchCorrectedTake:clearPitchPointsWithinTimeRange(leftTime, rightTime)
+    local points = self.pitches.points
+    arrayRemove(points, function(i, j)
+        return points[i].time >= leftTime and points[i].time <= rightTime
+    end)
+end
 function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
     self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
     if not self.analyzerID then
@@ -418,7 +440,8 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
         return 0
     end
 
-    self.pitches.points = {}
+    --self.pitches.points = {}
+    self:clearPitchPointsWithinTimeRange(0.0, self.length)
 
     reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID",         self.GUID,                 false)
     reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP",       settings.windowStep,       false)
@@ -435,8 +458,9 @@ function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
     self.newPointsHaveBeenInitialized = false
 
     self.analysisStartTime =     self.startOffset
-    local analysisLength =       getSourceTime(self.pointer, self.length) - self.analysisStartTime
-    self.numberOfAnalysisLoops = math.ceil(analysisLength / self.analysisTimeWindow)
+    self.analysisEndTime =       getSourceTime(self.pointer, self.length)
+    self.analysisLength =        self.analysisEndTime - self.analysisStartTime
+    self.numberOfAnalysisLoops = math.ceil(self.analysisLength / self.analysisTimeWindow)
 
     if analyzeFullSource then
         self.analysisStartTime =     0.0
@@ -448,6 +472,7 @@ end
 function PitchCorrectedTake:analyzePitch()
     self.isAnalyzingPitch = self.analysisLoopsCompleted < self.numberOfAnalysisLoops
     if self.isAnalyzingPitch then
+        self.analysisTimeWindow = math.min(self.analysisTimeWindow, self.analysisEndTime - self.analysisStartTime)
         reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
         reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
 
