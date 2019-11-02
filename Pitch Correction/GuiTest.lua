@@ -24,7 +24,15 @@ local testButton2 = Button:new{
     label = "ayy",
     color = { 0.3, 0.3, 0.3, 1.0, 0 }
 }
-testButton.elements = { testButton2 }
+local testButton3 = Button:new{
+    x = 200,
+    y = 100,
+    w = 50,
+    h = 20,
+    label = "ayy2",
+    color = { 0.3, 0.3, 0.3, 1.0, 0 }
+}
+testButton.elements = { testButton2, testButton3 }
 
 GFX:setElements{ testButton }
 function testButton:update()

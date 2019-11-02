@@ -14,9 +14,8 @@ function BoxSelect:new(init)
     self.y1 = 0
     self.y2 = 0
 
-    self.parent =      init.parent
     self.insideColor = init.insideColor or {1.0, 1.0, 1.0, -0.08, 1}
-    self.edgeColor   = init.edgeColor   or {1.0, 1.0, 1.0, 0.4, 1}
+    self.edgeColor = init.edgeColor or {1.0, 1.0, 1.0, 0.4, 1}
 
     self.isActive = false
 
@@ -65,12 +64,12 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
 end
 
 function BoxSelect:draw()
-    if self.parent and self.isActive then
-        self.parent:setColor(self.edgeColor)
-        self.parent:drawRectangle(self.x, self.y, self.w, self.h, false)
+    if self.isActive then
+        self:setColor(self.edgeColor)
+        self:drawRectangle(0, 0, self.w, self.h, false)
 
-        self.parent:setColor(self.insideColor)
-        self.parent:drawRectangle(self.x + 1, self.y + 1, self.w - 2, self.h - 2, true)
+        self:setColor(self.insideColor)
+        self:drawRectangle(1, 1, self.w - 2, self.h - 2, true)
     end
 end
 

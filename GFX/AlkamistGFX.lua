@@ -85,6 +85,7 @@ function GFX:drawElement(element)
                 if not element.parent.drewThisFrame then
                     gfx.dest = element.parent.drawBuffer
                     element.parent:draw()
+                    element.parent.drewThisFrame = true
                 end
             else
                 element:clearBuffer()
@@ -108,24 +109,20 @@ function GFX:drawElement(element)
     end
 end
 function GFX:blitElement(element)
+    if element.isVisible then
+        gfx.a = 1.0
+        gfx.mode = 0
+        gfx.dest = -1
+
+        if not element:shouldDrawDirectly() then
+            gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.absoluteX, element.absoluteY, element.w, element.h, 0, 0)
+        end
+    end
+
     local elementsOfElement = element.elements
     if elementsOfElement then
         for i = 1, #elementsOfElement do
             GFX:blitElement(elementsOfElement[i])
-        end
-    end
-
-    if element.isVisible then
-        gfx.a = 1.0
-        gfx.mode = 0
-
-        if element.parent then
-            gfx.dest = element.parent.drawBuffer
-        else
-            gfx.dest = -1
-        end
-        if not element:shouldDrawDirectly() then
-            gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
         end
     end
 end
