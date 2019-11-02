@@ -124,86 +124,6 @@ function PitchEditor:new(init)
 end
 
 --==============================================================
---== Helpful Functions =========================================
---==============================================================
-
-function PitchEditor:projectHasChanged()
-    local projectChangeCount = reaper.GetProjectStateChangeCount(0)
-    if projectChangeCount ~= self.previousProjectChangeCount then
-        self.previousProjectChangeCount = projectChangeCount
-        return true
-    end
-end
---[[function PitchEditor:updatePeaks()
-    local numberOfSamples = math.floor(self.take.sampleRate * self.take.length)
-    local numberOfChannels = 1
-    --local wantExtraType = 115  -- 's' char to get spectral information
-    local wantExtraType = 0
-
-    self.peaks = reaper.new_array(numberOfSamples * numberOfChannels * 3)
-    self.peaks.clear()
-    local value = reaper.GetMediaItemTake_Peaks(self.take.pointer,
-                                                self.take.sampleRate / 2,
-                                                self.take.leftTime,
-                                                numberOfChannels,
-                                                numberOfSamples,
-                                                wantExtraType,
-                                                self.peaks)
-    local sampleCount = (value & 0xfffff)
-    local extraType =   (value & 0x1000000) >> 24
-    local outputMode =  (value & 0xf00000) >> 20
-
-    self.numberOfPeaks = sampleCount
-end]]--
-function PitchEditor:updateEditorTakeWithSelectedItems()
-    local item = reaper.GetSelectedMediaItem(0, 0)
-    local take
-    if item then take = reaper.GetActiveTake(item) end
-    self.take:set(take)
-
-    if self.take.pointer then
-        self.track = self.take.track
-        self.take:updatePitchPointTimes()
-        self.take:updatePitchCorrectionTimes()
-    else
-        self.track = nil
-    end
-end
-function PitchEditor:pixelsToTime(pixelsRelativeToEditor)
-    if self.w <= 0 then return 0.0 end
-    return self.take.length * (self.view.x.scroll + pixelsRelativeToEditor / (self.w * self.view.x.zoom))
-end
-function PitchEditor:timeToPixels(time)
-    if self.take.length <= 0 then return 0 end
-    return self.view.x.zoom * self.w * (time / self.take.length - self.view.x.scroll)
-end
-function PitchEditor:pixelsToPitch(pixelsRelativeToEditor)
-    if self.h <= 0 then return 0.0 end
-    return self.pitchHeight * (1.0 - (self.view.y.scroll + pixelsRelativeToEditor / (self.h * self.view.y.zoom))) - 0.5
-end
-function PitchEditor:pitchToPixels(pitch)
-    if self.pitchHeight <= 0 then return 0 end
-    return self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
-end
-function PitchEditor:calculateMouseInformation()
-    self.previousMouseTime = self.mouseTime
-    self.previousMousePitch = self.mousePitch
-    self.previousSnappedMousePitch = self.snappedMousePitch
-
-    self.mouseTime =  self:pixelsToTime(self.mouseX)
-    self.mousePitch = self:pixelsToPitch(self.mouseY)
-    self.mouseTimeChange = self.mouseTime - self.previousMouseTime
-    self.mousePitchChange = self.mousePitch - self.previousMousePitch
-
-    self.snappedMousePitch = round(self.mousePitch)
-    self.snappedMousePitchChange = self.snappedMousePitch - self.previousSnappedMousePitch
-end
-function PitchEditor:setEditCursorToMousePosition()
-    reaper.SetEditCurPos(self.take.leftTime + self.mouseTime, false, true)
-    reaper.UpdateArrange()
-end
-
---==============================================================
 --== Pitch Correction Points ===================================
 --==============================================================
 
@@ -602,6 +522,86 @@ function PitchEditor:drawPitchCorrections()
             self:drawPitchCorrectionPoint(i, corrections)
         end
     end
+end
+
+--==============================================================
+--== Editor Specific Functions =================================
+--==============================================================
+
+function PitchEditor:projectHasChanged()
+    local projectChangeCount = reaper.GetProjectStateChangeCount(0)
+    if projectChangeCount ~= self.previousProjectChangeCount then
+        self.previousProjectChangeCount = projectChangeCount
+        return true
+    end
+end
+--[[function PitchEditor:updatePeaks()
+    local numberOfSamples = math.floor(self.take.sampleRate * self.take.length)
+    local numberOfChannels = 1
+    --local wantExtraType = 115  -- 's' char to get spectral information
+    local wantExtraType = 0
+
+    self.peaks = reaper.new_array(numberOfSamples * numberOfChannels * 3)
+    self.peaks.clear()
+    local value = reaper.GetMediaItemTake_Peaks(self.take.pointer,
+                                                self.take.sampleRate / 2,
+                                                self.take.leftTime,
+                                                numberOfChannels,
+                                                numberOfSamples,
+                                                wantExtraType,
+                                                self.peaks)
+    local sampleCount = (value & 0xfffff)
+    local extraType =   (value & 0x1000000) >> 24
+    local outputMode =  (value & 0xf00000) >> 20
+
+    self.numberOfPeaks = sampleCount
+end]]--
+function PitchEditor:updateEditorTakeWithSelectedItems()
+    local item = reaper.GetSelectedMediaItem(0, 0)
+    local take
+    if item then take = reaper.GetActiveTake(item) end
+    self.take:set(take)
+
+    if self.take.pointer then
+        self.track = self.take.track
+        self.take:updatePitchPointTimes()
+        self.take:updatePitchCorrectionTimes()
+    else
+        self.track = nil
+    end
+end
+function PitchEditor:pixelsToTime(pixelsRelativeToEditor)
+    if self.w <= 0 then return 0.0 end
+    return self.take.length * (self.view.x.scroll + pixelsRelativeToEditor / (self.w * self.view.x.zoom))
+end
+function PitchEditor:timeToPixels(time)
+    if self.take.length <= 0 then return 0 end
+    return self.view.x.zoom * self.w * (time / self.take.length - self.view.x.scroll)
+end
+function PitchEditor:pixelsToPitch(pixelsRelativeToEditor)
+    if self.h <= 0 then return 0.0 end
+    return self.pitchHeight * (1.0 - (self.view.y.scroll + pixelsRelativeToEditor / (self.h * self.view.y.zoom))) - 0.5
+end
+function PitchEditor:pitchToPixels(pitch)
+    if self.pitchHeight <= 0 then return 0 end
+    return self.view.y.zoom * self.h * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.view.y.scroll)
+end
+function PitchEditor:calculateMouseInformation()
+    self.previousMouseTime = self.mouseTime
+    self.previousMousePitch = self.mousePitch
+    self.previousSnappedMousePitch = self.snappedMousePitch
+
+    self.mouseTime =  self:pixelsToTime(self.mouseX)
+    self.mousePitch = self:pixelsToPitch(self.mouseY)
+    self.mouseTimeChange = self.mouseTime - self.previousMouseTime
+    self.mousePitchChange = self.mousePitch - self.previousMousePitch
+
+    self.snappedMousePitch = round(self.mousePitch)
+    self.snappedMousePitchChange = self.snappedMousePitch - self.previousSnappedMousePitch
+end
+function PitchEditor:setEditCursorToMousePosition()
+    reaper.SetEditCurPos(self.take.leftTime + self.mouseTime, false, true)
+    reaper.UpdateArrange()
 end
 
 --==============================================================

@@ -27,14 +27,12 @@ function BoxSelect:pointIsInside(x, y)
     return x >= self.x and x <= self.x + self.w
        and y >= self.y and y <= self.y + self.h
 end
-
 function BoxSelect:startSelection(startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
     self.y2 = startingY
 end
-
 function BoxSelect:editSelection(editX, editY)
     self.isActive = true
 
@@ -46,7 +44,6 @@ function BoxSelect:editSelection(editX, editY)
     self.w = math.abs(self.x1 - self.x2)
     self.h = math.abs(self.y1 - self.y2)
 end
-
 function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, shouldAdd, shouldInvert)
     local numberOfThings = #listOfThings
     for i = 1, numberOfThings do

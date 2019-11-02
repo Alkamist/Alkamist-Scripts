@@ -6,7 +6,20 @@ local Button = require("GFX.Button")
 
 GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 
-local pitchDetectionSettings = {
+local testButton = Button:new{
+    x = 0,
+    y = 0,
+    w = 80,
+    h = 25,
+    label = "Analyze Pitch",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+}
+
+GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
+GFX:setElements{ testButton }
+GFX:run()
+
+--[[local pitchDetectionSettings = {
     windowStep =       0.04,
     windowOverlap =    2.0,
     minimumFrequency = 80,
@@ -65,4 +78,4 @@ end
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 --GFX:setElements{ pitchEditor }
 GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }
-GFX:run()
+GFX:run()]]--
