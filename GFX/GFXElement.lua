@@ -55,8 +55,17 @@ function GFXElement:new(element)
     return self
 end
 
+function GFXElement:updateDragState(button)
+    if button.releaseState.previous then
+        self.buttonWasPressedInside[button.name] = false
+    end
+    if button:justPressed(self) then
+        self.buttonWasPressedInside[button.name] = true
+    end
+end
 function GFXElement:updateStates()
     local mouse = self.mouse
+    local keyboard = self.keyboard
 
     self.xTracker:update(self.x)
     self.yTracker:update(self.y)
@@ -71,14 +80,9 @@ function GFXElement:updateStates()
         self.absoluteY = self.y
     end
 
-    for name, button in pairs(mouse.buttons) do
-        if button.releaseState.previous then
-            self.buttonWasPressedInside[button.name] = false
-        end
-        if button:justPressed(self) then
-            self.buttonWasPressedInside[button.name] = true
-        end
-    end
+    for name, button in pairs(mouse.buttons) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
 
     local elements = self.elements
     if elements then
