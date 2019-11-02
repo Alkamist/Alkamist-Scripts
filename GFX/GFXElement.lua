@@ -11,45 +11,40 @@ function GFXElement:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.GFX = init.GFX
-    self.parent = init.parent
-    self.elements = init.elements
-    self.mouse = self.GFX.mouse
-    self.keyboard = self.GFX.keyboard
+    self.GFX = self.GFX or init.GFX
+    self.parent = self.parent or init.parent
+    self.elements = self.elements or init.elements
+    self.mouse = self.mouse or self.GFX.mouse or init.mouse
+    self.keyboard = self.keyboard or self.GFX.keyboard or init.keyboard
 
-    self.x = TrackedNumber:new(init.x or 0)
-    self.y = TrackedNumber:new(init.y or 0)
-    self.w = TrackedNumber:new(init.w or 0)
-    self.h = TrackedNumber:new(init.h or 0)
-    self.drawBuffer = self.GFX:getDrawBuffer()
+    self.x = self.x or init.x or 0
+    self.y = self.y or init.y or 0
+    self.w = self.w or init.w or 0
+    self.h = self.h or init.h or 0
+    self.xTracker = TrackedNumber:new(self.x or init.x or 0)
+    self.yTracker = TrackedNumber:new(self.y or init.y or 0)
+    self.wTracker = TrackedNumber:new(self.w or init.w or 0)
+    self.hTracker = TrackedNumber:new(self.h or init.h or 0)
 
-    self.isVisible = true
-    self.shouldRedraw = true
-    self.shouldClear = false
+    if self.parent then
+        self.drawBuffer = self.parent.drawBuffer or -1
+    else
+        self.drawBuffer = self.drawBuffer or self.GFX:getNewDrawBuffer() or -1
+    end
+
+    if self.isVisible == nil then self.isVisible = true end
+    if self.shouldRedraw == nil then self.shouldRedraw = true end
+    if self.shouldClear == nil then self.shouldClear = false end
 
     return self
 end
 
-function GFXElement:update()
-    self.x:update()
-    self.y:update()
-    self.w:update()
-    self.h:update()
+function GFXElement:updateStates()
+    self.x:update(self.x)
+    self.y:update(self.y)
+    self.w:update(self.w)
+    self.h:update(self.h)
 end
-function GFXElement:draw()
-    if self.draw then
-        if self.shouldRedraw then
-            self:clearBuffer()
-            gfx.dest = self.drawBuffer
-            self:draw()
-            self.shouldRedraw = false
-        elseif self.shouldClear then
-            self:clearBuffer()
-            self.shouldClear = false
-        end
-    end
-end
-
 function GFXElement:windowWasResized()
     return GFX:windowWasResized()
 end
@@ -141,9 +136,10 @@ function GFXElement:drawString(str, x, y, flags, right, bottom)
         gfx.drawstr(str)
     end
 end
-function GFXElement:clearBuffer()
-    gfx.setimgdim(self.drawBuffer, -1, -1)
-    gfx.setimgdim(self.drawBuffer, self.w, self.h)
+function GFXElement:clearBuffer(buffer)
+    local buffer = buffer or self.drawBuffer
+    gfx.setimgdim(buffer, -1, -1)
+    gfx.setimgdim(buffer, self.w, self.h)
 end
 function GFXElement:queueRedraw()
     if not self.shouldRedraw then

@@ -1,22 +1,22 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local GFX = require("GFX.Alkamist GFX")
+local GFX = require("GFX.AlkamistGFX")
 local Button = require("GFX.Button")
 
 GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
+GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 local testButton = Button:new{
-    x = 0,
-    y = 0,
+    x = 50,
+    y = 50,
     w = 80,
     h = 25,
     label = "Analyze Pitch",
     color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
 
-GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
-GFX:setElements{ testButton }
+--GFX:setElements{ testButton }
 GFX:run()
 
 --[[local pitchDetectionSettings = {

@@ -1,8 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local ToggleState = require("GFX.ToggleState")
-local GFXElement = require("GFX.GFXElement")
 
-local Button = setmetatable({}, { __index = GFXElement })
+local Button = {}
 
 function Button:new(init)
     local init = init or {}
@@ -27,12 +26,15 @@ function Button:update()
 end
 function Button:press()
     self.state:set(true)
+    self:queueRedraw()
 end
 function Button:release()
     self.state:set(false)
+    self:queueRedraw()
 end
 function Button:toggle()
     self.state:toggle()
+    self:queueRedraw()
 end
 function Button:isPressed()
     return self.state.current

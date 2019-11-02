@@ -182,10 +182,12 @@ function MouseControl:new(mouse)
 end
 
 function MouseControl:update(state)
-    self.state:update(state)
     if self:justPressed() then self.timeOfPreviousPress = reaper.time_precise() end
-    if self.dragState then self.isAlreadyDragging = true end
     if self:justReleased() then self.isAlreadyDragging = false end
+
+    self.state:update(state)
+
+    if self.dragState then self.isAlreadyDragging = true end
     self.dragState = self.state.current and self.mouse:justMoved()
 end
 
@@ -196,7 +198,9 @@ function MouseControl:justPressed()
     return self.state.justTurnedOn
 end
 function MouseControl:justDoublePressed()
-    return self:justPressed() and self:getTimeSincePreviousPress() < 0.5
+    local timeSince = self:getTimeSincePreviousPress()
+    if timeSince == nil then return false end
+    return self:justPressed() and timeSince <= 0.5
 end
 function MouseControl:justReleased()
     return self.state.justTurnedOff
@@ -208,10 +212,10 @@ function MouseControl:justStartedDragging()
     return self.dragState and not self.isAlreadyDragging
 end
 function MouseControl:justStoppedDragging()
-    return not self.dragState and self.isAlreadyDragging
+    return self:justReleased() and self.isAlreadyDragging
 end
 function MouseControl:getTimeSincePreviousPress()
-    if not self.timeOfPreviousPress then return 0 end
+    if not self.timeOfPreviousPress then return nil end
     return reaper.time_precise() - self.timeOfPreviousPress
 end
 
@@ -231,10 +235,10 @@ local Mouse = {}
 function Mouse:new()
     local self = setmetatable({}, { __index = self })
 
-    self.xTracker = TrackedNumber(0)
+    self.xTracker = TrackedNumber:new(0)
     self.x = 0
     self.xChange = 0
-    self.yTracker = TrackedNumber(0)
+    self.yTracker = TrackedNumber:new(0)
     self.y = 0
     self.yChange = 0
     self.cap = 0
@@ -270,7 +274,7 @@ function Mouse:didInside(element, action)
     return action and element.isVisible and self:isInside(element)
 end
 function Mouse:justMoved()
-    return self.x ~= self.previousX and self.y ~= self.previousY
+    return self.x ~= self.xTracker.previous and self.y ~= self.yTracker.previous
 end
 function Mouse:wheelJustMoved()
     return self.wheel ~= 0
@@ -303,7 +307,7 @@ function KeyboardKey:new(mouse, character)
     return self
 end
 function KeyboardKey:update()
-    MouseControl.update(self, gfx.getchar(characterTable[self.character]))
+    MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
 end
 
 local Keyboard = {}
@@ -325,10 +329,9 @@ function Keyboard:new(mouse)
 end
 
 function Keyboard:update()
+    for name, key in pairs(self.modifiers) do key:update() end
+    for name, key in pairs(self.keys) do key:update() end
     self.currentCharacter = characterTableInverted[gfx.getchar()]
-    for name, key in pairs(self.keys) do
-        key:update()
-    end
 end
 function Keyboard:createKey(character)
     self.keys[character] = KeyboardKey:new(self.mouse, character)
