@@ -14,8 +14,8 @@ function BoxSelect:new(init)
     self.y1 = 0
     self.y2 = 0
 
-    self.insideColor = init.insideColor or {1.0, 1.0, 1.0, -0.08, 1}
-    self.edgeColor = init.edgeColor or {1.0, 1.0, 1.0, 0.4, 1}
+    self.insideColor = init.insideColor or {1.0, 1.0, 1.0, -0.04, 1}
+    self.edgeColor = init.edgeColor or {1.0, 1.0, 1.0, 0.2, 1}
 
     self.isActive = false
 
