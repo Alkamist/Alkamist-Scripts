@@ -27,6 +27,15 @@ local testButton2 = Button:new{
 testButton.elements = { testButton2 }
 
 GFX:setElements{ testButton }
+function testButton:update()
+    Button.update(self)
+    local mouse = self.mouse
+    if mouse.left:justDragged() then
+        self.x = self.x + mouse.xChange
+        self:queueRedraw()
+    end
+end
+--testButton2.drawBuffer = GFX:getNewDrawBuffer()
 GFX:run()
 
 --[[local pitchDetectionSettings = {

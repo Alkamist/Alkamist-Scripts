@@ -274,7 +274,7 @@ function Mouse:didInside(element, action)
     return action and element.isVisible and self:isInside(element)
 end
 function Mouse:justMoved()
-    return self.x ~= self.xTracker.previous and self.y ~= self.yTracker.previous
+    return self.xTracker.justChanged or self.yTracker.justChanged
 end
 function Mouse:wheelJustMoved()
     return self.wheel ~= 0

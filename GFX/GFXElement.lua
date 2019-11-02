@@ -62,6 +62,9 @@ function GFXElement:updateStates()
     if self.parent then
         self.absoluteX = self.x + self.parent.absoluteX
         self.absoluteY = self.y + self.parent.absoluteY
+    else
+        self.absoluteX = self.x
+        self.absoluteY = self.y
     end
 
     local elements = self.elements
