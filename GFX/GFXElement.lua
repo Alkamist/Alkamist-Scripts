@@ -7,24 +7,34 @@ local TrackedNumber = require("GFX.TrackedNumber")
 
 local GFXElement = {}
 
-function GFXElement:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
+function GFXElement:new(element)
+    local elementMetatable = getmetatable(element)
+    if elementMetatable then
+        local base = elementMetatable.__index
+        setmetatable(element, {
+            __index = function(self, key)
+                local output = base[key]
+                if output == nil then output = GFXElement[key] end
+                return output
+            end
+        })
+    else
+        setmetatable(element, { __index = GFXElement })
+    end
 
-    self.GFX = self.GFX or init.GFX
-    self.parent = self.parent or init.parent
-    self.elements = self.elements or init.elements
-    self.mouse = self.mouse or self.GFX.mouse or init.mouse
-    self.keyboard = self.keyboard or self.GFX.keyboard or init.keyboard
+    local self = element
 
-    self.x = self.x or init.x or 0
-    self.y = self.y or init.y or 0
-    self.w = self.w or init.w or 0
-    self.h = self.h or init.h or 0
-    self.xTracker = TrackedNumber:new(self.x or init.x or 0)
-    self.yTracker = TrackedNumber:new(self.y or init.y or 0)
-    self.wTracker = TrackedNumber:new(self.w or init.w or 0)
-    self.hTracker = TrackedNumber:new(self.h or init.h or 0)
+    self.mouse = self.GFX.mouse
+    self.keyboard = self.GFX.keyboard
+
+    self.x = self.x or 0
+    self.y = self.y or 0
+    self.w = self.w or 0
+    self.h = self.h or 0
+    self.xTracker = TrackedNumber:new(self.x)
+    self.yTracker = TrackedNumber:new(self.y)
+    self.wTracker = TrackedNumber:new(self.w)
+    self.hTracker = TrackedNumber:new(self.h)
 
     if self.parent then
         self.drawBuffer = self.parent.drawBuffer or -1
@@ -40,10 +50,20 @@ function GFXElement:new(init)
 end
 
 function GFXElement:updateStates()
-    self.x:update(self.x)
-    self.y:update(self.y)
-    self.w:update(self.w)
-    self.h:update(self.h)
+    self.xTracker:update(self.x)
+    self.yTracker:update(self.y)
+    self.wTracker:update(self.w)
+    self.hTracker:update(self.h)
+
+    local elements = self.elements
+    if elements then
+        for i = 1, #elements do
+            elements[i]:updateStates()
+        end
+    end
+end
+function GFXElement:mouseIsInside()
+    return self.mouse:isInside(self)
 end
 function GFXElement:windowWasResized()
     return GFX:windowWasResized()

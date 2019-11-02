@@ -16,7 +16,7 @@ local testButton = Button:new{
     color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
 
---GFX:setElements{ testButton }
+GFX:setElements{ testButton }
 GFX:run()
 
 --[[local pitchDetectionSettings = {

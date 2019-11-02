@@ -283,7 +283,7 @@ function Mouse:hWheelJustMoved()
     return self.hWheel ~= 0
 end
 function Mouse:wasPreviouslyInside(element)
-    return element:pointIsInside(self.previousX, self.previousY)
+    return element:pointIsInside(self.xTracker.previous, self.yTracker.previous)
 end
 function Mouse:isInside(element)
     return element:pointIsInside(self.x, self.y)

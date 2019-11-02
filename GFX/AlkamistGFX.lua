@@ -31,21 +31,19 @@ function GFX:getNewDrawBuffer()
     if currentBuffer > 1023 then currentBuffer = 0 end
     return currentBuffer
 end
-function GFX:bindElement(element)
-    local baseOfElement
-    while true do
-        local mt = getmetatable(element)
-        if mt == nil then break end
-        baseOfElement = mt.__index
-    end
-    baseOfElement.GFX = GFX
-    if self ~= GFX then baseOfElement.parent = self end
-    GFXElement:new(baseOfElement)
+function GFX:bindElement(element, parent)
+    element.GFX = GFX
+    element.parent = parent
+    GFXElement:new(element)
 
     local elementsOfElement = element.elements
-    for i = 1, #elementsOfElement do
-        self:bindElement(elementsOfElement[i])
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            GFX:bindElement(elementsOfElement[i], element)
+        end
     end
+
+    return element
 end
 function GFX:setElements(elements)
     for i = 1, #elements do
@@ -63,33 +61,50 @@ function GFX:init(title, x, y, w, h, dock)
     self.dock = dock
 end
 function GFX:drawElement(element)
+    gfx.a = 1.0
+    gfx.mode = 0
+
     if element.draw then
         if element.shouldRedraw then
             element:clearBuffer()
             gfx.dest = element.drawBuffer
             element:draw()
             element.shouldRedraw = false
+
         elseif element.shouldClearBuffer then
             element:clearBuffer()
             element.shouldClearBuffer = false
         end
     end
-end
-function GFX:renderElement(element)
+
     local elementsOfElement = element.elements
-    for i = 1, #elementsOfElement do
-        local elementOfElement = elementsOfElement[i]
-        GFX:renderElement(elementOfElement)
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            GFX:drawElement(elementsOfElement[i])
+        end
+    end
+end
+function GFX:blitElement(element)
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            GFX:blitElement(elementsOfElement[i])
+        end
     end
 
     if element.isVisible then
+        gfx.a = 1.0
+        gfx.mode = 0
+
         if element.parent then
-            gfx.dest = element.parent.drawBuffer
+            if element.drawBuffer ~= element.parent.drawBuffer then
+                gfx.dest = element.parent.drawBuffer
+                gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
+            end
         else
             gfx.dest = -1
+            gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
         end
-        --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-        gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
     end
 end
 
@@ -108,20 +123,14 @@ function GFX.run()
     local char = self.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    for i = 1, #elements do
-        local element = elements[i]
-        gfx.a = 1.0
-        gfx.mode = 0
-        GFXElement.updateStates(element)
-        element:update()
-        GFX:drawElement(element)
-    end
-    for i = 1, #elements do
-        local element = elements[i]
-        gfx.dest = -1
-        gfx.a = 1.0
-        gfx.mode = 0
-        GFX:renderElement(element)
+    if elements then
+        for i = 1, #elements do
+            local element = elements[i]
+            GFXElement.updateStates(element)
+            element:update()
+            GFX:drawElement(element)
+            GFX:blitElement(element)
+        end
     end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
