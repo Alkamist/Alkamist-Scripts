@@ -46,11 +46,11 @@ function Button:update()
         if mouse:justLeft(self) then self:unGlow() end
     end
     if self.pressOnClick then
-        if mouse:didInside(self, mouse.left:justPressed()) then self:press() end
-        if mouse:didInside(self, mouse.left:justReleased()) then self:release() end
+        if mouse.buttons.left:justPressed(self) then self:press() end
+        if mouse.buttons.left:justReleased(self) then self:release() end
     end
     if self.toggleOnClick then
-        if mouse:didInside(self, mouse.left:justPressed()) then self:toggle() end
+        if mouse.buttons.left:justPressed(self) then self:toggle() end
     end
 end
 function Button:glow()

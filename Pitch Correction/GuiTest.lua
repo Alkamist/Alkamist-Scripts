@@ -38,7 +38,7 @@ GFX:setElements{ testButton }
 function testButton:update()
     Button.update(self)
     local mouse = self.mouse
-    if mouse.left:justDragged() then
+    if mouse.buttons.right:justDragged(self) then
         self.x = self.x + mouse.xChange
         self:queueRedraw()
     end

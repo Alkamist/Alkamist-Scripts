@@ -170,13 +170,15 @@ local TrackedNumber = require("GFX.TrackedNumber")
 
 local MouseControl = {}
 
-function MouseControl:new(mouse)
+function MouseControl:new(mouse, name)
     local self = setmetatable({}, { __index = self })
 
     self.mouse = mouse
+    self.name = name
     self.state = ToggleState:new(false)
     self.dragState = false
     self.isAlreadyDragging = false
+    self.releaseState = ToggleState:new(false)
 
     return self
 end
@@ -186,33 +188,48 @@ function MouseControl:update(state)
     if self:justReleased() then self.isAlreadyDragging = false end
 
     self.state:update(state)
+    self.releaseState:update(self:justReleased())
 
     if self.dragState then self.isAlreadyDragging = true end
     self.dragState = self.state.current and self.mouse:justMoved()
 end
 
-function MouseControl:isPressed()
-    return self.state.current
+function MouseControl:isPressed(element)
+    local output = self.state.current
+    if element then return output and self.mouse:isInside(element) end
+    return output
 end
-function MouseControl:justPressed()
-    return self.state.justTurnedOn
+function MouseControl:justPressed(element)
+    local output = self.state.justTurnedOn
+    if element then return output and self.mouse:isInside(element) end
+    return output
 end
-function MouseControl:justDoublePressed()
+function MouseControl:justDoublePressed(element)
     local timeSince = self:getTimeSincePreviousPress()
     if timeSince == nil then return false end
-    return self:justPressed() and timeSince <= 0.5
+    local output = self:justPressed() and timeSince <= 0.5
+    if element then return output and self.mouse:isInside(element) end
+    return output
 end
-function MouseControl:justReleased()
-    return self.state.justTurnedOff
+function MouseControl:justReleased(element)
+    local output = self.state.justTurnedOff
+    if element then return output and element.buttonWasPressedInside[self.name] end
+    return output
 end
-function MouseControl:justDragged()
-    return self.dragState
+function MouseControl:justDragged(element)
+    local output = self.dragState
+    if element then return output and element.buttonWasPressedInside[self.name] end
+    return output
 end
-function MouseControl:justStartedDragging()
-    return self.dragState and not self.isAlreadyDragging
+function MouseControl:justStartedDragging(element)
+    local output = self.dragState and not self.isAlreadyDragging
+    if element then return output and element.buttonWasPressedInside[self.name] end
+    return output
 end
-function MouseControl:justStoppedDragging()
-    return self:justReleased() and self.isAlreadyDragging
+function MouseControl:justStoppedDragging(element)
+    local output = self:justReleased() and self.isAlreadyDragging
+    if element then return output and element.buttonWasPressedInside[self.name] end
+    return output
 end
 function MouseControl:getTimeSincePreviousPress()
     if not self.timeOfPreviousPress then return nil end
@@ -221,8 +238,8 @@ end
 
 local MouseButton = setmetatable({}, { __index = MouseControl })
 
-function MouseButton:new(mouse, bitValue)
-    local self = setmetatable(MouseControl:new(mouse), { __index = self })
+function MouseButton:new(mouse, name, bitValue)
+    local self = setmetatable(MouseControl:new(mouse, name), { __index = self })
     self.bitValue = bitValue
     return self
 end
@@ -245,9 +262,11 @@ function Mouse:new()
     self.wheel = 0
     self.hWheel = 0
 
-    self.left = MouseButton:new(self, 1)
-    self.middle = MouseButton:new(self, 64)
-    self.right = MouseButton:new(self, 2)
+    self.buttons = {
+        left = MouseButton:new(self, "left", 1),
+        middle = MouseButton:new(self, "middle", 64),
+        right = MouseButton:new(self, "right", 2)
+    }
 
     return self
 end
@@ -266,12 +285,12 @@ function Mouse:update()
     self.hWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
 
-    self.left:update()
-    self.middle:update()
-    self.right:update()
+    self.buttons.left:update()
+    self.buttons.middle:update()
+    self.buttons.right:update()
 end
 function Mouse:didInside(element, action)
-    return action and element.isVisible and self:isInside(element)
+    return action and self:isInside(element)
 end
 function Mouse:justMoved()
     return self.xTracker.justChanged or self.yTracker.justChanged
@@ -302,7 +321,7 @@ end
 local KeyboardKey = setmetatable({}, { __index = MouseControl })
 
 function KeyboardKey:new(mouse, character)
-    local self = setmetatable(MouseControl:new(mouse), { __index = self })
+    local self = setmetatable(MouseControl:new(mouse, character), { __index = self })
     self.character = character
     return self
 end
@@ -318,10 +337,10 @@ function Keyboard:new(mouse)
     self.mouse = mouse
     self.currentCharacter = nil
     self.modifiers = {
-        shift = MouseButton:new(mouse, 8),
-        control = MouseButton:new(mouse, 4),
-        windows = MouseButton:new(mouse, 32),
-        alt = MouseButton:new(mouse, 16)
+        shift = MouseButton:new(mouse, "shift", 8),
+        control = MouseButton:new(mouse, "control", 4),
+        windows = MouseButton:new(mouse, "windows", 32),
+        alt = MouseButton:new(mouse, "alt", 16)
     }
     self.keys = {}
 

@@ -50,10 +50,14 @@ function GFXElement:new(element)
     if self.shouldRedraw == nil then self.shouldRedraw = true end
     if self.shouldClear == nil then self.shouldClear = false end
 
+    self.buttonWasPressedInside = {}
+
     return self
 end
 
 function GFXElement:updateStates()
+    local mouse = self.mouse
+
     self.xTracker:update(self.x)
     self.yTracker:update(self.y)
     self.wTracker:update(self.w)
@@ -65,6 +69,15 @@ function GFXElement:updateStates()
     else
         self.absoluteX = self.x
         self.absoluteY = self.y
+    end
+
+    for name, button in pairs(mouse.buttons) do
+        if button.releaseState.previous then
+            self.buttonWasPressedInside[button.name] = false
+        end
+        if button:justPressed(self) then
+            self.buttonWasPressedInside[button.name] = true
+        end
     end
 
     local elements = self.elements
