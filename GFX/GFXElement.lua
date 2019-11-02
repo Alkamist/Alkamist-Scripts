@@ -36,6 +36,9 @@ function GFXElement:new(element)
     self.wTracker = TrackedNumber:new(self.w)
     self.hTracker = TrackedNumber:new(self.h)
 
+    self.relativeMouseX = 0
+    self.relativeMouseY = 0
+
     if self.parent then
         self.absoluteX = self.x + self.parent.absoluteX
         self.absoluteY = self.y + self.parent.absoluteY
@@ -72,6 +75,9 @@ function GFXElement:updateStates()
     self.wTracker:update(self.w)
     self.hTracker:update(self.h)
 
+    self.relativeMouseX = mouse.x - self.x
+    self.relativeMouseY = mouse.y - self.y
+
     if self.parent then
         self.absoluteX = self.x + self.parent.absoluteX
         self.absoluteY = self.y + self.parent.absoluteY
@@ -94,10 +100,15 @@ end
 function GFXElement:windowWasResized()
     return GFX:windowWasResized()
 end
-function GFXElement:pointIsInside(x, y)
+function GFXElement:absolutePointIsInside(x, y)
     return self.isVisible
        and x >= self.absoluteX and x <= self.absoluteX + self.w
        and y >= self.absoluteY and y <= self.absoluteY + self.h
+end
+function GFXElement:pointIsInside(x, y)
+    return self.isVisible
+       and x >= self.x and x <= self.x + self.w
+       and y >= self.y and y <= self.y + self.h
 end
 function GFXElement:setColor(color)
     self.currentColor = color

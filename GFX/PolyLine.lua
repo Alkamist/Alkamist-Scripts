@@ -107,7 +107,7 @@ function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
     local lowestDistanceIndex = 1
 
     for i = 1, numberOfPoints do
-        local point =     self.points[i]
+        local point = self.points[i]
         local nextPoint = self.points[i + 1]
 
         local distance
@@ -132,7 +132,7 @@ function PolyLine:getIndexAndDistanceOfPointClosestToPoint(x, y)
     local lowestDistanceIndex = 1
 
     for i = 1, numberOfPoints do
-        local point =     self.points[i]
+        local point = self.points[i]
 
         local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
         lowestDistance = lowestDistance or distance

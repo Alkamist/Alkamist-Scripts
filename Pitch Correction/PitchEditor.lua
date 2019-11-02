@@ -64,23 +64,23 @@ function PitchEditor:new(init)
     self.w = init.w or 0
     self.h = init.h or 0
 
-    self.whiteKeyNumbers =               getWhiteKeyNumbers()
-    self.minKeyHeightToDrawCenterline =  init.minKeyHeightToDrawCenterline  or 16
-    self.pitchHeight =                   init.pitchHeight                   or 128
+    self.whiteKeyNumbers = getWhiteKeyNumbers()
+    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
+    self.pitchHeight = init.pitchHeight or 128
 
-    self.backgroundColor =               init.backgroundColor               or { 0.22, 0.22, 0.22, 1.0,  0 }
-    self.blackKeyColor =                 init.blackKeyColor                 or { 0.22, 0.22, 0.22, 1.0,  0 }
-    self.whiteKeyColor =                 init.whiteKeyColor                 or { 0.29, 0.29, 0.29, 1.0,  0 }
-    self.keyCenterLineColor =            init.keyCenterLineColor            or { 1.0,  1.0,  1.0,  0.09, 1 }
-    self.edgeColor =                     init.edgeColor                     or { 1.0,  1.0,  1.0,  -0.1, 1 }
-    self.edgeShade =                     init.edgeShade                     or { 1.0,  1.0,  1.0,  -0.04, 1 }
-    self.editCursorColor =               init.editCursorColor               or { 1.0,  1.0,  1.0,  0.34, 1 }
-    self.playCursorColor =               init.playCursorColor               or { 1.0,  1.0,  1.0,  0.2,  1 }
-    self.pitchCorrectionActiveColor =    init.pitchCorrectionActiveColor    or { 0.3, 0.6, 0.9,    1.0,  0 }
-    self.pitchCorrectionInactiveColor =  init.pitchCorrectionInactiveColor  or { 0.9,  0.3, 0.3,   1.0,  0 }
-    self.peakColor =                     init.peakColor                     or {1.0,   1.0,  1.0,  1.0,  0 }
-    self.correctedPitchLineColor =       init.correctedPitchLineColor       or {0.3,   0.7,  0.3,  1.0,  0 }
-    self.pitchLineColor =                init.pitchLineColor                or {0.1,   0.3,  0.1,  1.0,  0 }
+    self.backgroundColor = init.backgroundColor or { 0.22, 0.22, 0.22, 1.0, 0 }
+    self.blackKeyColor = init.blackKeyColor or { 0.22, 0.22, 0.22, 1.0, 0 }
+    self.whiteKeyColor = init.whiteKeyColor or { 0.29, 0.29, 0.29, 1.0, 0 }
+    self.keyCenterLineColor = init.keyCenterLineColor or { 1.0, 1.0, 1.0, 0.09, 1 }
+    self.edgeColor = init.edgeColor or { 1.0, 1.0, 1.0, -0.1, 1 }
+    self.edgeShade = init.edgeShade or { 1.0, 1.0, 1.0, -0.04, 1 }
+    self.editCursorColor = init.editCursorColor or { 1.0, 1.0, 1.0, 0.34, 1 }
+    self.playCursorColor = init.playCursorColor or { 1.0, 1.0, 1.0, 0.2, 1 }
+    self.pitchCorrectionActiveColor = init.pitchCorrectionActiveColor or { 0.3, 0.6, 0.9, 1.0, 0 }
+    self.pitchCorrectionInactiveColor = init.pitchCorrectionInactiveColor or { 0.9, 0.3, 0.3, 1.0, 0 }
+    self.peakColor = init.peakColor or { 1.0,   1.0,  1.0,  1.0,  0 }
+    self.correctedPitchLineColor = init.correctedPitchLineColor or { 0.3, 0.7, 0.3, 1.0, 0 }
+    self.pitchLineColor = init.pitchLineColor or { 0.1, 0.3, 0.1, 1.0, 0 }
 
     self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
 
@@ -102,23 +102,26 @@ function PitchEditor:new(init)
         parent = self,
         thingsToSelect = self.take.corrections
     }
+    self.elements = {
+        [1] = self.boxSelect
+    }
 
-    self.mouseTime =                 0.0
-    self.mouseTimeOnLeftDown =       0.0
-    self.previousMouseTime =         0.0
-    self.mouseTimeChange =           0.0
+    self.mouseTime = 0.0
+    self.mouseTimeOnLeftDown = 0.0
+    self.previousMouseTime = 0.0
+    self.mouseTimeChange = 0.0
 
-    self.mousePitch =                0.0
-    self.mousePitchOnLeftDown =      0.0
-    self.previousMousePitch =        0.0
-    self.mousePitchChange =          0.0
-    self.snappedMousePitch =         0.0
+    self.mousePitch = 0.0
+    self.mousePitchOnLeftDown = 0.0
+    self.previousMousePitch = 0.0
+    self.mousePitchChange = 0.0
+    self.snappedMousePitch = 0.0
     self.previousSnappedMousePitch = 0.0
-    self.snappedMousePitchChange =   0.0
+    self.snappedMousePitchChange = 0.0
 
-    self.altKeyWasDownOnPointEdit =  false
-    self.fixErrorMode =              false
-    self.enablePitchCorrections =    true
+    self.altKeyWasDownOnPointEdit = false
+    self.fixErrorMode =  false
+    self.enablePitchCorrections = true
 
     return self
 end
@@ -138,28 +141,28 @@ function PitchEditor:insertPitchCorrectionPoint(point)
         isActive =   point.isActive
     }
 end
-function PitchEditor:handlePitchCorrectionPointLeftDown()
+function PitchEditor:handlePitchCorrectionPointLeftDown(mouse)
     if not self.enablePitchCorrections then return end
-    self.mouseTimeOnLeftDown =         self.mouseTime
-    self.mousePitchOnLeftDown =        self.mousePitch
+    self.mouseTimeOnLeftDown = self.mouseTime
+    self.mousePitchOnLeftDown = self.mousePitch
     self.snappedMousePitchOnLeftDown = self.snappedMousePitch
 
     self.altKeyWasDownOnPointEdit = false
 
     if self.mouseOverPitchCorrectionIndex then
-        local point =     self.take.corrections.points[self.mouseOverPitchCorrectionIndex]
+        local point = self.take.corrections.points[self.mouseOverPitchCorrectionIndex]
         local nextPoint = self.take.corrections.points[self.mouseOverPitchCorrectionIndex + 1]
         self.pitchCorrectionEditPoint = point
 
         local pointWasAlreadySelected = point.isSelected
         if not pointWasAlreadySelected then
-            if not self.GFX.shiftKeyState then
+            if not self.keyboard.modifiers.shift:isPressed() then
                 self:unselectAllPitchCorrectionPoints()
             end
             point.isSelected = true
         end
 
-        if self.GFX.altKeyState then
+        if self.keyboard.modifiers.alt:isPressed() then
             self.altKeyWasDownOnPointEdit = true
             local corrections = self.take.corrections.points
             for i = 1, #corrections do
@@ -176,19 +179,19 @@ function PitchEditor:handlePitchCorrectionPointLeftDown()
         end
     end
 end
-function PitchEditor:handlePitchCorrectionPointLeftDrag()
+function PitchEditor:handlePitchCorrectionPointLeftDrag(mouse)
     if not self.enablePitchCorrections then return end
-    local mousePitch =           self.snappedMousePitch
-    local mousePitchChange =     self.snappedMousePitchChange
+    local mousePitch = self.snappedMousePitch
+    local mousePitchChange = self.snappedMousePitchChange
     local mousePitchOnLeftDown = self.snappedMousePitchOnLeftDown
 
-    if self.GFX.shiftKeyState then
-        mousePitch =           self.mousePitch
-        mousePitchChange =     self.mousePitchChange
+    if self.keyboard.modifiers.shift:isPressed() then
+        mousePitch = self.mousePitch
+        mousePitchChange = self.mousePitchChange
         mousePitchOnLeftDown = self.mousePitchOnLeftDown
     end
 
-    if not self.pitchCorrectionEditPoint and self.justStartedLeftDragging then
+    if not self.pitchCorrectionEditPoint and mouse.buttons.left:justStartedDragging(self) then
         self:unselectAllPitchCorrectionPoints()
 
         self:insertPitchCorrectionPoint{
@@ -200,7 +203,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
         local firstPointIndex = self.take.corrections.mostRecentInsertedIndex
 
         local previousPoint = self.take.corrections.points[firstPointIndex - 1]
-        if previousPoint and self.GFX.altKeyState then previousPoint.isActive = true end
+        if previousPoint and self.keyboard.modifiers.alt:isPressed() then previousPoint.isActive = true end
 
         self:insertPitchCorrectionPoint{
             time = self.mouseTime,
@@ -215,17 +218,17 @@ function PitchEditor:handlePitchCorrectionPointLeftDrag()
         for i = 1, #corrections do
             local correction = corrections[i]
             if correction.isSelected then
-                correction.time =  correction.time + self.mouseTimeChange
+                correction.time = correction.time + self.mouseTimeChange
                 correction.pitch = correction.pitch + mousePitchChange
-                correction.x =     self:timeToPixels(correction.time)
-                correction.y =     self:pitchToPixels(correction.pitch)
+                correction.x = self:timeToPixels(correction.time)
+                correction.y = self:pitchToPixels(correction.pitch)
             end
         end
         self.take.corrections:sortPoints()
         self.take:correctAllPitchPoints()
     end
 end
-function PitchEditor:handlePitchCorrectionPointLeftUp()
+function PitchEditor:handlePitchCorrectionPointLeftUp(mouse)
     if not self.enablePitchCorrections then return end
     if self.newPitchCorrectionPoint then
         self.newPitchCorrectionPoint.isSelected = false
@@ -234,7 +237,7 @@ function PitchEditor:handlePitchCorrectionPointLeftUp()
     self.newPitchCorrectionPoint = nil
     self.pitchCorrectionEditPoint = nil
 end
-function PitchEditor:handlePitchCorrectionPointLeftDoubleClick()
+function PitchEditor:handlePitchCorrectionPointLeftDoubleClick(mouse)
     if not self.enablePitchCorrections then return end
     if self.mouseOverPitchCorrectionIndex and not self.newPitchCorrectionPoint then
         self:snapSelectedPitchCorrectionsToNearestPitch()
@@ -251,8 +254,8 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
     if not self.enablePitchCorrections then return end
-    local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.mouseX, self.mouseY)
-    local pointIndex,   pointDistance =   self.take.corrections:getIndexAndDistanceOfPointClosestToPoint(self.mouseX, self.mouseY)
+    local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.relativeMouseX, self.relativeMouseY)
+    local pointIndex, pointDistance = self.take.corrections:getIndexAndDistanceOfPointClosestToPoint(self.relativeMouseX, self.relativeMouseY)
 
     local pointIsClose = false
     local segmentIsClose = false
@@ -318,7 +321,7 @@ function PitchEditor:recalculateTakePitchCoordinates()
     end
 end
 function PitchEditor:toggleFixErrorMode()
-    self.fixErrorMode =           not self.fixErrorMode
+    self.fixErrorMode = not self.fixErrorMode
     self.enablePitchCorrections = not self.fixErrorMode
     if self.enablePitchCorrections then
         self:recalculatePitchCorrectionCoordinates()
@@ -591,8 +594,8 @@ function PitchEditor:calculateMouseInformation()
     self.previousMousePitch = self.mousePitch
     self.previousSnappedMousePitch = self.snappedMousePitch
 
-    self.mouseTime =  self:pixelsToTime(self.mouseX)
-    self.mousePitch = self:pixelsToPitch(self.mouseY)
+    self.mouseTime =  self:pixelsToTime(self.relativeMouseX)
+    self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
     self.mouseTimeChange = self.mouseTime - self.previousMouseTime
     self.mousePitchChange = self.mousePitch - self.previousMousePitch
 
@@ -608,9 +611,81 @@ end
 --== Events ====================================================
 --==============================================================
 
-function PitchEditor:onInit()
+function PitchEditor:handleWindowResize()
+    if self.scaleWithWindow then
+        self.w = self.w + self.GFX.wChange
+        self.h = self.h + self.GFX.hChange
+        self.view.x.scale = self.w
+        self.view.y.scale = self.h
+    end
+
+    self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
+end
+function PitchEditor:handleKeyPress(char)
+    local keyPressFunction = self.keyPressFunctions[char]
+    if keyPressFunction then keyPressFunction(self) end
+end
+function PitchEditor:handleLeftPress(mouse)
+    self:handlePitchCorrectionPointLeftDown(mouse)
+end
+function PitchEditor:handleLeftDrag(mouse)
+    self:handlePitchCorrectionPointLeftDrag(mouse)
+end
+function PitchEditor:handleLeftRelease(mouse)
+    if not mouse.buttons.left:justStoppedDragging() and not self.pitchCorrectionEditPoint then
+        self:setEditCursorToMousePosition()
+    end
+    self:handlePitchCorrectionPointLeftUp(mouse)
+end
+function PitchEditor:handleLeftDoublePress(mouse)
+    self:handlePitchCorrectionPointLeftDoubleClick(mouse)
+end
+function PitchEditor:handleMiddlePress(mouse)
+    self.view.x.target = self.relativeMouseX
+    self.view.y.target = self.relativeMouseY
+end
+function PitchEditor:handleMiddleDrag(mouse)
+    if self.keyboard.modifiers.shift:isPressed() then
+        self.view.x:changeZoom(mouse.xChange)
+        self.view.y:changeZoom(mouse.yChange)
+    else
+        self.view.x:changeScroll(mouse.xChange)
+        self.view.y:changeScroll(mouse.yChange)
+    end
+
+    self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
+end
+function PitchEditor:handleRightPress(mouse)
+    self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+end
+function PitchEditor:handleRightDrag(mouse)
+    self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+end
+function PitchEditor:handleRightRelease(mouse)
+    self.boxSelect:makeSelection(self.take.corrections.points, setPointSelected, pointIsSelected, self.keyboard.modifiers.shift:isPressed(), self.keyboard.modifiers.control:isPressed())
+end
+function PitchEditor:handleMouseWheel(mouse)
+    local xSensitivity = 55.0
+    local ySensitivity = 55.0
+
+    self.view.x.target = self.relativeMouseX
+    self.view.y.target = self.relativeMouseY
+
+    if self.keyboard.modifiers.control:isPressed() then
+        self.view.y:changeZoom(mouse.wheel * ySensitivity)
+    else
+        self.view.x:changeZoom(mouse.wheel * xSensitivity)
+    end
+
+    self:recalculatePitchCorrectionCoordinates()
+    self:recalculateTakePitchCoordinates()
+end
+
+function PitchEditor:initialize()
     self:updateEditorTakeWithSelectedItems()
-    self:onWindowResize()
+    self:handleWindowResize()
     self:calculateMouseInformation()
 
     --local time = self.take.sourceLength / 1000
@@ -625,14 +700,20 @@ function PitchEditor:onInit()
     --    time = time + timeIncrement
     --end
 end
-function PitchEditor:onUpdate()
+function PitchEditor:update()
+    local mouse = self.mouse
+    local mouseLeftButton = mouse.buttons.left
+    local mouseMiddleButton = mouse.buttons.middle
+    local mouseRightButton = mouse.buttons.right
+    local keyboard = self.keyboard
+    local char = self.keyboard.currentCharacter
+
     if self:projectHasChanged() then
         if not self.take.isAnalyzingPitch then
             self:updateEditorTakeWithSelectedItems()
         end
         --self:updatePeaks()
     end
-
     if self.isVisible then
         self:calculateMouseInformation()
         self:updatePitchCorrectionMouseOver()
@@ -641,79 +722,21 @@ function PitchEditor:onUpdate()
         self:recalculateTakePitchCoordinates()
         self:queueRedraw()
     end
-end
-function PitchEditor:onWindowResize()
-    if self.scaleWithWindow then
-        self.w = self.w + self.GFX.wChange
-        self.h = self.h + self.GFX.hChange
-        self.view.x.scale = self.w
-        self.view.y.scale = self.h
-    end
 
-    self:recalculatePitchCorrectionCoordinates()
-    self:recalculateTakePitchCoordinates()
+    if self.GFX:windowWasResized() then self:handleWindowResize() end
+    if char then self:handleKeyPress(char) end
+    if mouseLeftButton:justPressed(self) then self:handleLeftPress(mouse) end
+    if mouseLeftButton:justDragged(self) then self:handleLeftDrag(mouse) end
+    if mouseLeftButton:justReleased(self) then self:handleLeftRelease(mouse) end
+    if mouseLeftButton:justDoublePressed(self) then self:handleLeftDoublePress(mouse) end
+    if mouseMiddleButton:justPressed(self) then self:handleMiddlePress(mouse) end
+    if mouseMiddleButton:justDragged(self) then self:handleMiddleDrag(mouse) end
+    if mouseRightButton:justPressed(self) then self:handleRightPress(mouse) end
+    if mouseRightButton:justDragged(self) then self:handleRightDrag(mouse) end
+    if mouseRightButton:justReleased(self) then self:handleRightRelease(mouse) end
+    if mouse:wheelJustMoved(self) then self:handleMouseWheel(mouse) end
 end
-function PitchEditor:onKeyPress()
-    local keyPressFunction = self.onKeyPressFunctions[self.GFX.char]
-    if keyPressFunction then keyPressFunction(self) end
-end
-function PitchEditor:onMouseLeftDown()
-    self:handlePitchCorrectionPointLeftDown()
-end
-function PitchEditor:onMouseLeftDrag()
-    self:handlePitchCorrectionPointLeftDrag()
-end
-function PitchEditor:onMouseLeftUp()
-    if not self.mouseLeftWasDragged and not self.pitchCorrectionEditPoint then
-        self:setEditCursorToMousePosition()
-    end
-    self:handlePitchCorrectionPointLeftUp()
-end
-function PitchEditor:onMouseLeftDoubleClick()
-    self:handlePitchCorrectionPointLeftDoubleClick()
-end
-function PitchEditor:onMouseMiddleDown()
-    self.view.x.target = self.mouseX
-    self.view.y.target = self.mouseY
-end
-function PitchEditor:onMouseMiddleDrag()
-    if self.GFX.shiftKeyState then
-        self.view.x:changeZoom(self.GFX.mouseXChange)
-        self.view.y:changeZoom(self.GFX.mouseYChange)
-    else
-        self.view.x:changeScroll(self.GFX.mouseXChange)
-        self.view.y:changeScroll(self.GFX.mouseYChange)
-    end
-
-    self:recalculatePitchCorrectionCoordinates()
-    self:recalculateTakePitchCoordinates()
-end
-function PitchEditor:onMouseRightDown()
-    self.boxSelect:startSelection(self.mouseX, self.mouseY)
-end
-function PitchEditor:onMouseRightDrag()
-    self.boxSelect:editSelection(self.mouseX, self.mouseY)
-end
-function PitchEditor:onMouseRightUp()
-    self.boxSelect:makeSelection(self.take.corrections.points, setPointSelected, pointIsSelected, self.GFX.shiftKeyState, self.GFX.controlKeyState)
-end
-function PitchEditor:onMouseWheel()
-    local xSensitivity = 55.0
-    local ySensitivity = 55.0
-
-    self.view.x.target = self.mouseX
-    self.view.y.target = self.mouseY
-
-    if self.GFX.controlKeyState then
-        self.view.y:changeZoom(self.GFX.wheel * ySensitivity)
-    else
-        self.view.x:changeZoom(self.GFX.wheel * xSensitivity)
-    end
-
-    self:recalculatePitchCorrectionCoordinates()
-    self:recalculateTakePitchCoordinates()
-end
-function PitchEditor:onDraw()
+function PitchEditor:draw()
     self:drawMainBackground()
     self:drawKeyBackgrounds()
     --self:drawPeaks()
@@ -724,7 +747,7 @@ function PitchEditor:onDraw()
     self.boxSelect:draw()
 end
 
-PitchEditor.onKeyPressFunctions = {
+PitchEditor.keyPressFunctions = {
     ["Delete"] = function(self)
         if not self.enablePitchCorrections then return end
         self:deleteSelectedPitchCorrectionPoints()

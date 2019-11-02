@@ -11,6 +11,10 @@ local GFX = {
     backgroundColor = {},
     x = 0,
     y = 0,
+    w = 0,
+    h = 0,
+    wChange = 0,
+    hChange = 0,
     wTracker = TrackedNumber:new(0),
     hTracker = TrackedNumber:new(0),
     elements = {},
@@ -23,7 +27,7 @@ function GFX:setBackgroundColor(color)
     gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
 end
 function GFX:windowWasResized()
-    return self.w.justChanged or self.h.justChanged
+    return self.wTracker.justChanged or self.hTracker.justChanged
 end
 local currentBuffer = -1
 function GFX:getNewDrawBuffer()
@@ -35,6 +39,7 @@ function GFX:bindElement(element, parent)
     element.GFX = GFX
     element.parent = parent
     GFXElement:new(element)
+    if element.initialize then element:initialize() end
 
     local elementsOfElement = element.elements
     if elementsOfElement then
@@ -50,7 +55,7 @@ function GFX:setElements(elements)
         self.elements[#self.elements + 1] = self:bindElement(elements[i])
     end
 end
-function GFX:init(title, x, y, w, h, dock)
+function GFX:initialize(title, x, y, w, h, dock)
     gfx.init(title, w, h, dock, x, y)
 
     self.title = title
@@ -58,11 +63,13 @@ function GFX:init(title, x, y, w, h, dock)
     self.y = y
     self.w = w
     self.h = h
+    self.wTracker:update(w)
+    self.hTracker:update(h)
     self.dock = dock
 end
 function GFX:updateElement(element)
     GFXElement.updateStates(element)
-    element:update()
+    if element.update then element:update() end
 
     local elementsOfElement = element.elements
     if elementsOfElement then
@@ -135,6 +142,8 @@ function GFX.run()
     self.hTracker:update(gfx.h)
     self.w = self.wTracker.current
     self.h = self.hTracker.current
+    self.wChange = self.wTracker.change
+    self.hChange = self.hTracker.change
 
     self.mouse:update()
     self.keyboard:update()

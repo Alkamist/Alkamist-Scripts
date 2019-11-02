@@ -22,10 +22,6 @@ function BoxSelect:new(init)
     return self
 end
 
-function BoxSelect:pointIsInside(x, y)
-    return x >= self.x and x <= self.x + self.w
-       and y >= self.y and y <= self.y + self.h
-end
 function BoxSelect:startSelection(startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
