@@ -241,6 +241,7 @@ function PitchEditor:handlePitchCorrectionPointLeftDoubleClick(mouse)
     if not self.enablePitchCorrections then return end
     if self.mouseOverPitchCorrectionIndex and not self.newPitchCorrectionPoint then
         self:snapSelectedPitchCorrectionsToNearestPitch()
+        self.take:correctAllPitchPoints()
     end
 end
 function PitchEditor:recalculatePitchCorrectionCoordinates()
