@@ -8,13 +8,23 @@ GFX:init("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 local testButton = Button:new{
-    x = 50,
+    x = 100,
     y = 50,
-    w = 80,
-    h = 25,
+    w = 500,
+    h = 400,
     label = "Analyze Pitch",
     color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
+
+local testButton2 = Button:new{
+    x = 50,
+    y = 100,
+    w = 50,
+    h = 20,
+    label = "ayy",
+    color = { 0.3, 0.3, 0.3, 1.0, 0 }
+}
+testButton.elements = { testButton2 }
 
 GFX:setElements{ testButton }
 GFX:run()

@@ -37,8 +37,12 @@ function GFXElement:new(element)
     self.hTracker = TrackedNumber:new(self.h)
 
     if self.parent then
+        self.absoluteX = self.x + self.parent.absoluteX
+        self.absoluteY = self.y + self.parent.absoluteY
         self.drawBuffer = self.parent.drawBuffer or -1
     else
+        self.absoluteX = self.x
+        self.absoluteY = self.y
         self.drawBuffer = self.drawBuffer or self.GFX:getNewDrawBuffer() or -1
     end
 
@@ -55,6 +59,11 @@ function GFXElement:updateStates()
     self.wTracker:update(self.w)
     self.hTracker:update(self.h)
 
+    if self.parent then
+        self.absoluteX = self.x + self.parent.absoluteX
+        self.absoluteY = self.y + self.parent.absoluteY
+    end
+
     local elements = self.elements
     if elements then
         for i = 1, #elements do
@@ -62,16 +71,13 @@ function GFXElement:updateStates()
         end
     end
 end
-function GFXElement:mouseIsInside()
-    return self.mouse:isInside(self)
-end
 function GFXElement:windowWasResized()
     return GFX:windowWasResized()
 end
 function GFXElement:pointIsInside(x, y)
     return self.isVisible
-       and x >= self.x and x <= self.x + self.w
-       and y >= self.y and y <= self.y + self.h
+       and x >= self.absoluteX and x <= self.absoluteX + self.w
+       and y >= self.absoluteY and y <= self.absoluteY + self.h
 end
 function GFXElement:setColor(color)
     self.currentColor = color
@@ -81,13 +87,34 @@ end
 function GFXElement:setBlendMode(mode)
     gfx.mode = mode
 end
+function GFXElement:shouldDrawDirectly()
+    return self.parent and self.drawBuffer == self.parent.drawBuffer
+end
 function GFXElement:drawRectangle(x, y, w, h, filled)
+    local x = x
+    local y = y
+    if self:shouldDrawDirectly() then
+        x = x + self.x
+        y = y + self.y
+    end
     gfx.rect(x, y, w, h, filled)
 end
 function GFXElement:drawLine(x, y, x2, y2, antiAliased)
+    local x = x
+    local y = y
+    if self:shouldDrawDirectly() then
+        x = x + self.x
+        y = y + self.y
+    end
     gfx.line(x, y, x2, y2, antiAliased)
 end
 function GFXElement:drawCircle(x, y, r, filled, antiAliased)
+    local x = x
+    local y = y
+    if self:shouldDrawDirectly() then
+        x = x + self.x
+        y = y + self.y
+    end
     gfx.circle(x, y, r, filled, antiAliased)
 end
 function GFXElement:drawPolygon(filled, ...)
@@ -108,6 +135,12 @@ function GFXElement:drawPolygon(filled, ...)
     end
 end
 function GFXElement:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+    local x = x
+    local y = y
+    if self:shouldDrawDirectly() then
+        x = x + self.x
+        y = y + self.y
+    end
     local aa = antiAliased or 1
     filled = filled or 0
     w = math.max(0, w - 1)
@@ -148,8 +181,18 @@ function GFXElement:measureString(str)
     return gfx.measurestr(str)
 end
 function GFXElement:drawString(str, x, y, flags, right, bottom)
-    if x then gfx.x = x end
-    if y then gfx.y = y end
+    local x = x
+    local y = y
+    local right = right
+    local bottom = bottom
+    if self:shouldDrawDirectly() then
+        x = x + self.x
+        y = y + self.y
+        right = right + self.x
+        bottom = bottom + self.y
+    end
+    gfx.x = x
+    gfx.y = y
     if flags then
         gfx.drawstr(str, flags, right, bottom)
     else
@@ -162,6 +205,9 @@ function GFXElement:clearBuffer(buffer)
     gfx.setimgdim(buffer, self.w, self.h)
 end
 function GFXElement:queueRedraw()
+    if self:shouldDrawDirectly() then
+        self.parent:queueRedraw()
+    end
     if not self.shouldRedraw then
         self.shouldRedraw = true
     end

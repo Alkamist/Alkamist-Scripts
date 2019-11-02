@@ -60,16 +60,39 @@ function GFX:init(title, x, y, w, h, dock)
     self.h = h
     self.dock = dock
 end
+function GFX:updateElement(element)
+    GFXElement.updateStates(element)
+    element:update()
+
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            GFX:updateElement(elementsOfElement[i])
+        end
+    end
+end
 function GFX:drawElement(element)
     gfx.a = 1.0
     gfx.mode = 0
 
     if element.draw then
+        local shouldDrawDirectly = element:shouldDrawDirectly()
+        if element.parent and element.parent.drewThisFrame and shouldDrawDirectly then
+            element.shouldRedraw = true
+        end
         if element.shouldRedraw then
-            element:clearBuffer()
+            if shouldDrawDirectly then
+                if not element.parent.drewThisFrame then
+                    gfx.dest = element.parent.drawBuffer
+                    element.parent:draw()
+                end
+            else
+                element:clearBuffer()
+            end
             gfx.dest = element.drawBuffer
             element:draw()
             element.shouldRedraw = false
+            element.drewThisFrame = true
 
         elseif element.shouldClearBuffer then
             element:clearBuffer()
@@ -97,12 +120,11 @@ function GFX:blitElement(element)
         gfx.mode = 0
 
         if element.parent then
-            if element.drawBuffer ~= element.parent.drawBuffer then
-                gfx.dest = element.parent.drawBuffer
-                gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
-            end
+            gfx.dest = element.parent.drawBuffer
         else
             gfx.dest = -1
+        end
+        if not element:shouldDrawDirectly() then
             gfx.blit(element.drawBuffer, 1.0, 0, 0, 0, element.w, element.h, element.x, element.y, element.w, element.h, 0, 0)
         end
     end
@@ -126,8 +148,8 @@ function GFX.run()
     if elements then
         for i = 1, #elements do
             local element = elements[i]
-            GFXElement.updateStates(element)
-            element:update()
+            element.drewThisFrame = false
+            GFX:updateElement(element)
             GFX:drawElement(element)
             GFX:blitElement(element)
         end
