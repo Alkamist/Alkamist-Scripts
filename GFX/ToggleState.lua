@@ -5,8 +5,6 @@ function ToggleState:new(state)
 
     if state ~= nil then self.previous = state else self.previous = false end
     if state ~= nil then self.current = state else self.current = false end
-    self.justTurnedOn = false
-    self.justTurnedOff = false
 
     return self
 end
@@ -14,14 +12,18 @@ end
 function ToggleState:update(state)
     self.previous = self.current
     if state ~= nil then self.current = state end
-    self.justTurnedOn = self.current and not self.previous
-    self.justTurnedOff = not self.current and self.previous
 end
 function ToggleState:set(state)
     self.current = state
 end
 function ToggleState:toggle()
     self.current = not self.current
+end
+function ToggleState:justTurnedOn()
+    return self.current and not self.previous
+end
+function ToggleState:justTurnedOff()
+    return not self.current and self.previous
 end
 
 return ToggleState

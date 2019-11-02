@@ -200,7 +200,7 @@ function MouseControl:isPressed(element)
     return output
 end
 function MouseControl:justPressed(element)
-    local output = self.state.justTurnedOn
+    local output = self.state:justTurnedOn()
     if element then return output and self.mouse:isInside(element) end
     return output
 end
@@ -212,7 +212,7 @@ function MouseControl:justDoublePressed(element)
     return output
 end
 function MouseControl:justReleased(element)
-    local output = self.state.justTurnedOff
+    local output = self.state:justTurnedOff()
     if element then return output and element.buttonWasPressedInside[self.name] end
     return output
 end

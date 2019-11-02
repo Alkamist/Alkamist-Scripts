@@ -77,10 +77,10 @@ function Button:isPressed()
     return self.state.current
 end
 function Button:justPressed()
-    return self.state.justTurnedOn
+    return self.state:justTurnedOn()
 end
 function Button:justReleased()
-    return self.state.justTurnedOff
+    return self.state:justTurnedOff()
 end
 function Button:draw()
     -- Draw the main button.

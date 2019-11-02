@@ -321,8 +321,8 @@ function PitchEditor:recalculateTakePitchCoordinates()
         point.y = self:pitchToPixels(point.pitch)
     end
 end
-function PitchEditor:toggleFixErrorMode()
-    self.fixErrorMode = not self.fixErrorMode
+function PitchEditor:setFixErrorMode(state)
+    self.fixErrorMode = state
     self.enablePitchCorrections = not self.fixErrorMode
     if self.enablePitchCorrections then
         self:recalculatePitchCorrectionCoordinates()

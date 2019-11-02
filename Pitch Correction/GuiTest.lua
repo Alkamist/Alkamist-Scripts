@@ -18,9 +18,9 @@ local pitchDetectionSettings = {
 
 local pitchEditor = require("Pitch Correction.PitchEditor"):new{
     x = 0,
-    y = 25,
+    y = 26,
     w = 1000,
-    h = 700 - 25
+    h = 700 - 26
 }
 
 local analyzeButton = Button:new{
@@ -33,8 +33,7 @@ local analyzeButton = Button:new{
 }
 function analyzeButton:update()
     Button.update(self)
-    local mouse = self.mouse
-    if mouse.buttons.left:justPressed(self) then
+    if self:justPressed() then
         if pitchEditor.isVisible then
             pitchEditor:analyzeTakePitches(pitchDetectionSettings)
         end
@@ -46,14 +45,16 @@ local fixErrorButton = Button:new{
     y = 0,
     w = 80,
     h = 25,
-    label = "Fix Errors"
+    label = "Fix Errors",
+    toggleOnClick = true
 }
 function fixErrorButton:update()
     Button.update(self)
-    local mouse = self.mouse
-    if mouse.buttons.left:justPressed(self) then
-        if pitchEditor.isVisible then
-            pitchEditor:toggleFixErrorMode()
+    if pitchEditor.isVisible then
+        if self:justPressed() then
+            pitchEditor:setFixErrorMode(true)
+        elseif self:justReleased() then
+            pitchEditor:setFixErrorMode(false)
         end
     end
 end
