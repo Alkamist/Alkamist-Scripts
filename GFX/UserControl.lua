@@ -274,10 +274,10 @@ end
 function Mouse:update()
     self.xTracker:update(gfx.mouse_x)
     self.x = self.xTracker.current
-    self.xChange = self.xTracker.change
+    self.xChange = self.xTracker:getChange()
     self.yTracker:update(gfx.mouse_y)
     self.y = self.yTracker.current
-    self.yChange = self.yTracker.change
+    self.yChange = self.yTracker:getChange()
     self.cap = gfx.mouse_cap
 
     self.wheel = gfx.mouse_wheel / 120
@@ -293,7 +293,7 @@ function Mouse:didInside(element, action)
     return action and self:isInside(element)
 end
 function Mouse:justMoved()
-    return self.xTracker.justChanged or self.yTracker.justChanged
+    return self.xTracker:justChanged() or self.yTracker:justChanged()
 end
 function Mouse:wheelJustMoved()
     return self.wheel ~= 0

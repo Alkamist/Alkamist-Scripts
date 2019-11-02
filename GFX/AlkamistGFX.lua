@@ -142,8 +142,8 @@ function GFX.run()
     self.hTracker:update(gfx.h)
     self.w = self.wTracker.current
     self.h = self.hTracker.current
-    self.wChange = self.wTracker.change
-    self.hChange = self.hTracker.change
+    self.wChange = self.wTracker:getChange()
+    self.hChange = self.hTracker:getChange()
 
     self.mouse:update()
     self.keyboard:update()
