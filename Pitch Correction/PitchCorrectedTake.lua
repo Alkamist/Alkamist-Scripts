@@ -113,7 +113,200 @@ local function arrayRemove(t, fn)
 end
 
 --==============================================================
---== Pitch Correction Functions ================================
+--== Pitch Corrected Take ======================================
+--==============================================================
+
+local PitchCorrectedTake = {}
+
+function PitchCorrectedTake:new(init)
+    local init = init or {}
+    local self = setmetatable({}, { __index = self })
+
+    self.parent =      init.parent
+    self.pitches =     PolyLine:new()
+    self.corrections = PolyLine:new()
+    self:set(init.take)
+
+    self.numberOfAnalysisLoops  = 0
+    self.analysisLoopsCompleted = 0
+
+    self.newPointsHaveBeenInitialized = true
+
+    return self
+end
+
+function PitchCorrectedTake:clear()
+    self.pointer = nil
+    self.takeName = ""
+    self.takeGUID = nil
+    self.takeSource = nil
+    self.takeFileName = ""
+    self.playrate = 1.0
+    self.startOffset = 0.0
+    self.envelope = nil
+    self.sourceLength = 0.0
+    self.item = nil
+    self.track = nil
+    self.length = 0.0
+    self.leftTime = 0.0
+    self.rightTime = 0.0
+    self.isAnalyzingPitch = false
+    self.pitches.points = {}
+    self.corrections.points = {}
+end
+function PitchCorrectedTake:activateEnvelope()
+    local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
+    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
+        mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
+        pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
+    end
+    --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+    return pitchEnvelope
+end
+function PitchCorrectedTake:updateInformation()
+    self.name = reaper.GetTakeName(self.pointer)
+    self.GUID =  reaper.BR_GetMediaItemTakeGUID(self.pointer)
+    self.source =  reaper.GetMediaItemTake_Source(self.pointer)
+    self.fileName = reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
+    self.sampleRate = reaper.GetMediaSourceSampleRate(self.source)
+    self.playrate = reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
+    self.startOffset = getSourceTime(self.pointer, 0.0)
+    self.envelope = self:activateEnvelope()
+    self.item = reaper.GetMediaItemTake_Item(self.pointer)
+    self.track = reaper.GetMediaItem_Track(self.item)
+    self.length = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    self.rightTime = self.leftTime + self.length
+    _, _, self.sourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
+end
+function PitchCorrectedTake:set(take)
+    if take == nil then
+        self:clear()
+        return
+    end
+    if reaper.TakeIsMIDI(take) then
+        self:clear()
+        return
+    end
+    if take == self.pointer then
+        self:updateInformation()
+        self:updatePitchPointTimes()
+        return
+    end
+
+    self.pointer = take
+    self:updateInformation()
+    self:loadPitchPoints()
+    self:loadPitchCorrections()
+    self:correctAllPitchPoints()
+end
+
+--==============================================================
+--== Pitch Analysis ============================================
+--==============================================================
+
+function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
+    local tolerance = tolerance or 0.0001
+    local newPoints = {}
+    local points = self.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        local pointIsDuplicate = false
+        for j = 1, #newPoints do
+            if math.abs(point.time - newPoints[j].time) < tolerance then
+                pointIsDuplicate = true
+            end
+        end
+        if not pointIsDuplicate then
+            newPoints[#newPoints + 1] = point
+        end
+    end
+    self.pitches.points = newPoints
+end
+function PitchCorrectedTake:getPitchPointsFromExtState()
+    local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
+
+    local points = self.pitches.points
+
+    for line in pointString:gmatch("([^\r\n]+)") do
+        local values =    getValuesFromStringLine(line)
+        local pointTime = values[1]
+        local point = {
+            time =       getRealTime(self.pointer, pointTime),
+            sourceTime = pointTime,
+            pitch =      values[2],
+            --rms =        values[3]
+        }
+        points[#points + 1] = point
+    end
+end
+function PitchCorrectedTake:clearPitchPointsWithinTimeRange(leftTime, rightTime)
+    local points = self.pitches.points
+    arrayRemove(points, function(i, j)
+        return points[i].time >= leftTime and points[i].time <= rightTime
+    end)
+end
+function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
+    if self.pointer == nil then return end
+    self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
+    if not self.analyzerID then
+        reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
+        return 0
+    end
+
+    --self.pitches.points = {}
+    self:clearPitchPointsWithinTimeRange(0.0, self.length)
+
+    reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID",         self.GUID,                 false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP",       settings.windowStep,       false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWOVERLAP",    settings.windowOverlap,    false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMFREQUENCY", settings.minimumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MAXIMUMFREQUENCY", settings.maximumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD",        settings.threshold,        false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
+
+    local numberOfPitchPointsPerLoop =  10
+    self.analysisTimeWindow =           numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
+    self.analysisLoopsCompleted =       0
+    self.isAnalyzingPitch =             true
+    self.newPointsHaveBeenInitialized = false
+
+    self.analysisStartTime =     self.startOffset
+    self.analysisEndTime =       getSourceTime(self.pointer, self.length)
+    self.analysisLength =        self.analysisEndTime - self.analysisStartTime
+    self.numberOfAnalysisLoops = math.ceil(self.analysisLength / self.analysisTimeWindow)
+
+    if analyzeFullSource then
+        self.analysisStartTime =     0.0
+        self.numberOfAnalysisLoops = math.ceil(self.sourceLength / self.analysisTimeWindow)
+    end
+
+    self:clearEnvelope()
+end
+function PitchCorrectedTake:analyzePitch()
+    self.isAnalyzingPitch = self.analysisLoopsCompleted < self.numberOfAnalysisLoops
+    if self.isAnalyzingPitch then
+        self.analysisTimeWindow = math.min(self.analysisTimeWindow, self.analysisEndTime - self.analysisStartTime)
+        reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
+        reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
+
+        mainCommand(self.analyzerID)
+        self:getPitchPointsFromExtState()
+
+        self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
+        self.analysisLoopsCompleted = self.analysisLoopsCompleted + 1
+    else
+        if not self.newPointsHaveBeenInitialized then
+            self:removeDuplicatePitchPoints()
+            self:savePitchPoints()
+            self:correctAllPitchPoints()
+            self.newPointsHaveBeenInitialized = true
+        end
+    end
+end
+
+--==============================================================
+--== Pitch Correction ==========================================
 --==============================================================
 
 local function lerp(x1, x2, ratio)
@@ -246,9 +439,37 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
         end
     end
 end
+function PitchCorrectedTake:correctAllPitchPoints()
+    self:clearEnvelope()
+    local corrections = self.corrections.points
+    local pitchPoints = self.pitches.points
+    for i = 1, #corrections do
+        local correction =     corrections[i]
+        local nextCorrection = corrections[i + 1]
+
+        addEdgePointsToCorrection(i, corrections, self.envelope, self.playrate)
+        if correction.isActive and nextCorrection then
+            correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
+        end
+    end
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:clearEnvelope()
+    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.sourceLength * self.playrate)
+    reaper.Envelope_SortPoints(self.envelope)
+    reaper.UpdateArrange()
+end
+function PitchCorrectedTake:insertPitchCorrectionPoint(point)
+    point.sourceTime =      getSourceTime(self.pointer, point.time)
+    point.driftTime =       point.driftTime       or defaultDriftTime
+    point.driftCorrection = point.driftCorrection or defaultDriftCorrection
+    point.modCorrection =   point.modCorrection   or defaultModCorrection
+    self.corrections:insertPoint(point)
+end
 
 --==============================================================
---== Saving Logic ==============================================
+--== Saving/Loading Logic ======================================
 --==============================================================
 
 local function encodeTimeSeries(timeSeries, info, members)
@@ -302,222 +523,6 @@ local function decodeTimeSeries(stringToDecode, wantedInfo, wantedPointMembers)
     end
 
     return outputTable
-end
-
---==============================================================
---== Pitch Corrected Take ======================================
---==============================================================
-
-local PitchCorrectedTake = {}
-
-function PitchCorrectedTake:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
-
-    self.parent =      init.parent
-    self.pitches =     PolyLine:new()
-    self.corrections = PolyLine:new()
-    self:set(init.take)
-
-    self.numberOfAnalysisLoops  = 0
-    self.analysisLoopsCompleted = 0
-
-    self.newPointsHaveBeenInitialized = true
-
-    return self
-end
-
-function PitchCorrectedTake:clear()
-    self.pointer = nil
-    self.takeName = ""
-    self.takeGUID = nil
-    self.takeSource = nil
-    self.takeFileName = ""
-    self.playrate = 1.0
-    self.startOffset = 0.0
-    self.envelope = nil
-    self.sourceLength = 0.0
-    self.item = nil
-    self.track = nil
-    self.length = 0.0
-    self.leftTime = 0.0
-    self.rightTime = 0.0
-    self.isAnalyzingPitch = false
-    self.pitches.points = {}
-    self.corrections.points = {}
-end
-function PitchCorrectedTake:activateEnvelope()
-    local pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
-    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
-        pitchEnvelope = reaper.GetTakeEnvelopeByName(self.pointer, "Pitch")
-    end
-    --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
-    return pitchEnvelope
-end
-function PitchCorrectedTake:updateInformation()
-    self.name = reaper.GetTakeName(self.pointer)
-    self.GUID =  reaper.BR_GetMediaItemTakeGUID(self.pointer)
-    self.source =  reaper.GetMediaItemTake_Source(self.pointer)
-    self.fileName = reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
-    self.sampleRate = reaper.GetMediaSourceSampleRate(self.source)
-    self.playrate = reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
-    self.startOffset = getSourceTime(self.pointer, 0.0)
-    self.envelope = self:activateEnvelope()
-    self.item = reaper.GetMediaItemTake_Item(self.pointer)
-    self.track = reaper.GetMediaItem_Track(self.item)
-    self.length = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-    self.rightTime = self.leftTime + self.length
-    _, _, self.sourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
-end
-function PitchCorrectedTake:set(take)
-    if take == nil then
-        self:clear()
-        return
-    end
-    if reaper.TakeIsMIDI(take) then
-        self:clear()
-        return
-    end
-    if take == self.pointer then
-        self:updateInformation()
-        self:updatePitchPointTimes()
-        return
-    end
-
-    self.pointer = take
-    self:updateInformation()
-    self:loadPitchPoints()
-    self:loadPitchCorrections()
-    self:correctAllPitchPoints()
-end
-function PitchCorrectedTake:removeDuplicatePitchPoints(tolerance)
-    local tolerance = tolerance or 0.0001
-    local newPoints = {}
-    local points = self.pitches.points
-    for i = 1, #points do
-        local point = points[i]
-        local pointIsDuplicate = false
-        for j = 1, #newPoints do
-            if math.abs(point.time - newPoints[j].time) < tolerance then
-                pointIsDuplicate = true
-            end
-        end
-        if not pointIsDuplicate then
-            newPoints[#newPoints + 1] = point
-        end
-    end
-    self.pitches.points = newPoints
-end
-function PitchCorrectedTake:getPitchPointsFromExtState()
-    local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
-
-    local points = self.pitches.points
-
-    for line in pointString:gmatch("([^\r\n]+)") do
-        local values =    getValuesFromStringLine(line)
-        local pointTime = values[1]
-        local point = {
-            time =       getRealTime(self.pointer, pointTime),
-            sourceTime = pointTime,
-            pitch =      values[2],
-            --rms =        values[3]
-        }
-        points[#points + 1] = point
-    end
-end
-function PitchCorrectedTake:clearPitchPointsWithinTimeRange(leftTime, rightTime)
-    local points = self.pitches.points
-    arrayRemove(points, function(i, j)
-        return points[i].time >= leftTime and points[i].time <= rightTime
-    end)
-end
-function PitchCorrectedTake:prepareToAnalyzePitch(settings, analyzeFullSource)
-    if self.pointer == nil then return end
-    self.analyzerID = getEELCommandID("WritePitchPointsToExtState")
-    if not self.analyzerID then
-        reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
-        return 0
-    end
-
-    --self.pitches.points = {}
-    self:clearPitchPointsWithinTimeRange(0.0, self.length)
-
-    reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID",         self.GUID,                 false)
-    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP",       settings.windowStep,       false)
-    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWOVERLAP",    settings.windowOverlap,    false)
-    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMFREQUENCY", settings.minimumFrequency, false)
-    reaper.SetExtState("AlkamistPitchCorrection", "MAXIMUMFREQUENCY", settings.maximumFrequency, false)
-    reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD",        settings.threshold,        false)
-    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB",     settings.minimumRMSdB,     false)
-
-    local numberOfPitchPointsPerLoop =  10
-    self.analysisTimeWindow =           numberOfPitchPointsPerLoop * settings.windowStep / settings.windowOverlap
-    self.analysisLoopsCompleted =       0
-    self.isAnalyzingPitch =             true
-    self.newPointsHaveBeenInitialized = false
-
-    self.analysisStartTime =     self.startOffset
-    self.analysisEndTime =       getSourceTime(self.pointer, self.length)
-    self.analysisLength =        self.analysisEndTime - self.analysisStartTime
-    self.numberOfAnalysisLoops = math.ceil(self.analysisLength / self.analysisTimeWindow)
-
-    if analyzeFullSource then
-        self.analysisStartTime =     0.0
-        self.numberOfAnalysisLoops = math.ceil(self.sourceLength / self.analysisTimeWindow)
-    end
-
-    self:clearEnvelope()
-end
-function PitchCorrectedTake:analyzePitch()
-    self.isAnalyzingPitch = self.analysisLoopsCompleted < self.numberOfAnalysisLoops
-    if self.isAnalyzingPitch then
-        self.analysisTimeWindow = math.min(self.analysisTimeWindow, self.analysisEndTime - self.analysisStartTime)
-        reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
-        reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", self.analysisTimeWindow, false)
-
-        mainCommand(self.analyzerID)
-        self:getPitchPointsFromExtState()
-
-        self.analysisStartTime = self.analysisStartTime + self.analysisTimeWindow
-        self.analysisLoopsCompleted = self.analysisLoopsCompleted + 1
-    else
-        if not self.newPointsHaveBeenInitialized then
-            self:removeDuplicatePitchPoints()
-            self:savePitchPoints()
-            self:correctAllPitchPoints()
-            self.newPointsHaveBeenInitialized = true
-        end
-    end
-end
-function PitchCorrectedTake:correctAllPitchPoints()
-    self:clearEnvelope()
-    local corrections = self.corrections.points
-    local pitchPoints = self.pitches.points
-    for i = 1, #corrections do
-        local correction =     corrections[i]
-        local nextCorrection = corrections[i + 1]
-
-        addEdgePointsToCorrection(i, corrections, self.envelope, self.playrate)
-        if correction.isActive and nextCorrection then
-            correctPitchPoints(correction, nextCorrection, pitchPoints, self.envelope, self.playrate)
-        end
-    end
-    reaper.Envelope_SortPoints(self.envelope)
-    reaper.UpdateArrange()
-end
-function PitchCorrectedTake:clearEnvelope()
-    reaper.DeleteEnvelopePointRange(self.envelope, -self.startOffset, self.sourceLength * self.playrate)
-    reaper.Envelope_SortPoints(self.envelope)
-    reaper.UpdateArrange()
-end
-function PitchCorrectedTake:insertPitchCorrectionPoint(point)
-    point.sourceTime =      getSourceTime(self.pointer, point.time)
-    point.driftTime =       point.driftTime       or defaultDriftTime
-    point.driftCorrection = point.driftCorrection or defaultDriftCorrection
-    point.modCorrection =   point.modCorrection   or defaultModCorrection
-    self.corrections:insertPoint(point)
 end
 
 function PitchCorrectedTake:getPitchPointSaveInfo()
