@@ -265,6 +265,9 @@ function PitchEditor:updatePitchCorrectionMouseOver()
         end
         self.mouseOverPitchCorrectionIndex = index
         self.mouseIsOverPoint = indexIsPoint
+    else
+        self.mouseOverPitchCorrectionIndex = nil
+        self.mouseIsOverPoint = nil
     end
 end
 function PitchEditor:unselectAllPitchCorrectionPoints()

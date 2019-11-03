@@ -328,22 +328,22 @@ function PitchCorrectedTake:new(init)
 end
 
 function PitchCorrectedTake:clear()
-    self.pointer =            nil
-    self.takeName =           ""
-    self.takeGUID =           nil
-    self.takeSource =         nil
-    self.takeFileName =       ""
-    self.playrate =           1.0
-    self.startOffset =        0.0
-    self.envelope =           nil
-    self.sourceLength =   0.0
-    self.item =               nil
-    self.track =              nil
-    self.length =             0.0
-    self.leftTime =           0.0
-    self.rightTime =          0.0
-    self.isAnalyzingPitch =   false
-    self.pitches.points =     {}
+    self.pointer = nil
+    self.takeName = ""
+    self.takeGUID = nil
+    self.takeSource = nil
+    self.takeFileName = ""
+    self.playrate = 1.0
+    self.startOffset = 0.0
+    self.envelope = nil
+    self.sourceLength = 0.0
+    self.item = nil
+    self.track = nil
+    self.length = 0.0
+    self.leftTime = 0.0
+    self.rightTime = 0.0
+    self.isAnalyzingPitch = false
+    self.pitches.points = {}
     self.corrections.points = {}
 end
 function PitchCorrectedTake:activateEnvelope()
@@ -356,19 +356,19 @@ function PitchCorrectedTake:activateEnvelope()
     return pitchEnvelope
 end
 function PitchCorrectedTake:updateInformation()
-    self.name =         reaper.GetTakeName(self.pointer)
-    self.GUID =         reaper.BR_GetMediaItemTakeGUID(self.pointer)
-    self.source =       reaper.GetMediaItemTake_Source(self.pointer)
-    self.fileName =     reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
-    self.sampleRate =   reaper.GetMediaSourceSampleRate(self.source)
-    self.playrate =     reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
-    self.startOffset =  getSourceTime(self.pointer, 0.0)
-    self.envelope =     self:activateEnvelope()
-    self.item =         reaper.GetMediaItemTake_Item(self.pointer)
-    self.track =        reaper.GetMediaItem_Track(self.item)
-    self.length =       reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
-    self.leftTime =     reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
-    self.rightTime =    self.leftTime + self.length
+    self.name = reaper.GetTakeName(self.pointer)
+    self.GUID =  reaper.BR_GetMediaItemTakeGUID(self.pointer)
+    self.source =  reaper.GetMediaItemTake_Source(self.pointer)
+    self.fileName = reaper.GetMediaSourceFileName(self.source, ""):match("[^/\\]+$")
+    self.sampleRate = reaper.GetMediaSourceSampleRate(self.source)
+    self.playrate = reaper.GetMediaItemTakeInfo_Value(self.pointer, "D_PLAYRATE")
+    self.startOffset = getSourceTime(self.pointer, 0.0)
+    self.envelope = self:activateEnvelope()
+    self.item = reaper.GetMediaItemTake_Item(self.pointer)
+    self.track = reaper.GetMediaItem_Track(self.item)
+    self.length = reaper.GetMediaItemInfo_Value(self.item, "D_LENGTH")
+    self.leftTime = reaper.GetMediaItemInfo_Value(self.item, "D_POSITION")
+    self.rightTime = self.leftTime + self.length
     _, _, self.sourceLength = reaper.PCM_Source_GetSectionInfo(self.source)
 end
 function PitchCorrectedTake:set(take)
@@ -520,15 +520,6 @@ function PitchCorrectedTake:insertPitchCorrectionPoint(point)
     self.corrections:insertPoint(point)
 end
 
---== Pitch Point Saving ======================================
-
-function PitchCorrectedTake:updatePitchPointTimes()
-    local points = self.pitches.points
-    for i = 1, #points do
-        local point = points[i]
-        point.time = getRealTime(self.pointer, point.sourceTime)
-    end
-end
 function PitchCorrectedTake:getPitchPointSaveInfo()
     local info = {
         ["leftBound"] =  self.startOffset,
@@ -539,48 +530,6 @@ function PitchCorrectedTake:getPitchPointSaveInfo()
         ["pitch"] =           0.0
     }
     return info, members
-end
-function PitchCorrectedTake:loadPitchPoints()
-    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
-
-    local file = io.open(fullFileName)
-    if file then
-        local saveString = file:read("*all")
-        file:close()
-
-        local info, members = self:getPitchPointSaveInfo()
-        local decodedTable = decodeTimeSeries(saveString, info, members)
-        local decodedLeftBound = decodedTable.leftBound
-        local decodedRightBound = decodedTable.rightBound
-        self.pitches.points = decodedTable.points
-
-        self:updatePitchPointTimes()
-    end
-end
-function PitchCorrectedTake:savePitchPoints()
-    local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.fileName .. ".pitch"
-    reaper.RecursiveCreateDirectory(pathName, 0)
-
-    local info, members = self:getPitchPointSaveInfo()
-    local saveString = encodeTimeSeries(self.pitches.points, info, members)
-
-    local file = io.open(fullFileName, "w")
-    if file then
-        file:write(saveString)
-        file:close()
-    end
-end
-
---== Pitch Correction Saving ======================================
-
-function PitchCorrectedTake:updatePitchCorrectionTimes()
-    local points = self.corrections.points
-    for i = 1, #points do
-        local point = points[i]
-        point.time = getRealTime(self.pointer, point.sourceTime)
-    end
 end
 function PitchCorrectedTake:getPitchCorrectionSaveInfo()
     local info = {
@@ -598,43 +547,66 @@ function PitchCorrectedTake:getPitchCorrectionSaveInfo()
     }
     return info, members
 end
-function PitchCorrectedTake:loadPitchCorrections()
+
+function PitchCorrectedTake:updatePointTimes(points)
+    for i = 1, #points do
+        local point = points[i]
+        point.time = getRealTime(self.pointer, point.sourceTime)
+    end
+end
+function PitchCorrectedTake:updatePitchPointTimes()
+    self:updatePointTimes(self.pitches.points)
+end
+function PitchCorrectedTake:updatePitchCorrectionTimes()
+    self:updatePointTimes(self.corrections.points)
+end
+
+function PitchCorrectedTake:loadPoints(points, fileName, info, members)
     local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.name .. ".correction"
+    local fullFileName = pathName .. "\\" .. fileName
 
     local file = io.open(fullFileName)
     if file then
         local saveString = file:read("*all")
         file:close()
 
-        local info, members = self:getPitchCorrectionSaveInfo()
         local decodedTable = decodeTimeSeries(saveString, info, members)
         local decodedLeftBound = decodedTable.leftBound
         local decodedRightBound = decodedTable.rightBound
-        self.corrections.points = decodedTable.points
-
-        self:updatePitchCorrectionTimes()
+        points = decodedTable.points
+        self:updatePointTimes(points)
     end
+    return points
 end
-function PitchCorrectedTake:savePitchCorrections()
+function PitchCorrectedTake:loadPitchPoints()
+    local info, members = self:getPitchPointSaveInfo()
+    self.pitches.points = self:loadPoints(self.pitches.points, self.fileName .. ".pitch", info, members)
+end
+function PitchCorrectedTake:loadPitchCorrections()
+    local info, members = self:getPitchCorrectionSaveInfo()
+    self.corrections.points = self:loadPoints(self.corrections.points, self.name .. ".correction", info, members)
+end
+
+function PitchCorrectedTake:savePoints(points, fileName, info, members)
     local pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    local fullFileName = pathName .. "\\" .. self.name .. ".correction"
+    local fullFileName = pathName .. "\\" .. fileName
     reaper.RecursiveCreateDirectory(pathName, 0)
 
-    local corrections = self.corrections.points
-    for i = 1, #corrections do
-        local correction = corrections[i]
-        correction.sourceTime = getSourceTime(self.pointer, correction.time)
-    end
-
-    local info, members = self:getPitchCorrectionSaveInfo()
-    local saveString = encodeTimeSeries(corrections, info, members)
+    local saveString = encodeTimeSeries(points, info, members)
 
     local file = io.open(fullFileName, "w")
     if file then
         file:write(saveString)
         file:close()
     end
+end
+function PitchCorrectedTake:savePitchPoints()
+    local info, members = self:getPitchPointSaveInfo()
+    self:savePoints(self.pitches.points, self.fileName .. ".pitch", info, members)
+end
+function PitchCorrectedTake:savePitchCorrections()
+    local info, members = self:getPitchCorrectionSaveInfo()
+    self:savePoints(self.corrections.points, self.name .. ".correction", info, members)
 end
 
 return PitchCorrectedTake
