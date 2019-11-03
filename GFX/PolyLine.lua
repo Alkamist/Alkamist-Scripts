@@ -169,4 +169,25 @@ function PolyLine:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, dis
     return index, indexIsPoint
 end
 
+function PolyLine:drawSegment(index, color)
+    local point = self.points[index]
+    local nextPoint = self.points[index + 1]
+    if point == nil then return end
+    if nextPoint == nil then return end
+
+    self:setColor(color)
+    self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+end
+function PolyLine:drawPoint(index, color, size, asSquare)
+    local point = self.points[index]
+    if point == nil then return end
+
+    self:setColor(color)
+    if asSquare then
+        self:drawRectangle(point.x - 1, point.y - 1, size, size, true)
+    else
+        self:drawCircle(point.x, point.y, size, true, true)
+    end
+end
+
 return PolyLine

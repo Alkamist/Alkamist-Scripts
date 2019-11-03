@@ -1,12 +1,12 @@
-local TrackedNumber = {}
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Class = require("Class")
 
-function TrackedNumber:new(number)
-    local self = setmetatable({}, { __index = self })
-
-    self.previous = number
-    self.current = number
-
-    return self
+local TrackedNumber = {
+    current = 0,
+    previous = 0
+}
+function TrackedNumber:create(parameters)
+    return Class.create({ TrackedNumber }, parameters)
 end
 
 function TrackedNumber:update(number)

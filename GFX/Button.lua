@@ -1,39 +1,28 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Class = require("Class")
 local ToggleState = require("GFX.ToggleState")
 
-local Button = {}
-
-function Button:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
-
-    self.x = init.x or 0
-    self.y = init.y or 0
-    self.w = init.w or 0
-    self.h = init.h or 0
-
-    self.label = init.label or ""
-    self.labelFont = init.labelFont or "Arial"
-    self.labelFontSize = init.labelFontSize or 14
-    self.color = init.color or {0.3, 0.3, 0.3, 1.0, 0}
-    self.edgeColor = init.edgeColor or {1.0, 1.0, 1.0, 0.1, 1}
-    self.glowColor = init.glowColor or {1.0, 1.0, 1.0, 0.15, 1}
-    self.pressedColor = init.pressedColor or {1.0, 1.0, 1.0, -0.15, 1}
-    self.labelColor = init.labelColor or {1.0, 1.0, 1.0, 0.4, 1}
-
-    self.state = ToggleState:new(false)
-    self.glowState = false
-
-    if init.glowOnMouseOver ~= nil then self.glowOnMouseOver = init.glowOnMouseOver else self.glowOnMouseOver = true end
-    if init.pressOnClick ~= nil then self.pressOnClick = init.pressOnClick else self.pressOnClick = true end
-    if init.toggleOnClick ~= nil then
-        self.toggleOnClick = init.toggleOnClick
-    else
-        self.toggleOnClick = false
-    end
-    if self.toggleOnClick then self.pressOnClick = false end
-
-    return self
+local Button = {
+    x = 0,
+    y = 0,
+    w = 0,
+    h = 0,
+    label = "",
+    labelFont = "Arial",
+    labelFontSize = 14,
+    color = { 0.3, 0.3, 0.3, 1.0, 0 },
+    edgeColor = { 1.0, 1.0, 1.0, 0.1, 1 },
+    glowColor = { 1.0, 1.0, 1.0, 0.15, 1 },
+    pressedColor = { 1.0, 1.0, 1.0, -0.15, 1 },
+    labelColor = { 1.0, 1.0, 1.0, 0.4, 1 },
+    state = ToggleState.create{ current = false },
+    glowState = false,
+    glowOnMouseOver = true,
+    pressOnClick = true,
+    toggleOnClick = false
+}
+function Button:create(parameters)
+    return Class.create({ Button }, parameters)
 end
 
 function Button:update()

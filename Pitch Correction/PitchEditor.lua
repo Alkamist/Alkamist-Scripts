@@ -11,8 +11,12 @@ local PitchCorrectedTake =  require("Pitch Correction.PitchCorrectedTake")
 --== Helpful Functions =========================================
 --==============================================================
 
-local function pointIsSelected(point)                return point.isSelected end
-local function setPointSelected(point, shouldSelect) point.isSelected = shouldSelect end
+local function pointIsSelected(point)
+    return point.isSelected
+end
+local function setPointSelected(point, shouldSelect)
+    point.isSelected = shouldSelect
+end
 local function getWhiteKeyNumbers()
     local whiteKeyMultiples = {1, 3, 4, 6, 8, 9, 11}
     local whiteKeys = {}
@@ -110,7 +114,6 @@ function PitchEditor:new(init)
     self.mouseTimeOnLeftDown = 0.0
     self.previousMouseTime = 0.0
     self.mouseTimeChange = 0.0
-
     self.mousePitch = 0.0
     self.mousePitchOnLeftDown = 0.0
     self.previousMousePitch = 0.0
@@ -143,9 +146,6 @@ function PitchEditor:insertPitchCorrectionPoint(point)
 end
 function PitchEditor:handlePitchCorrectionPointLeftDown(mouse)
     if not self.enablePitchCorrections then return end
-    self.mouseTimeOnLeftDown = self.mouseTime
-    self.mousePitchOnLeftDown = self.mousePitch
-    self.snappedMousePitchOnLeftDown = self.snappedMousePitch
 
     self.altKeyWasDownOnPointEdit = false
 
@@ -463,7 +463,6 @@ function PitchEditor:drawEditCursor()
         self:drawLine(playPositionPixels, 0, playPositionPixels, self.h, false)
     end
 end
-
 function PitchEditor:drawPitchCorrectionSegment(i, group)
     local point =     group[i]
     local nextPoint = group[i + 1]
@@ -616,6 +615,9 @@ function PitchEditor:handleKeyPress(char)
     if keyPressFunction then keyPressFunction(self) end
 end
 function PitchEditor:handleLeftPress(mouse)
+    self.mouseTimeOnLeftDown = self.mouseTime
+    self.mousePitchOnLeftDown = self.mousePitch
+    self.snappedMousePitchOnLeftDown = self.snappedMousePitch
     self:handlePitchCorrectionPointLeftDown(mouse)
 end
 function PitchEditor:handleLeftDrag(mouse)

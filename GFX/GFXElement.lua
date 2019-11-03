@@ -5,58 +5,29 @@ local math = math
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local TrackedNumber = require("GFX.TrackedNumber")
 
-local GFXElement = {}
-
-function GFXElement:new(element)
-    local elementMetatable = getmetatable(element)
-    if elementMetatable then
-        local base = elementMetatable.__index
-        setmetatable(element, {
-            __index = function(self, key)
-                local output = base[key]
-                if output == nil then output = GFXElement[key] end
-                return output
-            end
-        })
-    else
-        setmetatable(element, { __index = GFXElement })
-    end
-
-    local self = element
-
-    self.mouse = self.GFX.mouse
-    self.keyboard = self.GFX.keyboard
-
-    self.x = self.x or 0
-    self.y = self.y or 0
-    self.w = self.w or 0
-    self.h = self.h or 0
-    self.xTracker = TrackedNumber:new(self.x)
-    self.yTracker = TrackedNumber:new(self.y)
-    self.wTracker = TrackedNumber:new(self.w)
-    self.hTracker = TrackedNumber:new(self.h)
-
-    self.relativeMouseX = 0
-    self.relativeMouseY = 0
-
-    if self.parent then
-        self.absoluteX = self.x + self.parent.absoluteX
-        self.absoluteY = self.y + self.parent.absoluteY
-        self.drawBuffer = self.parent.drawBuffer or -1
-    else
-        self.absoluteX = self.x
-        self.absoluteY = self.y
-        self.drawBuffer = self.drawBuffer or self.GFX:getNewDrawBuffer() or -1
-    end
-
-    if self.isVisible == nil then self.isVisible = true end
-    if self.shouldRedraw == nil then self.shouldRedraw = true end
-    if self.shouldClear == nil then self.shouldClear = false end
-
-    self.buttonWasPressedInside = {}
-
-    return self
-end
+local GFXElement = {
+    GFX = GFX,
+    mouse = GFX.mouse,
+    keyboard = GFX.keyboard,
+    parent = nil,
+    drawBuffer = -1,
+    x = 0,
+    absoluteX = 0,
+    y = 0,
+    absoluteY = 0,
+    w = 0,
+    h = 0,
+    xTracker = TrackedNumber:create{ current = self.x },
+    yTracker = TrackedNumber:create{ current = self.y },
+    wTracker = TrackedNumber:create{ current = self.w },
+    hTracker = TrackedNumber:create{ current = self.h },
+    relativeMouseX = 0,
+    relativeMouseY = 0,
+    isVisible = true,
+    shouldRedraw = true,
+    shouldClear = false,
+    buttonWasPressedInside = {}
+}
 
 function GFXElement:updateDragState(button)
     if button.releaseState.previous then
@@ -98,7 +69,7 @@ function GFXElement:updateStates()
     end
 end
 function GFXElement:windowWasResized()
-    return GFX:windowWasResized()
+    return self.GFX:windowWasResized()
 end
 function GFXElement:absolutePointIsInside(x, y)
     return self.isVisible
