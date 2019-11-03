@@ -25,9 +25,10 @@ function Button:new(input)
     return Class:new({ Button }, input)
 end
 
-function Button:update()
+function Button:updateStates()
     self.state:update()
-
+end
+function Button:update()
     local mouse = self.mouse
 
     if self.glowOnMouseOver then

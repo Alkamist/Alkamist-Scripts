@@ -79,5 +79,23 @@ function testButton:update()
     end
 end
 
-GFX:setElements{ testButton }
+local testButton2 = Button:new{
+    x = 300,
+    y = 0,
+    w = 80,
+    h = 25,
+    label = "Analyze Pitch",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+}
+function testButton2:update()
+    Button.update(self)
+    if self:justPressed() then
+        testButton:press()
+    end
+    if self:justReleased() then
+        testButton:release()
+    end
+end
+
+GFX:setElements{ testButton2, testButton }
 GFX:run()

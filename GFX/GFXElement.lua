@@ -27,51 +27,13 @@ local GFXElement = {
     isVisible = true,
     shouldRedraw = true,
     shouldClear = false,
+    drewThisFrame = false,
     buttonWasPressedInside = {}
 }
 function GFXElement:new(input)
     return Class:new({ GFXElement }, input)
 end
 
-function GFXElement:updateDragState(button)
-    if button.releaseState.previous then
-        self.buttonWasPressedInside[button.name] = false
-    end
-    if button:justPressed(self) then
-        self.buttonWasPressedInside[button.name] = true
-    end
-end
-function GFXElement:updateStates()
-    local mouse = self.mouse
-    local keyboard = self.keyboard
-
-    self.xTracker:update(self.x)
-    self.yTracker:update(self.y)
-    self.wTracker:update(self.w)
-    self.hTracker:update(self.h)
-
-    self.relativeMouseX = mouse.x - self.x
-    self.relativeMouseY = mouse.y - self.y
-
-    if self.parent then
-        self.absoluteX = self.x + self.parent.absoluteX
-        self.absoluteY = self.y + self.parent.absoluteY
-    else
-        self.absoluteX = self.x
-        self.absoluteY = self.y
-    end
-
-    for name, button in pairs(mouse.buttons) do self:updateDragState(button) end
-    for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
-    for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
-
-    local elements = self.elements
-    if elements then
-        for i = 1, #elements do
-            elements[i]:updateStates()
-        end
-    end
-end
 function GFXElement:windowWasResized()
     return self.GFX:windowWasResized()
 end
@@ -226,15 +188,55 @@ function GFXElement:queueClear()
 end
 function GFXElement:setVisibility(visibility)
     self.isVisible = visibility
+    self:queueClear()
 end
 function GFXElement:toggleVisibility()
     self.isVisible = not self.isVisible
+    self:queueClear()
 end
 function GFXElement:hide()
     self.isVisible = false
+    self:queueClear()
 end
 function GFXElement:show()
     self.isVisible = true
+    self:queueClear()
 end
+
+function GFXElement:updateDragState(button)
+    if button.releaseState.previous then
+        self.buttonWasPressedInside[button.name] = false
+    end
+    if button:justPressed(self) then
+        self.buttonWasPressedInside[button.name] = true
+    end
+end
+function GFXElement:updateBaseStates()
+    local mouse = self.mouse
+    local keyboard = self.keyboard
+
+    self.drewThisFrame = false
+
+    self.xTracker:update(self.x)
+    self.yTracker:update(self.y)
+    self.wTracker:update(self.w)
+    self.hTracker:update(self.h)
+
+    self.relativeMouseX = mouse.x - self.x
+    self.relativeMouseY = mouse.y - self.y
+
+    if self.parent then
+        self.absoluteX = self.x + self.parent.absoluteX
+        self.absoluteY = self.y + self.parent.absoluteY
+    else
+        self.absoluteX = self.x
+        self.absoluteY = self.y
+    end
+
+    for name, button in pairs(mouse.buttons) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
+end
+
 
 return GFXElement

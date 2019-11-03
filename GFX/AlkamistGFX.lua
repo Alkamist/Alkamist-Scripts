@@ -73,10 +73,18 @@ function GFX:initialize(title, x, y, w, h, dock)
     self.hTracker:update(h)
     self.dock = dock
 end
+function GFX:updateElementStates(element)
+    GFXElement.updateBaseStates(element)
+    if element.updateStates then element:updateStates() end
+    local elementsOfElement = element.elements
+    if elementsOfElement then
+        for i = 1, #elementsOfElement do
+            GFX:updateElementStates(elementsOfElement[i])
+        end
+    end
+end
 function GFX:updateElement(element)
-    GFXElement.updateStates(element)
     if element.update then element:update() end
-
     local elementsOfElement = element.elements
     if elementsOfElement then
         for i = 1, #elementsOfElement do
@@ -108,9 +116,9 @@ function GFX:drawElement(element)
             element.shouldRedraw = false
             element.drewThisFrame = true
 
-        elseif element.shouldClearBuffer then
+        elseif element.shouldClear then
             element:clearBuffer()
-            element.shouldClearBuffer = false
+            element.shouldClear = false
         end
     end
 
@@ -160,9 +168,18 @@ function GFX.run()
     if elements then
         for i = 1, #elements do
             local element = elements[i]
-            element.drewThisFrame = false
+            GFX:updateElementStates(element)
+        end
+        for i = 1, #elements do
+            local element = elements[i]
             GFX:updateElement(element)
+        end
+        for i = 1, #elements do
+            local element = elements[i]
             GFX:drawElement(element)
+        end
+        for i = 1, #elements do
+            local element = elements[i]
             GFX:blitElement(element)
         end
     end
