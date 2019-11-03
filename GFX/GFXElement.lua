@@ -3,12 +3,13 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Class = require("Class")
 local TrackedNumber = require("GFX.TrackedNumber")
 
 local GFXElement = {
-    GFX = GFX,
-    mouse = GFX.mouse,
-    keyboard = GFX.keyboard,
+    GFX = nil,
+    mouse = nil,
+    keyboard = nil,
     parent = nil,
     drawBuffer = -1,
     x = 0,
@@ -17,10 +18,10 @@ local GFXElement = {
     absoluteY = 0,
     w = 0,
     h = 0,
-    xTracker = TrackedNumber:create{ current = self.x },
-    yTracker = TrackedNumber:create{ current = self.y },
-    wTracker = TrackedNumber:create{ current = self.w },
-    hTracker = TrackedNumber:create{ current = self.h },
+    xTracker = TrackedNumber:new(),
+    yTracker = TrackedNumber:new(),
+    wTracker = TrackedNumber:new(),
+    hTracker = TrackedNumber:new(),
     relativeMouseX = 0,
     relativeMouseY = 0,
     isVisible = true,
@@ -28,6 +29,9 @@ local GFXElement = {
     shouldClear = false,
     buttonWasPressedInside = {}
 }
+function GFXElement:new(input)
+    return Class:new({ GFXElement }, input)
+end
 
 function GFXElement:updateDragState(button)
     if button.releaseState.previous then

@@ -15,8 +15,8 @@ local GFX = {
     h = 0,
     wChange = 0,
     hChange = 0,
-    wTracker = TrackedNumber:new(0),
-    hTracker = TrackedNumber:new(0),
+    wTracker = TrackedNumber:new(),
+    hTracker = TrackedNumber:new(),
     elements = {},
     mouse = UserControl.mouse,
     keyboard = UserControl.keyboard
@@ -27,7 +27,7 @@ function GFX:setBackgroundColor(color)
     gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
 end
 function GFX:windowWasResized()
-    return self.wTracker.justChanged or self.hTracker.justChanged
+    return self.wTracker:justChanged() or self.hTracker:justChanged()
 end
 local currentBuffer = -1
 function GFX:getNewDrawBuffer()
@@ -37,9 +37,15 @@ function GFX:getNewDrawBuffer()
 end
 function GFX:bindElement(element, parent)
     element.GFX = GFX
+    element.mouse = GFX.mouse
+    element.keyboard = GFX.keyboard
     element.parent = parent
+    if parent then
+        element.drawBuffer = parent.drawBuffer
+    else
+        element.drawBuffer = GFX:getNewDrawBuffer()
+    end
     GFXElement:new(element)
-    if element.initialize then element:initialize() end
 
     local elementsOfElement = element.elements
     if elementsOfElement then

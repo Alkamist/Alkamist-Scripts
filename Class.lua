@@ -1,8 +1,8 @@
 local setmetatable = setmetatable
+local rawget = rawget
 
 local function copy(input, seen)
     local inputType = type(input)
-    if inputType == "function" then return nil end
     if inputType ~= "table" then return input end
     local seen = seen or {}
     if seen[input] then return seen[input] end
@@ -32,7 +32,7 @@ end
 local function addBaseToClass(class, base)
     class._baseClasses[#class._baseClasses + 1] = base
     for key, value in next, base, nil do
-        class[key] = class[key] or copy(value)
+        class[key] = class[key] or copy(rawget(base, key))
     end
     return class
 end
@@ -76,3 +76,5 @@ end
 function Class:getBaseClasses()
     return self._baseClasses
 end
+
+return Class

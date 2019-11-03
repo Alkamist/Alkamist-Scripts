@@ -1,6 +1,6 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Class = require("Class")
-local ToggleState = require("GFX.ToggleState")
+local Toggle = require("GFX.Toggle")
 
 local Button = {
     x = 0,
@@ -15,14 +15,14 @@ local Button = {
     glowColor = { 1.0, 1.0, 1.0, 0.15, 1 },
     pressedColor = { 1.0, 1.0, 1.0, -0.15, 1 },
     labelColor = { 1.0, 1.0, 1.0, 0.4, 1 },
-    state = ToggleState.create{ current = false },
+    state = Toggle:new{ current = false },
     glowState = false,
     glowOnMouseOver = true,
     pressOnClick = true,
     toggleOnClick = false
 }
-function Button:create(parameters)
-    return Class.create({ Button }, parameters)
+function Button:new(input)
+    return Class:new({ Button }, input)
 end
 
 function Button:update()

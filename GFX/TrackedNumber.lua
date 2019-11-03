@@ -5,8 +5,8 @@ local TrackedNumber = {
     current = 0,
     previous = 0
 }
-function TrackedNumber:create(parameters)
-    return Class.create({ TrackedNumber }, parameters)
+function TrackedNumber:new(input)
+    return Class:new({ TrackedNumber }, input)
 end
 
 function TrackedNumber:update(number)

@@ -161,26 +161,24 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ToggleState = require("GFX.ToggleState")
+local Class = require("Class")
+local Toggle = require("GFX.Toggle")
 local TrackedNumber = require("GFX.TrackedNumber")
 
 --==============================================================
 --== Mouse =====================================================
 --==============================================================
 
-local MouseControl = {}
-
-function MouseControl:new(mouse, name)
-    local self = setmetatable({}, { __index = self })
-
-    self.mouse = mouse
-    self.name = name
-    self.state = ToggleState:new(false)
-    self.dragState = false
-    self.isAlreadyDragging = false
-    self.releaseState = ToggleState:new(false)
-
-    return self
+local MouseControl = {
+    mouse = nil,
+    name = "",
+    state = Toggle:new(),
+    dragState = false,
+    isAlreadyDragging = false,
+    releaseState = Toggle:new(),
+}
+function MouseControl:new(input)
+    return Class:new({ MouseControl }, input)
 end
 
 function MouseControl:update(state)
@@ -236,41 +234,33 @@ function MouseControl:getTimeSincePreviousPress()
     return reaper.time_precise() - self.timeOfPreviousPress
 end
 
-local MouseButton = setmetatable({}, { __index = MouseControl })
-
-function MouseButton:new(mouse, name, bitValue)
-    local self = setmetatable(MouseControl:new(mouse, name), { __index = self })
-    self.bitValue = bitValue
-    return self
+local MouseButton = {
+    bitValue = 0
+}
+function MouseButton:new(input)
+    return Class:new({ MouseButton, MouseControl }, input)
 end
 function MouseButton:update()
     MouseControl.update(self, self.mouse.cap & self.bitValue == self.bitValue)
 end
 
-local Mouse = {}
-
-function Mouse:new()
-    local self = setmetatable({}, { __index = self })
-
-    self.xTracker = TrackedNumber:new(0)
-    self.x = 0
-    self.xChange = 0
-    self.yTracker = TrackedNumber:new(0)
-    self.y = 0
-    self.yChange = 0
-    self.cap = 0
-    self.wheel = 0
-    self.hWheel = 0
-
-    self.buttons = {
-        left = MouseButton:new(self, "left", 1),
-        middle = MouseButton:new(self, "middle", 64),
-        right = MouseButton:new(self, "right", 2)
-    }
-
-    return self
-end
-
+local Mouse = {
+    xTracker = TrackedNumber:new(),
+    x = 0,
+    xChange = 0,
+    yTracker = TrackedNumber:new(),
+    y = 0,
+    yChange = 0,
+    cap = 0,
+    wheel = 0,
+    hWheel = 0,
+    buttons = {}
+}
+Mouse.buttons = {
+    left = MouseButton:new{ mouse = Mouse, name = "left", bitValue = 1 },
+    middle = MouseButton:new{ mouse = Mouse, name = "middle", bitValue = 64 },
+    right = MouseButton:new{ mouse = Mouse, name = "right", bitValue = 2 }
+}
 function Mouse:update()
     self.xTracker:update(gfx.mouse_x)
     self.x = self.xTracker.current
@@ -314,39 +304,35 @@ function Mouse:justLeft(element)
     return not self:isInside(element) and self:wasPreviouslyInside(element)
 end
 
+local UserControl = {
+    mouse = Mouse
+}
+
 --==============================================================
 --== Keyboard ==================================================
 --==============================================================
 
-local KeyboardKey = setmetatable({}, { __index = MouseControl })
-
-function KeyboardKey:new(mouse, character)
-    local self = setmetatable(MouseControl:new(mouse, character), { __index = self })
-    self.character = character
-    return self
+local KeyboardKey = {
+    character = ""
+}
+function KeyboardKey:new(input)
+    return Class:new({ KeyboardKey, MouseControl }, input)
 end
 function KeyboardKey:update()
     MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
 end
 
-local Keyboard = {}
-
-function Keyboard:new(mouse)
-    local self = setmetatable({}, { __index = self })
-
-    self.mouse = mouse
-    self.currentCharacter = nil
-    self.modifiers = {
-        shift = MouseButton:new(mouse, "shift", 8),
-        control = MouseButton:new(mouse, "control", 4),
-        windows = MouseButton:new(mouse, "windows", 32),
-        alt = MouseButton:new(mouse, "alt", 16)
-    }
-    self.keys = {}
-
-    return self
-end
-
+local Keyboard = {
+    mouse = UserControl.mouse,
+    currentCharacter = nil,
+    modifiers = {
+        shift = MouseButton:new{ mouse = UserControl.mouse, name = "shift", bitValue = 8 },
+        control = MouseButton:new{ mouse = UserControl.mouse, name = "control", bitValue = 4 },
+        windows = MouseButton:new{ mouse = UserControl.mouse, name = "windows", bitValue = 32 },
+        alt = MouseButton:new{ mouse = UserControl.mouse, name = "alt", bitValue = 16 }
+    },
+    keys = {}
+}
 function Keyboard:update()
     for name, key in pairs(self.modifiers) do key:update() end
     for name, key in pairs(self.keys) do key:update() end
@@ -356,9 +342,5 @@ function Keyboard:createKey(character)
     self.keys[character] = KeyboardKey:new(self.mouse, character)
 end
 
-local UserControl = {
-    mouse = Mouse:new()
-}
-UserControl.keyboard = Keyboard:new(UserControl.mouse)
-
+UserControl.keyboard = Keyboard
 return UserControl

@@ -61,7 +61,7 @@ end
 
 GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }]]--
 
-local testButton = Button:create{
+local testButton = Button:new{
     x = 0,
     y = 0,
     w = 80,
