@@ -145,5 +145,28 @@ function PolyLine:getIndexAndDistanceOfPointClosestToPoint(x, y)
 
     return lowestDistanceIndex, lowestDistance
 end
+function PolyLine:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, distance)
+    local index
+    local indexIsPoint
+    local segmentIndex, segmentDistance = self:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
+    local pointIndex, pointDistance = self:getIndexAndDistanceOfPointClosestToPoint(x, y)
+    local pointIsClose = false
+    local segmentIsClose = false
+
+    if pointDistance then pointIsClose = pointDistance <= distance end
+    if segmentDistance then segmentIsClose = segmentDistance <= distance end
+
+    if pointIsClose or segmentIsClose then
+        if segmentIsClose then
+            index = segmentIndex
+            indexIsPoint = false
+        end
+        if pointIsClose then
+            index = pointIndex
+            indexIsPoint = true
+        end
+    end
+    return index, indexIsPoint
+end
 
 return PolyLine

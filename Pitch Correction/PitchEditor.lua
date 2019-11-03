@@ -255,31 +255,16 @@ function PitchEditor:recalculatePitchCorrectionCoordinates()
 end
 function PitchEditor:updatePitchCorrectionMouseOver()
     if not self.enablePitchCorrections then return end
-    local segmentIndex, segmentDistance = self.take.corrections:getIndexAndDistanceOfSegmentClosestToPoint(self.relativeMouseX, self.relativeMouseY)
-    local pointIndex, pointDistance = self.take.corrections:getIndexAndDistanceOfPointClosestToPoint(self.relativeMouseX, self.relativeMouseY)
+    local index, indexIsPoint = self.take.corrections:getIndexOfPointOrSegmentClosestToPointWithinDistance(self.relativeMouseX, self.relativeMouseY, self.pitchCorrectionEditPixelRange)
 
-    local pointIsClose = false
-    local segmentIsClose = false
-
-    if pointDistance then
-        pointIsClose = pointDistance <= self.pitchCorrectionEditPixelRange
-    end
-    if segmentDistance then
-        segmentIsClose = segmentDistance <= self.pitchCorrectionEditPixelRange and self.take.corrections.points[segmentIndex].isActive
-    end
-
-    if pointIsClose or segmentIsClose or self.pitchCorrectionEditPoint then
-        if segmentIsClose or self.pitchCorrectionEditPoint then
-            self.mouseOverPitchCorrectionIndex = segmentIndex
-            self.mouseIsOverPoint = false
+    if index then
+        local points = self.take.corrections.points
+        if not indexIsPoint and not points[index].isActive then
+            index = nil
+            indexIsPoint = nil
         end
-        if pointIsClose then
-            self.mouseOverPitchCorrectionIndex = pointIndex
-            self.mouseIsOverPoint = true
-        end
-    else
-        self.mouseOverPitchCorrectionIndex = nil
-        self.mouseIsOverPoint = nil
+        self.mouseOverPitchCorrectionIndex = index
+        self.mouseIsOverPoint = indexIsPoint
     end
 end
 function PitchEditor:unselectAllPitchCorrectionPoints()
