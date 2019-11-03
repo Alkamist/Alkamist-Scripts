@@ -558,12 +558,13 @@ function PitchCorrectedTake:updatePointTimes(points)
         local point = points[i]
         point.time = getRealTime(self.pointer, point.sourceTime)
     end
+    return points
 end
 function PitchCorrectedTake:updatePitchPointTimes()
-    self:updatePointTimes(self.pitches.points)
+    self.pitches.points = self:updatePointTimes(self.pitches.points)
 end
 function PitchCorrectedTake:updatePitchCorrectionTimes()
-    self:updatePointTimes(self.corrections.points)
+    self.corrections.points = self:updatePointTimes(self.corrections.points)
 end
 
 function PitchCorrectedTake:loadPoints(points, fileName, info, members)
@@ -581,6 +582,7 @@ function PitchCorrectedTake:loadPoints(points, fileName, info, members)
         points = decodedTable.points
         self:updatePointTimes(points)
     end
+
     return points
 end
 function PitchCorrectedTake:loadPitchPoints()
@@ -610,8 +612,13 @@ function PitchCorrectedTake:savePitchPoints()
     self:savePoints(self.pitches.points, self.fileName .. ".pitch", info, members)
 end
 function PitchCorrectedTake:savePitchCorrections()
+    local points = self.corrections.points
+    for i = 1, #points do
+        local point = points[i]
+        point.sourceTime = getSourceTime(self.pointer, point.time)
+    end
     local info, members = self:getPitchCorrectionSaveInfo()
-    self:savePoints(self.corrections.points, self.name .. ".correction", info, members)
+    self:savePoints(points, self.name .. ".correction", info, members)
 end
 
 return PitchCorrectedTake
