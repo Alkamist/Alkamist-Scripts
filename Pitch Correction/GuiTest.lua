@@ -59,7 +59,8 @@ function fixErrorButton:update()
     end
 end
 
-GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }]]--
+GFX:addElements{ pitchEditor, analyzeButton, fixErrorButton }
+GFX:run()]]--
 
 local asdf = Button:new{
     x = 0,
@@ -68,7 +69,6 @@ local asdf = Button:new{
     h = 30,
     label = "test"
 }
-
 local testButton2 = Button:new{
     x = 40,
     y = 100,
@@ -76,17 +76,13 @@ local testButton2 = Button:new{
     h = 30,
     label = "test"
 }
-
 local testButton1 = Button:new{
     x = 81,
     y = 200,
     w = 400,
     h = 400,
     label = "Fix Errors",
-    toggleOnClick = true,
-    elements = {
-        testButton2
-    }
+    toggleOnClick = true
 }
 function testButton1:update()
     Button.update(self)
@@ -99,5 +95,7 @@ function testButton1:update()
     end
 end
 
-GFX:setElements{ asdf, testButton1 }
+GFX:addElements{ asdf, testButton1 }
+testButton1:addElements{ testButton2 }
+
 GFX:run()

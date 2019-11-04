@@ -36,13 +36,17 @@ function GFX:getNewDrawBuffer()
     return currentBuffer
 end
 
-function GFX:setElements(elements)
+function GFX:getElements()
+    return self.elements or {}
+end
+function GFX:addElements(elements)
     for i = 1, #elements do
         local element = elements[i]
         GFXElement.initializeElement(element, { GFX = GFX })
         self.elements[#self.elements + 1] = element
     end
 end
+
 function GFX:initialize(title, x, y, w, h, dock)
     gfx.init(title, w, h, dock, x, y)
 

@@ -32,6 +32,20 @@ local GFXElement = {
     buttonWasPressedInside = {}
 }
 
+function GFXElement:getElements()
+    return self.elements or {}
+end
+function GFXElement:addElements(elements)
+    for i = 1, #elements do
+        local element = elements[i]
+        GFXElement.initializeElement(element, {
+            GFX = self.GFX,
+            parent = self
+        })
+        self.elements[#self.elements + 1] = element
+    end
+end
+
 function GFXElement:initializeElement(parameters)
     Prototype.addPrototypes(self, { GFXElement })
 
@@ -45,13 +59,11 @@ function GFXElement:initializeElement(parameters)
         self.drawBuffer = self.GFX:getNewDrawBuffer()
     end
 
-    parameters.parent = self
-    for i = 1, #self.elements do
-        GFXElement.initializeElement(self.elements[i], parameters)
-    end
     if self.initialize then self:initialize() end
 end
 function GFXElement:updateElementStates()
+    local elements = self:getElements()
+
     local mouse = self.mouse
     local keyboard = self.keyboard
 
@@ -77,18 +89,22 @@ function GFXElement:updateElementStates()
     for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
     for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
 
-    for i = 1, #self.elements do
-        self.elements[i]:updateElementStates()
+    for i = 1, #elements do
+        elements[i]:updateElementStates()
     end
     if self.updateStates then self:updateStates() end
 end
 function GFXElement:updateElement()
-    for i = 1, #self.elements do
-        self.elements[i]:updateElement()
+    local elements = self:getElements()
+
+    for i = 1, #elements do
+        elements[i]:updateElement()
     end
     if self.update then self:update() end
 end
 function GFXElement:drawElement()
+    local elements = self:getElements()
+
     gfx.a = 1.0
     gfx.mode = 0
 
@@ -118,11 +134,13 @@ function GFXElement:drawElement()
         end
     end
 
-    for i = 1, #self.elements do
-        self.elements[i]:drawElement()
+    for i = 1, #elements do
+        elements[i]:drawElement()
     end
 end
 function GFXElement:blitElement()
+    local elements = self:getElements()
+
     if self.isVisible then
         gfx.a = 1.0
         gfx.mode = 0
@@ -133,8 +151,8 @@ function GFXElement:blitElement()
         end
     end
 
-    for i = 1, #self.elements do
-        self.elements[i]:blitElement()
+    for i = 1, #elements do
+        elements[i]:blitElement()
     end
 end
 
