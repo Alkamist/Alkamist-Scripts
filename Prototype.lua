@@ -1,15 +1,14 @@
 local setmetatable = setmetatable
 local rawget = rawget
 
-local function copy(input, seen)
-    local inputType = type(input)
-    if inputType ~= "table" then return input end
+local function copyTable(input, seen)
+    if type(input) ~= "table" then return input end
     local seen = seen or {}
     if seen[input] then return seen[input] end
     local output = {}
     seen[input] = output
     for key, value in next, input, nil do
-        output[copy(key, seen)] = copy(value, seen)
+        output[copyTable(key, seen)] = copyTable(value, seen)
     end
     return setmetatable(output, getmetatable(input))
 end
@@ -25,15 +24,15 @@ end
 local function initializeTableWithRespectToPrototype(inputTable, prototype)
     if not tableAlreadyHasPrototype(inputTable, prototype) then return inputTable end
     for key, value in next, prototype, nil do
-        inputTable[key] = copy(value)
+        inputTable[key] = copyTable(value)
     end
     return inputTable
 end
 local function addPrototypeToTable(inputTable, prototype)
-    inputTable._prototypes[#inputTable._prototypes + 1] = prototype
     for key, value in next, prototype, nil do
-        inputTable[key] = inputTable[key] or copy(rawget(prototype, key))
+        inputTable[key] = inputTable[key] or copyTable(rawget(prototype, key))
     end
+    inputTable._prototypes[#inputTable._prototypes + 1] = prototype
     return inputTable
 end
 
