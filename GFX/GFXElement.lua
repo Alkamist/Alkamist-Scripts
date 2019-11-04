@@ -3,7 +3,7 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Class = require("Class")
+local Prototype = require("Prototype")
 local TrackedNumber = require("GFX.TrackedNumber")
 
 local GFXElement = {
@@ -11,6 +11,7 @@ local GFXElement = {
     mouse = nil,
     keyboard = nil,
     parent = nil,
+    elements = {},
     drawBuffer = -1,
     x = 0,
     absoluteX = 0,
@@ -30,10 +31,121 @@ local GFXElement = {
     drewThisFrame = false,
     buttonWasPressedInside = {}
 }
-function GFXElement:new(input)
-    return Class:new({ GFXElement }, input)
+
+function GFXElement:initializeElement(parameters)
+    Prototype.addPrototypes(self, { GFXElement })
+
+    self.GFX = parameters.GFX
+    self.mouse = self.GFX.mouse
+    self.keyboard = self.GFX.keyboard
+    self.parent = parameters.parent
+    if self.parent then
+        self.drawBuffer = self.parent.drawBuffer
+    else
+        self.drawBuffer = self.GFX:getNewDrawBuffer()
+    end
+
+    parameters.parent = self
+    for i = 1, #self.elements do
+        GFXElement.initializeElement(self.elements[i], parameters)
+    end
+    if self.initialize then self:initialize() end
+end
+function GFXElement:updateElementStates()
+    local mouse = self.mouse
+    local keyboard = self.keyboard
+
+    self.drewThisFrame = false
+
+    self.xTracker:update(self.x)
+    self.yTracker:update(self.y)
+    self.wTracker:update(self.w)
+    self.hTracker:update(self.h)
+
+    self.relativeMouseX = mouse.x - self.x
+    self.relativeMouseY = mouse.y - self.y
+
+    if self.parent then
+        self.absoluteX = self.x + self.parent.absoluteX
+        self.absoluteY = self.y + self.parent.absoluteY
+    else
+        self.absoluteX = self.x
+        self.absoluteY = self.y
+    end
+
+    for name, button in pairs(mouse.buttons) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
+    for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
+
+    for i = 1, #self.elements do
+        self.elements[i]:updateElementStates()
+    end
+    if self.updateStates then self:updateStates() end
+end
+function GFXElement:updateElement()
+    for i = 1, #self.elements do
+        self.elements[i]:updateElement()
+    end
+    if self.update then self:update() end
+end
+function GFXElement:drawElement()
+    gfx.a = 1.0
+    gfx.mode = 0
+
+    if self.draw then
+        local shouldDrawDirectly = self:shouldDrawDirectly()
+        if self.parent and self.parent.drewThisFrame and shouldDrawDirectly then
+            self.shouldRedraw = true
+        end
+        if self.shouldRedraw then
+            if shouldDrawDirectly then
+                if not self.parent.drewThisFrame then
+                    gfx.dest = self.parent.drawBuffer
+                    self.parent:draw()
+                    self.parent.drewThisFrame = true
+                end
+            else
+                self:clearBuffer()
+            end
+            gfx.dest = self.drawBuffer
+            self:draw()
+            self.shouldRedraw = false
+            self.drewThisFrame = true
+
+        elseif self.shouldClear then
+            self:clearBuffer()
+            self.shouldClear = false
+        end
+    end
+
+    for i = 1, #self.elements do
+        self.elements[i]:drawElement()
+    end
+end
+function GFXElement:blitElement()
+    if self.isVisible then
+        gfx.a = 1.0
+        gfx.mode = 0
+        gfx.dest = -1
+
+        if not self:shouldDrawDirectly() then
+            gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, self.w, self.h, self.absoluteX, self.absoluteY, self.w, self.h, 0, 0)
+        end
+    end
+
+    for i = 1, #self.elements do
+        self.elements[i]:blitElement()
+    end
 end
 
+function GFXElement:updateDragState(button)
+    if button.releaseState.previous then
+        self.buttonWasPressedInside[button.name] = false
+    end
+    if button:justPressed(self) then
+        self.buttonWasPressedInside[button.name] = true
+    end
+end
 function GFXElement:windowWasResized()
     return self.GFX:windowWasResized()
 end
@@ -202,41 +314,5 @@ function GFXElement:show()
     self.isVisible = true
     self:queueClear()
 end
-
-function GFXElement:updateDragState(button)
-    if button.releaseState.previous then
-        self.buttonWasPressedInside[button.name] = false
-    end
-    if button:justPressed(self) then
-        self.buttonWasPressedInside[button.name] = true
-    end
-end
-function GFXElement:updateBaseStates()
-    local mouse = self.mouse
-    local keyboard = self.keyboard
-
-    self.drewThisFrame = false
-
-    self.xTracker:update(self.x)
-    self.yTracker:update(self.y)
-    self.wTracker:update(self.w)
-    self.hTracker:update(self.h)
-
-    self.relativeMouseX = mouse.x - self.x
-    self.relativeMouseY = mouse.y - self.y
-
-    if self.parent then
-        self.absoluteX = self.x + self.parent.absoluteX
-        self.absoluteY = self.y + self.parent.absoluteY
-    else
-        self.absoluteX = self.x
-        self.absoluteY = self.y
-    end
-
-    for name, button in pairs(mouse.buttons) do self:updateDragState(button) end
-    for name, button in pairs(keyboard.modifiers) do self:updateDragState(button) end
-    for name, button in pairs(keyboard.keys) do self:updateDragState(button) end
-end
-
 
 return GFXElement

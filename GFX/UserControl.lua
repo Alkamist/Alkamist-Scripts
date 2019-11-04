@@ -161,7 +161,7 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Class = require("Class")
+local Prototype = require("Prototype")
 local Toggle = require("GFX.Toggle")
 local TrackedNumber = require("GFX.TrackedNumber")
 
@@ -177,10 +177,10 @@ local MouseControl = {
     isAlreadyDragging = false,
     releaseState = Toggle:new(),
 }
-function MouseControl:new(input)
-    return Class:new({ MouseControl }, input)
-end
 
+function MouseControl:new(input)
+    return Prototype.addPrototypes(input, { MouseControl })
+end
 function MouseControl:update(state)
     if self:justPressed() then self.timeOfPreviousPress = reaper.time_precise() end
     if self:justReleased() then self.isAlreadyDragging = false end
@@ -191,7 +191,6 @@ function MouseControl:update(state)
     if self.dragState then self.isAlreadyDragging = true end
     self.dragState = self.state.current and self.mouse:justMoved()
 end
-
 function MouseControl:isPressed(element)
     local output = self.state.current
     if element then return output and self.mouse:isInside(element) end
@@ -237,8 +236,9 @@ end
 local MouseButton = {
     bitValue = 0
 }
+
 function MouseButton:new(input)
-    return Class:new({ MouseButton, MouseControl }, input)
+    return Prototype.addPrototypes(input, { MouseButton, MouseControl })
 end
 function MouseButton:update()
     MouseControl.update(self, self.mouse.cap & self.bitValue == self.bitValue)
@@ -261,6 +261,7 @@ Mouse.buttons = {
     middle = MouseButton:new{ mouse = Mouse, name = "middle", bitValue = 64 },
     right = MouseButton:new{ mouse = Mouse, name = "right", bitValue = 2 }
 }
+
 function Mouse:update()
     self.xTracker:update(gfx.mouse_x)
     self.x = self.xTracker.current
@@ -315,8 +316,9 @@ local UserControl = {
 local KeyboardKey = {
     character = ""
 }
+
 function KeyboardKey:new(input)
-    return Class:new({ KeyboardKey, MouseControl }, input)
+    return Prototype.addPrototypes(input, { KeyboardKey, MouseControl })
 end
 function KeyboardKey:update()
     MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
@@ -333,6 +335,7 @@ local Keyboard = {
     },
     keys = {}
 }
+
 function Keyboard:update()
     for name, key in pairs(self.modifiers) do key:update() end
     for name, key in pairs(self.keys) do key:update() end

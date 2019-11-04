@@ -1,12 +1,13 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Class = require("Class")
+local Prototype = require("Prototype")
 
 local Toggle = {
     current = false,
     previous = false
 }
-function Toggle:new(input)
-    return Class:new({ Toggle }, input)
+
+function Toggle:new(parameters)
+    return Prototype.addPrototypes(parameters, { Toggle })
 end
 
 function Toggle:set(value)

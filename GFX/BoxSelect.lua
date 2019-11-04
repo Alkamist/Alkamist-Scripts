@@ -1,25 +1,19 @@
-local BoxSelect = {}
+local BoxSelect = {
+    x = 0,
+    y = 0,
+    w = 0,
+    h = 0,
+    x1 = 0,
+    x2 = 0,
+    y1 = 0,
+    y2 = 0,
+    insideColor = {1.0, 1.0, 1.0, -0.04, 1},
+    edgeColor = {1.0, 1.0, 1.0, 0.2, 1},
+    isActive = false
+}
 
-function BoxSelect:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
-
-    self.x = 0
-    self.y = 0
-    self.w = 0
-    self.h = 0
-
-    self.x1 = 0
-    self.x2 = 0
-    self.y1 = 0
-    self.y2 = 0
-
-    self.insideColor = init.insideColor or {1.0, 1.0, 1.0, -0.04, 1}
-    self.edgeColor = init.edgeColor or {1.0, 1.0, 1.0, 0.2, 1}
-
-    self.isActive = false
-
-    return self
+function BoxSelect:new(input)
+    return Class:new({ BoxSelect }, input)
 end
 
 function BoxSelect:startSelection(startingX, startingY)

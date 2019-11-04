@@ -3,9 +3,10 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local ViewAxis =            require("GFX.ViewAxis")
-local BoxSelect =           require("GFX.BoxSelect")
-local PitchCorrectedTake =  require("Pitch Correction.PitchCorrectedTake")
+local Class = require("Class")
+local ViewAxis = require("GFX.ViewAxis")
+local BoxSelect = require("GFX.BoxSelect")
+local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
 --==============================================================
 --== Helpful Functions =========================================
@@ -57,76 +58,59 @@ end
 --== Initialization ============================================
 --==============================================================
 
-local PitchEditor = {}
-
-function PitchEditor:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
-
-    self.x = init.x or 0
-    self.y = init.y or 0
-    self.w = init.w or 0
-    self.h = init.h or 0
-
-    self.whiteKeyNumbers = getWhiteKeyNumbers()
-    self.minKeyHeightToDrawCenterline = init.minKeyHeightToDrawCenterline or 16
-    self.pitchHeight = init.pitchHeight or 128
-
-    self.backgroundColor = init.backgroundColor or { 0.22, 0.22, 0.22, 1.0, 0 }
-    self.blackKeyColor = init.blackKeyColor or { 0.22, 0.22, 0.22, 1.0, 0 }
-    self.whiteKeyColor = init.whiteKeyColor or { 0.29, 0.29, 0.29, 1.0, 0 }
-    self.keyCenterLineColor = init.keyCenterLineColor or { 1.0, 1.0, 1.0, 0.09, 1 }
-    self.edgeColor = init.edgeColor or { 1.0, 1.0, 1.0, -0.1, 1 }
-    self.edgeShade = init.edgeShade or { 1.0, 1.0, 1.0, -0.04, 1 }
-    self.editCursorColor = init.editCursorColor or { 1.0, 1.0, 1.0, 0.34, 1 }
-    self.playCursorColor = init.playCursorColor or { 1.0, 1.0, 1.0, 0.2, 1 }
-    self.pitchCorrectionActiveColor = init.pitchCorrectionActiveColor or { 0.3, 0.6, 0.9, 1.0, 0 }
-    self.pitchCorrectionInactiveColor = init.pitchCorrectionInactiveColor or { 0.9, 0.3, 0.3, 1.0, 0 }
-    self.peakColor = init.peakColor or { 1.0,   1.0,  1.0,  1.0,  0 }
-    self.correctedPitchLineColor = init.correctedPitchLineColor or { 0.3, 0.7, 0.3, 1.0, 0 }
-    self.pitchLineColor = init.pitchLineColor or { 0.1, 0.3, 0.1, 1.0, 0 }
-
-    self.pitchCorrectionEditPixelRange = init.pitchCorrectionEditPixelRange or 7
-
-    if init.scaleWithWindow ~= nil then self.scaleWithWindow = init.scaleWithWindow else self.scaleWithWindow = true end
-
-    self.view = {
-        x = ViewAxis:new{
-            scale = self.w
-        },
-        y = ViewAxis:new{
-            scale = self.h
-        }
-    }
-
-    self.track = {}
-    self.take =  PitchCorrectedTake:new()
-
-    self.boxSelect = BoxSelect:new{
-        parent = self,
-        thingsToSelect = self.take.corrections
-    }
-    self.elements = {
-        [1] = self.boxSelect
-    }
-
-    self.mouseTime = 0.0
-    self.mouseTimeOnLeftDown = 0.0
-    self.previousMouseTime = 0.0
-    self.mouseTimeChange = 0.0
-    self.mousePitch = 0.0
-    self.mousePitchOnLeftDown = 0.0
-    self.previousMousePitch = 0.0
-    self.mousePitchChange = 0.0
-    self.snappedMousePitch = 0.0
-    self.previousSnappedMousePitch = 0.0
-    self.snappedMousePitchChange = 0.0
-
-    self.altKeyWasDownOnPointEdit = false
-    self.fixErrorMode =  false
-    self.enablePitchCorrections = true
-
-    return self
+local PitchEditor = {
+    x = 0,
+    y = 0,
+    w = 0,
+    h = 0,
+    whiteKeyNumbers = getWhiteKeyNumbers(),
+    minKeyHeightToDrawCenterline = 16,
+    pitchHeight = 128,
+    backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
+    blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
+    whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 },
+    keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 },
+    edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 },
+    edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 },
+    editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 },
+    playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 },
+    pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 },
+    pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 },
+    peakColor = { 1.0,   1.0,  1.0,  1.0,  0 },
+    correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 },
+    pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 },
+    pitchCorrectionEditPixelRange = 7,
+    scaleWithWindow = true,
+    mouseTime = 0.0,
+    mouseTimeOnLeftDown = 0.0,
+    previousMouseTime = 0.0,
+    mouseTimeChange = 0.0,
+    mousePitch = 0.0,
+    mousePitchOnLeftDown = 0.0,
+    previousMousePitch = 0.0,
+    mousePitchChange = 0.0,
+    snappedMousePitch = 0.0,
+    previousSnappedMousePitch = 0.0,
+    snappedMousePitchChange = 0.0,
+    altKeyWasDownOnPointEdit = false,
+    fixErrorMode =  false,
+    enablePitchCorrections = true,
+    view = {
+        x = ViewAxis:new(),
+        y = ViewAxis:new()
+    },
+    track = nil,
+    take = PitchCorrectedTake:new(),
+    --boxSelect = BoxSelect:new{
+    --    parent = self,
+    --    thingsToSelect = self.take.corrections
+    --}
+    --self.elements = {
+    --    [1] = self.boxSelect
+    --}
+}
+function PitchEditor:new(input)
+    return Class:new({ PitchEditor }, input)
 end
 
 --==============================================================
@@ -691,7 +675,7 @@ function PitchEditor:initialize()
     --    time = time + timeIncrement
     --end
 end
-function PitchEditor:update()
+function PitchEditor:updateStates()
     local mouse = self.mouse
     local mouseLeftButton = mouse.buttons.left
     local mouseMiddleButton = mouse.buttons.middle
@@ -713,7 +697,8 @@ function PitchEditor:update()
         self:recalculateTakePitchCoordinates()
         self:queueRedraw()
     end
-
+end
+function PitchEditor:update()
     if self.GFX:windowWasResized() then self:handleWindowResize() end
     if char then self:handleKeyPress(char) end
     if mouseLeftButton:justPressed(self) then self:handleLeftPress(mouse) end

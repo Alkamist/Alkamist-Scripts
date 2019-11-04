@@ -1,12 +1,8 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Class = require("Class")
+local Prototype = require("Prototype")
 local Toggle = require("GFX.Toggle")
 
 local Button = {
-    x = 0,
-    y = 0,
-    w = 0,
-    h = 0,
     label = "",
     labelFont = "Arial",
     labelFontSize = 14,
@@ -21,10 +17,14 @@ local Button = {
     pressOnClick = true,
     toggleOnClick = false
 }
-function Button:new(input)
-    return Class:new({ Button }, input)
+
+function Button:new(parameters)
+    return Prototype.addPrototypes(parameters, { Button })
 end
 
+function Button:initialize()
+    if self.toggleOnClick then self.pressOnClick = false end
+end
 function Button:updateStates()
     self.state:update()
 end
@@ -43,6 +43,30 @@ function Button:update()
         if mouse.buttons.left:justPressed(self) then self:toggle() end
     end
 end
+function Button:draw()
+    -- Draw the main button.
+    self:setColor(self.color)
+    self:drawRectangle(0, 0, self.w, self.h, true)
+
+    -- Draw a light outline around the button.
+    self:setColor(self.edgeColor)
+    self:drawRectangle(0, 0, self.w, self.h, false)
+
+    -- Draw the button's label.
+    self:setColor(self.labelColor)
+    self:setFont(self.labelFont, self.labelFontSize)
+    self:drawString(self.label, 0, 0, 5, self.w, self.h)
+
+    if self:isPressed() then
+        self:setColor(self.pressedColor)
+        self:drawRectangle(0, 0, self.w, self.h, true)
+
+    elseif self.glowState then
+        self:setColor(self.glowColor)
+        self:drawRectangle(0, 0, self.w, self.h, true)
+    end
+end
+
 function Button:glow()
     self.glowState = true
     self:queueRedraw()
@@ -71,29 +95,6 @@ function Button:justPressed()
 end
 function Button:justReleased()
     return self.state:justTurnedOff()
-end
-function Button:draw()
-    -- Draw the main button.
-    self:setColor(self.color)
-    self:drawRectangle(0, 0, self.w, self.h, true)
-
-    -- Draw a light outline around the button.
-    self:setColor(self.edgeColor)
-    self:drawRectangle(0, 0, self.w, self.h, false)
-
-    -- Draw the button's label.
-    self:setColor(self.labelColor)
-    self:setFont(self.labelFont, self.labelFontSize)
-    self:drawString(self.label, 0, 0, 5, self.w, self.h)
-
-    if self:isPressed() then
-        self:setColor(self.pressedColor)
-        self:drawRectangle(0, 0, self.w, self.h, true)
-
-    elseif self.glowState then
-        self:setColor(self.glowColor)
-        self:drawRectangle(0, 0, self.w, self.h, true)
-    end
 end
 
 return Button

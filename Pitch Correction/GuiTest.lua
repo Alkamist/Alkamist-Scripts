@@ -61,41 +61,22 @@ end
 
 GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }]]--
 
-local testButton = Button:new{
-    x = 0,
-    y = 0,
-    w = 80,
-    h = 25,
-    label = "Analyze Pitch",
-    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+local testButton1 = Button:new{
+    x = 81,
+    y = 200,
+    w = 400,
+    h = 400,
+    label = "Fix Errors",
+    toggleOnClick = true
 }
-function testButton:update()
-    Button.update(self)
-    if self:justPressed() then
-        msg("pressed")
-    end
-    if self:justReleased() then
-        msg("released")
-    end
-end
-
 local testButton2 = Button:new{
-    x = 300,
-    y = 0,
-    w = 80,
-    h = 25,
-    label = "Analyze Pitch",
-    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+    x = 40,
+    y = 100,
+    w = 100,
+    h = 30,
+    label = "test"
 }
-function testButton2:update()
-    Button.update(self)
-    if self:justPressed() then
-        testButton:press()
-    end
-    if self:justReleased() then
-        testButton:release()
-    end
-end
 
-GFX:setElements{ testButton2, testButton }
+testButton1.elements = { testButton2 }
+GFX:setElements{ testButton1 }
 GFX:run()

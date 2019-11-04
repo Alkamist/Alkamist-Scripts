@@ -1,12 +1,13 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Class = require("Class")
+local Prototype = require("Prototype")
 
 local TrackedNumber = {
     current = 0,
     previous = 0
 }
-function TrackedNumber:new(input)
-    return Class:new({ TrackedNumber }, input)
+
+function TrackedNumber:new(parameters)
+    return Prototype.addPrototypes(parameters, { TrackedNumber })
 end
 
 function TrackedNumber:update(number)
