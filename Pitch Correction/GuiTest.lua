@@ -91,7 +91,7 @@ local testButton1 = Button:new{
 function testButton1:update()
     Button.update(self)
     local mouse = self.mouse
-    if mouse.buttons.left:justDragged(self) then
+    if mouse.buttons.left:justDragged(testButton2) then
         self.x = self.x + mouse.xChange
     end
     if mouse.buttons.right:justPressed() then

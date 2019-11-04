@@ -171,7 +171,6 @@ local TrackedNumber = require("GFX.TrackedNumber")
 
 local MouseControl = {
     mouse = nil,
-    name = "",
     state = Toggle:new(),
     dragState = false,
     isAlreadyDragging = false,
@@ -210,22 +209,22 @@ function MouseControl:justDoublePressed(element)
 end
 function MouseControl:justReleased(element)
     local output = self.state:justTurnedOff()
-    if element then return output and element.buttonWasPressedInside[self.name] end
+    if element then return output and element.buttonWasPressedInside[self] end
     return output
 end
 function MouseControl:justDragged(element)
     local output = self.dragState
-    if element then return output and element.buttonWasPressedInside[self.name] end
+    if element then return output and element.buttonWasPressedInside[self] end
     return output
 end
 function MouseControl:justStartedDragging(element)
     local output = self.dragState and not self.isAlreadyDragging
-    if element then return output and element.buttonWasPressedInside[self.name] end
+    if element then return output and element.buttonWasPressedInside[self] end
     return output
 end
 function MouseControl:justStoppedDragging(element)
     local output = self:justReleased() and self.isAlreadyDragging
-    if element then return output and element.buttonWasPressedInside[self.name] end
+    if element then return output and element.buttonWasPressedInside[self] end
     return output
 end
 function MouseControl:getTimeSincePreviousPress()
@@ -257,9 +256,9 @@ local Mouse = {
     buttons = {}
 }
 Mouse.buttons = {
-    left = MouseButton:new{ mouse = Mouse, name = "left", bitValue = 1 },
-    middle = MouseButton:new{ mouse = Mouse, name = "middle", bitValue = 64 },
-    right = MouseButton:new{ mouse = Mouse, name = "right", bitValue = 2 }
+    left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
+    middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
+    right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
 }
 
 function Mouse:update()
@@ -328,10 +327,10 @@ local Keyboard = {
     mouse = UserControl.mouse,
     currentCharacter = nil,
     modifiers = {
-        shift = MouseButton:new{ mouse = UserControl.mouse, name = "shift", bitValue = 8 },
-        control = MouseButton:new{ mouse = UserControl.mouse, name = "control", bitValue = 4 },
-        windows = MouseButton:new{ mouse = UserControl.mouse, name = "windows", bitValue = 32 },
-        alt = MouseButton:new{ mouse = UserControl.mouse, name = "alt", bitValue = 16 }
+        shift = MouseButton:new{ mouse = UserControl.mouse, bitValue = 8 },
+        control = MouseButton:new{ mouse = UserControl.mouse, bitValue = 4 },
+        windows = MouseButton:new{ mouse = UserControl.mouse, bitValue = 32 },
+        alt = MouseButton:new{ mouse = UserControl.mouse, bitValue = 16 }
     },
     keys = {}
 }

@@ -140,10 +140,10 @@ end
 
 function GFXElement:updateDragState(button)
     if button.releaseState.previous then
-        self.buttonWasPressedInside[button.name] = false
+        self.buttonWasPressedInside[button] = false
     end
     if button:justPressed(self) then
-        self.buttonWasPressedInside[button.name] = true
+        self.buttonWasPressedInside[button] = true
     end
 end
 function GFXElement:windowWasResized()
