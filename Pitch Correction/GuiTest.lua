@@ -61,14 +61,14 @@ end
 
 GFX:setElements{ pitchEditor, analyzeButton, fixErrorButton }]]--
 
-local testButton1 = Button:new{
-    x = 81,
-    y = 200,
-    w = 400,
-    h = 400,
-    label = "Fix Errors",
-    toggleOnClick = true
+local asdf = Button:new{
+    x = 0,
+    y = 0,
+    w = 100,
+    h = 30,
+    label = "test"
 }
+
 local testButton2 = Button:new{
     x = 40,
     y = 100,
@@ -77,6 +77,27 @@ local testButton2 = Button:new{
     label = "test"
 }
 
-testButton1.elements = { testButton2 }
-GFX:setElements{ testButton1 }
+local testButton1 = Button:new{
+    x = 81,
+    y = 200,
+    w = 400,
+    h = 400,
+    label = "Fix Errors",
+    toggleOnClick = true,
+    elements = {
+        testButton2
+    }
+}
+function testButton1:update()
+    Button.update(self)
+    local mouse = self.mouse
+    if mouse.buttons.left:justDragged(self) then
+        self.x = self.x + mouse.xChange
+    end
+    if mouse.buttons.right:justPressed() then
+        self:toggleVisibility()
+    end
+end
+
+GFX:setElements{ asdf, testButton1 }
 GFX:run()

@@ -300,19 +300,15 @@ function GFXElement:queueClear()
 end
 function GFXElement:setVisibility(visibility)
     self.isVisible = visibility
-    self:queueClear()
 end
 function GFXElement:toggleVisibility()
     self.isVisible = not self.isVisible
-    self:queueClear()
 end
 function GFXElement:hide()
     self.isVisible = false
-    self:queueClear()
 end
 function GFXElement:show()
     self.isVisible = true
-    self:queueClear()
 end
 
 return GFXElement
