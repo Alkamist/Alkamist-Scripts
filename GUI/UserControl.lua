@@ -317,12 +317,10 @@ local function Mouse()
         return _hWheel ~= 0
     end
     function self.wasPreviouslyInside(element)
-        local insideFn = element.getIsInsideFunction()
-        return insideFn(_x.getPreviousValue(), _y.getPreviousValue())
+        return element.pointIsInside(_x.getPreviousValue(), _y.getPreviousValue())
     end
     function self.isInside(element)
-        local insideFn = element.getIsInsideFunction()
-        return insideFn(_x.getValue(), _y.getValue())
+        return element.pointIsInside(_x.getValue(), _y.getValue())
     end
     function self.justEntered(element)
         return self.isInside(element) and not self.wasPreviouslyInside(element)

@@ -44,7 +44,6 @@ local function Button(parameters)
     function self.justReleased()
         return _pressState.justTurnedOff()
     end
-
     function self.updateStates()
         _pressState.update()
     end
@@ -68,7 +67,6 @@ local function Button(parameters)
         _pressState.toggle()
         --_gui.queueRedraw(self)
     end
-
     function self.handleDefaultMouseInteraction()
         if _glowOnMouseOver then
             if _mouse.justEntered(self) then self.glow() end
@@ -105,18 +103,10 @@ local function Button(parameters)
             _gui.drawRectangle(_x, _y, _width, _height, true)
         end
     end
-
-    local function _isInside(x, y)
+    function self.pointIsInside(x, y)
         return x >= _x and x <= _x + _width
            and y >= _y and y <= _y + _height
     end
-    function self.getIsInsideFunction()
-        return _isInside
-    end
-    function self.setIsInsideFunction(fn)
-        _isInside = fn
-    end
-
     local _updateFunctions = {
         self.updateStates,
         self.handleDefaultMouseInteraction,

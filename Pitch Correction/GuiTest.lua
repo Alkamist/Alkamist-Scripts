@@ -89,7 +89,7 @@ GUI.setUpdatesPerFrame(3)
 
 local testButton1 = Button{
     gui = GUI,
-    x = 81,
+    x = 80,
     y = 200,
     width = 400,
     height = 400,
