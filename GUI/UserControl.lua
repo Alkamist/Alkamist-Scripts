@@ -161,8 +161,8 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Toggle = require("GFX.Toggle")
-local TrackedNumber = require("GFX.TrackedNumber")
+local Toggle = require("GUI.Toggle")
+local TrackedNumber = require("GUI.TrackedNumber")
 
 --==============================================================
 --== Mouse =====================================================
@@ -237,7 +237,7 @@ end
 local function MouseButton(mouse, bitValue)
     local self = {}
 
-    local _mouseCap = mouse.getCap()
+    local _mouse = mouse
     local _mouseControl = MouseControl(mouse)
     local _bitValue = bitValue or 0
 
@@ -251,112 +251,127 @@ local function MouseButton(mouse, bitValue)
     self.justStoppedDragging = _mouseControl.justStoppedDragging
 
     function self.update()
-        _mouseControl.update(_mouseCap & _bitValue == _bitValue)
+        _mouseControl.update(_mouse.getCap() & _bitValue == _bitValue)
     end
 
     return self
 end
 
-local Mouse = {
-    xTracker = TrackedNumber:new(),
-    x = 0,
-    xChange = 0,
-    yTracker = TrackedNumber:new(),
-    y = 0,
-    yChange = 0,
-    cap = 0,
-    wheel = 0,
-    hWheel = 0,
-    buttons = {}
-}
-Mouse.buttons = {
-    left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
-    middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
-    right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
-}
+local function Mouse()
+    local self = {}
 
-function Mouse:update()
-    self.xTracker:update(gfx.mouse_x)
-    self.x = self.xTracker.current
-    self.xChange = self.xTracker:getChange()
-    self.yTracker:update(gfx.mouse_y)
-    self.y = self.yTracker.current
-    self.yChange = self.yTracker:getChange()
-    self.cap = gfx.mouse_cap
+    local _x = TrackedNumber(0)
+    local _y = TrackedNumber(0)
+    local _cap = 0
+    local _wheel = 0
+    local _hWheel = 0
 
-    self.wheel = gfx.mouse_wheel / 120
-    gfx.mouse_wheel = 0
-    self.hWheel = gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel = 0
+    function self.getCap()
+        return _cap
+    end
+    local _buttons = {
+        left = MouseButton(self, 1),
+        middle = MouseButton(self, 64),
+        right = MouseButton(self, 2)
+    }
 
-    self.buttons.left:update()
-    self.buttons.middle:update()
-    self.buttons.right:update()
-end
-function Mouse:didInside(element, action)
-    return action and self:isInside(element)
-end
-function Mouse:justMoved()
-    return self.xTracker:justChanged() or self.yTracker:justChanged()
-end
-function Mouse:wheelJustMoved()
-    return self.wheel ~= 0
-end
-function Mouse:hWheelJustMoved()
-    return self.hWheel ~= 0
-end
-function Mouse:wasPreviouslyInside(element)
-    return element:absolutePointIsInside(self.xTracker.previous, self.yTracker.previous)
-end
-function Mouse:isInside(element)
-    return element:absolutePointIsInside(self.x, self.y)
-end
-function Mouse:justEntered(element)
-    return self:isInside(element) and not self:wasPreviouslyInside(element)
-end
-function Mouse:justLeft(element)
-    return not self:isInside(element) and self:wasPreviouslyInside(element)
-end
+    function self.getButtons()
+        return _buttons
+    end
+    function self.update()
+        _x.update(gfx.mouse_x)
+        _y.update(gfx.mouse_y)
+        _cap = gfx.mouse_cap
 
-local UserControl = {
-    mouse = Mouse
-}
+        _wheel = gfx.mouse_wheel / 120
+        gfx.mouse_wheel = 0
+        _hWheel = gfx.mouse_hwheel / 120
+        gfx.mouse_hwheel = 0
+
+        _buttons.left.update()
+        _buttons.middle.update()
+        _buttons.right.update()
+    end
+    function self.justMoved()
+        return _x.justChanged() or _y.justChanged()
+    end
+    function self.wheelJustMoved()
+        return _wheel ~= 0
+    end
+    function self.hWheelJustMoved()
+        return _hWheel ~= 0
+    end
+    function self.wasPreviouslyInside(element)
+        return element.absolutePointIsInside(_x.getPreviousValue(), _y.getPreviousValue())
+    end
+    function self.isInside(element)
+        return element.absolutePointIsInside(_x.getValue(), _y.getValue())
+    end
+    function self.justEntered(element)
+        return self.isInside(element) and not self.wasPreviouslyInside(element)
+    end
+    function self.justLeft(element)
+        return not self.isInside(element) and self.wasPreviouslyInside(element)
+    end
+
+    return self
+end
 
 --==============================================================
 --== Keyboard ==================================================
 --==============================================================
 
-local KeyboardKey = {
-    character = ""
-}
+local function KeyboardKey(mouse, character)
+    local self = {}
 
-function KeyboardKey:new(input)
-    return Prototype.addPrototypes(input, { KeyboardKey, MouseControl })
-end
-function KeyboardKey:update()
-    MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
-end
+    local _character = character or ""
+    local _mouseControl = MouseControl(mouse)
 
-local Keyboard = {
-    mouse = UserControl.mouse,
-    currentCharacter = nil,
-    modifiers = {
-        shift = MouseButton:new{ mouse = UserControl.mouse, bitValue = 8 },
-        control = MouseButton:new{ mouse = UserControl.mouse, bitValue = 4 },
-        windows = MouseButton:new{ mouse = UserControl.mouse, bitValue = 32 },
-        alt = MouseButton:new{ mouse = UserControl.mouse, bitValue = 16 }
-    },
-    keys = {}
-}
+    self.isPressed = _mouseControl.isPressed
+    self.justPressed = _mouseControl.justPressed
+    self.justReleased = _mouseControl.justReleased
+    self.getTimeSincePreviousPress = _mouseControl.getTimeSincePreviousPress
+    self.justDoublePressed = _mouseControl.justDoublePressed
+    self.justDragged = _mouseControl.justDragged
+    self.justStartedDragging = _mouseControl.justStartedDragging
+    self.justStoppedDragging = _mouseControl.justStoppedDragging
 
-function Keyboard:update()
-    for name, key in pairs(self.modifiers) do key:update() end
-    for name, key in pairs(self.keys) do key:update() end
-    self.currentCharacter = characterTableInverted[gfx.getchar()]
-end
-function Keyboard:createKey(character)
-    self.keys[character] = KeyboardKey:new(self.mouse, character)
+    function self.update()
+        _mouseControl.update(gfx.getchar(characterTable[_character]) > 0)
+    end
+
+    return self
 end
 
-UserControl.keyboard = Keyboard
+local function Keyboard(mouse)
+    local self = {}
+
+    local _mouse = mouse
+    local _currentCharacter = nil
+    local _modifiers = {
+        shift = MouseButton(_mouse, 8),
+        control = MouseButton(_mouse, 4),
+        windows = MouseButton(_mouse, 32),
+        alt = MouseButton(_mouse, 16)
+    }
+    local _keys = {}
+
+    function self.getCurrentCharacter()
+        return _currentCharacter
+    end
+
+    function self.createKey(character)
+        _keys[character] = KeyboardKey(_mouse, character)
+    end
+    function self.update()
+        for name, key in pairs(_modifiers) do key.update() end
+        for name, key in pairs(_keys) do key.update() end
+        _currentCharacter = characterTableInverted[gfx.getchar()]
+    end
+
+    return self
+end
+
+local UserControl = { mouse = Mouse() }
+UserControl.keyboard = Keyboard(UserControl.mouse)
 return UserControl

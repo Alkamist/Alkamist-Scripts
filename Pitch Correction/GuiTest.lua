@@ -1,12 +1,19 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local GFX = require("GFX.AlkamistGFX")
-local Button = require("GFX.Button")
-local BoxSelect = require("GFX.BoxSelect")
+local GUI = require("GUI.AlkamistGUI")
+--local Button = require("GUI.Button")
+--local BoxSelect = require("GUI.BoxSelect")
 
-GFX:initialize("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
-GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
+GUI.initialize{
+    title = "Alkamist Pitch Correction",
+    x = 200,
+    y = 200,
+    width = 1000,
+    height = 700,
+    dock = 0
+}
+GUI.setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 --[[local pitchDetectionSettings = {
     windowStep =       0.04,
@@ -60,77 +67,80 @@ function fixErrorButton:update()
     end
 end
 
-GFX:addElements{ pitchEditor, analyzeButton, fixErrorButton }
-GFX:run()]]--
+GUI:addElements{ pitchEditor, analyzeButton, fixErrorButton }
+GUI:run()]]--
 
-local asdf = Button:new{
-    x = 0,
-    y = 0,
-    w = 100,
-    h = 30,
-    label = "test"
-}
-local testButton2 = Button:new{
-    x = 40,
-    y = 100,
-    w = 100,
-    h = 30,
-    label = "test"
-}
-local testButton1 = Button:new{
-    x = 81,
-    y = 200,
-    w = 400,
-    h = 400,
-    label = "Fix Errors",
-    toggleOnClick = true
-}
-function testButton1:update()
-    Button.update(self)
-    local mouse = self.mouse
-    if mouse.buttons.left:justDragged(testButton2) then
-        self:changeX(mouse:getXChange())
-    end
-    --if mouse.buttons.right:justPressed() then
-    --    self:toggleVisibility()
-    --end
-end
+--local asdf = Button{
+--    x = 0,
+--    y = 0,
+--    w = 100,
+--    h = 30,
+--    label = "test"
+--}
+--local testButton2 = Button{
+--    x = 40,
+--    y = 100,
+--    w = 100,
+--    h = 30,
+--    label = "test"
+--}
+--local testButton1 = Button{
+--    x = 81,
+--    y = 200,
+--    w = 400,
+--    h = 400,
+--    label = "Fix Errors",
+--    toggleOnClick = true
+--}
+--function testButton1.update()
+--end
 
-local function select(thing, shouldSelect)
-    if shouldSelect then
-        thing:press()
-    else
-        thing:release()
-    end
-end
-local function isSelected(thing)
-    return thing:isPressed()
-end
-local listOfThings = { testButton1, testButton2, asdf }
+--function testButton1.update()
+--    Button.update(self)
+--    local mouse = self.mouse
+--    if mouse.buttons.left:justDragged(testButton2) then
+--        self:changeX(mouse:getXChange())
+--    end
+--    --if mouse.buttons.right:justPressed() then
+--    --    self:toggleVisibility()
+--    --end
+--end
 
-local boxSelect = BoxSelect:new{
-    insideColor = { 0.0, 0.0, 0.0, 0.5, 0 },
-    edgeColor = { 1.0, 1.0, 1.0, 0.8, 0 }
-}
-function boxSelect:update()
-    local mouse = self.mouse
-    local keyboardModifiers = self.keyboard.modifiers
-    if mouse.buttons.right:justPressed() then
-        self:startSelection(mouse.x, mouse.y)
-    end
-    if mouse.buttons.right:justDragged() then
-        self:editSelection(mouse.x, mouse.y)
-    end
-    if mouse.buttons.right:justReleased() then
-        self:makeSelection(listOfThings,
-                           select,
-                           isSelected,
-                           keyboardModifiers.shift:isPressed(),
-                           keyboardModifiers.control:isPressed())
-    end
-end
+--local function select(thing, shouldSelect)
+--    if shouldSelect then
+--        thing:press()
+--    else
+--        thing:release()
+--    end
+--end
+--local function isSelected(thing)
+--    return thing:isPressed()
+--end
+--local listOfThings = { testButton1, testButton2, asdf }
+--
+--local boxSelect = BoxSelect:new{
+--    insideColor = { 0.0, 0.0, 0.0, 0.5, 0 },
+--    edgeColor = { 1.0, 1.0, 1.0, 0.8, 0 }
+--}
+--function boxSelect:update()
+--    local mouse = self.mouse
+--    local keyboardModifiers = self.keyboard.modifiers
+--    if mouse.buttons.right:justPressed() then
+--        self:startSelection(mouse.x, mouse.y)
+--    end
+--    if mouse.buttons.right:justDragged() then
+--        self:editSelection(mouse.x, mouse.y)
+--    end
+--    if mouse.buttons.right:justReleased() then
+--        self:makeSelection(listOfThings,
+--                           select,
+--                           isSelected,
+--                           keyboardModifiers.shift:isPressed(),
+--                           keyboardModifiers.control:isPressed())
+--    end
+--end
 
-GFX:addElements{ asdf, testButton1, boxSelect }
-testButton1:addElements{ testButton2 }
+--GUI.addElements{ testButton1 }
+--testButton1:addElements{ testButton2 }
 
-GFX:run()
+GUI.run()
