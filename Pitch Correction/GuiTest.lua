@@ -92,7 +92,7 @@ local testButton1 = Button{
     width = 400,
     height = 400,
     label = "Fix Errors",
-    toggleOnClick = true
+    --toggleOnClick = true
 }
 local originalTestButton1Update = testButton1.update
 testButton1.update = function()

@@ -175,7 +175,7 @@ local function MouseControl(mouse)
     local _pressState = Toggle(false)
     local _dragState = false
     local _isAlreadyDragging = false
-    local _releaseState = Toggle(false)
+    local _wasJustReleasedLastFrame = false
     local _timeOfPreviousPress = nil
     local _wasPressedInsideWidget = {}
 
@@ -190,7 +190,7 @@ local function MouseControl(mouse)
         return output
     end
     function self.justReleased(widget)
-        local output = _pressState:justTurnedOff()
+        local output = _pressState.justTurnedOff()
         if widget then return output and _wasPressedInsideWidget[widget] end
         return output
     end
@@ -202,7 +202,7 @@ local function MouseControl(mouse)
         local timeSince = self.getTimeSincePreviousPress()
         if timeSince == nil then return false end
         local output = self.justPressed() and timeSince <= 0.5
-        if widget then return output and _mouse:isInside(widget) end
+        if widget then return output and _mouse.isInside(widget) end
         return output
     end
     function self.justDragged(widget)
@@ -227,17 +227,17 @@ local function MouseControl(mouse)
         if self.justPressed() then _timeOfPreviousPress = reaper.time_precise() end
         if self.justReleased() then _isAlreadyDragging = false end
 
+        _wasJustReleasedLastFrame = self.justReleased()
         _pressState.update(state)
-        _releaseState:update(self.justReleased())
 
         for i = 1, #widgets do
             local widget = widgets[i]
-            if self.justReleased() then _wasPressedInsideWidget[widget] = false end
+            if _wasJustReleasedLastFrame then _wasPressedInsideWidget[widget] = false end
             if self.justPressed(widget) then _wasPressedInsideWidget[widget] = true end
         end
 
         if _dragState then _isAlreadyDragging = true end
-        _dragState = _pressState.getState() and _mouse:justMoved()
+        _dragState = _pressState.getState() and _mouse.justMoved()
     end
 
     return self
