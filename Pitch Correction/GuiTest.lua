@@ -88,7 +88,7 @@ GUI:run()]]--
 GUI.setUpdatesPerFrame(3)
 
 local testButton1 = Button{
-    gui = GUI,
+    mouse = GUI.getMouse(),
     x = 80,
     y = 200,
     width = 400,

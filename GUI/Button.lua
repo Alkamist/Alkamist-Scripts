@@ -2,16 +2,14 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Drawable = require("GUI.Drawable")
 local Toggle = require("GUI.Toggle")
 
 local function Button(parameters)
-    local self = {}
+    local self = Drawable(parameters)
 
-    local _gui = parameters.gui
-    local _mouse = _gui.getMouse()
+    local _mouse = parameters.mouse
     local _mouseLeftButton = _mouse.getButtons().left
-    local _x = parameters.x or 0
-    local _y = parameters.y or 0
     local _width = parameters.width or 0
     local _height = parameters.height or 0
     local _label = parameters.label or ""
@@ -49,25 +47,25 @@ local function Button(parameters)
     end
     function self.glow()
         _glowState = true
-        --_gui.queueRedraw(self)
+        self.queueRedraw()
     end
     function self.unGlow()
         _glowState = false
-        --_gui.queueRedraw(self)
+        self.queueRedraw()
     end
     function self.press()
         _pressState.setState(true)
-        --_gui.queueRedraw(self)
+        self.queueRedraw()
     end
     function self.release()
         _pressState.setState(false)
-        --_gui.queueRedraw(self)
+        self.queueRedraw()
     end
     function self.toggle()
         _pressState.toggle()
-        --_gui.queueRedraw(self)
+        self.queueRedraw()
     end
-    function self.handleDefaultMouseInteraction()
+    function self.interactWithMouse()
         if _glowOnMouseOver then
             if _mouse.justEntered(self) then self.glow() end
             if _mouse.justLeft(self) then self.unGlow() end
@@ -80,37 +78,40 @@ local function Button(parameters)
             if _mouseLeftButton.justPressed(self) then self.toggle() end
         end
     end
-    function self.handleDefaultDrawing()
+    function self.draw()
         -- Draw the main button.
-        _gui.setColor(_color)
-        _gui.drawRectangle(_x, _y, _width, _height, true)
+        self.setColor(_color)
+        self.drawRectangle(0, 0, _width, _height, true)
 
         -- Draw a light outline around the button.
-        _gui.setColor(_edgeColor)
-        _gui.drawRectangle(_x, _y, _width, _height, false)
+        self.setColor(_edgeColor)
+        self.drawRectangle(0, 0, _width, _height, false)
 
         -- Draw the button's label.
-        _gui.setColor(_labelColor)
-        _gui.setFont(_labelFont, _labelFontSize)
-        _gui.drawString(_label, _x, _y, 5, _x + _width, _y + _height)
+        self.setColor(_labelColor)
+        self.setFont(_labelFont, _labelFontSize)
+        self.drawString(_label, 0, 0, 5, _width, _height)
 
         if self.isPressed() then
-            _gui.setColor(_pressedColor)
-            _gui.drawRectangle(_x, _y, _width, _height, true)
+            self.setColor(_pressedColor)
+            self.drawRectangle(0, 0, _width, _height, true)
 
         elseif _glowState then
-            _gui.setColor(_glowColor)
-            _gui.drawRectangle(_x, _y, _width, _height, true)
+            self.setColor(_glowColor)
+            self.drawRectangle(0, 0, _width, _height, true)
         end
     end
-    function self.pointIsInside(x, y)
-        return x >= _x and x <= _x + _width
-           and y >= _y and y <= _y + _height
+    function self.pointIsInside(pointX, pointY)
+        local x = self.getX()
+        local y = self.getY()
+        return pointX >= x and pointX <= x + _width
+           and pointY >= y and pointY <= y + _height
     end
+
     local _updateFunctions = {
         self.updateStates,
-        self.handleDefaultMouseInteraction,
-        self.handleDefaultDrawing
+        self.interactWithMouse,
+        self.draw
     }
     function self.getUpdateFunction(update)
         return _updateFunctions[update]
