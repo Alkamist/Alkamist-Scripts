@@ -54,6 +54,7 @@ local function Button(parameters)
         _pressState.toggle()
         self.queueRedraw()
     end
+
     function self.beginUpdate()
         _pressState.update()
     end
@@ -70,8 +71,7 @@ local function Button(parameters)
             if _mouseLeftButton.justPressed(self) then self.toggle() end
         end
     end
-
-    self.setDrawFunction(function()
+    function self.draw()
         local width = self.getWidth()
         local height = self.getHeight()
 
@@ -96,7 +96,7 @@ local function Button(parameters)
             self.setColor(_glowColor)
             self.drawRectangle(0, 0, width, height, true)
         end
-    end)
+    end
 
     return self
 end

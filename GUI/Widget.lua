@@ -17,7 +17,6 @@ local function Widget(parameters, fromObject)
     local _y = parameters.y or 0
     local _width = parameters.width or 0
     local _height = parameters.height or 0
-    local _drawFunction = nil
     local _shouldClear = false
 
     local _isVisible = parameters.isVisible
@@ -147,16 +146,19 @@ local function Widget(parameters, fromObject)
         end
     end
 
-    function self.setDrawFunction(fn)
-        _drawFunction = fn
-    end
 
+    function self.doBeginUpdateFunction()
+        if self.beginUpdate then self.beginUpdate() end
+    end
+    function self.doUpdateFunction()
+        if self.update then self.update() end
+    end
     function self.doDrawFunction()
-        if _shouldRedraw and _drawFunction then
+        if _shouldRedraw and self.draw then
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = _drawBuffer
-            _drawFunction()
+            self.draw()
 
         elseif _shouldClear then
             _clearBuffer()
@@ -172,6 +174,9 @@ local function Widget(parameters, fromObject)
             gfx.dest = -1
             gfx.blit(_drawBuffer, 1.0, 0, 0, 0, _width, _height, _x, _y, _width, _height, 0, 0)
         end
+    end
+    function self.doEndUpdateFunction()
+        if self.endUpdate then self.endUpdate() end
     end
 
     return self

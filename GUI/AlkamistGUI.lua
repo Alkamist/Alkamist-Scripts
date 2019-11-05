@@ -65,24 +65,14 @@ local function GUI()
 
         if _widgets then
             local numberOfWidgets = #_widgets
-
-            for i = 1, numberOfWidgets do
-                local widget = _widgets[i]
-                if widget.beginUpdate then widget.beginUpdate() end
-            end
-            for i = 1, numberOfWidgets do
-                local widget = _widgets[i]
-                if widget.update then widget.update() end
-            end
+            for i = 1, numberOfWidgets do _widgets[i].doBeginUpdateFunction() end
+            for i = 1, numberOfWidgets do _widgets[i].doUpdateFunction() end
             for i = 1, numberOfWidgets do
                 local widget = _widgets[i]
                 if widget.doDrawFunction then widget.doDrawFunction() end
                 if widget.blitToMainWindow then widget.blitToMainWindow() end
             end
-            for i = 1, numberOfWidgets do
-                local widget = _widgets[i]
-                if widget.endUpdate then widget.endUpdate() end
-            end
+            for i = 1, numberOfWidgets do _widgets[i].doEndUpdateFunction() end
         end
 
         if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
