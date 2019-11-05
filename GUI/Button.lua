@@ -6,8 +6,9 @@ local Drawable = require("GUI.Drawable")
 local Toggle = require("GUI.Toggle")
 
 local function Button(parameters)
-    local self = Drawable(parameters)
+    local self = {}
 
+    local _draw = Drawable(parameters)
     local _mouse = parameters.mouse
     local _mouseLeftButton = _mouse.getButtons().left
     local _label = parameters.label or ""
@@ -34,26 +35,26 @@ local function Button(parameters)
     function self.isPressed() return _pressState.getState() end
     function self.justPressed() return _pressState.justTurnedOn() end
     function self.justReleased() return _pressState.justTurnedOff() end
-    function self.pointIsInside(pointX, pointY) self.pointIsInsideDrawableBounds(pointX, pointY) end
+    function self.pointIsInside(pointX, pointY) return _draw.pointIsInsideDrawableBounds(pointX, pointY) end
     function self.glow()
         _glowState = true
-        self.queueRedraw()
+        _draw.queueRedraw()
     end
     function self.unGlow()
         _glowState = false
-        self.queueRedraw()
+        _draw.queueRedraw()
     end
     function self.press()
         _pressState.setState(true)
-        self.queueRedraw()
+        _draw.queueRedraw()
     end
     function self.release()
         _pressState.setState(false)
-        self.queueRedraw()
+        _draw.queueRedraw()
     end
     function self.toggle()
         _pressState.toggle()
-        self.queueRedraw()
+        _draw.queueRedraw()
     end
     function self.updateStates()
         _pressState.update()
@@ -71,32 +72,35 @@ local function Button(parameters)
             if _mouseLeftButton.justPressed(self) then self.toggle() end
         end
     end
-    function self.draw()
-        local width = self.getWidth()
-        local height = self.getHeight()
+
+    function self.doDrawFunction() _draw.doDrawFunction() end
+    function self.blitToMainWindow() _draw.blitToMainWindow() end
+    _draw.setDrawFunction(function()
+        local width = _draw.getWidth()
+        local height = _draw.getHeight()
 
         -- Draw the main button.
-        self.setColor(_color)
-        self.drawRectangle(0, 0, width, height, true)
+        _draw.setColor(_color)
+        _draw.drawRectangle(0, 0, width, height, true)
 
         -- Draw a light outline around the button.
-        self.setColor(_edgeColor)
-        self.drawRectangle(0, 0, width, height, false)
+        _draw.setColor(_edgeColor)
+        _draw.drawRectangle(0, 0, width, height, false)
 
         -- Draw the button's label.
-        self.setColor(_labelColor)
-        self.setFont(_labelFont, _labelFontSize)
-        self.drawString(_label, 0, 0, 5, width, height)
+        _draw.setColor(_labelColor)
+        _draw.setFont(_labelFont, _labelFontSize)
+        _draw.drawString(_label, 0, 0, 5, width, height)
 
         if self.isPressed() then
-            self.setColor(_pressedColor)
-            self.drawRectangle(0, 0, width, height, true)
+            _draw.setColor(_pressedColor)
+            _draw.drawRectangle(0, 0, width, height, true)
 
         elseif _glowState then
-            self.setColor(_glowColor)
-            self.drawRectangle(0, 0, width, height, true)
+            _draw.setColor(_glowColor)
+            _draw.drawRectangle(0, 0, width, height, true)
         end
-    end
+    end)
 
     local _updateFunctions = {
         self.updateStates,

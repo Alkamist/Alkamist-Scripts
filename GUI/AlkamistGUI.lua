@@ -61,7 +61,6 @@ local function GUI()
     function self.run()
         _width.update(gfx.w)
         _height.update(gfx.h)
-
         _mouse.update()
         _keyboard.update()
 

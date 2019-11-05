@@ -17,12 +17,19 @@ local function Drawable(parameters)
     local _y = parameters.y or 0
     local _width = parameters.width or 0
     local _height = parameters.height or 0
+    local _drawFunction = nil
 
     local _isVisible = parameters.isVisible
     if _isVisible == nil then _isVisible = true end
 
     local _shouldRedraw = parameters.shouldRedraw
     if _shouldRedraw == nil then _shouldRedraw = true end
+
+    local function clearBuffer()
+        gfx.setimgdim(_drawBuffer, -1, -1)
+        gfx.setimgdim(_drawBuffer, _width, _height)
+    end
+    clearBuffer()
 
     function self.getX() return _x end
     function self.getY() return _y end
@@ -122,14 +129,18 @@ local function Drawable(parameters)
         end
     end
 
+    function self.setDrawFunction(fn)
+        _drawFunction = fn
+    end
+
     function self.doDrawFunction()
-        --if _shouldRedraw and self.draw then
+        if _shouldRedraw and _drawFunction then
             gfx.a = 1.0
             gfx.mode = 0
-            gfx.dest = -1
-            self.draw()
-        --end
-        --_shouldRedraw = false
+            gfx.dest = _drawBuffer
+            _drawFunction()
+        end
+        _shouldRedraw = false
     end
     function self.blitToMainWindow()
         if _isVisible then
