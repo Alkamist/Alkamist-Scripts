@@ -2,7 +2,7 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
---local Button = require("GUI.Button")
+local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 
 GUI.initialize{
@@ -84,16 +84,17 @@ GUI:run()]]--
 --    h = 30,
 --    label = "test"
 --}
---local testButton1 = Button{
---    x = 81,
---    y = 200,
---    w = 400,
---    h = 400,
---    label = "Fix Errors",
---    toggleOnClick = true
---}
---function testButton1.update()
---end
+
+local testButton1 = Button{
+    x = 81,
+    y = 200,
+    w = 400,
+    h = 400,
+    label = "Fix Errors",
+    toggleOnClick = true
+}
+function testButton1.update()
+end
 
 --function testButton1.update()
 --    Button.update(self)

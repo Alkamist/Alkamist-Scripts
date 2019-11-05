@@ -20,6 +20,12 @@ local function GUI()
     local _elements = {}
     local _currentBuffer = -1
 
+    function self.getMouse()
+        return _mouse
+    end
+    function self.getKeyboard()
+        return _keyboard
+    end
     function self.getElements()
         return _elements
     end

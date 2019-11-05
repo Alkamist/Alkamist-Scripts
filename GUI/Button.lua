@@ -8,12 +8,12 @@ local function Button(parameters)
     local self = {}
 
     local _gui = parameters.gui
+    local _mouse = _gui.getMouse()
+    local _mouseLeftButton = _mouse.getButtons().left
     local _x = parameters.x or 0
     local _y = parameters.y or 0
     local _width = parameters.width or 0
     local _height = parameters.height or 0
-    local _mouse = parameters.mouse
-    local _mouseLeftButton = _mouse:getButtons().left
     local _label = parameters.label or ""
     local _labelFont = parameters.labelFont or "Arial"
     local _labelFontSize = parameters.labelFontSize or 14
@@ -50,18 +50,23 @@ local function Button(parameters)
     end
     function self.glow()
         _glowState = true
+        _gui.queueRedraw(self)
     end
     function self.unGlow()
         _glowState = false
+        _gui.queueRedraw(self)
     end
     function self.press()
         _pressState.setState(true)
+        _gui.queueRedraw(self)
     end
     function self.release()
         _pressState.setState(false)
+        _gui.queueRedraw(self)
     end
     function self.toggle()
         _pressState.toggle()
+        _gui.queueRedraw(self)
     end
 
     function self.handleDefaultMouseInteraction()
@@ -100,6 +105,8 @@ local function Button(parameters)
             _gui.drawRectangle(_x, _y, _width, _height, true)
         end
     end
+
+    return self
 end
 
 return Button
