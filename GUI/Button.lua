@@ -6,10 +6,10 @@ local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 local function Button(parameters)
-    local self = Widget(parameters)
+    local instance = Widget(parameters)
 
     local _mouse = parameters.mouse
-    local _mouseLeftButton = _mouse.getButtons().left
+    local _mouseLeftButton = _mouse:getButtons().left
     local _label = parameters.label or ""
     local _labelFont = parameters.labelFont or "Arial"
     local _labelFontSize = parameters.labelFontSize or 14
@@ -31,74 +31,74 @@ local function Button(parameters)
     if _toggleOnClick == nil then _toggleOnClick = false end
     if _toggleOnClick == true then _pressOnClick = false end
 
-    function self.isPressed() return _pressState.getState() end
-    function self.justPressed() return _pressState.justTurnedOn() end
-    function self.justReleased() return _pressState.justTurnedOff() end
-    function self.glow()
+    function instance:isPressed() return _pressState:getState() end
+    function instance:justPressed() return _pressState:justTurnedOn() end
+    function instance:justReleased() return _pressState:justTurnedOff() end
+    function instance:glow()
         _glowState = true
-        self.queueRedraw()
+        instance:queueRedraw()
     end
-    function self.unGlow()
+    function instance:unGlow()
         _glowState = false
-        self.queueRedraw()
+        instance:queueRedraw()
     end
-    function self.press()
-        _pressState.setState(true)
-        self.queueRedraw()
+    function instance:press()
+        _pressState:setState(true)
+        instance:queueRedraw()
     end
-    function self.release()
-        _pressState.setState(false)
-        self.queueRedraw()
+    function instance:release()
+        _pressState:setState(false)
+        instance:queueRedraw()
     end
-    function self.toggle()
-        _pressState.toggle()
-        self.queueRedraw()
+    function instance:toggle()
+        _pressState:toggle()
+        instance:queueRedraw()
     end
 
-    function self.beginUpdate()
-        _pressState.update()
+    function instance:beginUpdate()
+        _pressState:update()
     end
-    function self.update()
+    function instance:update()
         if _glowOnMouseOver then
-            if _mouse.justEntered(self) then self.glow() end
-            if _mouse.justLeft(self) then self.unGlow() end
+            if _mouse:justEntered(instance) then instance:glow() end
+            if _mouse:justLeft(instance) then instance:unGlow() end
         end
         if _pressOnClick then
-            if _mouseLeftButton.justPressed(self) then self.press() end
-            if _mouseLeftButton.justReleased(self) then self.release() end
+            if _mouseLeftButton:justPressed(instance) then instance:press() end
+            if _mouseLeftButton:justReleased(instance) then instance:release() end
         end
         if _toggleOnClick then
-            if _mouseLeftButton.justPressed(self) then self.toggle() end
+            if _mouseLeftButton:justPressed(instance) then instance:toggle() end
         end
     end
-    function self.draw()
-        local width = self.getWidth()
-        local height = self.getHeight()
+    function instance:draw()
+        local width = instance:getWidth()
+        local height = instance:getHeight()
 
-        -- Draw the main button.
-        self.setColor(_color)
-        self.drawRectangle(0, 0, width, height, true)
+        -- Draw the main instance.
+        instance:setColor(_color)
+        instance:drawRectangle(0, 0, width, height, true)
 
-        -- Draw a light outline around the button.
-        self.setColor(_edgeColor)
-        self.drawRectangle(0, 0, width, height, false)
+        -- Draw a light outline around the instance.
+        instance:setColor(_edgeColor)
+        instance:drawRectangle(0, 0, width, height, false)
 
-        -- Draw the button's label.
-        self.setColor(_labelColor)
-        self.setFont(_labelFont, _labelFontSize)
-        self.drawString(_label, 0, 0, 5, width, height)
+        -- Draw the instance's label.
+        instance:setColor(_labelColor)
+        instance:setFont(_labelFont, _labelFontSize)
+        instance:drawString(_label, 0, 0, 5, width, height)
 
-        if self.isPressed() then
-            self.setColor(_pressedColor)
-            self.drawRectangle(0, 0, width, height, true)
+        if instance:isPressed() then
+            instance:setColor(_pressedColor)
+            instance:drawRectangle(0, 0, width, height, true)
 
         elseif _glowState then
-            self.setColor(_glowColor)
-            self.drawRectangle(0, 0, width, height, true)
+            instance:setColor(_glowColor)
+            instance:drawRectangle(0, 0, width, height, true)
         end
     end
 
-    return self
+    return instance
 end
 
 return Button

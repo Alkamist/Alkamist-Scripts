@@ -1,31 +1,31 @@
 local function TrackedNumber(initialValue)
-    local self = {}
+    local instance = {}
 
     local _current = initialValue or 0
     local _previous = initialValue or 0
 
-    function self.justChanged()
+    function instance:justChanged()
         return _current ~= _previous
     end
-    function self.getChange()
+    function instance:getChange()
         return _current - _previous
     end
-    function self.getValue()
+    function instance:getValue()
         return _current
     end
-    function self.getPreviousValue()
+    function instance:getPreviousValue()
         return _previous
     end
 
-    function self.setValue(value)
+    function instance:setValue(value)
         _current = value
     end
-    function self.update(value)
+    function instance:update(value)
         _previous = _current
         if value ~= nil then _current = value end
     end
 
-    return self
+    return instance
 end
 
 return TrackedNumber

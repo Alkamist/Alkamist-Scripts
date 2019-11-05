@@ -3,6 +3,7 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Class = require("Class")
 local ViewAxis = require("GFX.ViewAxis")
 local BoxSelect = require("GFX.BoxSelect")
 local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")

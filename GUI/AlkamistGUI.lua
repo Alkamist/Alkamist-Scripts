@@ -6,7 +6,7 @@ local UserControl = require("GUI.UserControl")
 local TrackedNumber = require("GUI.TrackedNumber")
 
 local function GUI()
-    local self = {}
+    local gui = {}
 
     local _title = ""
     local _x = 0
@@ -19,67 +19,67 @@ local function GUI()
     local _backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
     local _widgets = {}
 
-    function self.getMouse()
+    function gui:getMouse()
         return _mouse
     end
-    function self.getKeyboard()
+    function gui:getKeyboard()
         return _keyboard
     end
-    function self.getWidgets()
+    function gui:getWidgets()
         return _widgets
     end
 
-    function self.setBackgroundColor(color)
+    function gui:setBackgroundColor(color)
         _backgroundColor = color
         gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
     end
-    function self.windowWasResized()
-        return _width.justChanged() or _height.justChanged()
+    function gui:windowWasResized()
+        return _width:justChanged() or _height:justChanged()
     end
-    function self.addWidgets(widgets)
+    function gui:addWidgets(widgets)
         for i = 1, #widgets do
             local widget = widgets[i]
             _widgets[#_widgets + 1] = widget
         end
-        _mouse.setWidgets(_widgets)
+        _mouse:setWidgets(_widgets)
     end
 
-    function self.initialize(parameters)
+    function gui:initialize(parameters)
         _title = parameters.title or _title or ""
         _x = parameters.x or _x or 0
         _y = parameters.y or _y or 0
-        _width.setValue(parameters.width or _width.getValue() or 0)
-        _height.setValue(parameters.height or _height.getValue() or 0)
+        _width:setValue(parameters.width or _width:getValue() or 0)
+        _height:setValue(parameters.height or _height:getValue() or 0)
         _dock = parameters.dock or _dock or 0
 
-        gfx.init(_title, _width.getValue(), _height.getValue(), _dock, _x, _y)
+        gfx.init(_title, _width:getValue(), _height:getValue(), _dock, _x, _y)
     end
-    function self.run()
-        _width.update(gfx.w)
-        _height.update(gfx.h)
-        _mouse.update()
-        _keyboard.update()
+    function gui:run()
+        _width:update(gfx.w)
+        _height:update(gfx.h)
+        _mouse:update()
+        _keyboard:update()
 
-        local char = _keyboard.getCurrentCharacter()
+        local char = _keyboard:getCurrentCharacter()
         if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
         if _widgets then
             local numberOfWidgets = #_widgets
-            for i = 1, numberOfWidgets do _widgets[i].doBeginUpdateFunction() end
-            for i = 1, numberOfWidgets do _widgets[i].doUpdateFunction() end
+            for i = 1, numberOfWidgets do _widgets[i]:doBeginUpdateFunction() end
+            for i = 1, numberOfWidgets do _widgets[i]:doUpdateFunction() end
             for i = 1, numberOfWidgets do
                 local widget = _widgets[i]
-                if widget.doDrawFunction then widget.doDrawFunction() end
-                if widget.blitToMainWindow then widget.blitToMainWindow() end
+                if widget.doDrawFunction then widget:doDrawFunction() end
+                if widget.blitToMainWindow then widget:blitToMainWindow() end
             end
-            for i = 1, numberOfWidgets do _widgets[i].doEndUpdateFunction() end
+            for i = 1, numberOfWidgets do _widgets[i]:doEndUpdateFunction() end
         end
 
-        if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
+        if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
         gfx.update()
     end
 
-    return self
+    return gui
 end
 
 return GUI()

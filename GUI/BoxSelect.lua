@@ -3,7 +3,7 @@ local Widget = require("GUI.Widget")
 
 local function BoxSelect(parameters)
     local parameters = parameters or {}
-    local self = Widget()
+    local instance = Widget()
 
     local _x1 = 0
     local _x2 = 0
@@ -13,32 +13,32 @@ local function BoxSelect(parameters)
     local _edgeColor = parameters.edgeColor or {1, 1, 1, 0.6, 0}
     local _isActive = false
 
-    function self.startSelection(startingX, startingY)
+    function instance:startSelection(startingX, startingY)
         _x1 = startingX
         _x2 = startingX
         _y1 = startingY
         _y2 = startingY
 
-        self.setX(startingX)
-        self.setY(startingY)
-        self.setWidth(0)
-        self.setHeight(0)
+        instance:setX(startingX)
+        instance:setY(startingY)
+        instance:setWidth(0)
+        instance:setHeight(0)
 
-        self.queueRedraw()
+        instance:queueRedraw()
     end
-    function self.editSelection(editX, editY)
+    function instance:editSelection(editX, editY)
         _isActive = true
         _x2 = editX
         _y2 = editY
 
-        self.setX(math.min(_x1, _x2))
-        self.setY(math.min(_y1, _y2))
-        self.setWidth(math.abs(_x1 - _x2))
-        self.setHeight(math.abs(_y1 - _y2))
+        instance:setX(math.min(_x1, _x2))
+        instance:setY(math.min(_y1, _y2))
+        instance:setWidth(math.abs(_x1 - _x2))
+        instance:setHeight(math.abs(_y1 - _y2))
 
-        self.queueRedraw()
+        instance:queueRedraw()
     end
-    function self.makeSelection(parameters)
+    function instance:makeSelection(parameters)
         local thingsToSelect = parameters.thingsToSelect
         local isInsideFunction = parameters.isInsideFunction
         local setSelectedFunction = parameters.setSelectedFunction
@@ -49,7 +49,7 @@ local function BoxSelect(parameters)
         for i = 1, #thingsToSelect do
             local thing = thingsToSelect[i]
 
-            if isInsideFunction(self, thing) then
+            if isInsideFunction(instance, thing) then
                 if shouldInvert then
                     setSelectedFunction(thing, not getSelectedFunction(thing))
                 else
@@ -63,23 +63,23 @@ local function BoxSelect(parameters)
         end
 
         _isActive = false
-        self.queueClear()
+        instance:queueClear()
     end
 
-    function self.draw()
-        local width = self.getWidth()
-        local height = self.getHeight()
+    function instance:draw()
+        local width = instance:getWidth()
+        local height = instance:getHeight()
 
         if _isActive then
-            self.setColor(_edgeColor)
-            self.drawRectangle(0, 0, width, height, false)
+            instance:setColor(_edgeColor)
+            instance:drawRectangle(0, 0, width, height, false)
 
-            self.setColor(_insideColor)
-            self.drawRectangle(1, 1, width - 2, height - 2, true)
+            instance:setColor(_insideColor)
+            instance:drawRectangle(1, 1, width - 2, height - 2, true)
         end
     end
 
-    return self
+    return instance
 end
 
 return BoxSelect

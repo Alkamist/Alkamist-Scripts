@@ -11,7 +11,7 @@ end
 
 local function Widget(parameters, fromObject)
     local parameters = parameters or {}
-    local self = fromObject or {}
+    local instance = fromObject or {}
 
     local _drawBuffer = getNewDrawBuffer()
     local _x = parameters.x or 0
@@ -32,52 +32,52 @@ local function Widget(parameters, fromObject)
     end
     _clearBuffer()
 
-    function self.getX() return _x end
-    function self.getY() return _y end
-    function self.getWidth() return _width end
-    function self.getHeight() return _height end
-    function self.isVisible() return _isVisible end
-    function self.toggleVisibility() _isVisible = not _isVisible end
-    function self.setVisibility(value) _isVisible = value end
-    function self.show() _isVisible = true end
-    function self.hide() _isVisible = false end
-    function self.queueRedraw() _shouldRedraw = true end
-    function self.queueClear() _shouldClear = true end
-    function self.pointIsInside(pointX, pointY)
+    function instance:getX() return _x end
+    function instance:getY() return _y end
+    function instance:getWidth() return _width end
+    function instance:getHeight() return _height end
+    function instance:isVisible() return _isVisible end
+    function instance:toggleVisibility() _isVisible = not _isVisible end
+    function instance:setVisibility(value) _isVisible = value end
+    function instance:show() _isVisible = true end
+    function instance:hide() _isVisible = false end
+    function instance:queueRedraw() _shouldRedraw = true end
+    function instance:queueClear() _shouldClear = true end
+    function instance:pointIsInside(pointX, pointY)
         return _isVisible
            and pointX >= _x and pointX <= _x + _width
            and pointY >= _y and pointY <= _y + _height
     end
 
-    function self.setX(change) _x = change end
-    function self.setY(change) _y = change end
-    function self.setWidth(change) _width = change end
-    function self.setHeight(change) _height = change end
-    function self.changeX(change) _x = _x + change end
-    function self.changeY(change) _y = _y + change end
-    function self.changeWidth(change) _width = _width + change end
-    function self.changeHeight(change) _height = _height + change end
+    function instance:setX(change) _x = change end
+    function instance:setY(change) _y = change end
+    function instance:setWidth(change) _width = change end
+    function instance:setHeight(change) _height = change end
+    function instance:changeX(change) _x = _x + change end
+    function instance:changeY(change) _y = _y + change end
+    function instance:changeWidth(change) _width = _width + change end
+    function instance:changeHeight(change) _height = _height + change end
 
-    function self.setColor(color)
+    function instance:setColor(color)
         local mode = color[5] or 0
         gfx.set(color[1], color[2], color[3], color[4], mode)
     end
-    function self.setBlendMode(mode)
+    function instance:setBlendMode(mode)
         gfx.mode = mode
     end
-    function self.drawRectangle(x, y, w, h, filled)
+    function instance:drawRectangle(x, y, w, h, filled)
         gfx.dest = _drawBuffer
         gfx.rect(x, y, w, h, filled)
     end
-    function self.drawLine(x, y, x2, y2, antiAliased)
+    function instance:drawLine(x, y, x2, y2, antiAliased)
         gfx.dest = _drawBuffer
         gfx.line(x, y, x2, y2, antiAliased)
     end
-    function self.drawCircle(x, y, r, filled, antiAliased)
+    function instance:drawCircle(x, y, r, filled, antiAliased)
         gfx.dest = _drawBuffer
         gfx.circle(x, y, r, filled, antiAliased)
     end
-    function self.drawPolygon(filled, ...)
+    function instance:drawPolygon(filled, ...)
         gfx.dest = _drawBuffer
         if filled then
             gfx.triangle(...)
@@ -95,7 +95,7 @@ local function Widget(parameters, fromObject)
             end
         end
     end
-    function self.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+    function instance:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
         gfx.dest = _drawBuffer
         local aa = antiAliased or 1
         filled = filled or 0
@@ -130,13 +130,13 @@ local function Widget(parameters, fromObject)
             end
         end
     end
-    function self.setFont(font, size, flags)
+    function instance:setFont(font, size, flags)
         gfx.setfont(1, font, size)
     end
-    function self.measureString(str)
+    function instance:measureString(str)
         return gfx.measurestr(str)
     end
-    function self.drawString(str, x, y, flags, right, bottom)
+    function instance:drawString(str, x, y, flags, right, bottom)
         gfx.dest = _drawBuffer
         gfx.x = x
         gfx.y = y
@@ -148,19 +148,19 @@ local function Widget(parameters, fromObject)
     end
 
 
-    function self.doBeginUpdateFunction()
-        if self.beginUpdate then self.beginUpdate() end
+    function instance:doBeginUpdateFunction()
+        if instance.beginUpdate then instance:beginUpdate() end
     end
-    function self.doUpdateFunction()
-        if self.update then self.update() end
+    function instance:doUpdateFunction()
+        if instance.update then instance:update() end
     end
-    function self.doDrawFunction()
-        if _shouldRedraw and self.draw then
+    function instance:doDrawFunction()
+        if _shouldRedraw and instance.draw then
             _clearBuffer()
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = _drawBuffer
-            self.draw()
+            instance:draw()
 
         elseif _shouldClear then
             _clearBuffer()
@@ -169,7 +169,7 @@ local function Widget(parameters, fromObject)
 
         _shouldRedraw = false
     end
-    function self.blitToMainWindow()
+    function instance:blitToMainWindow()
         if _isVisible then
             gfx.a = 1.0
             gfx.mode = 0
@@ -177,11 +177,11 @@ local function Widget(parameters, fromObject)
             gfx.blit(_drawBuffer, 1.0, 0, 0, 0, _width, _height, _x, _y, _width, _height, 0, 0)
         end
     end
-    function self.doEndUpdateFunction()
-        if self.endUpdate then self.endUpdate() end
+    function instance:doEndUpdateFunction()
+        if instance.endUpdate then instance:endUpdate() end
     end
 
-    return self
+    return instance
 end
 
 return Widget

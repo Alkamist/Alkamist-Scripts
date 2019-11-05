@@ -1,35 +1,35 @@
 local function Toggle(initialState)
-    local self = {}
+    local instance = {}
 
     if initialState == nil then initialState = false end
     local _current = initialState
     local _previous = initialState
 
-    function self.justTurnedOn()
+    function instance:justTurnedOn()
         return _current and not _previous
     end
-    function self.justTurnedOff()
+    function instance:justTurnedOff()
         return not _current and _previous
     end
-    function self.getState()
+    function instance:getState()
         return _current
     end
-    function self.getPreviousState()
+    function instance:getPreviousState()
         return _previous
     end
 
-    function self.toggle()
+    function instance:toggle()
         _current = not _current
     end
-    function self.setState(state)
+    function instance:setState(state)
         _current = state
     end
-    function self.update(state)
+    function instance:update(state)
         _previous = _current
         if state ~= nil then _current = state end
     end
 
-    return self
+    return instance
 end
 
 return Toggle
