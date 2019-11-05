@@ -9,8 +9,8 @@ local function getNewDrawBuffer()
     return currentBuffer
 end
 
-local function Drawable(parameters)
-    local self = {}
+local function Widget(parameters, fromObject)
+    local self = fromObject or {}
 
     local _drawBuffer = getNewDrawBuffer()
     local _x = parameters.x or 0
@@ -18,6 +18,7 @@ local function Drawable(parameters)
     local _width = parameters.width or 0
     local _height = parameters.height or 0
     local _drawFunction = nil
+    local _shouldClear = false
 
     local _isVisible = parameters.isVisible
     if _isVisible == nil then _isVisible = true end
@@ -25,11 +26,11 @@ local function Drawable(parameters)
     local _shouldRedraw = parameters.shouldRedraw
     if _shouldRedraw == nil then _shouldRedraw = true end
 
-    local function clearBuffer()
+    local function _clearBuffer()
         gfx.setimgdim(_drawBuffer, -1, -1)
         gfx.setimgdim(_drawBuffer, _width, _height)
     end
-    clearBuffer()
+    _clearBuffer()
 
     function self.getX() return _x end
     function self.getY() return _y end
@@ -41,10 +42,21 @@ local function Drawable(parameters)
     function self.show() _isVisible = true end
     function self.hide() _isVisible = false end
     function self.queueRedraw() _shouldRedraw = true end
-    function self.pointIsInsideDrawableBounds(pointX, pointY)
-        return pointX >= _x and pointX <= _x + _width
+    function self.queueClear() _shouldClear = true end
+    function self.pointIsInside(pointX, pointY)
+        return _isVisible
+           and pointX >= _x and pointX <= _x + _width
            and pointY >= _y and pointY <= _y + _height
     end
+
+    function self.setX(change) _x = change end
+    function self.setY(change) _y = change end
+    function self.setWidth(change) _width = change end
+    function self.setHeight(change) _height = change end
+    function self.changeX(change) _x = _x + change end
+    function self.changeY(change) _y = _y + change end
+    function self.changeWidth(change) _width = _width + change end
+    function self.changeHeight(change) _height = _height + change end
 
     function self.setColor(color)
         local mode = color[5] or 0
@@ -54,15 +66,19 @@ local function Drawable(parameters)
         gfx.mode = mode
     end
     function self.drawRectangle(x, y, w, h, filled)
+        gfx.dest = _drawBuffer
         gfx.rect(x, y, w, h, filled)
     end
     function self.drawLine(x, y, x2, y2, antiAliased)
+        gfx.dest = _drawBuffer
         gfx.line(x, y, x2, y2, antiAliased)
     end
     function self.drawCircle(x, y, r, filled, antiAliased)
+        gfx.dest = _drawBuffer
         gfx.circle(x, y, r, filled, antiAliased)
     end
     function self.drawPolygon(filled, ...)
+        gfx.dest = _drawBuffer
         if filled then
             gfx.triangle(...)
         else
@@ -80,6 +96,7 @@ local function Drawable(parameters)
         end
     end
     function self.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+        gfx.dest = _drawBuffer
         local aa = antiAliased or 1
         filled = filled or 0
         w = math.max(0, w - 1)
@@ -120,6 +137,7 @@ local function Drawable(parameters)
         return gfx.measurestr(str)
     end
     function self.drawString(str, x, y, flags, right, bottom)
+        gfx.dest = _drawBuffer
         gfx.x = x
         gfx.y = y
         if flags then
@@ -139,7 +157,12 @@ local function Drawable(parameters)
             gfx.mode = 0
             gfx.dest = _drawBuffer
             _drawFunction()
+
+        elseif _shouldClear then
+            _clearBuffer()
+            _shouldClear = false
         end
+
         _shouldRedraw = false
     end
     function self.blitToMainWindow()
@@ -154,4 +177,4 @@ local function Drawable(parameters)
     return self
 end
 
-return Drawable
+return Widget

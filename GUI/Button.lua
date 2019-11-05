@@ -2,13 +2,12 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Drawable = require("GUI.Drawable")
+local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 local function Button(parameters)
-    local self = {}
+    local self = Widget(parameters)
 
-    local _draw = Drawable(parameters)
     local _mouse = parameters.mouse
     local _mouseLeftButton = _mouse.getButtons().left
     local _label = parameters.label or ""
@@ -35,31 +34,30 @@ local function Button(parameters)
     function self.isPressed() return _pressState.getState() end
     function self.justPressed() return _pressState.justTurnedOn() end
     function self.justReleased() return _pressState.justTurnedOff() end
-    function self.pointIsInside(pointX, pointY) return _draw.pointIsInsideDrawableBounds(pointX, pointY) end
     function self.glow()
         _glowState = true
-        _draw.queueRedraw()
+        self.queueRedraw()
     end
     function self.unGlow()
         _glowState = false
-        _draw.queueRedraw()
+        self.queueRedraw()
     end
     function self.press()
         _pressState.setState(true)
-        _draw.queueRedraw()
+        self.queueRedraw()
     end
     function self.release()
         _pressState.setState(false)
-        _draw.queueRedraw()
+        self.queueRedraw()
     end
     function self.toggle()
         _pressState.toggle()
-        _draw.queueRedraw()
+        self.queueRedraw()
     end
-    function self.updateStates()
+    function self.beginUpdate()
         _pressState.update()
     end
-    function self.interactWithMouse()
+    function self.update()
         if _glowOnMouseOver then
             if _mouse.justEntered(self) then self.glow() end
             if _mouse.justLeft(self) then self.unGlow() end
@@ -73,45 +71,32 @@ local function Button(parameters)
         end
     end
 
-    function self.doDrawFunction() _draw.doDrawFunction() end
-    function self.blitToMainWindow() _draw.blitToMainWindow() end
-    _draw.setDrawFunction(function()
-        local width = _draw.getWidth()
-        local height = _draw.getHeight()
+    self.setDrawFunction(function()
+        local width = self.getWidth()
+        local height = self.getHeight()
 
         -- Draw the main button.
-        _draw.setColor(_color)
-        _draw.drawRectangle(0, 0, width, height, true)
+        self.setColor(_color)
+        self.drawRectangle(0, 0, width, height, true)
 
         -- Draw a light outline around the button.
-        _draw.setColor(_edgeColor)
-        _draw.drawRectangle(0, 0, width, height, false)
+        self.setColor(_edgeColor)
+        self.drawRectangle(0, 0, width, height, false)
 
         -- Draw the button's label.
-        _draw.setColor(_labelColor)
-        _draw.setFont(_labelFont, _labelFontSize)
-        _draw.drawString(_label, 0, 0, 5, width, height)
+        self.setColor(_labelColor)
+        self.setFont(_labelFont, _labelFontSize)
+        self.drawString(_label, 0, 0, 5, width, height)
 
         if self.isPressed() then
-            _draw.setColor(_pressedColor)
-            _draw.drawRectangle(0, 0, width, height, true)
+            self.setColor(_pressedColor)
+            self.drawRectangle(0, 0, width, height, true)
 
         elseif _glowState then
-            _draw.setColor(_glowColor)
-            _draw.drawRectangle(0, 0, width, height, true)
+            self.setColor(_glowColor)
+            self.drawRectangle(0, 0, width, height, true)
         end
     end)
-
-    local _updateFunctions = {
-        self.updateStates,
-        self.interactWithMouse
-    }
-    function self.getUpdateFunction(update)
-        return _updateFunctions[update]
-    end
-    function self.setUpdateFunction(update, fn)
-        _updateFunctions[update] = fn
-    end
 
     return self
 end

@@ -85,8 +85,6 @@ GUI:run()]]--
 --    label = "test"
 --}
 
-GUI.setUpdatesPerFrame(3)
-
 local testButton1 = Button{
     mouse = GUI.getMouse(),
     x = 80,
@@ -96,6 +94,15 @@ local testButton1 = Button{
     label = "Fix Errors",
     toggleOnClick = true
 }
+local originalTestButton1Update = testButton1.update
+testButton1.update = function()
+    originalTestButton1Update()
+    local mouse = GUI.getMouse()
+    local mouseLeftButton = mouse.getButtons().left
+    if mouseLeftButton.justDragged(testButton1) then
+        testButton1.changeX(mouse.getXChange())
+    end
+end
 
 --function testButton1.update()
 --    Button.update(self)
@@ -144,5 +151,5 @@ local testButton1 = Button{
 
 --GUI.addElements{ testButton1 }
 --testButton1:addElements{ testButton2 }
-GUI.addElements{ testButton1 }
+GUI.addWidgets{ testButton1 }
 GUI.run()

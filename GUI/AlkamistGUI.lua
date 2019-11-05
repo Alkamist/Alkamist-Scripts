@@ -16,9 +16,8 @@ local function GUI()
     local _dock = 0
     local _mouse = UserControl.mouse
     local _keyboard = UserControl.keyboard
-    local _backgroundColor = {}
-    local _elements = {}
-    local _updatesPerFrame = 3
+    local _backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
+    local _widgets = {}
 
     function self.getMouse()
         return _mouse
@@ -26,13 +25,10 @@ local function GUI()
     function self.getKeyboard()
         return _keyboard
     end
-    function self.getElements()
-        return _elements
+    function self.getWidgets()
+        return _widgets
     end
 
-    function self.setUpdatesPerFrame(value)
-        _updatesPerFrame = value
-    end
     function self.setBackgroundColor(color)
         _backgroundColor = color
         gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
@@ -40,12 +36,12 @@ local function GUI()
     function self.windowWasResized()
         return _width.justChanged() or _height.justChanged()
     end
-    function self.addElements(elements)
-        for i = 1, #elements do
-            local element = elements[i]
-            _elements[#_elements + 1] = element
+    function self.addWidgets(widgets)
+        for i = 1, #widgets do
+            local widget = widgets[i]
+            _widgets[#_widgets + 1] = widget
         end
-        _mouse.setElements(_elements)
+        _mouse.setWidgets(_widgets)
     end
 
     function self.initialize(parameters)
@@ -67,21 +63,25 @@ local function GUI()
         local char = _keyboard.getCurrentCharacter()
         if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-        if _elements then
-            local numberOfElements = #_elements
+        if _widgets then
+            local numberOfWidgets = #_widgets
 
-            for update = 1, _updatesPerFrame do
-                for i = 1, numberOfElements do
-                    local element = _elements[i]
-                    local fn = element.getUpdateFunction(update)
-                    if fn then fn() end
-                end
+            for i = 1, numberOfWidgets do
+                local widget = _widgets[i]
+                if widget.beginUpdate then widget.beginUpdate() end
             end
-
-            for i = 1, numberOfElements do
-                local element = _elements[i]
-                element.doDrawFunction()
-                element.blitToMainWindow()
+            for i = 1, numberOfWidgets do
+                local widget = _widgets[i]
+                if widget.update then widget.update() end
+            end
+            for i = 1, numberOfWidgets do
+                local widget = _widgets[i]
+                if widget.doDrawFunction then widget.doDrawFunction() end
+                if widget.blitToMainWindow then widget.blitToMainWindow() end
+            end
+            for i = 1, numberOfWidgets do
+                local widget = _widgets[i]
+                if widget.endUpdate then widget.endUpdate() end
             end
         end
 

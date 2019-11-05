@@ -172,67 +172,68 @@ local function MouseControl(mouse)
     local self = {}
 
     local _mouse = mouse
-    local _elements = _mouse.getElements()
     local _pressState = Toggle(false)
     local _dragState = false
     local _isAlreadyDragging = false
     local _releaseState = Toggle(false)
     local _timeOfPreviousPress = nil
-    local _wasPressedInsideElement = {}
+    local _wasPressedInsideWidget = {}
 
-    function self.isPressed(element)
+    function self.isPressed(widget)
         local output = _pressState.getState()
-        if element then return output and _mouse.isInside(element) end
+        if widget then return output and _mouse.isInside(widget) end
         return output
     end
-    function self.justPressed(element)
+    function self.justPressed(widget)
         local output = _pressState.justTurnedOn()
-        if element then return output and _mouse.isInside(element) end
+        if widget then return output and _mouse.isInside(widget) end
         return output
     end
-    function self.justReleased(element)
+    function self.justReleased(widget)
         local output = _pressState:justTurnedOff()
-        if element then return output and _wasPressedInsideElement(element) end
+        if widget then return output and _wasPressedInsideWidget[widget] end
         return output
     end
     function self.getTimeSincePreviousPress()
         if not _timeOfPreviousPress then return nil end
         return reaper.time_precise() - _timeOfPreviousPress
     end
-    function self.justDoublePressed(element)
+    function self.justDoublePressed(widget)
         local timeSince = self.getTimeSincePreviousPress()
         if timeSince == nil then return false end
         local output = self.justPressed() and timeSince <= 0.5
-        if element then return output and _mouse:isInside(element) end
+        if widget then return output and _mouse:isInside(widget) end
         return output
     end
-    function self.justDragged(element)
+    function self.justDragged(widget)
         local output = _dragState
-        if element then return output and _wasPressedInsideElement(element) end
+        if widget then return output and _wasPressedInsideWidget[widget] end
         return output
     end
-    function self.justStartedDragging(element)
+    function self.justStartedDragging(widget)
         local output = _dragState and not _isAlreadyDragging
-        if element then return output and _wasPressedInsideElement(element) end
+        if widget then return output and _wasPressedInsideWidget[widget] end
         return output
     end
-    function self.justStoppedDragging(element)
+    function self.justStoppedDragging(widget)
         local output = self.justReleased() and _isAlreadyDragging
-        if element then return output and _wasPressedInsideElement(element) end
+        if widget then return output and _wasPressedInsideWidget[widget] end
         return output
     end
 
     function self.update(state)
+        local widgets = _mouse.getWidgets()
+
         if self.justPressed() then _timeOfPreviousPress = reaper.time_precise() end
         if self.justReleased() then _isAlreadyDragging = false end
 
         _pressState.update(state)
         _releaseState:update(self.justReleased())
 
-        for i = 1, #_elements do
-            local element = _elements[i]
-            if self.justReleased() then _wasPressedInsideElement[element] = false end
-            if self.justPressed(element) then _wasPressedInsideElement[element] = true end
+        for i = 1, #widgets do
+            local widget = widgets[i]
+            if self.justReleased() then _wasPressedInsideWidget[widget] = false end
+            if self.justPressed(widget) then _wasPressedInsideWidget[widget] = true end
         end
 
         if _dragState then _isAlreadyDragging = true end
@@ -273,10 +274,10 @@ local function Mouse()
     local _cap = 0
     local _wheel = 0
     local _hWheel = 0
-    local _elements = {}
+    local _widgets = {}
 
-    function self.getElements()
-        return _elements
+    function self.getWidgets()
+        return _widgets
     end
     function self.getCap()
         return _cap
@@ -287,8 +288,15 @@ local function Mouse()
         right = MouseButton(self, 2)
     }
 
-    function self.setElements(elements)
-        _elements = elements
+    function self.getX() return _x.getValue() end
+    function self.getY() return _y.getValue() end
+    function self.getPreviousX() return _x.getPreviousValue() end
+    function self.getPreviousY() return _y.getPreviousValue() end
+    function self.getXChange() return _x.getChange() end
+    function self.getYChange() return _y.getChange() end
+
+    function self.setWidgets(widgets)
+        _widgets = widgets
     end
     function self.getButtons()
         return _buttons
@@ -316,17 +324,17 @@ local function Mouse()
     function self.hWheelJustMoved()
         return _hWheel ~= 0
     end
-    function self.wasPreviouslyInside(element)
-        return element.pointIsInside(_x.getPreviousValue(), _y.getPreviousValue())
+    function self.wasPreviouslyInside(widget)
+        return widget.pointIsInside(_x.getPreviousValue(), _y.getPreviousValue())
     end
-    function self.isInside(element)
-        return element.pointIsInside(_x.getValue(), _y.getValue())
+    function self.isInside(widget)
+        return widget.pointIsInside(_x.getValue(), _y.getValue())
     end
-    function self.justEntered(element)
-        return self.isInside(element) and not self.wasPreviouslyInside(element)
+    function self.justEntered(widget)
+        return self.isInside(widget) and not self.wasPreviouslyInside(widget)
     end
-    function self.justLeft(element)
-        return not self.isInside(element) and self.wasPreviouslyInside(element)
+    function self.justLeft(widget)
+        return not self.isInside(widget) and self.wasPreviouslyInside(widget)
     end
 
     return self
