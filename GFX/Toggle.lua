@@ -1,33 +1,35 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local function Toggle(initialState)
+    local self = {}
 
-local Toggle = {
-    current = false,
-    previous = false
-}
+    if initialState == nil then initialState = false end
+    local _current = initialState
+    local _previous = initialState
 
-function Toggle:new(parameters)
-    return Prototype.addPrototypes(parameters, { Toggle })
-end
+    function self.justTurnedOn()
+        return _current and not _previous
+    end
+    function self.justTurnedOff()
+        return not _current and _previous
+    end
+    function self.getState()
+        return _current
+    end
+    function self.getPreviousState()
+        return _previous
+    end
 
-function Toggle:set(value)
-    self.current = value
+    function self.toggle()
+        _current = not _current
+    end
+    function self.setState(state)
+        _current = state
+    end
+    function self.update(state)
+        _previous = _current
+        if state ~= nil then _current = state end
+    end
+
     return self
-end
-function Toggle:toggle()
-    self.current = not self.current
-    return self
-end
-function Toggle:update(value)
-    self.previous = self.current
-    if value ~= nil then self.current = value end
-    return self
-end
-function Toggle:justTurnedOn()
-    return self.current and not self.previous
-end
-function Toggle:justTurnedOff()
-    return not self.current and self.previous
 end
 
 return Toggle

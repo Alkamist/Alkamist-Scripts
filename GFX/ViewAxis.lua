@@ -6,8 +6,8 @@ function ViewAxis:new(init)
     local init = init or {}
     local self = setmetatable({}, { __index = self })
 
-    self.scale =  init.scale  or 1.0
-    self.zoom =   init.zoom   or 1.0
+    self.scale = init.scale or 1.0
+    self.zoom = init.zoom or 1.0
     self.scroll = init.scroll or 0.0
     self.target = init.target or 0.0
 

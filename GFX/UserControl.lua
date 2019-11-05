@@ -161,7 +161,6 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
 local Toggle = require("GFX.Toggle")
 local TrackedNumber = require("GFX.TrackedNumber")
 
@@ -169,78 +168,93 @@ local TrackedNumber = require("GFX.TrackedNumber")
 --== Mouse =====================================================
 --==============================================================
 
-local MouseControl = {
-    mouse = nil,
-    state = Toggle:new(),
-    dragState = false,
-    isAlreadyDragging = false,
-    releaseState = Toggle:new(),
-}
+local function MouseControl(mouse)
+    local self = {}
 
-function MouseControl:new(input)
-    return Prototype.addPrototypes(input, { MouseControl })
-end
-function MouseControl:update(state)
-    if self:justPressed() then self.timeOfPreviousPress = reaper.time_precise() end
-    if self:justReleased() then self.isAlreadyDragging = false end
+    local _mouse = mouse
+    local _pressState = Toggle(false)
+    local _dragState = false
+    local _isAlreadyDragging = false
+    local _releaseState = Toggle(false)
+    local _timeOfPreviousPress = nil
 
-    self.state:update(state)
-    self.releaseState:update(self:justReleased())
+    function self.isPressed(element)
+        local output = _pressState.getState()
+        if element then return output and _mouse.isInside(element) end
+        return output
+    end
+    function self.justPressed(element)
+        local output = _pressState.justTurnedOn()
+        if element then return output and _mouse.isInside(element) end
+        return output
+    end
+    function self.justReleased(element)
+        local output = _pressState:justTurnedOff()
+        if element then return output and element.mouseControlWasPressedInside(self) end
+        return output
+    end
+    function self.getTimeSincePreviousPress()
+        if not _timeOfPreviousPress then return nil end
+        return reaper.time_precise() - _timeOfPreviousPress
+    end
+    function self.justDoublePressed(element)
+        local timeSince = self.getTimeSincePreviousPress()
+        if timeSince == nil then return false end
+        local output = self.justPressed() and timeSince <= 0.5
+        if element then return output and _mouse:isInside(element) end
+        return output
+    end
+    function self.justDragged(element)
+        local output = _dragState
+        if element then return output and element.mouseControlWasPressedInside(self) end
+        return output
+    end
+    function self.justStartedDragging(element)
+        local output = _dragState and not _isAlreadyDragging
+        if element then return output and element.mouseControlWasPressedInside(self) end
+        return output
+    end
+    function self.justStoppedDragging(element)
+        local output = self.justReleased() and _isAlreadyDragging
+        if element then return output and element.mouseControlWasPressedInside(self) end
+        return output
+    end
 
-    if self.dragState then self.isAlreadyDragging = true end
-    self.dragState = self.state.current and self.mouse:justMoved()
-end
-function MouseControl:isPressed(element)
-    local output = self.state.current
-    if element then return output and self.mouse:isInside(element) end
-    return output
-end
-function MouseControl:justPressed(element)
-    local output = self.state:justTurnedOn()
-    if element then return output and self.mouse:isInside(element) end
-    return output
-end
-function MouseControl:justDoublePressed(element)
-    local timeSince = self:getTimeSincePreviousPress()
-    if timeSince == nil then return false end
-    local output = self:justPressed() and timeSince <= 0.5
-    if element then return output and self.mouse:isInside(element) end
-    return output
-end
-function MouseControl:justReleased(element)
-    local output = self.state:justTurnedOff()
-    if element then return output and element.buttonWasPressedInside[self] end
-    return output
-end
-function MouseControl:justDragged(element)
-    local output = self.dragState
-    if element then return output and element.buttonWasPressedInside[self] end
-    return output
-end
-function MouseControl:justStartedDragging(element)
-    local output = self.dragState and not self.isAlreadyDragging
-    if element then return output and element.buttonWasPressedInside[self] end
-    return output
-end
-function MouseControl:justStoppedDragging(element)
-    local output = self:justReleased() and self.isAlreadyDragging
-    if element then return output and element.buttonWasPressedInside[self] end
-    return output
-end
-function MouseControl:getTimeSincePreviousPress()
-    if not self.timeOfPreviousPress then return nil end
-    return reaper.time_precise() - self.timeOfPreviousPress
+    function self.update(state)
+        if self.justPressed() then _timeOfPreviousPress = reaper.time_precise() end
+        if self.justReleased() then _isAlreadyDragging = false end
+
+        _pressState.update(state)
+        _releaseState:update(self.justReleased())
+
+        if _dragState then _isAlreadyDragging = true end
+        _dragState = _pressState.getState() and _mouse:justMoved()
+    end
+
+    return self
 end
 
-local MouseButton = {
-    bitValue = 0
-}
+local function MouseButton(mouse, bitValue)
+    local self = {}
 
-function MouseButton:new(input)
-    return Prototype.addPrototypes(input, { MouseButton, MouseControl })
-end
-function MouseButton:update()
-    MouseControl.update(self, self.mouse.cap & self.bitValue == self.bitValue)
+    local _mouseCap = mouse.getCap()
+    local _mouseControl = MouseControl(mouse)
+    local _bitValue = bitValue or 0
+
+    self.isPressed = _mouseControl.isPressed
+    self.justPressed = _mouseControl.justPressed
+    self.justReleased = _mouseControl.justReleased
+    self.getTimeSincePreviousPress = _mouseControl.getTimeSincePreviousPress
+    self.justDoublePressed = _mouseControl.justDoublePressed
+    self.justDragged = _mouseControl.justDragged
+    self.justStartedDragging = _mouseControl.justStartedDragging
+    self.justStoppedDragging = _mouseControl.justStoppedDragging
+
+    function self.update()
+        _mouseControl.update(_mouseCap & _bitValue == _bitValue)
+    end
+
+    return self
 end
 
 local Mouse = {

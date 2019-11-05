@@ -1,27 +1,31 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local function TrackedNumber(initialValue)
+    local self = {}
 
-local TrackedNumber = {
-    current = 0,
-    previous = 0
-}
+    local _current = initialValue or 0
+    local _previous = initialValue or 0
 
-function TrackedNumber:new(parameters)
-    return Prototype.addPrototypes(parameters, { TrackedNumber })
-end
+    function self.justChanged()
+        return _current ~= _previous
+    end
+    function self.getChange()
+        return _current - _previous
+    end
+    function self.getValue()
+        return _current
+    end
+    function self.getPreviousValue()
+        return _previous
+    end
 
-function TrackedNumber:update(number)
-    self.previous = self.current
-    if number then self.current = number end
-end
-function TrackedNumber:set(number)
-    self.current = number
-end
-function TrackedNumber:justChanged()
-    return self.current ~= self.previous
-end
-function TrackedNumber:getChange()
-    return self.current - self.previous
+    function self.setValue(value)
+        _current = value
+    end
+    function self.update(value)
+        _previous = _current
+        if value ~= nil then _current = value end
+    end
+
+    return self
 end
 
 return TrackedNumber

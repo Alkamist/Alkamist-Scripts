@@ -1,8 +1,8 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local GFX = require("GFX.AlkamistGFX")
+local Prototype = require("Prototype")
+
 local BoxSelect = {
-    x = 0,
-    y = 0,
-    w = 0,
-    h = 0,
     x1 = 0,
     x2 = 0,
     y1 = 0,
@@ -12,8 +12,9 @@ local BoxSelect = {
     isActive = false
 }
 
-function BoxSelect:new(input)
-    return Class:new({ BoxSelect }, input)
+function BoxSelect:new(parameters)
+    local element = GFX.createElement(parameters)
+    return Prototype.addPrototypes(element, { BoxSelect })
 end
 
 function BoxSelect:startSelection(startingX, startingY)
@@ -21,6 +22,13 @@ function BoxSelect:startSelection(startingX, startingY)
     self.x2 = startingX
     self.y1 = startingY
     self.y2 = startingY
+
+    self:setX(startingX)
+    self:setY(startingY)
+    self:setWidth(0)
+    self:setHeight(0)
+
+    self:queueRedraw()
 end
 function BoxSelect:editSelection(editX, editY)
     self.isActive = true
@@ -28,17 +36,26 @@ function BoxSelect:editSelection(editX, editY)
     self.x2 = editX
     self.y2 = editY
 
-    self.x = math.min(self.x1, self.x2)
-    self.y = math.min(self.y1, self.y2)
-    self.w = math.abs(self.x1 - self.x2)
-    self.h = math.abs(self.y1 - self.y2)
+    self:setX(math.min(self.x1, self.x2))
+    self:setY(math.min(self.y1, self.y2))
+    self:setWidth(math.abs(self.x1 - self.x2))
+    self:setHeight(math.abs(self.y1 - self.y2))
+
+    self:queueRedraw()
 end
-function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, shouldAdd, shouldInvert)
+function BoxSelect:makeSelection(parameters)
+    local listOfThings = parameters.listOfThings
+    local isInsideFn = parameters.isInsideFn
+    local setSelectedFn = parameters.setSelectedFn
+    local getSelectedFn = parameters.getSelectedFn
+    local shouldAdd = parameters.shouldAdd
+    local shouldInvert = parameters.shouldInvert
+
     local numberOfThings = #listOfThings
     for i = 1, numberOfThings do
         local thing = listOfThings[i]
 
-        if self:pointIsInside(thing.x, thing.y) then
+        if isInsideFn(self, thing) then
             if shouldInvert then
                 setSelectedFn(thing, not getSelectedFn(thing))
             else
@@ -51,15 +68,19 @@ function BoxSelect:makeSelection(listOfThings, setSelectedFn, getSelectedFn, sho
         end
     end
     self.isActive = false
+    self:queueClear()
 end
 
 function BoxSelect:draw()
+    local width = self:getWidth()
+    local height = self:getHeight()
+
     if self.isActive then
         self:setColor(self.edgeColor)
-        self:drawRectangle(0, 0, self.w, self.h, false)
+        self:drawRectangle(0, 0, width, height, false)
 
         self:setColor(self.insideColor)
-        self:drawRectangle(1, 1, self.w - 2, self.h - 2, true)
+        self:drawRectangle(1, 1, width - 2, height - 2, true)
     end
 end
 

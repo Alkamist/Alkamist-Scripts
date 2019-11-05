@@ -177,6 +177,38 @@ function GFXElement:pointIsInside(x, y)
        and x >= self.x and x <= self.x + self.w
        and y >= self.y and y <= self.y + self.h
 end
+function GFXElement:clearBuffer(buffer)
+    local buffer = buffer or self.drawBuffer
+    gfx.setimgdim(buffer, -1, -1)
+    gfx.setimgdim(buffer, self.w, self.h)
+end
+function GFXElement:queueRedraw()
+    if self:shouldDrawDirectly() then
+        self.parent:queueRedraw()
+    end
+    if not self.shouldRedraw then
+        self.shouldRedraw = true
+    end
+end
+function GFXElement:queueClear()
+    if self.shouldRedraw then
+        self.shouldRedraw = false
+    end
+    self.shouldClear = true
+end
+function GFXElement:setVisibility(visibility)
+    self.isVisible = visibility
+end
+function GFXElement:toggleVisibility()
+    self.isVisible = not self.isVisible
+end
+function GFXElement:hide()
+    self.isVisible = false
+end
+function GFXElement:show()
+    self.isVisible = true
+end
+
 function GFXElement:setColor(color)
     self.currentColor = color
     local mode = color[5] or 0
@@ -296,37 +328,6 @@ function GFXElement:drawString(str, x, y, flags, right, bottom)
     else
         gfx.drawstr(str)
     end
-end
-function GFXElement:clearBuffer(buffer)
-    local buffer = buffer or self.drawBuffer
-    gfx.setimgdim(buffer, -1, -1)
-    gfx.setimgdim(buffer, self.w, self.h)
-end
-function GFXElement:queueRedraw()
-    if self:shouldDrawDirectly() then
-        self.parent:queueRedraw()
-    end
-    if not self.shouldRedraw then
-        self.shouldRedraw = true
-    end
-end
-function GFXElement:queueClear()
-    if self.shouldRedraw then
-        self.shouldRedraw = false
-    end
-    self.shouldClear = true
-end
-function GFXElement:setVisibility(visibility)
-    self.isVisible = visibility
-end
-function GFXElement:toggleVisibility()
-    self.isVisible = not self.isVisible
-end
-function GFXElement:hide()
-    self.isVisible = false
-end
-function GFXElement:show()
-    self.isVisible = true
 end
 
 return GFXElement

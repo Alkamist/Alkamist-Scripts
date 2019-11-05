@@ -3,6 +3,7 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GFX = require("GFX.AlkamistGFX")
 local Button = require("GFX.Button")
+local BoxSelect = require("GFX.BoxSelect")
 
 GFX:initialize("Alkamist Pitch Correction", 200, 200, 1000, 700, 0)
 GFX:setBackgroundColor{ 0.2, 0.2, 0.2 }
@@ -88,14 +89,48 @@ function testButton1:update()
     Button.update(self)
     local mouse = self.mouse
     if mouse.buttons.left:justDragged(testButton2) then
-        self.x = self.x + mouse.xChange
+        self:changeX(mouse:getXChange())
     end
+    --if mouse.buttons.right:justPressed() then
+    --    self:toggleVisibility()
+    --end
+end
+
+local function select(thing, shouldSelect)
+    if shouldSelect then
+        thing:press()
+    else
+        thing:release()
+    end
+end
+local function isSelected(thing)
+    return thing:isPressed()
+end
+local listOfThings = { testButton1, testButton2, asdf }
+
+local boxSelect = BoxSelect:new{
+    insideColor = { 0.0, 0.0, 0.0, 0.5, 0 },
+    edgeColor = { 1.0, 1.0, 1.0, 0.8, 0 }
+}
+function boxSelect:update()
+    local mouse = self.mouse
+    local keyboardModifiers = self.keyboard.modifiers
     if mouse.buttons.right:justPressed() then
-        self:toggleVisibility()
+        self:startSelection(mouse.x, mouse.y)
+    end
+    if mouse.buttons.right:justDragged() then
+        self:editSelection(mouse.x, mouse.y)
+    end
+    if mouse.buttons.right:justReleased() then
+        self:makeSelection(listOfThings,
+                           select,
+                           isSelected,
+                           keyboardModifiers.shift:isPressed(),
+                           keyboardModifiers.control:isPressed())
     end
 end
 
-GFX:addElements{ asdf, testButton1 }
+GFX:addElements{ asdf, testButton1, boxSelect }
 testButton1:addElements{ testButton2 }
 
 GFX:run()
