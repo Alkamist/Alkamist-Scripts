@@ -10,8 +10,6 @@ local function Button(parameters)
 
     local _mouse = parameters.mouse
     local _mouseLeftButton = _mouse.getButtons().left
-    local _width = parameters.width or 0
-    local _height = parameters.height or 0
     local _label = parameters.label or ""
     local _labelFont = parameters.labelFont or "Arial"
     local _labelFontSize = parameters.labelFontSize or 14
@@ -33,18 +31,10 @@ local function Button(parameters)
     if _toggleOnClick == nil then _toggleOnClick = false end
     if _toggleOnClick == true then _pressOnClick = false end
 
-    function self.isPressed()
-        return _pressState.getState()
-    end
-    function self.justPressed()
-        return _pressState.justTurnedOn()
-    end
-    function self.justReleased()
-        return _pressState.justTurnedOff()
-    end
-    function self.updateStates()
-        _pressState.update()
-    end
+    function self.isPressed() return _pressState.getState() end
+    function self.justPressed() return _pressState.justTurnedOn() end
+    function self.justReleased() return _pressState.justTurnedOff() end
+    function self.pointIsInside(pointX, pointY) self.pointIsInsideDrawableBounds(pointX, pointY) end
     function self.glow()
         _glowState = true
         self.queueRedraw()
@@ -65,6 +55,9 @@ local function Button(parameters)
         _pressState.toggle()
         self.queueRedraw()
     end
+    function self.updateStates()
+        _pressState.update()
+    end
     function self.interactWithMouse()
         if _glowOnMouseOver then
             if _mouse.justEntered(self) then self.glow() end
@@ -79,39 +72,35 @@ local function Button(parameters)
         end
     end
     function self.draw()
+        local width = self.getWidth()
+        local height = self.getHeight()
+
         -- Draw the main button.
         self.setColor(_color)
-        self.drawRectangle(0, 0, _width, _height, true)
+        self.drawRectangle(0, 0, width, height, true)
 
         -- Draw a light outline around the button.
         self.setColor(_edgeColor)
-        self.drawRectangle(0, 0, _width, _height, false)
+        self.drawRectangle(0, 0, width, height, false)
 
         -- Draw the button's label.
         self.setColor(_labelColor)
         self.setFont(_labelFont, _labelFontSize)
-        self.drawString(_label, 0, 0, 5, _width, _height)
+        self.drawString(_label, 0, 0, 5, width, height)
 
         if self.isPressed() then
             self.setColor(_pressedColor)
-            self.drawRectangle(0, 0, _width, _height, true)
+            self.drawRectangle(0, 0, width, height, true)
 
         elseif _glowState then
             self.setColor(_glowColor)
-            self.drawRectangle(0, 0, _width, _height, true)
+            self.drawRectangle(0, 0, width, height, true)
         end
-    end
-    function self.pointIsInside(pointX, pointY)
-        local x = self.getX()
-        local y = self.getY()
-        return pointX >= x and pointX <= x + _width
-           and pointY >= y and pointY <= y + _height
     end
 
     local _updateFunctions = {
         self.updateStates,
-        self.interactWithMouse,
-        self.draw
+        self.interactWithMouse
     }
     function self.getUpdateFunction(update)
         return _updateFunctions[update]

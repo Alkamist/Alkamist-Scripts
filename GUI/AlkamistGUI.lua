@@ -18,7 +18,6 @@ local function GUI()
     local _keyboard = UserControl.keyboard
     local _backgroundColor = {}
     local _elements = {}
-    local _currentBuffer = -1
     local _updatesPerFrame = 3
 
     function self.getMouse()
@@ -40,11 +39,6 @@ local function GUI()
     end
     function self.windowWasResized()
         return _width.justChanged() or _height.justChanged()
-    end
-    function self.getNewDrawBuffer()
-        _currentBuffer = _currentBuffer + 1
-        if _currentBuffer > 1023 then _currentBuffer = 0 end
-        return _currentBuffer
     end
     function self.addElements(elements)
         for i = 1, #elements do
@@ -87,25 +81,8 @@ local function GUI()
 
             for i = 1, numberOfElements do
                 local element = _elements[i]
-                local elementShouldRedraw = _elementShouldRedraw[element]
-                if elementShouldRedraw and element.draw then
-                    gfx.dest = element.getDrawBuffer()
-                    element.draw()
-                end
-            end
-            for i = 1, numberOfElements do
-                local element = _elements[i]
-                local elementIsVisible = _elementIsVisible[element]
-                if elementIsVisible then
-                    local x = element.getX()
-                    local y = element.getY()
-                    local width = element.getWidth()
-                    local height = element.getHeight()
-                    gfx.a = 1.0
-                    gfx.mode = 0
-                    gfx.dest = -1
-                    gfx.blit(element.getDrawBuffer(), 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
-                end
+                element.doDrawFunction()
+                element.blitToMainWindow()
             end
         end
 

@@ -2,11 +2,21 @@ local reaper = reaper
 local gfx = gfx
 local math = math
 
+local currentBuffer = -1
+local function getNewDrawBuffer()
+    currentBuffer = currentBuffer + 1
+    if currentBuffer > 1023 then currentBuffer = 0 end
+    return currentBuffer
+end
+
 local function Drawable(parameters)
     local self = {}
 
+    local _drawBuffer = getNewDrawBuffer()
     local _x = parameters.x or 0
     local _y = parameters.y or 0
+    local _width = parameters.width or 0
+    local _height = parameters.height or 0
 
     local _isVisible = parameters.isVisible
     if _isVisible == nil then _isVisible = true end
@@ -14,33 +24,19 @@ local function Drawable(parameters)
     local _shouldRedraw = parameters.shouldRedraw
     if _shouldRedraw == nil then _shouldRedraw = true end
 
-    function self.getRelativeCoordinates(x, y)
-        return _x + x, _y + y
-    end
-
-    function self.getX()
-        return _x
-    end
-    function self.getY()
-        return _y
-    end
-    function self.isVisible()
-        return _isVisible
-    end
-    function self.toggleVisibility()
-        _isVisible = not _isVisible
-    end
-    function self.setVisibility(value)
-        _isVisible = value
-    end
-    function self.show()
-        _isVisible = true
-    end
-    function self.hide()
-        _isVisible = false
-    end
-    function self.queueRedraw()
-        _shouldRedraw = true
+    function self.getX() return _x end
+    function self.getY() return _y end
+    function self.getWidth() return _width end
+    function self.getHeight() return _height end
+    function self.isVisible() return _isVisible end
+    function self.toggleVisibility() _isVisible = not _isVisible end
+    function self.setVisibility(value) _isVisible = value end
+    function self.show() _isVisible = true end
+    function self.hide() _isVisible = false end
+    function self.queueRedraw() _shouldRedraw = true end
+    function self.pointIsInsideDrawableBounds(pointX, pointY)
+        return pointX >= _x and pointX <= _x + _width
+           and pointY >= _y and pointY <= _y + _height
     end
 
     function self.setColor(color)
@@ -51,15 +47,12 @@ local function Drawable(parameters)
         gfx.mode = mode
     end
     function self.drawRectangle(x, y, w, h, filled)
-        local x, y = self.getRelativeCoordinates(x, y)
         gfx.rect(x, y, w, h, filled)
     end
     function self.drawLine(x, y, x2, y2, antiAliased)
-        local x, y = self.getRelativeCoordinates(x, y)
         gfx.line(x, y, x2, y2, antiAliased)
     end
     function self.drawCircle(x, y, r, filled, antiAliased)
-        local x, y = self.getRelativeCoordinates(x, y)
         gfx.circle(x, y, r, filled, antiAliased)
     end
     function self.drawPolygon(filled, ...)
@@ -80,7 +73,6 @@ local function Drawable(parameters)
         end
     end
     function self.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-        local x, y = self.getRelativeCoordinates(x, y)
         local aa = antiAliased or 1
         filled = filled or 0
         w = math.max(0, w - 1)
@@ -121,8 +113,6 @@ local function Drawable(parameters)
         return gfx.measurestr(str)
     end
     function self.drawString(str, x, y, flags, right, bottom)
-        local x, y = self.getRelativeCoordinates(x, y)
-        local right, bottom = self.getRelativeCoordinates(right, bottom)
         gfx.x = x
         gfx.y = y
         if flags then
@@ -131,6 +121,26 @@ local function Drawable(parameters)
             gfx.drawstr(str)
         end
     end
+
+    function self.doDrawFunction()
+        --if _shouldRedraw and self.draw then
+            gfx.a = 1.0
+            gfx.mode = 0
+            gfx.dest = -1
+            self.draw()
+        --end
+        --_shouldRedraw = false
+    end
+    function self.blitToMainWindow()
+        if _isVisible then
+            gfx.a = 1.0
+            gfx.mode = 0
+            gfx.dest = -1
+            gfx.blit(_drawBuffer, 1.0, 0, 0, 0, _width, _height, _x, _y, _width, _height, 0, 0)
+        end
+    end
+
+    return self
 end
 
 return Drawable
