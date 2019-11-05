@@ -3,7 +3,7 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
 local Button = require("GUI.Button")
---local BoxSelect = require("GUI.BoxSelect")
+local BoxSelect = require("GUI.BoxSelect")
 
 GUI.initialize{
     title = "Alkamist Pitch Correction",
@@ -70,21 +70,6 @@ end
 GUI:addElements{ pitchEditor, analyzeButton, fixErrorButton }
 GUI:run()]]--
 
---local asdf = Button{
---    x = 0,
---    y = 0,
---    w = 100,
---    h = 30,
---    label = "test"
---}
---local testButton2 = Button{
---    x = 40,
---    y = 100,
---    w = 100,
---    h = 30,
---    label = "test"
---}
-
 local testButton1 = Button{
     mouse = GUI.getMouse(),
     x = 80,
@@ -101,55 +86,55 @@ testButton1.update = function()
     local mouseLeftButton = mouse.getButtons().left
     if mouseLeftButton.justDragged(testButton1) then
         testButton1.changeX(mouse.getXChange())
+        testButton1.changeY(mouse.getYChange())
     end
 end
 
---function testButton1.update()
---    Button.update(self)
---    local mouse = self.mouse
---    if mouse.buttons.left:justDragged(testButton2) then
---        self:changeX(mouse:getXChange())
---    end
---    --if mouse.buttons.right:justPressed() then
---    --    self:toggleVisibility()
---    --end
---end
+local thingsToSelect = {
+    testButton1
+}
+local function isInsideFunction(box, thing)
+    return box.pointIsInside(thing.getX(), thing.getY())
+end
+local function setSelectedFunction(thing, shouldSelect)
+    if shouldSelect then
+        thing.press()
+    else
+        thing.release()
+    end
+end
+local function getSelectedFunction(thing)
+    return thing.isPressed()
+end
 
---local function select(thing, shouldSelect)
---    if shouldSelect then
---        thing:press()
---    else
---        thing:release()
---    end
---end
---local function isSelected(thing)
---    return thing:isPressed()
---end
---local listOfThings = { testButton1, testButton2, asdf }
---
---local boxSelect = BoxSelect:new{
---    insideColor = { 0.0, 0.0, 0.0, 0.5, 0 },
---    edgeColor = { 1.0, 1.0, 1.0, 0.8, 0 }
---}
---function boxSelect:update()
---    local mouse = self.mouse
---    local keyboardModifiers = self.keyboard.modifiers
---    if mouse.buttons.right:justPressed() then
---        self:startSelection(mouse.x, mouse.y)
---    end
---    if mouse.buttons.right:justDragged() then
---        self:editSelection(mouse.x, mouse.y)
---    end
---    if mouse.buttons.right:justReleased() then
---        self:makeSelection(listOfThings,
---                           select,
---                           isSelected,
---                           keyboardModifiers.shift:isPressed(),
---                           keyboardModifiers.control:isPressed())
---    end
---end
+local boxSelect = BoxSelect()
 
---GUI.addElements{ testButton1 }
---testButton1:addElements{ testButton2 }
-GUI.addWidgets{ testButton1 }
+function boxSelect.update()
+    local mouse = GUI.getMouse()
+    local mouseRightButton = mouse.getButtons().right
+    local mouseX = mouse.getX()
+    local mouseY = mouse.getY()
+    local keyboardModifiers = GUI.getKeyboard().getModifiers()
+
+    if mouseRightButton.justPressed() then
+        boxSelect.startSelection(mouseX, mouseY)
+    end
+
+    if mouseRightButton.justDragged() then
+        boxSelect.editSelection(mouseX, mouseY)
+    end
+
+    if mouseRightButton.justReleased() then
+        boxSelect.makeSelection{
+            thingsToSelect = thingsToSelect,
+            isInsideFunction = isInsideFunction,
+            setSelectedFunction = setSelectedFunction,
+            getSelectedFunction = getSelectedFunction,
+            shouldAdd = keyboardModifiers.shift.isPressed(),
+            shouldInvert = keyboardModifiers.control.isPressed()
+        }
+    end
+end
+
+GUI.addWidgets{ testButton1, boxSelect }
 GUI.run()

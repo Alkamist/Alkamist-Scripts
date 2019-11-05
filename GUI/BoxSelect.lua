@@ -1,87 +1,85 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local GFX = require("GFX.AlkamistGFX")
-local Prototype = require("Prototype")
+local Widget = require("GUI.Widget")
 
-local BoxSelect = {
-    x1 = 0,
-    x2 = 0,
-    y1 = 0,
-    y2 = 0,
-    insideColor = {1.0, 1.0, 1.0, -0.04, 1},
-    edgeColor = {1.0, 1.0, 1.0, 0.2, 1},
-    isActive = false
-}
+local function BoxSelect(parameters)
+    local parameters = parameters or {}
+    local self = Widget()
 
-function BoxSelect:new(parameters)
-    local element = GFX.createElement(parameters)
-    return Prototype.addPrototypes(element, { BoxSelect })
-end
+    local _x1 = 0
+    local _x2 = 0
+    local _y1 = 0
+    local _y2 = 0
+    local _insideColor = parameters.insideColor or {0, 0, 0, 0.3, 0}
+    local _edgeColor = parameters.edgeColor or {1, 1, 1, 0.6, 0}
+    local _isActive = false
 
-function BoxSelect:startSelection(startingX, startingY)
-    self.x1 = startingX
-    self.x2 = startingX
-    self.y1 = startingY
-    self.y2 = startingY
+    function self.startSelection(startingX, startingY)
+        _x1 = startingX
+        _x2 = startingX
+        _y1 = startingY
+        _y2 = startingY
 
-    self:setX(startingX)
-    self:setY(startingY)
-    self:setWidth(0)
-    self:setHeight(0)
+        self.setX(startingX)
+        self.setY(startingY)
+        self.setWidth(0)
+        self.setHeight(0)
 
-    self:queueRedraw()
-end
-function BoxSelect:editSelection(editX, editY)
-    self.isActive = true
+        self.queueRedraw()
+    end
+    function self.editSelection(editX, editY)
+        _isActive = true
+        _x2 = editX
+        _y2 = editY
 
-    self.x2 = editX
-    self.y2 = editY
+        self.setX(math.min(_x1, _x2))
+        self.setY(math.min(_y1, _y2))
+        self.setWidth(math.abs(_x1 - _x2))
+        self.setHeight(math.abs(_y1 - _y2))
 
-    self:setX(math.min(self.x1, self.x2))
-    self:setY(math.min(self.y1, self.y2))
-    self:setWidth(math.abs(self.x1 - self.x2))
-    self:setHeight(math.abs(self.y1 - self.y2))
+        self.queueRedraw()
+    end
+    function self.makeSelection(parameters)
+        local thingsToSelect = parameters.thingsToSelect
+        local isInsideFunction = parameters.isInsideFunction
+        local setSelectedFunction = parameters.setSelectedFunction
+        local getSelectedFunction = parameters.getSelectedFunction
+        local shouldAdd = parameters.shouldAdd
+        local shouldInvert = parameters.shouldInvert
 
-    self:queueRedraw()
-end
-function BoxSelect:makeSelection(parameters)
-    local listOfThings = parameters.listOfThings
-    local isInsideFn = parameters.isInsideFn
-    local setSelectedFn = parameters.setSelectedFn
-    local getSelectedFn = parameters.getSelectedFn
-    local shouldAdd = parameters.shouldAdd
-    local shouldInvert = parameters.shouldInvert
+        for i = 1, #thingsToSelect do
+            local thing = thingsToSelect[i]
 
-    local numberOfThings = #listOfThings
-    for i = 1, numberOfThings do
-        local thing = listOfThings[i]
-
-        if isInsideFn(self, thing) then
-            if shouldInvert then
-                setSelectedFn(thing, not getSelectedFn(thing))
+            if isInsideFunction(self, thing) then
+                if shouldInvert then
+                    setSelectedFunction(thing, not getSelectedFunction(thing))
+                else
+                    setSelectedFunction(thing, true)
+                end
             else
-                setSelectedFn(thing, true)
-            end
-        else
-            if not shouldAdd and not shouldInvert then
-                setSelectedFn(thing, false)
+                if not shouldAdd and not shouldInvert then
+                    setSelectedFunction(thing, false)
+                end
             end
         end
+
+        _isActive = false
+        self.queueClear()
     end
-    self.isActive = false
-    self:queueClear()
-end
 
-function BoxSelect:draw()
-    local width = self:getWidth()
-    local height = self:getHeight()
+    function self.draw()
+        local width = self.getWidth()
+        local height = self.getHeight()
 
-    if self.isActive then
-        self:setColor(self.edgeColor)
-        self:drawRectangle(0, 0, width, height, false)
+        if _isActive then
+            self.setColor(_edgeColor)
+            self.drawRectangle(0, 0, width, height, false)
 
-        self:setColor(self.insideColor)
-        self:drawRectangle(1, 1, width - 2, height - 2, true)
+            self.setColor(_insideColor)
+            self.drawRectangle(1, 1, width - 2, height - 2, true)
+        end
     end
+
+    return self
 end
 
 return BoxSelect

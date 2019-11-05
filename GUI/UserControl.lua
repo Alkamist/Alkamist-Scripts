@@ -379,9 +379,9 @@ local function Keyboard(mouse)
     }
     local _keys = {}
 
-    function self.getCurrentCharacter()
-        return _currentCharacter
-    end
+    function self.getCurrentCharacter() return _currentCharacter end
+    function self.getModifiers() return _modifiers end
+    function self.getKeys() return _keys end
 
     function self.createKey(character)
         _keys[character] = KeyboardKey(_mouse, character)

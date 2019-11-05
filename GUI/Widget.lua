@@ -10,6 +10,7 @@ local function getNewDrawBuffer()
 end
 
 local function Widget(parameters, fromObject)
+    local parameters = parameters or {}
     local self = fromObject or {}
 
     local _drawBuffer = getNewDrawBuffer()
@@ -155,6 +156,7 @@ local function Widget(parameters, fromObject)
     end
     function self.doDrawFunction()
         if _shouldRedraw and self.draw then
+            _clearBuffer()
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = _drawBuffer
