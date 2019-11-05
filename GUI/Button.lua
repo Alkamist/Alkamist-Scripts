@@ -50,23 +50,23 @@ local function Button(parameters)
     end
     function self.glow()
         _glowState = true
-        _gui.queueRedraw(self)
+        --_gui.queueRedraw(self)
     end
     function self.unGlow()
         _glowState = false
-        _gui.queueRedraw(self)
+        --_gui.queueRedraw(self)
     end
     function self.press()
         _pressState.setState(true)
-        _gui.queueRedraw(self)
+        --_gui.queueRedraw(self)
     end
     function self.release()
         _pressState.setState(false)
-        _gui.queueRedraw(self)
+        --_gui.queueRedraw(self)
     end
     function self.toggle()
         _pressState.toggle()
-        _gui.queueRedraw(self)
+        --_gui.queueRedraw(self)
     end
 
     function self.handleDefaultMouseInteraction()
@@ -104,6 +104,29 @@ local function Button(parameters)
             _gui.setColor(_glowColor)
             _gui.drawRectangle(_x, _y, _width, _height, true)
         end
+    end
+
+    local function _isInside(x, y)
+        return x >= _x and x <= _x + _width
+           and y >= _y and y <= _y + _height
+    end
+    function self.getIsInsideFunction()
+        return _isInside
+    end
+    function self.setIsInsideFunction(fn)
+        _isInside = fn
+    end
+
+    local _updateFunctions = {
+        self.updateStates,
+        self.handleDefaultMouseInteraction,
+        self.handleDefaultDrawing
+    }
+    function self.getUpdateFunction(update)
+        return _updateFunctions[update]
+    end
+    function self.setUpdateFunction(update, fn)
+        _updateFunctions[update] = fn
     end
 
     return self

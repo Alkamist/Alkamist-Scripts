@@ -172,11 +172,13 @@ local function MouseControl(mouse)
     local self = {}
 
     local _mouse = mouse
+    local _elements = _mouse.getElements()
     local _pressState = Toggle(false)
     local _dragState = false
     local _isAlreadyDragging = false
     local _releaseState = Toggle(false)
     local _timeOfPreviousPress = nil
+    local _wasPressedInsideElement = {}
 
     function self.isPressed(element)
         local output = _pressState.getState()
@@ -190,7 +192,7 @@ local function MouseControl(mouse)
     end
     function self.justReleased(element)
         local output = _pressState:justTurnedOff()
-        if element then return output and element.mouseControlWasPressedInside(self) end
+        if element then return output and _wasPressedInsideElement(element) end
         return output
     end
     function self.getTimeSincePreviousPress()
@@ -206,17 +208,17 @@ local function MouseControl(mouse)
     end
     function self.justDragged(element)
         local output = _dragState
-        if element then return output and element.mouseControlWasPressedInside(self) end
+        if element then return output and _wasPressedInsideElement(element) end
         return output
     end
     function self.justStartedDragging(element)
         local output = _dragState and not _isAlreadyDragging
-        if element then return output and element.mouseControlWasPressedInside(self) end
+        if element then return output and _wasPressedInsideElement(element) end
         return output
     end
     function self.justStoppedDragging(element)
         local output = self.justReleased() and _isAlreadyDragging
-        if element then return output and element.mouseControlWasPressedInside(self) end
+        if element then return output and _wasPressedInsideElement(element) end
         return output
     end
 
@@ -226,6 +228,12 @@ local function MouseControl(mouse)
 
         _pressState.update(state)
         _releaseState:update(self.justReleased())
+
+        for i = 1, #_elements do
+            local element = _elements[i]
+            if self.justReleased() then _wasPressedInsideElement[element] = false end
+            if self.justPressed(element) then _wasPressedInsideElement[element] = true end
+        end
 
         if _dragState then _isAlreadyDragging = true end
         _dragState = _pressState.getState() and _mouse:justMoved()
@@ -265,7 +273,11 @@ local function Mouse()
     local _cap = 0
     local _wheel = 0
     local _hWheel = 0
+    local _elements = {}
 
+    function self.getElements()
+        return _elements
+    end
     function self.getCap()
         return _cap
     end
@@ -275,6 +287,9 @@ local function Mouse()
         right = MouseButton(self, 2)
     }
 
+    function self.setElements(elements)
+        _elements = elements
+    end
     function self.getButtons()
         return _buttons
     end
@@ -302,10 +317,12 @@ local function Mouse()
         return _hWheel ~= 0
     end
     function self.wasPreviouslyInside(element)
-        return element.absolutePointIsInside(_x.getPreviousValue(), _y.getPreviousValue())
+        local insideFn = element.getIsInsideFunction()
+        return insideFn(_x.getPreviousValue(), _y.getPreviousValue())
     end
     function self.isInside(element)
-        return element.absolutePointIsInside(_x.getValue(), _y.getValue())
+        local insideFn = element.getIsInsideFunction()
+        return insideFn(_x.getValue(), _y.getValue())
     end
     function self.justEntered(element)
         return self.isInside(element) and not self.wasPreviouslyInside(element)

@@ -85,16 +85,17 @@ GUI:run()]]--
 --    label = "test"
 --}
 
+GUI.setUpdatesPerFrame(3)
+
 local testButton1 = Button{
+    gui = GUI,
     x = 81,
     y = 200,
-    w = 400,
-    h = 400,
+    width = 400,
+    height = 400,
     label = "Fix Errors",
     toggleOnClick = true
 }
-function testButton1.update()
-end
 
 --function testButton1.update()
 --    Button.update(self)
@@ -143,5 +144,5 @@ end
 
 --GUI.addElements{ testButton1 }
 --testButton1:addElements{ testButton2 }
-
+GUI.addElements{ testButton1 }
 GUI.run()
