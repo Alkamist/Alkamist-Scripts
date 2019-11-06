@@ -3,7 +3,7 @@ local Widget = require("GUI.Widget")
 
 local function BoxSelect(parameters)
     local parameters = parameters or {}
-    local instance = Widget()
+    local instance = Widget(parameters)
 
     local _x1 = 0
     local _x2 = 0

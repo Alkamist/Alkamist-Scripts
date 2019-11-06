@@ -5,8 +5,9 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
-local function Button(parameters)
-    local instance = Widget(parameters)
+local function Button(parameters, fromObject)
+    local parameters = parameters or {}
+    local instance = Widget(parameters, fromObject)
 
     local _label = parameters.label or ""
     local _labelFont = parameters.labelFont or "Arial"

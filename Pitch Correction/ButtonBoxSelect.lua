@@ -16,7 +16,7 @@ GUI:initialize{
 GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 local testButton1 = Button{
-    mouse = GUI:getMouse(),
+    GUI = GUI,
     x = 80,
     y = 200,
     width = 400,
@@ -35,7 +35,7 @@ function testButton1:update()
     end
 end
 
-local thingsToSelect = {
+--[[local thingsToSelect = {
     testButton1
 }
 local function isInsideFunction(box, thing)
@@ -52,7 +52,7 @@ local function getSelectedFunction(thing)
     return thing:isPressed()
 end
 
-local boxSelect = BoxSelect()
+local boxSelect = BoxSelect{ GUI = GUI }
 
 function boxSelect.update()
     local mouse = GUI:getMouse()
@@ -79,7 +79,8 @@ function boxSelect.update()
             shouldInvert = keyboardModifiers.control:isPressed()
         }
     end
-end
+end]]--
 
-GUI:addWidgets{ testButton1, boxSelect }
+--GUI:addWidgets{ testButton1, boxSelect }
+GUI:addWidgets{ testButton1 }
 GUI:run()

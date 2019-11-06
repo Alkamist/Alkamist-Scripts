@@ -27,8 +27,8 @@ local analyzeButton = Button{
     GUI = GUI,
     x = 0,
     y = 0,
-    w = 80,
-    h = 25,
+    width = 80,
+    height = 25,
     label = "Analyze Pitch",
     color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
@@ -53,8 +53,8 @@ local fixErrorButton = Button{
     GUI = GUI,
     x = 81,
     y = 0,
-    w = 80,
-    h = 25,
+    width = 80,
+    height = 25,
     label = "Fix Errors",
     toggleOnClick = true
 }

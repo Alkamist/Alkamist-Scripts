@@ -5,7 +5,7 @@ local math = math
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
-local BoxSelect = require("GUI.BoxSelect")
+--local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
 --==============================================================
@@ -79,13 +79,10 @@ local function PitchEditor(parameters)
     local _editPixelRange = parameters.editPixelRange or 7
     local _scaleWithWindow = parameters.scaleWithWindow
     if _scaleWithWindow == nil then _scaleWithWindow = true end
-
     local _view = {
-        x = ViewAxis(),
-        y = ViewAxis()
+        x = ViewAxis{ scale = instance:getWidth() },
+        y = ViewAxis{ scale = instance:getHeight() }
     }
-    --local _track = nil
-    --local _take = PitchCorrectedTake:new()
 
     local _whiteKeyNumbers = getWhiteKeyNumbers()
     local _mouseTimeOnLeftDown = 0.0
@@ -94,14 +91,6 @@ local function PitchEditor(parameters)
     local _altKeyWasDownOnPointEdit = false
     local _fixErrorMode =  false
     local _enablePitchCorrections = true
-
-    --boxSelect = BoxSelect:new{
-    --    parent = instance,
-    --    thingsToSelect = _take.corrections
-    --}
-    --_elements = {
-    --    [1] = _boxSelect
-    --}
 
     function instance:pixelsToTime(pixelsRelativeToEditor)
         local width = instance:getWidth()
@@ -243,7 +232,6 @@ local function PitchEditor(parameters)
         instance:drawKeyBackgrounds()
     end
 
-    instance:handleWindowResize()
     return instance
 end
 
