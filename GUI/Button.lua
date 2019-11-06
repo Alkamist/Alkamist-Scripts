@@ -8,8 +8,6 @@ local Toggle = require("GUI.Toggle")
 local function Button(parameters)
     local instance = Widget(parameters)
 
-    local _mouse = parameters.mouse
-    local _mouseLeftButton = _mouse:getButtons().left
     local _label = parameters.label or ""
     local _labelFont = parameters.labelFont or "Arial"
     local _labelFontSize = parameters.labelFontSize or 14
@@ -59,16 +57,18 @@ local function Button(parameters)
         _pressState:update()
     end
     function instance:update()
+        local mouse = instance:getMouse()
+        local mouseLeftButton = mouse:getButtons().left
         if _glowOnMouseOver then
-            if _mouse:justEntered(instance) then instance:glow() end
-            if _mouse:justLeft(instance) then instance:unGlow() end
+            if mouse:justEntered(instance) then instance:glow() end
+            if mouse:justLeft(instance) then instance:unGlow() end
         end
         if _pressOnClick then
-            if _mouseLeftButton:justPressed(instance) then instance:press() end
-            if _mouseLeftButton:justReleased(instance) then instance:release() end
+            if mouseLeftButton:justPressed(instance) then instance:press() end
+            if mouseLeftButton:justReleased(instance) then instance:release() end
         end
         if _toggleOnClick then
-            if _mouseLeftButton:justPressed(instance) then instance:toggle() end
+            if mouseLeftButton:justPressed(instance) then instance:toggle() end
         end
     end
     function instance:draw()

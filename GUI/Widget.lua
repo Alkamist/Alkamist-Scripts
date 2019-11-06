@@ -13,6 +13,9 @@ local function Widget(parameters, fromObject)
     local parameters = parameters or {}
     local instance = fromObject or {}
 
+    local _GUI = parameters.GUI
+    local _mouse = _GUI:getMouse()
+    local _keyboard = _GUI:getKeyboard()
     local _drawBuffer = getNewDrawBuffer()
     local _x = parameters.x or 0
     local _y = parameters.y or 0
@@ -32,6 +35,15 @@ local function Widget(parameters, fromObject)
     end
     _clearBuffer()
 
+
+    function instance:getGUI() return _GUI end
+    function instance:getMouse() return _mouse end
+    function instance:getKeyboard() return _keyboard end
+    function instance:getRelativeMouseX() return _mouse:getX() - _x end
+    function instance:getRelativeMouseY() return _mouse:getY() - _y end
+    function instance:getPreviousRelativeMouseX() return _mouse:getPreviousX() - _x end
+    function instance:getPreviousRelativeMouseY() return _mouse:getPreviousY() - _y end
+    function instance:getY() return _y end
     function instance:getX() return _x end
     function instance:getY() return _y end
     function instance:getWidth() return _width end

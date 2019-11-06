@@ -28,6 +28,18 @@ local function GUI()
     function gui:getWidgets()
         return _widgets
     end
+    function gui:getWidth()
+        return _width:getValue()
+    end
+    function gui:getHeight()
+        return _height:getValue()
+    end
+    function gui:getWidthChange()
+        return _width:getChange()
+    end
+    function gui:getHeightChange()
+        return _height:getChange()
+    end
 
     function gui:setBackgroundColor(color)
         _backgroundColor = color

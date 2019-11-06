@@ -1,3 +1,5 @@
+local math = math
+
 local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
     if pointX == nil or pointY == nil or lineX1 == nil or lineY1 == nil or lineX2 == nil or lineY2 == nil then
         return 0.0
@@ -59,135 +61,130 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
     return numberInGroup + 1
 end
 
+local function PolyLine(parameters)
+    local instance = {}
 
+    _points = {}
+    _mostRecentInsertedIndex = nil
+    _isVertical = parameters.isVertical
+    if _isVertical == nil then _isVertical = true end
 
-local PolyLine = {}
-
-function PolyLine:new(init)
-    local init = init or {}
-    local self = setmetatable({}, { __index = self })
-
-    self.points = {}
-    self.mostRecentInsertedIndex = nil
-
-    if init.isHorizontal ~= nil then self.isHorizontal = init.isHorizontal else self.isHorizontal = true end
-
-    return self
-end
-
-function PolyLine:insertPoint(point)
-    local newIndex
-    if self.isHorizontal then
-        newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
-            return pointInLoop.x >= pointToInsert.x
-        end)
-    else
-        newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
-            return pointInLoop.y >= pointToInsert.y
-        end)
-    end
-    self.mostRecentInsertedIndex = newIndex
-end
-function PolyLine:sortPoints()
-    if self.isHorizontal then
-        table.sort(self.points, function(left, right)
-            return left.x < right.x
-        end)
-    else
-        table.sort(self.points, function(left, right)
-            return left.y < right.y
-        end)
-    end
-end
-function PolyLine:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
-    local numberOfPoints = #self.points
-    if numberOfPoints < 1 then return nil end
-
-    local lowestDistance
-    local lowestDistanceIndex = 1
-
-    for i = 1, numberOfPoints do
-        local point = self.points[i]
-        local nextPoint = self.points[i + 1]
-
-        local distance
-        if nextPoint then
-            distance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
+    function instance:insertPoint(point)
+        local newIndex
+        if _isVertical then
+            newIndex = insertThingIntoGroup(_points, point, function(pointInLoop, pointToInsert)
+                return pointInLoop.y >= pointToInsert.y
+            end)
+        else
+            newIndex = insertThingIntoGroup(_points, point, function(pointInLoop, pointToInsert)
+                return pointInLoop.x >= pointToInsert.x
+            end)
         end
-        lowestDistance = lowestDistance or distance
-
-        if distance and distance < lowestDistance then
-            lowestDistance = distance
-            lowestDistanceIndex = i
+        _mostRecentInsertedIndex = newIndex
+    end
+    function instance:sortPoints()
+        if _isVertical then
+            table.sort(_points, function(left, right)
+                return left.y < right.y
+            end)
+        else
+            table.sort(_points, function(left, right)
+                return left.x < right.x
+            end)
         end
     end
+    function instance:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
+        local numberOfPoints = #_points
+        if numberOfPoints < 1 then return nil end
 
-    return lowestDistanceIndex, lowestDistance
-end
-function PolyLine:getIndexAndDistanceOfPointClosestToPoint(x, y)
-    local numberOfPoints = #self.points
-    if numberOfPoints < 1 then return nil end
+        local lowestDistance
+        local lowestDistanceIndex = 1
 
-    local lowestDistance
-    local lowestDistanceIndex = 1
+        for i = 1, numberOfPoints do
+            local point = _points[i]
+            local nextPoint = _points[i + 1]
 
-    for i = 1, numberOfPoints do
-        local point = self.points[i]
+            local distance
+            if nextPoint then
+                distance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
+            end
+            lowestDistance = lowestDistance or distance
 
-        local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
-        lowestDistance = lowestDistance or distance
+            if distance and distance < lowestDistance then
+                lowestDistance = distance
+                lowestDistanceIndex = i
+            end
+        end
 
-        if distance and distance < lowestDistance then
-            lowestDistance = distance
-            lowestDistanceIndex = i
+        return lowestDistanceIndex, lowestDistance
+    end
+    function instance:getIndexAndDistanceOfPointClosestToPoint(x, y)
+        local numberOfPoints = #_points
+        if numberOfPoints < 1 then return nil end
+
+        local lowestDistance
+        local lowestDistanceIndex = 1
+
+        for i = 1, numberOfPoints do
+            local point = _points[i]
+
+            local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
+            lowestDistance = lowestDistance or distance
+
+            if distance and distance < lowestDistance then
+                lowestDistance = distance
+                lowestDistanceIndex = i
+            end
+        end
+
+        return lowestDistanceIndex, lowestDistance
+    end
+    function instance:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, distance)
+        local index
+        local indexIsPoint
+        local segmentIndex, segmentDistance = instance:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
+        local pointIndex, pointDistance = instance:getIndexAndDistanceOfPointClosestToPoint(x, y)
+        local pointIsClose = false
+        local segmentIsClose = false
+
+        if pointDistance then pointIsClose = pointDistance <= distance end
+        if segmentDistance then segmentIsClose = segmentDistance <= distance end
+
+        if pointIsClose or segmentIsClose then
+            if segmentIsClose then
+                index = segmentIndex
+                indexIsPoint = false
+            end
+            if pointIsClose then
+                index = pointIndex
+                indexIsPoint = true
+            end
+        end
+        return index, indexIsPoint
+    end
+
+    function instance:drawSegment(index, color)
+        local point = _points[index]
+        local nextPoint = _points[index + 1]
+        if point == nil then return end
+        if nextPoint == nil then return end
+
+        instance:setColor(color)
+        instance:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+    function instance:drawPoint(index, color, size, asSquare)
+        local point = _points[index]
+        if point == nil then return end
+
+        instance:setColor(color)
+        if asSquare then
+            instance:drawRectangle(point.x - 1, point.y - 1, size, size, true)
+        else
+            instance:drawCircle(point.x, point.y, size, true, true)
         end
     end
 
-    return lowestDistanceIndex, lowestDistance
-end
-function PolyLine:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, distance)
-    local index
-    local indexIsPoint
-    local segmentIndex, segmentDistance = self:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
-    local pointIndex, pointDistance = self:getIndexAndDistanceOfPointClosestToPoint(x, y)
-    local pointIsClose = false
-    local segmentIsClose = false
-
-    if pointDistance then pointIsClose = pointDistance <= distance end
-    if segmentDistance then segmentIsClose = segmentDistance <= distance end
-
-    if pointIsClose or segmentIsClose then
-        if segmentIsClose then
-            index = segmentIndex
-            indexIsPoint = false
-        end
-        if pointIsClose then
-            index = pointIndex
-            indexIsPoint = true
-        end
-    end
-    return index, indexIsPoint
-end
-
-function PolyLine:drawSegment(index, color)
-    local point = self.points[index]
-    local nextPoint = self.points[index + 1]
-    if point == nil then return end
-    if nextPoint == nil then return end
-
-    self:setColor(color)
-    self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-end
-function PolyLine:drawPoint(index, color, size, asSquare)
-    local point = self.points[index]
-    if point == nil then return end
-
-    self:setColor(color)
-    if asSquare then
-        self:drawRectangle(point.x - 1, point.y - 1, size, size, true)
-    else
-        self:drawCircle(point.x, point.y, size, true, true)
-    end
+    return instance
 end
 
 return PolyLine

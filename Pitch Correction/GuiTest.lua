@@ -16,6 +16,7 @@ GUI:initialize{
 GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 local pitchEditor = PitchEditor{
+    GUI = GUI,
     x = 0,
     y = 26,
     width = 1000,
@@ -23,6 +24,7 @@ local pitchEditor = PitchEditor{
 }
 
 local analyzeButton = Button{
+    GUI = GUI,
     x = 0,
     y = 0,
     w = 80,
@@ -34,7 +36,7 @@ local analyzeButtonOriginalUpdate = analyzeButton.update
 function analyzeButton:update()
     analyzeButtonOriginalUpdate()
     if analyzeButton:justPressed() then
-        if pitchEditor:sVisible() then
+        if pitchEditor:isVisible() then
             pitchEditor:analyzeTakePitches{
                 windowStep = 0.04,
                 windowOverlap = 2.0,
@@ -48,6 +50,7 @@ function analyzeButton:update()
 end
 
 local fixErrorButton = Button{
+    GUI = GUI,
     x = 81,
     y = 0,
     w = 80,
@@ -67,5 +70,5 @@ function fixErrorButton:update()
     end
 end
 
-GUI.addWidgets{ pitchEditor, analyzeButton, fixErrorButton }
-GUI.run()
+GUI:addWidgets{ pitchEditor, analyzeButton, fixErrorButton }
+GUI:run()

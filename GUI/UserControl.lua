@@ -286,6 +286,9 @@ local function Mouse()
     function instance:getXChange() return _x:getChange() end
     function instance:getYChange() return _y:getChange() end
 
+    function instance:getWheel() return _wheel end
+    function instance:getHWheel() return _hWheel end
+
     function instance:setWidgets(widgets)
         _widgets = widgets
     end
