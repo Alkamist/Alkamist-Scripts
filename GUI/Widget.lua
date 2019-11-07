@@ -16,6 +16,10 @@ local function Widget(parameters, fromObject)
     local parameters = parameters or {}
     parameters.drawBuffer = parameters.drawBuffer or getNewDrawBuffer()
 
+    local instance = Drawable(parameters, fromObject)
+    instance.width = parameters.width or 0
+    instance.height = parameters.height or 0
+
     local _GUI = parameters.GUI
     local _mouse = _GUI:getMouse()
     local _keyboard = _GUI:getKeyboard()
@@ -26,53 +30,22 @@ local function Widget(parameters, fromObject)
     if _shouldRedraw == nil then _shouldRedraw = true end
     local _shouldDrawDirectly = false
 
-    local instance = Drawable(parameters, fromObject)
-    local _drawable = {
-        setX = instance.setX,
-        setY = instance.setY,
-        changeX = instance.changeX,
-        changeY = instance.changeY
-    }
-    if not _shouldDrawDirectly then
-        _drawable:setX(0)
-        _drawable:setY(0)
-    end
-
-    instance = Rectangle(parameters, instance)
-    local _rectangle = {
-        setX = instance.setX,
-        setY = instance.setY,
-        changeX = instance.changeX,
-        changeY = instance.changeY
-    }
-
-    function instance:setX(value)
-        _rectangle:setX(value)
-        if _shouldDrawDirectly then _drawable:setX(value) end
-    end
-    function instance:setY(value)
-        _rectangle:setY(value)
-        if _shouldDrawDirectly then _drawable:setY(value) end
-    end
-    function instance:changeX(change)
-        _rectangle:changeX(change)
-        if _shouldDrawDirectly then _drawable:changeX(change) end
-    end
-    function instance:changeY(change)
-        _rectangle:changeY(change)
-        if _shouldDrawDirectly then _drawable:changeY(change) end
-    end
-
     function instance:getGUI() return _GUI end
     function instance:getMouse() return _mouse end
     function instance:getKeyboard() return _keyboard end
-    function instance:getRelativeMouseX() return instance:getMouse():getX() - instance:getX() end
-    function instance:getRelativeMouseY() return instance:getMouse():getY() - instance:getY() end
-    function instance:getPreviousRelativeMouseX() return instance:getMouse():getPreviousX() - instance:getX() end
-    function instance:getPreviousRelativeMouseY() return instance:getMouse():getPreviousY() - instance:getY() end
+    function instance:getRelativeMouseX() return instance:getMouse():getX() - instance.x end
+    function instance:getRelativeMouseY() return instance:getMouse():getY() - instance.y end
+    function instance:getPreviousRelativeMouseX() return instance:getMouse():getPreviousX() - instance.x end
+    function instance:getPreviousRelativeMouseY() return instance:getMouse():getPreviousY() - instance.y end
     function instance:shouldRedraw() return _shouldRedraw end
     function instance:shouldClear() return _shouldClear end
     function instance:isVisible() return _isVisible end
+    function instance:pointIsInside(pointX, pointY)
+        local x = instance.x
+        local y = instance.y
+        return pointX >= x and pointX <= x + instance.width
+           and pointY >= y and pointY <= y + instance.height
+    end
 
     function instance:setVisibility(value) _isVisible = value end
     function instance:toggleVisibility() instance:setVisibility(not instance:isVisible()) end
@@ -82,8 +55,8 @@ local function Widget(parameters, fromObject)
     function instance:queueClear() _shouldClear = true end
 
     local function _clearBuffer()
-        gfx.setimgdim(instance:getDrawBuffer(), -1, -1)
-        gfx.setimgdim(instance:getDrawBuffer(), instance:getWidth(), instance:getHeight())
+        gfx.setimgdim(instance.drawBuffer, -1, -1)
+        gfx.setimgdim(instance.drawBuffer, instance.width, instance.height)
     end
     function instance:doBeginUpdateFunction()
         if instance.beginUpdate then instance:beginUpdate() end
@@ -96,7 +69,7 @@ local function Widget(parameters, fromObject)
             _clearBuffer()
             gfx.a = 1.0
             gfx.mode = 0
-            gfx.dest = instance:getDrawBuffer()
+            gfx.dest = instance.drawBuffer
             instance:draw()
 
         elseif instance:shouldClear() then
@@ -108,14 +81,14 @@ local function Widget(parameters, fromObject)
     end
     function instance:blitToMainWindow()
         if instance:isVisible() then
-            local x = instance:getX()
-            local y = instance:getY()
-            local width = instance:getWidth()
-            local height = instance:getHeight()
+            local x = instance.x
+            local y = instance.y
+            local width = instance.width
+            local height = instance.height
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = -1
-            gfx.blit(instance:getDrawBuffer(), 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+            gfx.blit(instance.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
         end
     end
     function instance:doEndUpdateFunction()

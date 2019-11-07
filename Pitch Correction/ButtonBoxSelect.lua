@@ -24,14 +24,14 @@ local testButton1 = Button{
     label = "Fix Errors",
     --toggleOnClick = true
 }
-local originalTestButton1Update = testButton1.update
+
 function testButton1:update()
     originalTestButton1Update()
     local mouse = GUI:getMouse()
     local mouseLeftButton = mouse:getButtons().left
     if mouseLeftButton:justDragged(testButton1) then
-        testButton1:changeX(mouse:getXChange())
-        testButton1:changeY(mouse:getYChange())
+        testButton1.x = testButton1.x + mouse:getXChange()
+        testButton1.y = testButton1.y + mouse:getYChange()
     end
 end
 

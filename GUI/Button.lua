@@ -73,8 +73,8 @@ local function Button(parameters, fromObject)
         end
     end
     function instance:draw()
-        local width = instance:getWidth()
-        local height = instance:getHeight()
+        local width = instance.width
+        local height = instance.height
 
         -- Draw the main instance.
         instance:setColor(_color)
