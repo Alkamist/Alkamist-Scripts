@@ -1,31 +1,20 @@
-local function TrackedNumber(initialValue)
-    local instance = {}
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
 
-    local _current = initialValue or 0
-    local _previous = initialValue or 0
+local TrackedNumber = Prototype:new{
+    currentValue = false,
+    previousValue = false
+}
 
-    function instance:justChanged()
-        return _current ~= _previous
-    end
-    function instance:getChange()
-        return _current - _previous
-    end
-    function instance:getValue()
-        return _current
-    end
-    function instance:getPreviousValue()
-        return _previous
-    end
+function Toggle:get() return self.currentValue end
+function Toggle:set(value) self.currentValue = value end
 
-    function instance:setValue(value)
-        _current = value
-    end
-    function instance:update(value)
-        _previous = _current
-        if value ~= nil then _current = value end
-    end
+function TrackedNumber:justChanged() return self.currentValue ~= self.previousValue end
+function TrackedNumber:getChange() return self.currentValue - self.previousValue end
 
-    return instance
+function TrackedNumber:update(value)
+    self.previousValue = self.currentValue
+    if value ~= nil then self.currentValue = value end
 end
 
 return TrackedNumber

@@ -1,5 +1,6 @@
 local setmetatable = setmetatable
 local rawget = rawget
+local rawset = rawset
 
 local function copyTable(input, seen)
     if type(input) ~= "table" then return input end
@@ -12,63 +13,75 @@ local function copyTable(input, seen)
     end
     return setmetatable(output, getmetatable(input))
 end
-local function tableAlreadyHasPrototype(inputTable, prototype)
-    local tablePrototypes = inputTable._prototypes
-    if tablePrototypes == nil then return false end
-    for i = 1, #tablePrototypes do
-        local tablePrototype = tablePrototypes[i]
-        if tablePrototype == prototype then return true end
-    end
-    return false
-end
-local function initializeTableWithRespectToPrototype(inputTable, prototype)
-    if not tableAlreadyHasPrototype(inputTable, prototype) then return inputTable end
-    for key, value in next, prototype, nil do
-        inputTable[key] = copyTable(value)
-    end
-    return inputTable
-end
-local function addPrototypeToTable(inputTable, prototype)
-    for key, value in next, prototype, nil do
-        inputTable[key] = inputTable[key] or copyTable(rawget(prototype, key))
-    end
-    inputTable._prototypes[#inputTable._prototypes + 1] = prototype
-    return inputTable
-end
 
 local Prototype = {}
-local Prototype_mt = {
-    __index = function(self, key)
-        local prototypes = self._prototypes
-        for i = 1, #prototypes do
-            local prototype = prototypes[i]
-            local value = prototype[key]
-            if value ~= nil then return value end
+
+function Prototype:new(fields)
+    return {
+        new = function(self, initialValues)
+            local initialValues = initialValues or {}
+            local copiedFields = copyTable(fields)
+
+            local newInstance = setmetatable({}, {
+                __index = function(t, k)
+                    local field = copiedFields[k]
+                    if field ~= nil then
+                        if type(field) == "table" then
+                            return field:get()
+                        end
+                        return field
+                    end
+                    return rawget(t, k)
+                end,
+                __newindex = function(t, k, v)
+                    local field = copiedFields[k]
+                    if field ~= nil then
+                        if type(field) == "table" then
+                            return field:set(v)
+                        end
+                        field = v
+                    end
+                    rawset(t, k, v)
+                end
+            })
+
+            function newInstance:initialize()
+                for k, v in pairs(initialValues) do
+                    newInstance[k] = v
+                end
+            end
+
+            newInstance:initialize()
+
+            return newInstance
         end
-        return Prototype[key]
-    end
+    }
+end
+
+local Builder = Prototype:new{
+    x = 7,
+    y = 8,
+    get = function(self) return self.x end,
+    set = function(self, value) self.x = value end
 }
 
-function Prototype:addPrototypes(prototypes)
-    local self = self or {}
-    self._prototypes = self._prototypes or {}
-    for i = 1, #prototypes do
-        local prototype = prototypes[i]
-        if not tableAlreadyHasPrototype(self, prototype) then
-            addPrototypeToTable(self, prototype)
-        end
-    end
-    return setmetatable(self, Prototype_mt)
-end
-function Prototype:initializeWithPrototypes(prototypes)
-    local prototypes = prototypes or self._prototypes
-    for i = #prototypes, 1, -1 do
-        initializeTableWithRespectToPrototype(self, prototypes[i])
-    end
-    return self
-end
-function Prototype:getPrototypes()
-    return self._prototypes
-end
+local Test1 = Prototype:new{
+    x = 1,
+    y = 2,
+    z = {
+        x = 12341234,
+        get = function(self) return self.x end,
+        set = function(self, value) self.x = value end
+    },
+    builder = Builder:new{
+        x = 20
+    }
+}
+
+local test1 = Test1:new()
+
+print(test1.builder)
+test1.builder = 5
+print(test1.builder)
 
 return Prototype

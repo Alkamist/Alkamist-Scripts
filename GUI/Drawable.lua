@@ -15,26 +15,19 @@ local gfxSetFont = gfx.setfont
 local gfxMeasureStr = gfx.measurestr
 local gfxDrawStr = gfx.drawstr
 
-local Drawable = {}
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
 
-function Drawable:new(parameters)
-    local self = setmetatable({}, { __index = self })
-    self:initialize(parameters)
-    return self
-end
-function Drawable:initialize(parameters)
-    self:setX(parameters.x or 0)
-    self:setY(parameters.y or 0)
-    self:setDrawBuffer(parameters.drawBuffer or -1)
-end
-
-function self:getX() return self._x end
-function self:getY() return self._y end
-function self:getDrawBuffer() return self._drawBuffer end
-
-function self:setX(value) self._x = value end
-function self:setY(value) self._y = value end
-function self:setDrawBuffer(value) self._drawBuffer = value end
+local Drawable = Prototype:new{
+    x = 0,
+    y = 0,
+    drawBuffer = -1,
+    test = {
+        value = Toggle:new(false),
+        get = function(self) return self:getValue() end,
+        set = function(self, value) self:setValue(value) end
+    }
+}
 
 function Drawable:setColor(color)
     local mode = color[5] or 0
@@ -44,29 +37,29 @@ function Drawable:setBlendMode(mode)
     gfx.mode = mode
 end
 function Drawable:drawRectangle(x, y, w, h, filled)
-    local x = x + self:getX()
-    local y = y + self:getY()
-    gfx.dest = self:getDrawBuffer()
+    local x = x + self.x
+    local y = y + self.y
+    gfx.dest = self.drawBuffer
     gfxRect(x, y, w, h, filled)
 end
 function Drawable:drawLine(x, y, x2, y2, antiAliased)
-    local _x = self:getX()
-    local _y = self:getY()
+    local _x = self.x
+    local _y = self.y
     local x = x + _x
     local y = y + _y
     local x2 = x2 + _x
     local y2 = y2 + _y
-    gfx.dest = self:getDrawBuffer()
+    gfx.dest = self.drawBuffer
     gfxLine(x, y, x2, y2, antiAliased)
 end
 function Drawable:drawCircle(x, y, r, filled, antiAliased)
-    local x = x + self:getX()
-    local y = y + self:getY()
-    gfx.dest = self:getDrawBuffer()
+    local x = x + self.x
+    local y = y + self.y
+    gfx.dest = self.drawBuffer
     gfxCircle(x, y, r, filled, antiAliased)
 end
 function Drawable:drawPolygon(filled, ...)
-    gfx.dest = self:getDrawBuffer()
+    gfx.dest = self.drawBuffer
     if filled then
         gfxTriangle(...)
     else
@@ -84,9 +77,9 @@ function Drawable:drawPolygon(filled, ...)
     end
 end
 function Drawable:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-    local x = x + self:getX()
-    local y = y + self:getY()
-    gfx.dest = self:getDrawBuffer()
+    local x = x + self.x
+    local y = y + self.y
+    gfx.dest = self.drawBuffer
     local aa = antiAliased or 1
     filled = filled or 0
     w = mathMax(0, w - 1)
@@ -127,11 +120,11 @@ function Drawable:measureString(str)
     return gfxMeasureStr(str)
 end
 function Drawable:drawString(str, x, y, flags, right, bottom)
-    local x = x + self:getX()
-    local y = y + self:getY()
-    local right = right + self:getX()
-    local bottom = bottom + self:getY()
-    gfx.dest = self:getDrawBuffer()
+    local x = x + self.x
+    local y = y + self.y
+    local right = right + self.x
+    local bottom = bottom + self.y
+    gfx.dest = self.drawBuffer
     gfx.x = x
     gfx.y = y
     if flags then

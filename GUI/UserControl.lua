@@ -168,97 +168,91 @@ local TrackedNumber = require("GUI.TrackedNumber")
 --== Mouse =====================================================
 --==============================================================
 
-local function MouseControl(mouse)
-    local instance = {}
+local MouseControl = Prototype:new{
+    mouse = {},
+    wasPressedInsideWidget = {},
+    pressState = Toggle:new(),
+    dragState = false,
+    isAlreadyDragging = false,
+    wasJustReleasedLastFrame = false,
+    timeOfPreviousPress = 0
+}
 
-    local _mouse = mouse
-    local _pressState = Toggle(false)
-    local _dragState = false
-    local _isAlreadyDragging = false
-    local _wasJustReleasedLastFrame = false
-    local _timeOfPreviousPress = nil
-    local _wasPressedInsideWidget = {}
+function MouseControl:isPressed(widget)
+    local output = self.pressState
+    if widget then return output and self.mouse:isInside(widget) end
+    return output
+end
+function MouseControl:justPressed(widget)
+    local output = self.pressState:justTurnedOn()
+    if widget then return output and self.mouse:isInside(widget) end
+    return output
+end
+function MouseControl:justReleased(widget)
+    local output = self.pressState:justTurnedOff()
+    if widget then return output and self.wasPressedInsideWidget[widget] end
+    return output
+end
+function MouseControl:getTimeSincePreviousPress()
+    if not self.timeOfPreviousPress then return nil end
+    return reaper.time_precise() - self.timeOfPreviousPress
+end
+function MouseControl:justDoublePressed(widget)
+    local timeSince = self:getTimeSincePreviousPress()
+    if timeSince == nil then return false end
+    local output = self:justPressed() and timeSince <= 0.5
+    if widget then return output and self.mouse:isInside(widget) end
+    return output
+end
+function MouseControl:justDragged(widget)
+    local output = self.dragState
+    if widget then return output and self.wasPressedInsideWidget[widget] end
+    return output
+end
+function MouseControl:justStartedDragging(widget)
+    local output = self.dragState and not self.isAlreadyDragging
+    if widget then return output and self.wasPressedInsideWidget[widget] end
+    return output
+end
+function MouseControl:justStoppedDragging(widget)
+    local output = self:justReleased() and self.isAlreadyDragging
+    if widget then return output and self.wasPressedInsideWidget[widget] end
+    return output
+end
 
-    function instance:isPressed(widget)
-        local output = _pressState:getState()
-        if widget then return output and _mouse:isInside(widget) end
-        return output
-    end
-    function instance:justPressed(widget)
-        local output = _pressState:justTurnedOn()
-        if widget then return output and _mouse:isInside(widget) end
-        return output
-    end
-    function instance:justReleased(widget)
-        local output = _pressState:justTurnedOff()
-        if widget then return output and _wasPressedInsideWidget[widget] end
-        return output
-    end
-    function instance:getTimeSincePreviousPress()
-        if not _timeOfPreviousPress then return nil end
-        return reaper.time_precise() - _timeOfPreviousPress
-    end
-    function instance:justDoublePressed(widget)
-        local timeSince = instance:getTimeSincePreviousPress()
-        if timeSince == nil then return false end
-        local output = instance:justPressed() and timeSince <= 0.5
-        if widget then return output and _mouse:isInside(widget) end
-        return output
-    end
-    function instance:justDragged(widget)
-        local output = _dragState
-        if widget then return output and _wasPressedInsideWidget[widget] end
-        return output
-    end
-    function instance:justStartedDragging(widget)
-        local output = _dragState and not _isAlreadyDragging
-        if widget then return output and _wasPressedInsideWidget[widget] end
-        return output
-    end
-    function instance:justStoppedDragging(widget)
-        local output = instance:justReleased() and _isAlreadyDragging
-        if widget then return output and _wasPressedInsideWidget[widget] end
-        return output
-    end
+function MouseControl:update(state)
+    local widgets = self.mouse:getWidgets()
 
-    function instance:update(state)
-        local widgets = _mouse:getWidgets()
+    if self:justPressed() then self.timeOfPreviousPress = reaper.time_precise() end
+    if self:justReleased() then self.isAlreadyDragging = false end
 
-        if instance:justPressed() then _timeOfPreviousPress = reaper.time_precise() end
-        if instance:justReleased() then _isAlreadyDragging = false end
+    self.wasJustReleasedLastFrame = self:justReleased()
+    self.pressState:update(state)
 
-        _wasJustReleasedLastFrame = instance:justReleased()
-        _pressState:update(state)
-
-        for i = 1, #widgets do
-            local widget = widgets[i]
-            if _wasJustReleasedLastFrame then _wasPressedInsideWidget[widget] = false end
-            if instance:justPressed(widget) then _wasPressedInsideWidget[widget] = true end
-        end
-
-        if _dragState then _isAlreadyDragging = true end
-        _dragState = _pressState:getState() and _mouse:justMoved()
+    for i = 1, #widgets do
+        local widget = widgets[i]
+        if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
+        if self:justPressed(widget) then self.wasPressedInsideWidget[widget] = true end
     end
 
-    return instance
+    if self.dragState then self.isAlreadyDragging = true end
+    self.dragState = self.pressState:getState() and self.mouse:justMoved()
 end
 
 local function MouseButton(mouse, bitValue)
-    local instance = MouseControl(mouse)
+    local instance = MouseControl:new{ mouse = mouse }
 
-    local _mouse = mouse
-    local _bitValue = bitValue or 0
+    instance.bitValue = bitValue or 0
 
-    local _mouseControlUpdate = instance.update
     function instance:update()
-        _mouseControlUpdate(instance, _mouse:getCap() & _bitValue == _bitValue)
+        MouseControl.update(instance, instance.mouse:getCap() & instance.bitValue == instance.bitValue)
     end
 
     return instance
 end
 
 local function Mouse()
-    local instance = {}
+    local self = {}
 
     local _x = TrackedNumber(0)
     local _y = TrackedNumber(0)
@@ -267,35 +261,35 @@ local function Mouse()
     local _hWheel = 0
     local _widgets = {}
 
-    function instance:getWidgets()
+    function self:getWidgets()
         return _widgets
     end
-    function instance:getCap()
+    function self:getCap()
         return _cap
     end
     local _buttons = {
-        left = MouseButton(instance, 1),
-        middle = MouseButton(instance, 64),
-        right = MouseButton(instance, 2)
+        left = MouseButton(self, 1),
+        middle = MouseButton(self, 64),
+        right = MouseButton(self, 2)
     }
 
-    function instance:getX() return _x:getValue() end
-    function instance:getY() return _y:getValue() end
-    function instance:getPreviousX() return _x:getPreviousValue() end
-    function instance:getPreviousY() return _y:getPreviousValue() end
-    function instance:getXChange() return _x:getChange() end
-    function instance:getYChange() return _y:getChange() end
+    function self:getX() return _x:getValue() end
+    function self:getY() return _y:getValue() end
+    function self:getPreviousX() return _x:getPreviousValue() end
+    function self:getPreviousY() return _y:getPreviousValue() end
+    function self:getXChange() return _x:getChange() end
+    function self:getYChange() return _y:getChange() end
 
-    function instance:getWheel() return _wheel end
-    function instance:getHWheel() return _hWheel end
+    function self:getWheel() return _wheel end
+    function self:getHWheel() return _hWheel end
 
-    function instance:setWidgets(widgets)
+    function self:setWidgets(widgets)
         _widgets = widgets
     end
-    function instance:getButtons()
+    function self:getButtons()
         return _buttons
     end
-    function instance:update()
+    function self:update()
         _x:update(gfx.mouse_x)
         _y:update(gfx.mouse_y)
         _cap = gfx.mouse_cap
@@ -309,29 +303,29 @@ local function Mouse()
         _buttons.middle:update()
         _buttons.right:update()
     end
-    function instance:justMoved()
+    function self:justMoved()
         return _x:justChanged() or _y:justChanged()
     end
-    function instance:wheelJustMoved()
+    function self:wheelJustMoved()
         return _wheel ~= 0
     end
-    function instance:hWheelJustMoved()
+    function self:hWheelJustMoved()
         return _hWheel ~= 0
     end
-    function instance:wasPreviouslyInside(widget)
+    function self:wasPreviouslyInside(widget)
         return widget:pointIsInside(_x:getPreviousValue(), _y:getPreviousValue())
     end
-    function instance:isInside(widget)
+    function self:isInside(widget)
         return widget:pointIsInside(_x:getValue(), _y:getValue())
     end
-    function instance:justEntered(widget)
-        return instance:isInside(widget) and not instance:wasPreviouslyInside(widget)
+    function self:justEntered(widget)
+        return self:isInside(widget) and not self:wasPreviouslyInside(widget)
     end
-    function instance:justLeft(widget)
-        return not instance:isInside(widget) and instance:wasPreviouslyInside(widget)
+    function self:justLeft(widget)
+        return not self:isInside(widget) and self:wasPreviouslyInside(widget)
     end
 
-    return instance
+    return self
 end
 
 --==============================================================
@@ -339,45 +333,45 @@ end
 --==============================================================
 
 local function KeyboardKey(mouse, character)
-    local instance = MouseControl(mouse)
+    local self = MouseControl(mouse)
 
     local _character = character or ""
 
-    local _mouseControlUpdate = instance.update
-    function instance:update()
-        _mouseControlUpdate(instance, gfx.getchar(characterTable[_character]) > 0)
+    local _mouseControlUpdate = self.update
+    function self:update()
+        _mouseControlUpdate(self, gfx.getchar(characterTable[_character]) > 0)
     end
 
-    return instance
+    return self
 end
 
 local function Keyboard(mouse)
-    local instance = {}
+    local self = {}
 
-    local _mouse = mouse
+    local self.mouse = mouse
     local _currentCharacter = nil
     local _modifiers = {
-        shift = MouseButton(_mouse, 8),
-        control = MouseButton(_mouse, 4),
-        windows = MouseButton(_mouse, 32),
-        alt = MouseButton(_mouse, 16)
+        shift = MouseButton(self.mouse, 8),
+        control = MouseButton(self.mouse, 4),
+        windows = MouseButton(self.mouse, 32),
+        alt = MouseButton(self.mouse, 16)
     }
     local _keys = {}
 
-    function instance:getCurrentCharacter() return _currentCharacter end
-    function instance:getModifiers() return _modifiers end
-    function instance:getKeys() return _keys end
+    function self:getCurrentCharacter() return _currentCharacter end
+    function self:getModifiers() return _modifiers end
+    function self:getKeys() return _keys end
 
-    function instance:createKey(character)
-        _keys[character] = KeyboardKey(_mouse, character)
+    function self:createKey(character)
+        _keys[character] = KeyboardKey(self.mouse, character)
     end
-    function instance:update()
+    function self:update()
         for name, key in pairs(_modifiers) do key:update() end
         for name, key in pairs(_keys) do key:update() end
         _currentCharacter = characterTableInverted[gfx.getchar()]
     end
 
-    return instance
+    return self
 end
 
 local UserControl = { mouse = Mouse() }
