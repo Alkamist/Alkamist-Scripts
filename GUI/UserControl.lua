@@ -168,15 +168,24 @@ local TrackedNumber = require("GUI.TrackedNumber")
 --== Mouse =====================================================
 --==============================================================
 
-local MouseControl = Prototype:new{
-    mouse = {},
-    wasPressedInsideWidget = {},
-    pressState = Toggle:new(),
-    dragState = false,
-    isAlreadyDragging = false,
-    wasJustReleasedLastFrame = false,
-    timeOfPreviousPress = 0
+local MouseControl = {}
+MouseControl.mouse = {}
+MouseControl.wasPressedInsideWidget = {}
+MouseControl.pressState = Toggle:new()
+MouseControl.dragState = false
+MouseControl.isAlreadyDragging = false
+MouseControl.wasJustReleasedLastFrame = false
+MouseControl.timeOfPreviousPress = 0
+MouseControl.timeSincePreviousPress = {
+    get = function(self)
+        if not self.timeOfPreviousPress then return nil end
+        return reaper.time_precise() - self.timeOfPreviousPress
+    end
 }
+MouseControl.isPressed = { from = "pressState.currentState" }
+MouseControl.justPressed = { from = "pressState.justTurnedOn" }
+MouseControl.justReleased = { from = "pressState.justTurnedOff" }
+MouseControl.justDragged = { from = "dragState" }
 
 function MouseControl:isPressed(widget)
     local output = self.pressState
@@ -192,10 +201,6 @@ function MouseControl:justReleased(widget)
     local output = self.pressState:justTurnedOff()
     if widget then return output and self.wasPressedInsideWidget[widget] end
     return output
-end
-function MouseControl:getTimeSincePreviousPress()
-    if not self.timeOfPreviousPress then return nil end
-    return reaper.time_precise() - self.timeOfPreviousPress
 end
 function MouseControl:justDoublePressed(widget)
     local timeSince = self:getTimeSincePreviousPress()
@@ -238,6 +243,8 @@ function MouseControl:update(state)
     if self.dragState then self.isAlreadyDragging = true end
     self.dragState = self.pressState:getState() and self.mouse:justMoved()
 end
+
+MouseControl = Prototype:new(MouseControl)
 
 local function MouseButton(mouse, bitValue)
     local instance = MouseControl:new{ mouse = mouse }

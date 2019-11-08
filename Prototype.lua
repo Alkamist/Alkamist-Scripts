@@ -62,25 +62,21 @@ function Prototype:new(fields)
                 local field = copiedFields[k]
                 if field ~= nil then
                     if type(field) == "table" then
-                        if field.get then
-                            return field:get()
-                        end
+                        if field.get then return field:get() end
                     end
                     return field
                 end
-                --return rawget(t, k)
+                return rawget(t, k)
             end,
             __newindex = function(t, k, v)
                 local field = copiedFields[k]
                 if field ~= nil then
                     if type(field) == "table" then
-                        if field.set then
-                            return field:set(v)
-                        end
+                        if field.set then return field:set(v) end
                     end
                     copiedFields[k] = v
                 end
-                --rawset(t, k, v)
+                rawset(t, k, v)
             end
         })
 

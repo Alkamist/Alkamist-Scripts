@@ -6,9 +6,6 @@ local Toggle = {
     previousState = false
 }
 
-function Toggle:get() return self.currentState end
-function Toggle:set(value) self.currentState = value end
-
 function Toggle:justTurnedOn() return self.currentState and not self.previousState end
 function Toggle:justTurnedOff() return not self.currentState and self.previousState end
 

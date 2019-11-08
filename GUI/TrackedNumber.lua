@@ -6,9 +6,6 @@ local TrackedNumber = {
     previousValue = false
 }
 
-function TrackedNumber:get() return self.currentValue end
-function TrackedNumber:set(value) self.currentValue = value end
-
 function TrackedNumber:justChanged() return self.currentValue ~= self.previousValue end
 function TrackedNumber:getChange() return self.currentValue - self.previousValue end
 
