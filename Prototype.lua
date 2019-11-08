@@ -1,6 +1,7 @@
 local setmetatable = setmetatable
 local rawget = rawget
 local rawset = rawset
+local table = table
 
 local function copyTable(input, seen)
     if type(input) ~= "table" then return input end
@@ -14,74 +15,112 @@ local function copyTable(input, seen)
     return setmetatable(output, getmetatable(input))
 end
 
+local function splitStringByPeriods(str)
+    local output = {}
+    for piece in string.gmatch(str, "([^.]+)") do
+        table.insert(output, piece)
+    end
+    return output
+end
+
 local Prototype = {}
 
 function Prototype:new(fields)
-    return {
-        new = function(self, initialValues)
-            local initialValues = initialValues or {}
-            local copiedFields = copyTable(fields)
+    for fieldName, field in pairs(fields) do
+        if type(field) == "table" then
+            if field.from then
+                local fromKeys = splitStringByPeriods(field.from)
+                local numberOfFromKeys = #fromKeys
 
-            local newInstance = setmetatable({}, {
-                __index = function(t, k)
-                    local field = copiedFields[k]
-                    if field ~= nil then
-                        if type(field) == "table" then
-                            return field:get()
-                        end
-                        return field
-                    end
-                    return rawget(t, k)
-                end,
-                __newindex = function(t, k, v)
-                    local field = copiedFields[k]
-                    if field ~= nil then
-                        if type(field) == "table" then
-                            return field:set(v)
-                        end
-                        field = v
-                    end
-                    rawset(t, k, v)
+                local root = fields[fromKeys[1]]
+                local outputKey = 1
+                local output = root
+                for i = 2, numberOfFromKeys do
+                    root = output
+                    outputKey = fromKeys[i]
+                    output = output[outputKey]
                 end
-            })
 
-            function newInstance:initialize()
-                for k, v in pairs(initialValues) do
-                    newInstance[k] = v
+                if type(output) == "function" then
+                    fields[fieldName] = function(self) return output(root) end
+                else
+                    field.get = function(self) return output end
+                    field.set = function(self, value) root[outputKey] = value end
                 end
             end
-
-            newInstance:initialize()
-
-            return newInstance
         end
-    }
+    end
+
+    function fields:new(parameters)
+        local parameters = parameters or {}
+        local copiedFields = copyTable(fields)
+
+        local newInstance = {}
+
+        setmetatable(newInstance, {
+            __index = function(t, k)
+                local field = copiedFields[k]
+                if field ~= nil then
+                    if type(field) == "table" then
+                        if field.get then
+                            return field:get()
+                        end
+                    end
+                    return field
+                end
+                --return rawget(t, k)
+            end,
+            __newindex = function(t, k, v)
+                local field = copiedFields[k]
+                if field ~= nil then
+                    if type(field) == "table" then
+                        if field.set then
+                            return field:set(v)
+                        end
+                    end
+                    copiedFields[k] = v
+                end
+                --rawset(t, k, v)
+            end
+        })
+
+        --function newInstance:initialize()
+        --    for k, v in pairs(parameters) do
+        --        newInstance[k] = v
+        --    end
+        --end
+
+        --newInstance:initialize()
+        return newInstance
+    end
+
+    return fields
 end
 
-local Builder = Prototype:new{
-    x = 7,
-    y = 8,
-    get = function(self) return self.x end,
-    set = function(self, value) self.x = value end
-}
+local Walker = {}
+Walker.speed = 5
+function Walker:walk() print("walking at speed: " .. self.speed) end
+Walker = Prototype:new(Walker)
 
-local Test1 = Prototype:new{
-    x = 1,
-    y = 2,
-    z = {
-        x = 12341234,
-        get = function(self) return self.x end,
-        set = function(self, value) self.x = value end
-    },
-    builder = Builder:new{
-        x = 20
-    }
-}
+local Runner = {}
+Runner.speed = 10
+function Runner:run() print("running at speed: " .. self.speed) end
+Runner = Prototype:new(Runner)
 
-local test1 = Test1:new()
+local RunnerAndWalker = {}
+RunnerAndWalker.walker = Walker:new()
+RunnerAndWalker.runner = Runner:new()
+RunnerAndWalker.speed = { from = "runner.speed" }
+RunnerAndWalker.run = { from = "runner.run" }
+RunnerAndWalker.walk = { from = "walker.walk" }
+RunnerAndWalker = Prototype:new(RunnerAndWalker)
 
-print(test1.builder)
-test1.builder = 5
-print(test1.builder)
+local test1 = RunnerAndWalker:new()
+
+--test1.runner:run()
+test1:run()
+test1.speed = 15
+test1:run()
+test1:walk()
 
 return Prototype

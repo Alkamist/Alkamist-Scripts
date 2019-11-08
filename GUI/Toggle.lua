@@ -1,7 +1,7 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Prototype = require("Prototype")
 
-local Toggle = Prototype:new{
+local Toggle = {
     currentState = false,
     previousState = false
 }
@@ -18,4 +18,4 @@ function Toggle:update(state)
     if state ~= nil then self.currentState = state end
 end
 
-return Toggle
+return Prototype:new(Toggle)
