@@ -14,7 +14,6 @@ local function copyTable(input, seen)
     end
     return setmetatable(output, getmetatable(input))
 end
-
 local function splitStringByPeriods(str)
     local output = {}
     for piece in string.gmatch(str, "([^.]+)") do
@@ -22,32 +21,31 @@ local function splitStringByPeriods(str)
     end
     return output
 end
+local function implementFieldFromKeys(str, fieldName, field, fields)
+    local fromKeys = splitStringByPeriods(str)
+    local root = fields[fromKeys[1]]
+    local outputKey = 1
+    local output = root
+    for i = 2, #fromKeys do
+        root = output
+        outputKey = fromKeys[i]
+        output = output[outputKey]
+    end
+
+    if type(output) == "function" then
+        fields[fieldName] = function(self) return output(root) end
+    else
+        field.get = function(self) return output end
+        field.set = function(self, value) root[outputKey] = value end
+    end
+end
 
 local Prototype = {}
 
 function Prototype:new(fields)
     for fieldName, field in pairs(fields) do
-        if type(field) == "table" then
-            if field.from then
-                local fromKeys = splitStringByPeriods(field.from)
-                local numberOfFromKeys = #fromKeys
-
-                local root = fields[fromKeys[1]]
-                local outputKey = 1
-                local output = root
-                for i = 2, numberOfFromKeys do
-                    root = output
-                    outputKey = fromKeys[i]
-                    output = output[outputKey]
-                end
-
-                if type(output) == "function" then
-                    fields[fieldName] = function(self) return output(root) end
-                else
-                    field.get = function(self) return output end
-                    field.set = function(self, value) root[outputKey] = value end
-                end
-            end
+        if type(field) == "table" and field.from then
+            implementFieldFromKeys(field.from, fieldName, field, fields)
         end
     end
 

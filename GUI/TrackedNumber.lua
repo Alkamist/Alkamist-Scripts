@@ -3,11 +3,10 @@ local Prototype = require("Prototype")
 
 local TrackedNumber = {
     currentValue = false,
-    previousValue = false
+    previousValue = false,
+    justChanged = { get = function(self) return self.currentValue ~= self.previousValue end },
+    change = { get = function(self) return self.currentValue - self.previousValue end }
 }
-
-function TrackedNumber:justChanged() return self.currentValue ~= self.previousValue end
-function TrackedNumber:getChange() return self.currentValue - self.previousValue end
 
 function TrackedNumber:update(value)
     self.previousValue = self.currentValue

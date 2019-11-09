@@ -3,11 +3,10 @@ local Prototype = require("Prototype")
 
 local Toggle = {
     currentState = false,
-    previousState = false
+    previousState = false,
+    justTurnedOn = { get = function(self) return self.currentState and not self.previousState end },
+    justTurnedOff = { get = function(self) return not self.currentState and self.previousState end }
 }
-
-function Toggle:justTurnedOn() return self.currentState and not self.previousState end
-function Toggle:justTurnedOff() return not self.currentState and self.previousState end
 
 function Toggle:toggle() _current = not _current end
 function Toggle:update(state)
