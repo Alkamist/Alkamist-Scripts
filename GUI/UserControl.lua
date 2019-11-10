@@ -161,6 +161,7 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Proxy = require("Proxy")
 local Toggle = require("GUI.Toggle")
 local TrackedNumber = require("GUI.TrackedNumber")
 
@@ -195,7 +196,6 @@ MouseControl.justDoublePressed = {
 MouseControl.justDragged = { from = "dragState" }
 MouseControl.justStartedDragging = { get = function(self) return self.justDragged and not self.isAlreadyDragging end }
 MouseControl.justStoppedDragging = { get = function(self) return self.justReleased and self.isAlreadyDragging end }
-
 function MouseControl:isPressedInWidget(widget) return self.isPressed and self.mouse:isInsideWidget(widget) end
 function MouseControl:justPressedWidget(widget) return self.justPressed and self.mouse:isInsideWidget(widget) end
 function MouseControl:justReleasedWidget(widget) return self.justReleased and self.wasPressedInsideWidget[widget] end
@@ -221,17 +221,15 @@ function MouseControl:update(state)
     if self.dragState then self.isAlreadyDragging = true end
     self.dragState = self.isPressed and self.mouse:justMoved()
 end
+MouseControl = Proxy:createPrototype(MouseControl)
 
-MouseControl = Prototype:new(MouseControl)
-
-local MouseButton = Prototype:implement{ MouseControl }
+local MouseButton = {}
+MouseButton.prototypes = { MouseControl }
 MouseButton.bitValue = 0
-
 function MouseButton:update()
     MouseControl.update(self, self.mouse.cap & self.bitValue == self.bitValue)
 end
-
-MouseButton = Prototype:new(MouseButton)
+MouseButton = Proxy:createPrototype(MouseButton)
 
 local Mouse = {}
 Mouse.cap = 0
@@ -249,21 +247,20 @@ Mouse.previousY = { from = "yTracker.previousValue" }
 Mouse.yJustChanged = { from = "yTracker.justChanged" }
 Mouse.yChange = { from = "yTracker.change" }
 Mouse.buttons = {
-    left = MouseButton:new{ mouse = self, bitValue = 1 },
-    middle = MouseButton:new{ mouse = self, bitValue = 64 },
-    right = MouseButton:new{ mouse = self, bitValue = 2 }
+    left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
+    middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
+    right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
 }
 Mouse.justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end }
 Mouse.wheelJustMoved = { get = function(self) return self.wheel ~= 0 end }
 Mouse.hWheelJustMoved = { get = function(self) return self.hWheel ~= 0 end }
-
 function Mouse:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self.previousX, self.previousY) end
 function Mouse:isInsideWidget(widget) return widget:pointIsInside(self.x, self.y) end
 function Mouse:justEntered(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInside(widget) end
 function Mouse:justLeft(widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInside(widget) end
 function Mouse:update()
-    self.x:update(gfx.mouse_x)
-    self.y:update(gfx.mouse_y)
+    self.xTracker:update(gfx.mouse_x)
+    self.yTracker:update(gfx.mouse_y)
     self.cap = gfx.mouse_cap
 
     self.wheel = gfx.mouse_wheel / 120
@@ -275,30 +272,28 @@ function Mouse:update()
     self.buttons.middle:update()
     self.buttons.right:update()
 end
-
-Mouse = Prototype:new(Mouse)
+Mouse = Proxy:createPrototype(Mouse)
 
 --==============================================================
 --== Keyboard ==================================================
 --==============================================================
 
-local KeyboardKey = Prototype:implement{ MouseControl }
-MouseButton.character = ""
-
+local KeyboardKey = {}
+KeyboardKey.prototypes = { MouseControl }
+KeyboardKey.character = ""
 function KeyboardKey:update()
     MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
 end
-
-KeyboardKey = Prototype:new(KeyboardKey)
+KeyboardKey = Proxy:createPrototype(KeyboardKey)
 
 local Keyboard = {}
 Keyboard.mouse = {}
 Keyboard.currentCharacter = nil
 Keyboard.modifiers = {
-    shift = MouseButton:new{ mouse = self.mouse, bitValue = 8 },
-    control = MouseButton:new{ mouse = self.mouse, bitValue = 4 },
-    windows = MouseButton:new{ mouse = self.mouse, bitValue = 32 },
-    alt = MouseButton:new{ mouse = self.mouse, bitValue = 16 }
+    shift = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 8 },
+    control = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 4 },
+    windows = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 32 },
+    alt = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 16 }
 }
 function Keyboard:createKey(character)
     self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
@@ -308,6 +303,7 @@ function Keyboard:update()
     for name, key in pairs(self.keys) do key:update() end
     self.currentCharacter = characterTableInverted[gfx.getchar()]
 end
+Keyboard = Proxy:createPrototype(Keyboard)
 
 local UserControl = { mouse = Mouse:new() }
 UserControl.keyboard = Keyboard:new{ mouse = UserControl.mouse }

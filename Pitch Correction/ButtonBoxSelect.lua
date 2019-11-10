@@ -2,8 +2,8 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
-local Button = require("GUI.Button")
-local BoxSelect = require("GUI.BoxSelect")
+--local Button = require("GUI.Button")
+--local BoxSelect = require("GUI.BoxSelect")
 
 GUI:initialize{
     title = "Alkamist Pitch Correction",
@@ -15,25 +15,25 @@ GUI:initialize{
 }
 GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
-local testButton1 = Button{
-    GUI = GUI,
-    x = 80,
-    y = 200,
-    width = 400,
-    height = 400,
-    label = "Fix Errors",
-    --toggleOnClick = true
-}
-
-function testButton1:update()
-    originalTestButton1Update()
-    local mouse = GUI:getMouse()
-    local mouseLeftButton = mouse:getButtons().left
-    if mouseLeftButton:justDragged(testButton1) then
-        testButton1.x = testButton1.x + mouse:getXChange()
-        testButton1.y = testButton1.y + mouse:getYChange()
-    end
-end
+--local testButton1 = Button{
+--    GUI = GUI,
+--    x = 80,
+--    y = 200,
+--    width = 400,
+--    height = 400,
+--    label = "Fix Errors",
+--    --toggleOnClick = true
+--}
+--
+--function testButton1:update()
+--    originalTestButton1Update()
+--    local mouse = GUI:getMouse()
+--    local mouseLeftButton = mouse:getButtons().left
+--    if mouseLeftButton:justDragged(testButton1) then
+--        testButton1.x = testButton1.x + mouse:getXChange()
+--        testButton1.y = testButton1.y + mouse:getYChange()
+--    end
+--end
 
 --[[local thingsToSelect = {
     testButton1
@@ -82,5 +82,5 @@ function boxSelect.update()
 end]]--
 
 --GUI:addWidgets{ testButton1, boxSelect }
-GUI:addWidgets{ testButton1 }
+--GUI:addWidgets{ testButton1 }
 GUI:run()

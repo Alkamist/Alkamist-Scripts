@@ -53,7 +53,7 @@ function Proxy:new(fields, initialValues)
             local field = copiedFields[k]
             if field ~= nil then
                 if type(field) == "table" then
-                    if field.get then return field.get(copiedFields) end
+                    if field.get then return field.get(t) end
                 end
                 return field
             end
@@ -63,7 +63,7 @@ function Proxy:new(fields, initialValues)
             local field = copiedFields[k]
             if field ~= nil then
                 if type(field) == "table" then
-                    if field.set then return field.set(copiedFields, v) end
+                    if field.set then return field.set(t, v) end
                 end
                 copiedFields[k] = v
             end
@@ -84,6 +84,7 @@ end
 
 function Proxy:createPrototype(fields)
     local fieldPrototypes = fields.prototypes
+
     if fields.prototypes then
         for i = 1, #fieldPrototypes do
             local fieldPrototype = fieldPrototypes[i]
@@ -96,45 +97,18 @@ function Proxy:createPrototype(fields)
             end
         end
     end
+
     for fieldName, field in pairs(fields) do
         if type(field) == "table" and field.from then
             implementFieldFromKeys(field.from, fieldName, fields)
         end
     end
+
     function fields:new(initialValues)
         return Proxy:new(fields, initialValues)
     end
+
     return fields
 end
 
-local Walker = {}
-Walker.speed = 5
-Walker.ayylmao = { get = function(self) return 29 end }
-function Walker:walk() print("walking at speed: " .. self.speed) end
-Walker = Proxy:createPrototype(Walker)
-
-local Runner = {}
-Runner.speed = 10
-function Runner:run() print("running at speed: " .. self.speed) end
-Runner = Proxy:createPrototype(Runner)
-
---local WalkerAndRunner = {}
---WalkerAndRunner.walker = Walker:new()
---WalkerAndRunner.runner = Runner:new()
---WalkerAndRunner.walk = { from = "walker.walk" }
---WalkerAndRunner.speed = { from = "walker.speed" }
---WalkerAndRunner = Proxy:createPrototype(WalkerAndRunner)
-
-local WalkerAndRunner = {}
-WalkerAndRunner.prototypes = { Runner, Walker }
-WalkerAndRunner = Proxy:createPrototype(WalkerAndRunner)
-
-local test1 = WalkerAndRunner:new()
-
-test1:walk()
-test1:run()
-test1.speed = 15
-test1:walk()
-test1:run()
-
-return Prototype
+return Proxy

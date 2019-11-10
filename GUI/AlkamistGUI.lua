@@ -2,96 +2,76 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Proxy = require("Proxy")
 local UserControl = require("GUI.UserControl")
 local TrackedNumber = require("GUI.TrackedNumber")
 
-local function GUI()
-    local gui = {}
+local GUI = {}
+GUI.title = ""
+GUI.x = 0
+GUI.y = 0
+GUI.widthTracker = TrackedNumber:new()
+GUI.width = { from = "widthTracker.currentValue" }
+GUI.widthChange = { from = "widthTracker.change" }
+GUI.widthJustChanged = { from = "widthTracker.justChanged" }
+GUI.heightTracker = TrackedNumber:new()
+GUI.height = { from = "heightTracker.currentValue" }
+GUI.heightChange = { from = "heightTracker.change" }
+GUI.heightJustChanged = { from = "heightTracker.justChanged" }
+GUI.dock = 0
+GUI.mouse = UserControl.mouse
+GUI.keyboard = UserControl.keyboard
+GUI.backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
+GUI.listOfWidgets = {}
+GUI.widgets = {
+    get = function(self) return self.listOfWidgets end,
+    set = function(self, value)
+        self.listOfWidgets = value
+        self.mouse.widgets = value
+    end
+}
 
-    local _title = ""
-    local _x = 0
-    local _y = 0
-    local _width = TrackedNumber(0)
-    local _height = TrackedNumber(0)
-    local _dock = 0
-    local _mouse = UserControl.mouse
-    local _keyboard = UserControl.keyboard
-    local _backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
-    local _widgets = {}
-
-    function gui:getMouse()
-        return _mouse
-    end
-    function gui:getKeyboard()
-        return _keyboard
-    end
-    function gui:getWidgets()
-        return _widgets
-    end
-    function gui:getWidth()
-        return _width:getValue()
-    end
-    function gui:getHeight()
-        return _height:getValue()
-    end
-    function gui:getWidthChange()
-        return _width:getChange()
-    end
-    function gui:getHeightChange()
-        return _height:getChange()
-    end
-
-    function gui:setBackgroundColor(color)
-        _backgroundColor = color
-        gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
-    end
-    function gui:windowWasResized()
-        return _width:justChanged() or _height:justChanged()
-    end
-    function gui:addWidgets(widgets)
-        for i = 1, #widgets do
-            local widget = widgets[i]
-            _widgets[#_widgets + 1] = widget
-        end
-        _mouse:setWidgets(_widgets)
-    end
-
-    function gui:initialize(parameters)
-        _title = parameters.title or _title or ""
-        _x = parameters.x or _x or 0
-        _y = parameters.y or _y or 0
-        _width:setValue(parameters.width or _width:getValue() or 0)
-        _height:setValue(parameters.height or _height:getValue() or 0)
-        _dock = parameters.dock or _dock or 0
-
-        gfx.init(_title, _width:getValue(), _height:getValue(), _dock, _x, _y)
-    end
-    function gui:run()
-        _width:update(gfx.w)
-        _height:update(gfx.h)
-        _mouse:update()
-        _keyboard:update()
-
-        local char = _keyboard:getCurrentCharacter()
-        if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
-
-        if _widgets then
-            local numberOfWidgets = #_widgets
-            for i = 1, numberOfWidgets do _widgets[i]:doBeginUpdateFunction() end
-            for i = 1, numberOfWidgets do _widgets[i]:doUpdateFunction() end
-            for i = 1, numberOfWidgets do
-                local widget = _widgets[i]
-                if widget.doDrawFunction then widget:doDrawFunction() end
-                if widget.blitToMainWindow then widget:blitToMainWindow() end
-            end
-            for i = 1, numberOfWidgets do _widgets[i]:doEndUpdateFunction() end
-        end
-
-        if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
-        gfx.update()
-    end
-
-    return gui
+function GUI:setBackgroundColor(color)
+    self.backgroundColor = color
+    gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
+end
+function GUI:windowWasResized()
+    return self.widthJustChanged or self.heightJustChanged
 end
 
-return GUI()
+function GUI:initialize(parameters)
+    self.title = parameters.title or self.title or ""
+    self.x = parameters.x or self.x or 0
+    self.y = parameters.y or self.y or 0
+    self.width = parameters.width or self.width or 0
+    self.height = parameters.height or self.height or 0
+    self.dock = parameters.dock or self.dock or 0
+    gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
+end
+function GUI:run()
+    self.widthTracker:update(gfx.w)
+    self.heightTracker:update(gfx.h)
+    self.mouse:update()
+    self.keyboard:update()
+
+    local char = self.keyboard.currentCharacter
+    if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
+
+    --local widgets = self.widgets
+    --if widgets then
+    --    local numberOfWidgets = #widgets
+    --    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
+    --    for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
+    --    for i = 1, numberOfWidgets do
+    --        local widget = widgets[i]
+    --        if widget.doDrawFunction then widget:doDrawFunction() end
+    --        if widget.blitToMainWindow then widget:blitToMainWindow() end
+    --    end
+    --    for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
+    --end
+
+    if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
+    gfx.update()
+end
+
+return Proxy:createPrototype(GUI):new()
