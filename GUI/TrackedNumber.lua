@@ -1,16 +1,13 @@
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
+local Prototype = require("Prototype")
 
-local TrackedNumber = {
+return Prototype:new{
     currentValue = 0,
     previousValue = 0,
     justChanged = { get = function(self) return self.currentValue ~= self.previousValue end },
-    change = { get = function(self) return self.currentValue - self.previousValue end }
+    change = { get = function(self) return self.currentValue - self.previousValue end },
+    update = function(self, value)
+        self.previousValue = self.currentValue
+        if value ~= nil then self.currentValue = value end
+    end
 }
-
-function TrackedNumber:update(value)
-    self.previousValue = self.currentValue
-    if value ~= nil then self.currentValue = value end
-end
-
-return Proxy:createPrototype(TrackedNumber)
