@@ -161,7 +161,7 @@ local characterTable = {
 local characterTableInverted = invertTable(characterTable)
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
+local Prototype = require("Prototype")
 local Toggle = require("GUI.Toggle")
 local TrackedNumber = require("GUI.TrackedNumber")
 
@@ -169,71 +169,116 @@ local TrackedNumber = require("GUI.TrackedNumber")
 --== Mouse =====================================================
 --==============================================================
 
-local MouseControl = {}
-MouseControl.mouse = {}
-MouseControl.wasPressedInsideWidget = {}
-MouseControl.pressState = Toggle:new()
-MouseControl.dragState = false
-MouseControl.isAlreadyDragging = false
-MouseControl.wasJustReleasedLastFrame = false
-MouseControl.timeOfPreviousPress = 0
-MouseControl.timeSincePreviousPress = {
-    get = function(self)
-        if not self.timeOfPreviousPress then return nil end
-        return reaper.time_precise() - self.timeOfPreviousPress
-    end
-}
-MouseControl.isPressed = { from = "pressState.currentState" }
-MouseControl.justPressed = { from = "pressState.justTurnedOn" }
-MouseControl.justReleased = { from = "pressState.justTurnedOff" }
-MouseControl.justDoublePressed = {
-    get = function(self)
-        local timeSince = self.timeSincePreviousPress
-        if timeSince == nil then return false end
-        return self.justPressed and timeSince <= 0.5
-    end
-}
-MouseControl.justDragged = { from = "dragState" }
-MouseControl.justStartedDragging = { get = function(self) return self.justDragged and not self.isAlreadyDragging end }
-MouseControl.justStoppedDragging = { get = function(self) return self.justReleased and self.isAlreadyDragging end }
-function MouseControl:isPressedInWidget(widget) return self.isPressed and self.mouse:isInsideWidget(widget) end
-function MouseControl:justPressedWidget(widget) return self.justPressed and self.mouse:isInsideWidget(widget) end
-function MouseControl:justReleasedWidget(widget) return self.justReleased and self.wasPressedInsideWidget[widget] end
-function MouseControl:justDoublePressedWidget(widget) return self.justDoublePressed and self.mouse:isInsideWidget(widget) end
-function MouseControl:justDraggedWidget(widget) return self.justDragged and self.wasPressedInsideWidget[widget] end
-function MouseControl:justStartedDraggingWidget(widget) return self.justDragged and not self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end
-function MouseControl:justStoppedDragging(widget) return self.justReleased and self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end
-function MouseControl:update(state)
-    local widgets = self.mouse.widgets
-
-    if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
-    if self.justReleased then self.isAlreadyDragging = false end
-
-    self.wasJustReleasedLastFrame = self.justReleased
-    self.pressState:update(state)
-
-    if widgets then
-        for i = 1, #widgets do
-            local widget = widgets[i]
-            if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
-            if self.justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+local MouseControl = Prototype:new{
+    mouse = {},
+    wasPressedInsideWidget = {},
+    pressState = Toggle,
+    isAlreadyDragging = false,
+    wasJustReleasedLastFrame = false,
+    timeOfPreviousPress = 0,
+    timeSincePreviousPress = {
+        get = function(self)
+            if not self.timeOfPreviousPress then return nil end
+            return reaper.time_precise() - self.timeOfPreviousPress
         end
+    },
+
+    isPressed = { from = { pressState, currentState } },
+    justPressed = { from = { pressState, justTurnedOn } },
+    justReleased = { from = { pressState, justTurnedOff } },
+    justDoublePressed = {
+        get = function(self)
+            local timeSince = self.timeSincePreviousPress
+            if timeSince == nil then return false end
+            return self.justPressed and timeSince <= 0.5
+        end
+    },
+
+    justDragged = false,
+    justStartedDragging = { get = function(self) return self.justDragged and not self.isAlreadyDragging end },
+    justStoppedDragging = { get = function(self) return self.justReleased and self.isAlreadyDragging end },
+
+    isPressedInWidget = function(self, widget) return self.isPressed and self.mouse:isInsideWidget(widget) end,
+    justPressedWidget = function(self, widget) return self.justPressed and self.mouse:isInsideWidget(widget) end,
+    justReleasedWidget = function(self, widget) return self.justReleased and self.wasPressedInsideWidget[widget] end,
+    justDoublePressedWidget = function(self, widget) return self.justDoublePressed and self.mouse:isInsideWidget(widget) end,
+    justDraggedWidget = function(self, widget) return self.justDragged and self.wasPressedInsideWidget[widget] end,
+    justStartedDraggingWidget = function(self, widget) return self.justDragged and not self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end,
+    justStoppedDraggingWidget = function(self, widget) return self.justReleased and self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end,
+    update = function(self, state)
+        local widgets = self.mouse.widgets
+
+        if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
+        if self.justReleased then self.isAlreadyDragging = false end
+
+        self.wasJustReleasedLastFrame = self.justReleased
+        self.pressState:update(state)
+
+        if widgets then
+            for i = 1, #widgets do
+                local widget = widgets[i]
+                if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
+                if self.justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+            end
+        end
+
+        if self.justDragged then self.isAlreadyDragging = true end
+        self.justDragged = self.isPressed and self.mouse.justMoved
     end
+}
 
-    if self.dragState then self.isAlreadyDragging = true end
-    self.dragState = self.isPressed and self.mouse:justMoved()
-end
-MouseControl = Proxy:createPrototype(MouseControl)
+local MouseButton = Prototype:new{
+    prototypes = { MouseControl },
+    bitValue = 0,
+    update = function(self) self[MouseControl]:update(self.mouse.cap & self.bitValue == self.bitValue) end
+}
 
-local MouseButton = {}
-MouseButton.prototypes = { MouseControl }
-MouseButton.bitValue = 0
-function MouseButton:update()
-    MouseControl.update(self, self.mouse.cap & self.bitValue == self.bitValue)
-end
-MouseButton = Proxy:createPrototype(MouseButton)
+local Mouse = Prototype:new{
+    cap = 0,
+    wheel = 0,
+    hWheel = 0,
+    widgets = {},
 
-local Mouse = {}
+    xTracker = TrackedNumber,
+    x = { from = { xTracker, currentValue } },
+    previousX = { from = { xTracker, previousValue } },
+    xJustChanged = { from = { xTracker, justChanged } },
+    xChange = { from = { xTracker, change } },
+
+    yTracker = TrackedNumber,
+    y = { from = { yTracker, currentValue } },
+    previousY = { from = { yTracker, previousValue } },
+    yJustChanged = { from = { yTracker, justChanged } },
+    yChange = { from = { yTracker, change } },
+
+    buttons = Prototype:new{
+        left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
+        middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
+        right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
+    },
+
+    justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end },
+    wheelJustMoved = { get = function(self) return self.wheel ~= 0 end },
+    hWheelJustMoved = { get = function(self) return self.hWheel ~= 0 end },
+    wasPreviouslyInsideWidget = function(self, widget) return widget:pointIsInside(self.previousX, self.previousY) end,
+    isInsideWidget = function(self, widget) return widget:pointIsInside(self.x, self.y) end,
+    justEntered = function(self, widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInside(widget) end,
+    justLeft = function(self, widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInside(widget) end,
+    update = function(self)
+        self.xTracker:update(gfx.mouse_x)
+        self.yTracker:update(gfx.mouse_y)
+        self.cap = gfx.mouse_cap
+
+        self.wheel = gfx.mouse_wheel / 120
+        gfx.mouse_wheel = 0
+        self.hWheel = gfx.mouse_hwheel / 120
+        gfx.mouse_hwheel = 0
+
+        self.buttons.left:update()
+        self.buttons.middle:update()
+        self.buttons.right:update()
+    end
+}
 Mouse.cap = 0
 Mouse.wheel = 0
 Mouse.hWheel = 0
@@ -274,7 +319,6 @@ function Mouse:update()
     self.buttons.middle:update()
     self.buttons.right:update()
 end
-Mouse = Proxy:createPrototype(Mouse)
 
 --==============================================================
 --== Keyboard ==================================================
@@ -286,7 +330,7 @@ KeyboardKey.character = ""
 function KeyboardKey:update()
     MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
 end
-KeyboardKey = Proxy:createPrototype(KeyboardKey)
+KeyboardKey = Prototype:createPrototype(KeyboardKey)
 
 local Keyboard = {}
 Keyboard.mouse = {}
@@ -306,7 +350,7 @@ function Keyboard:update()
     for name, key in pairs(self.keys) do key:update() end
     self.currentCharacter = characterTableInverted[gfx.getchar()]
 end
-Keyboard = Proxy:createPrototype(Keyboard)
+Keyboard = Prototype:createPrototype(Keyboard)
 
 local UserControl = { mouse = Mouse:new() }
 UserControl.keyboard = Keyboard:new{ mouse = UserControl.mouse }

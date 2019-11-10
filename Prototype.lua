@@ -1,52 +1,40 @@
 local setmetatable = setmetatable
-local rawget = rawget
-local rawset = rawset
+local pairs = pairs
+local type = type
 
-local function splitStringByPeriods(str)
-    local output = {}
-    for piece in string.gmatch(str, "([^.]+)") do
-        table.insert(output, piece)
-    end
-    return output
-end
-local function implementFieldFromKeys(str, fieldName, fields)
-    local fromKeys = splitStringByPeriods(str)
-    local rootKey = fromKeys[1]
-    local outputKey = fromKeys[2]
-    local output = fields[outputKey]
-    if type(output) == "function" then
-        fields[fieldName] = function(self) return output(self.private) end
-    else
-        fields[fieldName] = {
-            get = function(self) return self[rootKey][outputKey] end,
-            set = function(self, value) self[rootKey][outputKey] = value end
-        }
-    end
-end
-
-local Prototype = {}
-
-function Prototype:new(fields)
+local function implementPrototypesWithCompositionAndMethodForwarding(fields)
     if fields.prototypes then
         local fieldPrototypes = fields.prototypes
         for i = 1, #fieldPrototypes do
             local fieldPrototype = fieldPrototypes[i]
-            local fieldPrototypeKey = tostring(fieldPrototype)
-            fields[fieldPrototypeKey] = fieldPrototype
+            fields[fieldPrototype] = fieldPrototype
             for fieldName, field in pairs(fieldPrototype) do
                 if fieldName ~= "new" then
-                    fields[fieldName] = { from = fieldPrototypeKey .. "." .. fieldName }
+                    fields[fieldName] = { from = { fieldPrototype, fieldName } }
                 end
             end
         end
     end
-
+end
+local function convertMethodForwardsToGettersAndSetters(fields)
     for fieldName, field in pairs(fields) do
         if type(field) == "table" and field.from then
-            implementFieldFromKeys(field.from, fieldName, fields)
+            local fromKeys = field.from
+            local rootKey = fromKeys[1]
+            local outputKey = fromKeys[2]
+            local output = fields[outputKey]
+            if type(output) == "function" then
+                fields[fieldName] = function(self) return output(self.private) end
+            else
+                fields[fieldName] = {
+                    get = function(self) return self[rootKey][outputKey] end,
+                    set = function(self, value) self[rootKey][outputKey] = value end
+                }
+            end
         end
     end
-
+end
+local function givePrototypeAFunctionToInstantiateItself(fields)
     function fields:new(initialValues)
         local output = { private = {} }
         for fieldName, field in pairs(fields) do
@@ -91,8 +79,13 @@ function Prototype:new(fields)
             end
         })
     end
-
-    return fields
 end
 
-return Prototype
+return {
+    new = function(self, fields)
+        implementPrototypesWithCompositionAndMethodForwarding(fields)
+        convertMethodForwardsToGettersAndSetters(fields)
+        givePrototypeAFunctionToInstantiateItself(fields)
+        return fields
+    end
+}
