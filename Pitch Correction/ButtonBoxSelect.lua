@@ -5,9 +5,6 @@ local Prototype = require("Prototype")
 local TrackedNumber = require("GUI.TrackedNumber")
 
 local Test = Prototype:new{
-    initialize = function(self)
-        self.currentValue = 20
-    end,
     x = 1,
     y = 2,
     z = 3,
@@ -19,13 +16,16 @@ local Test = Prototype:new{
 local test1 = Test:new()
 local test2 = Test:new()
 
---for k, v in pairs(test1.number1) do msg(k) end
+test1.x = 5
+for k, v in pairs(test1) do
+    msg(k)
+end
 
-msg(test1.currentValue)
-msg(test2.currentValue)
-test1.currentValue = 10
-msg(test1.currentValue)
-msg(test2.currentValue)
+--msg(test1.currentValue)
+--msg(test2.currentValue)
+--test1.currentValue = 10
+--msg(test1.currentValue)
+--msg(test2.currentValue)
 
 --msg(test1.number1.currentValue)
 --msg(test1.justChanged)

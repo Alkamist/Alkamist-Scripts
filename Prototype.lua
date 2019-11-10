@@ -76,7 +76,20 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
                     end
                     t.private[k] = v
                 end
-            end
+            end,
+            __pairs = function(t)
+                return function(t, k)
+                    local prototypeKey = next(fields, k)
+                    return prototypeKey, t[prototypeKey]
+                end, t, nil
+            end,
+            __ipairs = function(t)
+                return function(t, i)
+                    i = i + 1
+                    local v = t[i]
+                    if v then return i, v end
+                end, t, 0
+            end,
         }
         setmetatable(output, outputMetatable)
         if fields.initialize then fields.initialize(output) end
