@@ -11,7 +11,7 @@ local Test = Prototype:new{
     x = 1,
     y = 2,
     z = 3,
-    number1 = TrackedNumber:new(),
+    number1 = TrackedNumber,
     currentValue = { from = { "number1", "currentValue" } },
     justChanged = { from = { "number1", "justChanged" } }
 }

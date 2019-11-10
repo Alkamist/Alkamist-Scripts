@@ -236,8 +236,11 @@ local MouseButton = Prototype:new{
 local Mouse = Prototype:new{
     initialize = function(self)
         self.buttons.left.mouse = self
+        self.buttons.left.bitValue = 1
         self.buttons.middle.mouse = self
+        self.buttons.left.bitValue = 64
         self.buttons.right.mouse = self
+        self.buttons.left.bitValue = 2
     end,
 
     cap = 0,
@@ -258,28 +261,29 @@ local Mouse = Prototype:new{
     yChange = { from = { "yTracker", "change" } },
 
     buttons = {
-        left = MouseButton:new{ bitValue = 1 },
-        middle = MouseButton:new{ bitValue = 64 },
-        right = MouseButton:new{ bitValue = 2 }
+        left = MouseButton,
+        middle = MouseButton,
+        right = MouseButton
     },
+    leftButton = { from = { "buttons", "left" } },
+    middleButton = { from = { "buttons", "middle" } },
+    rightButton = { from = { "buttons", "right" } },
 
     justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end },
     wheelJustMoved = { get = function(self) return self.wheel ~= 0 end },
     hWheelJustMoved = { get = function(self) return self.hWheel ~= 0 end },
     wasPreviouslyInsideWidget = function(self, widget) return widget:pointIsInside(self.previousX, self.previousY) end,
     isInsideWidget = function(self, widget) return widget:pointIsInside(self.x, self.y) end,
-    justEntered = function(self, widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInside(widget) end,
-    justLeft = function(self, widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInside(widget) end,
+    justEnteredWidget = function(self, widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInsideWidget(widget) end,
+    justLeftWidget = function(self, widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInsideWidget(widget) end,
     update = function(self)
         self.xTracker:update(gfx.mouse_x)
         self.yTracker:update(gfx.mouse_y)
         self.cap = gfx.mouse_cap
-
         self.wheel = gfx.mouse_wheel / 120
         gfx.mouse_wheel = 0
         self.hWheel = gfx.mouse_hwheel / 120
         gfx.mouse_hwheel = 0
-
         self.buttons.left:update()
         self.buttons.middle:update()
         self.buttons.right:update()
