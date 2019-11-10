@@ -54,7 +54,7 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
                 output.private[fieldName] = field
             end
         end
-        return setmetatable(output, {
+        local outputMetatable = {
             __index = function(t, k)
                 local field = fields[k]
                 if field ~= nil then
@@ -77,7 +77,10 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
                     t.private[k] = v
                 end
             end
-        })
+        }
+        setmetatable(output, outputMetatable)
+        if fields.initialize then fields.initialize(output) end
+        return output
     end
 end
 

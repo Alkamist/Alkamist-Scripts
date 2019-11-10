@@ -183,9 +183,9 @@ local MouseControl = Prototype:new{
         end
     },
 
-    isPressed = { from = { pressState, currentState } },
-    justPressed = { from = { pressState, justTurnedOn } },
-    justReleased = { from = { pressState, justTurnedOff } },
+    isPressed = { from = { "pressState", "currentState" } },
+    justPressed = { from = { "pressState", "justTurnedOn" } },
+    justReleased = { from = { "pressState", "justTurnedOff" } },
     justDoublePressed = {
         get = function(self)
             local timeSince = self.timeSincePreviousPress
@@ -234,27 +234,33 @@ local MouseButton = Prototype:new{
 }
 
 local Mouse = Prototype:new{
+    initialize = function(self)
+        self.buttons.left.mouse = self
+        self.buttons.middle.mouse = self
+        self.buttons.right.mouse = self
+    end,
+
     cap = 0,
     wheel = 0,
     hWheel = 0,
     widgets = {},
 
     xTracker = TrackedNumber,
-    x = { from = { xTracker, currentValue } },
-    previousX = { from = { xTracker, previousValue } },
-    xJustChanged = { from = { xTracker, justChanged } },
-    xChange = { from = { xTracker, change } },
+    x = { from = { "xTracker", "currentValue" } },
+    previousX = { from = { "xTracker", "previousValue" } },
+    xJustChanged = { from = { "xTracker", "justChanged" } },
+    xChange = { from = { "xTracker", "change" } },
 
     yTracker = TrackedNumber,
-    y = { from = { yTracker, currentValue } },
-    previousY = { from = { yTracker, previousValue } },
-    yJustChanged = { from = { yTracker, justChanged } },
-    yChange = { from = { yTracker, change } },
+    y = { from = { "yTracker", "currentValue" } },
+    previousY = { from = { "yTracker", "previousValue" } },
+    yJustChanged = { from = { "yTracker", "justChanged" } },
+    yChange = { from = { "yTracker", "change" } },
 
-    buttons = Prototype:new{
-        left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
-        middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
-        right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
+    buttons = {
+        left = MouseButton:new{ bitValue = 1 },
+        middle = MouseButton:new{ bitValue = 64 },
+        right = MouseButton:new{ bitValue = 2 }
     },
 
     justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end },
@@ -279,46 +285,6 @@ local Mouse = Prototype:new{
         self.buttons.right:update()
     end
 }
-Mouse.cap = 0
-Mouse.wheel = 0
-Mouse.hWheel = 0
-Mouse.widgets = {}
-Mouse.xTracker = TrackedNumber:new()
-Mouse.x = { from = "xTracker.currentValue" }
-Mouse.previousX = { from = "xTracker.previousValue" }
-Mouse.xJustChanged = { from = "xTracker.justChanged" }
-Mouse.xChange = { from = "xTracker.change" }
-Mouse.yTracker = TrackedNumber:new()
-Mouse.y = { from = "yTracker.currentValue" }
-Mouse.previousY = { from = "yTracker.previousValue" }
-Mouse.yJustChanged = { from = "yTracker.justChanged" }
-Mouse.yChange = { from = "yTracker.change" }
-Mouse.buttons = {
-    left = MouseButton:new{ mouse = Mouse, bitValue = 1 },
-    middle = MouseButton:new{ mouse = Mouse, bitValue = 64 },
-    right = MouseButton:new{ mouse = Mouse, bitValue = 2 }
-}
-Mouse.justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end }
-Mouse.wheelJustMoved = { get = function(self) return self.wheel ~= 0 end }
-Mouse.hWheelJustMoved = { get = function(self) return self.hWheel ~= 0 end }
-function Mouse:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self.previousX, self.previousY) end
-function Mouse:isInsideWidget(widget) return widget:pointIsInside(self.x, self.y) end
-function Mouse:justEntered(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInside(widget) end
-function Mouse:justLeft(widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInside(widget) end
-function Mouse:update()
-    self.xTracker:update(gfx.mouse_x)
-    self.yTracker:update(gfx.mouse_y)
-    self.cap = gfx.mouse_cap
-
-    self.wheel = gfx.mouse_wheel / 120
-    gfx.mouse_wheel = 0
-    self.hWheel = gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel = 0
-
-    self.buttons.left:update()
-    self.buttons.middle:update()
-    self.buttons.right:update()
-end
 
 --==============================================================
 --== Keyboard ==================================================

@@ -1,6 +1,40 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
+local TrackedNumber = require("GUI.TrackedNumber")
+
+local Test = Prototype:new{
+    initialize = function(self)
+        self.currentValue = 20
+    end,
+    x = 1,
+    y = 2,
+    z = 3,
+    number1 = TrackedNumber:new(),
+    currentValue = { from = { "number1", "currentValue" } },
+    justChanged = { from = { "number1", "justChanged" } }
+}
+
+local test1 = Test:new()
+local test2 = Test:new()
+
+--for k, v in pairs(test1.number1) do msg(k) end
+
+msg(test1.currentValue)
+msg(test2.currentValue)
+test1.currentValue = 10
+msg(test1.currentValue)
+msg(test2.currentValue)
+
+--msg(test1.number1.currentValue)
+--msg(test1.justChanged)
+--test1.currentValue = 5
+--msg(test1.number1.currentValue)
+
+--msg(test1.private.number1)
+--msg(test2.private.number)
+
 --local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
