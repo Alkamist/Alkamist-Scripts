@@ -51,19 +51,19 @@ function Prototype:implement(prototypes)
     for i = 1, #prototypes do
         local prototype = prototypes[i]
         local member = prototype:new()
-        output[member] = member
+
         for fieldName, field in pairs(member) do
-            if fieldName ~= "initialize" and fieldName ~= "new" then
-                if type(field) == "function" then
-                    output[fieldName] = function(self) return output[member][fieldName](output[member]) end
-                else
-                    output[fieldName] = {
-                        get = function(self) return field end,
-                        set = function(self, value) output[member][fieldName] = value end
-                    }
-                end
-            end
+            print(fieldName)
+            print(field)
         end
+
+        --output[prototype] = prototype:new()
+        --for fieldName, field in pairs(output[prototype]) do
+        --    print(field)
+        --    if fieldName ~= "initialize" and fieldName ~= "new" then
+        --        output[prototype][fieldName] = { from = tostring(prototype) .. "." .. fieldName }
+        --    end
+        --end
     end
 
     return output
@@ -160,10 +160,10 @@ local test1 = RunnerAndWalker:new()
 
 --for k, v in pairs(test1) do print(k) end
 
-test1:run()
-test1:walk()
-test1.speed = 15
-test1:run()
-test1:walk()
+--test1:run()
+--test1:walk()
+--test1.speed = 15
+--test1:run()
+--test1:walk()
 
 return Prototype
