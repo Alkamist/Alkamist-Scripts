@@ -236,11 +236,8 @@ local MouseButton = Prototype:new{
 local Mouse = Prototype:new{
     initialize = function(self)
         self.buttons.left.mouse = self
-        self.buttons.left.bitValue = 1
         self.buttons.middle.mouse = self
-        self.buttons.left.bitValue = 64
         self.buttons.right.mouse = self
-        self.buttons.left.bitValue = 2
     end,
 
     cap = 0,
@@ -261,9 +258,9 @@ local Mouse = Prototype:new{
     yChange = { from = { "yTracker", "change" } },
 
     buttons = {
-        left = MouseButton,
-        middle = MouseButton,
-        right = MouseButton
+        left = MouseButton:withDefaults{ bitValue = 1 },
+        middle = MouseButton:withDefaults{ bitValue = 64 },
+        right = MouseButton:withDefaults{ bitValue = 2 }
     },
     leftButton = { from = { "buttons", "left" } },
     middleButton = { from = { "buttons", "middle" } },

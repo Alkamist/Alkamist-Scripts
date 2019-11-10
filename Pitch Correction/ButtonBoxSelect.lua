@@ -8,7 +8,7 @@ local Test = Prototype:new{
     x = 1,
     y = 2,
     z = 3,
-    number1 = TrackedNumber,
+    number1 = TrackedNumber:withDefaults{ currentValue = 392 },
     currentValue = { from = { "number1", "currentValue" } },
     justChanged = { from = { "number1", "justChanged" } }
 }
@@ -16,16 +16,16 @@ local Test = Prototype:new{
 local test1 = Test:new()
 local test2 = Test:new()
 
-test1.x = 5
-for k, v in pairs(test1) do
-    msg(k)
-end
+--for k, v in pairs(test1) do
+--    msg(k)
+--    msg(v)
+--end
 
---msg(test1.currentValue)
---msg(test2.currentValue)
---test1.currentValue = 10
---msg(test1.currentValue)
---msg(test2.currentValue)
+msg(test1.currentValue)
+msg(test2.currentValue)
+test2.currentValue = 10
+msg(test1.currentValue)
+msg(test2.currentValue)
 
 --msg(test1.number1.currentValue)
 --msg(test1.justChanged)

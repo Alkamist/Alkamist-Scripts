@@ -34,15 +34,26 @@ local function convertMethodForwardsToGettersAndSetters(fields)
         end
     end
 end
+local function givePrototypeAFunctionToChangeItsDefaults(fields)
+    function fields:withDefaults(defaults)
+        for k, v in pairs(defaults) do
+            fields[k] = v
+        end
+        return fields
+    end
+end
 local function givePrototypeAFunctionToInstantiateItself(fields)
     function fields:new(initialValues)
         local output = { private = {} }
         for fieldName, field in pairs(fields) do
             local fieldType = type(field)
+            -- Tables need special processing.
             if fieldType == "table" then
                 if fieldName ~= "prototypes" then
+                    -- Call a the "new" function if it is implemented.
                     if field.new then
                         output.private[fieldName] = field:new(initialValues)
+                    -- Otherwise, if it's a raw table then move it to the private section.
                     elseif (not field.get) and (not field.set) then
                         output.private[fieldName] = {}
                         for key, value in pairs(field) do
@@ -50,6 +61,7 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
                         end
                     end
                 end
+            -- Anything other than tables and functions gets simply moved to the private section.
             elseif fieldType ~= "function" then
                 output.private[fieldName] = field
             end
@@ -101,6 +113,7 @@ return {
     new = function(self, fields)
         implementPrototypesWithCompositionAndMethodForwarding(fields)
         convertMethodForwardsToGettersAndSetters(fields)
+        givePrototypeAFunctionToChangeItsDefaults(fields)
         givePrototypeAFunctionToInstantiateItself(fields)
         return fields
     end
