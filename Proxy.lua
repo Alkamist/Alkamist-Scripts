@@ -1,5 +1,10 @@
 local setmetatable = setmetatable
 
+local function ipairsIterate(t, i)
+    i = i + 1
+    local v = t[i]
+    if v then return i, v end
+end
 local function copyTableWithoutFunctions(input, seen)
     if type(input) ~= "table" then return input end
     local seen = seen or {}
@@ -62,7 +67,13 @@ function Proxy:new(fields, initialValues)
                 end
                 copiedFields[k] = v
             end
-        end
+        end,
+        __pairs = function(t)
+            return next, copiedFields, nil
+        end,
+        __ipairs = function(t)
+            return ipairsIterate, copiedFields, 0
+        end,
     }
     local proxy = setmetatable({}, outputMetatable)
     for key, value in pairs(initialValues) do
@@ -72,16 +83,28 @@ function Proxy:new(fields, initialValues)
 end
 
 function Proxy:createPrototype(fields)
-    local prototype = {}
+    local fieldPrototypes = fields.prototypes
+    if fields.prototypes then
+        for i = 1, #fieldPrototypes do
+            local fieldPrototype = fieldPrototypes[i]
+            local proxiedMember = fieldPrototype:new()
+            fields[tostring(proxiedMember)] = proxiedMember
+            for fieldName, field in pairs(fieldPrototype) do
+                if fieldName ~= "new" then
+                    fields[fieldName] = { from = tostring(proxiedMember) .. "." .. fieldName }
+                end
+            end
+        end
+    end
     for fieldName, field in pairs(fields) do
         if type(field) == "table" and field.from then
             implementFieldFromKeys(field.from, fieldName, fields)
         end
     end
-    function prototype:new(initialValues)
+    function fields:new(initialValues)
         return Proxy:new(fields, initialValues)
     end
-    return prototype
+    return fields
 end
 
 local Walker = {}
@@ -95,26 +118,23 @@ Runner.speed = 10
 function Runner:run() print("running at speed: " .. self.speed) end
 Runner = Proxy:createPrototype(Runner)
 
+--local WalkerAndRunner = {}
+--WalkerAndRunner.walker = Walker:new()
+--WalkerAndRunner.runner = Runner:new()
+--WalkerAndRunner.walk = { from = "walker.walk" }
+--WalkerAndRunner.speed = { from = "walker.speed" }
+--WalkerAndRunner = Proxy:createPrototype(WalkerAndRunner)
+
 local WalkerAndRunner = {}
-WalkerAndRunner.walker = Walker:new()
-WalkerAndRunner.runner = Runner:new()
-WalkerAndRunner.walk = { from = "walker.walk" }
-WalkerAndRunner.speed = { from = "walker.speed" }
---WalkerAndRunner.speed = {
---    get = function(self) return self.walker.speed end,
---    set = function(self, value) self.walker.speed = value end
---}
+WalkerAndRunner.prototypes = { Runner, Walker }
 WalkerAndRunner = Proxy:createPrototype(WalkerAndRunner)
 
 local test1 = WalkerAndRunner:new()
 
---test1:run()
 test1:walk()
+test1:run()
 test1.speed = 15
-test1.walker:walk()
---test1.runner:run()
---print(test1.walker.ayylmao)
---test1:run()
---test1:walk()
+test1:walk()
+test1:run()
 
 return Prototype
