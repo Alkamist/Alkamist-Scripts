@@ -291,33 +291,38 @@ local Mouse = Prototype:new{
 --== Keyboard ==================================================
 --==============================================================
 
-local KeyboardKey = {}
-KeyboardKey.prototypes = { MouseControl }
-KeyboardKey.character = ""
-function KeyboardKey:update()
-    MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
-end
-KeyboardKey = Prototype:createPrototype(KeyboardKey)
-
-local Keyboard = {}
-Keyboard.mouse = {}
-Keyboard.currentCharacter = nil
-Keyboard.modifiers = {
-    shift = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 8 },
-    control = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 4 },
-    windows = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 32 },
-    alt = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 16 }
+local KeyboardKey = Prototype:new{
+    prototypes = { MouseControl },
+    character = "",
+    update = function(self) self[MouseControl]:update(gfx.getchar(characterTable[self.character]) > 0) end
 }
-Keyboard.keys = {}
-function Keyboard:createKey(character)
-    self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
-end
-function Keyboard:update()
-    for name, key in pairs(self.modifiers) do key:update() end
-    for name, key in pairs(self.keys) do key:update() end
-    self.currentCharacter = characterTableInverted[gfx.getchar()]
-end
-Keyboard = Prototype:createPrototype(Keyboard)
+
+local Keyboard = Prototype:new{
+    initialize = function(self)
+        self.modifiers.shift.mouse = self.mouse
+        self.modifiers.control.mouse = self.mouse
+        self.modifiers.windows.mouse = self.mouse
+        self.modifiers.alt.mouse = self.mouse
+    end,
+
+    mouse = {},
+    currentCharacter = nil,
+    modifiers = {
+        shift = MouseButton:withDefaults{ bitValue = 8 },
+        control = MouseButton:withDefaults{ bitValue = 4 },
+        windows = MouseButton:withDefaults{ bitValue = 32 },
+        alt = MouseButton:withDefaults{ bitValue = 16 }
+    },
+    keys = {},
+    createKey = function(self, character)
+        self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
+    end,
+    update = function(self)
+        for name, key in pairs(self.modifiers) do key:update() end
+        for name, key in pairs(self.keys) do key:update() end
+        self.currentCharacter = characterTableInverted[gfx.getchar()]
+    end
+}
 
 local UserControl = { mouse = Mouse:new() }
 UserControl.keyboard = Keyboard:new{ mouse = UserControl.mouse }

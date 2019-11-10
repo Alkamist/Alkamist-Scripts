@@ -69,7 +69,7 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
         local outputMetatable = {
             __index = function(t, k)
                 local field = fields[k]
-                if field ~= nil then
+                --if field ~= nil then
                     local fieldType = type(field)
                     if fieldType == "table" and field.get then
                         return field.get(t.private)
@@ -77,21 +77,38 @@ local function givePrototypeAFunctionToInstantiateItself(fields)
                         return field
                     end
                     return t.private[k]
-                end
+                --end
             end,
             __newindex = function(t, k, v)
                 local field = fields[k]
-                if field ~= nil then
+                --if field ~= nil then
                     local fieldType = type(field)
                     if fieldType == "table" and field.set then
                         return field.set(t.private, v)
                     end
                     t.private[k] = v
-                end
+                --end
             end,
             __pairs = function(t)
+                local seenMembers = {}
+                local wentThroughAllPrivateKeys = false
                 return function(t, k)
-                    local prototypeKey = next(fields, k)
+                    local prototypeKey = k
+                    if not wentThroughAllPrivateKeys then
+                        prototypeKey = next(t.private, prototypeKey)
+                        if prototypeKey then
+                            seenMembers[prototypeKey] = true
+                        else
+                            wentThroughAllPrivateKeys = true
+                        end
+                    end
+                    if wentThroughAllPrivateKeys then
+                        while true do
+                            prototypeKey = next(fields, prototypeKey)
+                            if prototypeKey == nil then break end
+                            if not seenMembers[prototypeKey] then break end
+                        end
+                    end
                     return prototypeKey, t[prototypeKey]
                 end, t, nil
             end,
