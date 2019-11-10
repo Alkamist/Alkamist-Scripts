@@ -212,10 +212,12 @@ function MouseControl:update(state)
     self.wasJustReleasedLastFrame = self.justReleased
     self.pressState:update(state)
 
-    for i = 1, #widgets do
-        local widget = widgets[i]
-        if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
-        if self.justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+    if widgets then
+        for i = 1, #widgets do
+            local widget = widgets[i]
+            if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
+            if self.justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+        end
     end
 
     if self.dragState then self.isAlreadyDragging = true end
@@ -295,6 +297,7 @@ Keyboard.modifiers = {
     windows = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 32 },
     alt = MouseButton:new{ mouse = Keyboard.mouse, bitValue = 16 }
 }
+Keyboard.keys = {}
 function Keyboard:createKey(character)
     self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
 end

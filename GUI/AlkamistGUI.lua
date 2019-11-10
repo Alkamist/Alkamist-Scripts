@@ -49,6 +49,7 @@ function GUI:initialize(parameters)
     gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
 end
 function GUI:run()
+    local self = GUI
     self.widthTracker:update(gfx.w)
     self.heightTracker:update(gfx.h)
     self.mouse:update()
