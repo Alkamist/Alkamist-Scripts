@@ -13,7 +13,7 @@ GUI:initialize{
     height = 700,
     dock = 0
 }
---GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
+GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 --local testButton1 = Button{
 --    GUI = GUI,

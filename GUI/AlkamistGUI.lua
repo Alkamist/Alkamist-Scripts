@@ -26,21 +26,20 @@ local GUI = Prototype:new{
         set = function(self, color)
             self.backgroundColor = color
             gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
-        end,
+        end
     },
-    listOfWidgets = {},
     windowWasResized = { get = function(self) return self.widthJustChanged or self.heightJustChanged end },
     widgets = {
-        get = function(self) return self.listOfWidgets end,
+        default = {},
         set = function(self, value)
-            self.listOfWidgets = value
+            self.widgets = value
             self.mouse.widgets = value
         end
     }
 }
-GUI = GUI:new()
 
-function GUI:initialize(parameters)
+local gui = GUI:new()
+function gui:initialize(parameters)
     local parameters = parameters or {}
     self.title = parameters.title or self.title or ""
     self.x = parameters.x or self.x or 0
@@ -50,8 +49,8 @@ function GUI:initialize(parameters)
     self.dock = parameters.dock or self.dock or 0
     gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
 end
-function GUI:run()
-    local self = GUI
+function gui:run()
+    local self = gui
     self.widthTracker:update(gfx.w)
     self.heightTracker:update(gfx.h)
     self.mouse:update()
@@ -60,7 +59,9 @@ function GUI:run()
     local char = self.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    if self.mouse.leftButton.isPressed then msg("left") end
+    msg(self.windowWasResized)
+    --if self.windowWasResized then msg("yee") end
+    --if self.mouse.leftButton.isPressed then msg("left") end
 
     --local widgets = self.widgets
     --if widgets then
@@ -79,4 +80,4 @@ function GUI:run()
     gfx.update()
 end
 
-return GUI
+return gui
