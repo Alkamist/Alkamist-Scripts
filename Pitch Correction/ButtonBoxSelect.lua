@@ -1,57 +1,18 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
-local TrackedNumber = require("GUI.TrackedNumber")
-
-local Test = Prototype:new{
-    x = 1,
-    y = 2,
-    z = 3,
-    asdf = nil,
-    number1 = TrackedNumber:withDefaults{ currentValue = 392 },
-    currentValue = { from = { "number1", "currentValue" } },
-    justChanged = { from = { "number1", "justChanged" } }
-}
-
-local test1 = Test:new()
-local test2 = Test:new()
-
---msg(test1.asdf)
-test1.asdf = 5
---msg(test1.asdf)
-
-for k, v in pairs(test1) do
-    msg(k)
-    msg(v)
-end
-
---msg(test1.currentValue)
---msg(test2.currentValue)
---test2.currentValue = 10
---msg(test1.currentValue)
---msg(test2.currentValue)
-
---msg(test1.number1.currentValue)
---msg(test1.justChanged)
---test1.currentValue = 5
---msg(test1.number1.currentValue)
-
---msg(test1.private.number1)
---msg(test2.private.number)
-
---local GUI = require("GUI.AlkamistGUI")
+local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 
---GUI:initialize{
---    title = "Alkamist Pitch Correction",
---    x = 200,
---    y = 200,
---    width = 1000,
---    height = 700,
---    dock = 0
---}
+GUI:initialize{
+    title = "Alkamist Pitch Correction",
+    x = 200,
+    y = 200,
+    width = 1000,
+    height = 700,
+    dock = 0
+}
 --GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 --local testButton1 = Button{
@@ -122,4 +83,4 @@ end]]--
 
 --GUI:addWidgets{ testButton1, boxSelect }
 --GUI:addWidgets{ testButton1 }
---GUI:run()
+GUI:run()

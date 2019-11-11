@@ -235,9 +235,9 @@ local MouseButton = Prototype:new{
 
 local Mouse = Prototype:new{
     initialize = function(self)
-        self.buttons.left.mouse = self
-        self.buttons.middle.mouse = self
-        self.buttons.right.mouse = self
+        self.leftButton.mouse = self
+        self.middleButton.mouse = self
+        self.rightButton.mouse = self
     end,
 
     cap = 0,
@@ -257,14 +257,9 @@ local Mouse = Prototype:new{
     yJustChanged = { from = { "yTracker", "justChanged" } },
     yChange = { from = { "yTracker", "change" } },
 
-    buttons = {
-        left = MouseButton:withDefaults{ bitValue = 1 },
-        middle = MouseButton:withDefaults{ bitValue = 64 },
-        right = MouseButton:withDefaults{ bitValue = 2 }
-    },
-    leftButton = { from = { "buttons", "left" } },
-    middleButton = { from = { "buttons", "middle" } },
-    rightButton = { from = { "buttons", "right" } },
+    leftButton = MouseButton:withDefaults{ bitValue = 1 },
+    middleButton = MouseButton:withDefaults{ bitValue = 64 },
+    rightButton = MouseButton:withDefaults{ bitValue = 2 },
 
     justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end },
     wheelJustMoved = { get = function(self) return self.wheel ~= 0 end },
@@ -281,9 +276,9 @@ local Mouse = Prototype:new{
         gfx.mouse_wheel = 0
         self.hWheel = gfx.mouse_hwheel / 120
         gfx.mouse_hwheel = 0
-        self.buttons.left:update()
-        self.buttons.middle:update()
-        self.buttons.right:update()
+        self.leftButton:update()
+        self.middleButton:update()
+        self.rightButton:update()
     end
 }
 
@@ -299,26 +294,27 @@ local KeyboardKey = Prototype:new{
 
 local Keyboard = Prototype:new{
     initialize = function(self)
-        self.modifiers.shift.mouse = self.mouse
-        self.modifiers.control.mouse = self.mouse
-        self.modifiers.windows.mouse = self.mouse
-        self.modifiers.alt.mouse = self.mouse
+        self.shiftKey.mouse = self.mouse
+        self.controlKey.mouse = self.mouse
+        self.windowsKey.mouse = self.mouse
+        self.altKey.mouse = self.mouse
     end,
 
     mouse = {},
     currentCharacter = nil,
-    modifiers = {
-        shift = MouseButton:withDefaults{ bitValue = 8 },
-        control = MouseButton:withDefaults{ bitValue = 4 },
-        windows = MouseButton:withDefaults{ bitValue = 32 },
-        alt = MouseButton:withDefaults{ bitValue = 16 }
-    },
+    shiftKey = MouseButton:withDefaults{ bitValue = 8 },
+    controlKey = MouseButton:withDefaults{ bitValue = 4 },
+    windowsKey = MouseButton:withDefaults{ bitValue = 32 },
+    altKey = MouseButton:withDefaults{ bitValue = 16 },
     keys = {},
     createKey = function(self, character)
         self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
     end,
     update = function(self)
-        for name, key in pairs(self.modifiers) do key:update() end
+        self.shiftKey:update()
+        self.controlKey:update()
+        self.windowsKey:update()
+        self.altKey:update()
         for name, key in pairs(self.keys) do key:update() end
         self.currentCharacter = characterTableInverted[gfx.getchar()]
     end
