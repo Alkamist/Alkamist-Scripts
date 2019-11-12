@@ -22,11 +22,12 @@ local GUI = Prototype:new{
     mouse = UserControl.mouse,
     keyboard = UserControl.keyboard,
     backgroundColor = {
-        default = { 0.0, 0.0, 0.0, 1.0, 0 },
-        set = function(self, color)
-            self.backgroundColor.default = color
-            gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
-        end
+        value = { 0.0, 0.0, 0.0, 1.0, 0 },
+        set = function(self, value, field)
+            field.value = value
+            gfx.clear = value[1] * 255 + value[2] * 255 * 256 + value[3] * 255 * 65536
+        end,
+        get = function(self, field) return field.value end
     },
     windowWasResized = { get = function(self) return self.widthJustChanged or self.heightJustChanged end },
     widgets = {
@@ -59,9 +60,8 @@ function gui:run()
     local char = self.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    --msg(self.windowWasResized)
     --if self.windowWasResized then msg("yee") end
-    --if self.mouse.leftButton.isPressed then msg("left") end
+    if self.mouse.leftButton.justReleased then msg("left") end
 
     --local widgets = self.widgets
     --if widgets then

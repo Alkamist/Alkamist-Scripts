@@ -1,72 +1,72 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+--local Prototype = require("Prototype")
+--
+--local TestProto = Prototype:new{
+--    a = 5,
+--    b = {
+--        get = function(self, field) return self.a end,
+--        set = function(self, field, v) self.a = v end
+--    },
+--    c = {
+--        get = function(self, field) return self.b end,
+--        set = function(self, field, v) self.b = v end
+--    }
+--}
+--local Test = Prototype:new{
+--    prototypes = {
+--        { "test", TestProto:new() }
+--    },
+--    --ayylmao = {
+--    --    value = 20,
+--    --    get = function(self, field) return field.value end,
+--    --    set = function(self, field, v) field.value = v end
+--    --},
+--    --test = TestProto:new(),
+--    --a = { from = { "test", "a" } },
+--    --b = { from = { "test", "b" } },
+--    --c = { from = { "test", "c" } }
+--    --a = {
+--    --    get = function(self, field) return self.test.a end,
+--    --    set = function(self, field, v) self.test.a = v end
+--    --},
+--    --b = {
+--    --    get = function(self, field) return self.test.b end,
+--    --    set = function(self, field, v) self.test.b = v end
+--    --},
+--    --c = {
+--    --    get = function(self, field) return self.test.c end,
+--    --    set = function(self, field, v) self.test.c = v end
+--    --}
+--}
+--
+--local test1 = Test:new()
+--
+--msg(test1.a)
+--msg(test1.b)
+--msg(test1.c)
+--
+--test1.c = 3
+--
+--msg(test1.a)
+--msg(test1.b)
+--msg(test1.c)
 
-local TestProto = Prototype:new{
-    a = 5,
-    b = {
-        get = function(self, field) return self.a end,
-        set = function(self, field, v) self.a = v end
-    },
-    c = {
-        get = function(self, field) return self.b end,
-        set = function(self, field, v) self.b = v end
-    }
-}
-local Test = Prototype:new{
-    --prototypes = {
-    --    { "test", TestProto:new() }
-    --},
-    --ayylmao = {
-    --    value = 20,
-    --    get = function(self, field) return field.value end,
-    --    set = function(self, field, v) field.value = v end
-    --},
-    test = TestProto:new(),
-    a = { from = { "test", "a" } },
-    b = { from = { "test", "b" } },
-    c = { from = { "test", "c" } }
-    --a = {
-    --    get = function(self, field) return self.test.a end,
-    --    set = function(self, field, v) self.test.a = v end
-    --},
-    --b = {
-    --    get = function(self, field) return self.test.b end,
-    --    set = function(self, field, v) self.test.b = v end
-    --},
-    --c = {
-    --    get = function(self, field) return self.test.c end,
-    --    set = function(self, field, v) self.test.c = v end
-    --}
-}
-
-local test1 = Test:new()
-
-msg(test1.a)
-msg(test1.b)
-msg(test1.c)
-
-test1.c = 3
-
-msg(test1.a)
-msg(test1.b)
-msg(test1.c)
-
---local GUI = require("GUI.AlkamistGUI")
+local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 
---GUI:initialize{
---    title = "Alkamist Pitch Correction",
---    x = 200,
---    y = 200,
---    width = 1000,
---    height = 700,
---    dock = 0
---}
---GUI.backgroundColor = { 0.2, 0.2, 0.2 }
---GUI:run()
+GUI:initialize{
+    title = "Alkamist Pitch Correction",
+    x = 200,
+    y = 200,
+    width = 1000,
+    height = 700,
+    dock = 0
+}
+GUI.backgroundColor = { 0.2, 0.2, 0.2 }
+GUI:run()
 
 --local testButton1 = Button{
 --    GUI = GUI,

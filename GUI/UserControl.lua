@@ -228,10 +228,9 @@ local MouseControl = Prototype:new{
 }
 
 local MouseButton = Prototype:new{
-    --prototypes = {
-    --    { "mouseControl", MouseControl:new() }
-    --},
-    mouse = {},
+    prototypes = {
+        { "mouseControl", MouseControl:new() }
+    },
     bitValue = 0,
     update = function(self)
         self.mouseControl:update(self.mouse.cap & self.bitValue == self.bitValue)
@@ -240,9 +239,7 @@ local MouseButton = Prototype:new{
 
 local Mouse = Prototype:new{
     initialize = function(self)
-        msg(self)
         self.leftButton.mouse = self
-        msg(self.leftButton.mouse)
         self.middleButton.mouse = self
         self.rightButton.mouse = self
     end,

@@ -51,9 +51,9 @@ local function convertMethodForwardsToGettersAndSetters(fields)
                     local rootTable, accessKey = getAccessor(self, fromKeys)
                     return rootTable[accessKey]
                 end,
-                set = function(self, field, v)
+                set = function(self, value, field)
                     local rootTable, accessKey = getAccessor(self, fromKeys)
-                    rootTable[accessKey] = v
+                    rootTable[accessKey] = value
                 end
             }
         end
@@ -76,7 +76,7 @@ local function createProxy(fields)
             local private = getmetatable(t).private
             local field = private[k]
             if type(field) == "table" and field.set then
-                field.set(t, field, v)
+                field.set(t, v, field)
             end
             private[k] = v
         end,
@@ -93,8 +93,14 @@ end
 
 return {
     new = function(self, fields)
-        function fields:new()
-            return createProxy(self)
+        function fields:new(defaultValues)
+            local defaultValues = defaultValues or {}
+            local proxy = createProxy(self)
+            for k, v in pairs(defaultValues) do
+                proxy[k] = v
+            end
+            if proxy.initialize then proxy:initialize() end
+            return proxy
         end
         return fields
     end
