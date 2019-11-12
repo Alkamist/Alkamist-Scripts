@@ -7,17 +7,16 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Prototype = require("Prototype")
 
---local TestProto = Prototype:new{
---    asdfout = "yee",
---    asdf = function(self) msg(self.asdfout) end
---}
+local TestProto = Prototype:new{
+    asdfout = "yee",
+    asdf = function(self) msg(self.asdfout) end
+}
 
 local Test = Prototype:new{
     --initialize = function(self) msg("yeyeyeye") end,
-    --prototypes = {
-    --    testProto = TestProto:new()
-    --},
-    --testProto = { implement = TestProto:new() },
+    prototypes = {
+        { "testProto", TestProto:new() }
+    },
     --testProto = TestProto:new(),
     --asdfout = { from = { "testProto", "asdfout" } },
     --asdf = { from = { "testProto", "asdf" } },
@@ -57,9 +56,12 @@ local test1 = Test:new()
 --msg(test1.a)
 --msg(test1.b)
 --msg(test1.c)
-msg(test1.b)
-test1.b = 7
-msg(test1.b)
+--msg(test1.b)
+--test1.b = 7
+--msg(test1.b)
+
+msg(test1.asdfout)
+test1:asdf()
 
 
 --msg(test1.a.x)

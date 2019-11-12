@@ -86,39 +86,25 @@ local function copyTable(input, seen)
     return setmetatable(output, getmetatable(input))
 end
 
--- NO SENSE OF ORDER!
---local function implementPrototypesWithCompositionAndMethodForwarding(fields)
---    if not fields.prototypes then return end
---    for prototypeName, prototype in pairs(fields.prototypes) do
---        fields[prototypeName] = prototype
---        for fieldName, field in pairs(prototype) do
---            fields[fieldName] = { from = { prototypeName, fieldName } }
---        end
---    end
---end
---local function convertMethodForwardsToGettersAndSetters(fields)
---    for fieldName, field in pairs(fields) do
---        if type(field) == "table" and field.from then
---            local fromKeys = field.from
---            local rootKey = fromKeys[1]
---            local outputKey = fromKeys[2]
---            if type(fields[rootKey][outputKey]) == "function" then
---                fields[fieldName] = function(self) return self[rootKey][outputKey](self) end
---            else
---                fields[fieldName] = {
---                    get = function(self) return self[rootKey][outputKey] end,
---                    set = function(self, value) self[rootKey][outputKey] = value end
---                }
---            end
---        end
---    end
---end
+local function implementPrototypesWithCompositionAndMethodForwarding(fields)
+    local prototypes = fields.prototypes
+    if not prototypes then return end
+    for i = 1, #prototypes do
+        local prototypeName = prototypes[i][1]
+        local prototype = prototypes[i][2]
+        fields[prototypeName] = prototype
+        for fieldName, field in pairs(prototype) do
+            if not fields[fieldName] then
+                fields[fieldName] = { from = { prototypeName, fieldName } }
+            end
+        end
+    end
+end
 
 return {
     new = function(self, fields)
         local output = {}
-        --implementPrototypesWithCompositionAndMethodForwarding(fields)
-        --convertMethodForwardsToGettersAndSetters(fields)
+        implementPrototypesWithCompositionAndMethodForwarding(fields)
         function output:new()
             local proxy = setmetatable({ private = copyTable(fields) }, proxyMetatable)
             if proxy.initialize then proxy:initialize() end
