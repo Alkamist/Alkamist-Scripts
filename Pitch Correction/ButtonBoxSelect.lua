@@ -27,18 +27,18 @@ local Test = Prototype:new{
     },
     b = {
         from = { "a", "x" },
-        get = function(self, value) msg("getb") end,
-        set = function(self, value) msg("setb") end,
+        --get = function(self, value) msg("getb " .. tostring(value)) end,
+        --set = function(self, value) msg("setb " .. tostring(value)) end,
     },
     c = {
         from = "b",
-        get = function(self, value) msg("getc") end,
-        set = function(self, value) msg("setc") end,
+        --get = function(self, value) msg("getc " .. tostring(value)) end,
+        --set = function(self, value) msg("setc " .. tostring(value)) end,
     },
     d = {
         from = "c",
-        get = function(self, value) msg("getd") end,
-        set = function(self, value) msg("setd") end,
+        --get = function(self, value) msg("getd " .. tostring(value)) end,
+        --set = function(self, value) msg("setd " .. tostring(value)) end,
     },
 --    c = {
 --        get = function(self) return self.b end,
@@ -57,11 +57,11 @@ local test1 = Test:new()
 --msg(test1.b)
 --msg(test1.c)
 --msg(test1.b)
---test1.b = 7
+--test1.d = 7
 --msg(test1.b)
 
-msg(test1.asdfout)
-test1:asdf()
+--msg(test1.asdfout)
+--test1:asdf()
 
 
 --msg(test1.a.x)
@@ -82,10 +82,10 @@ test1:asdf()
 --msg(test1.c)
 --msg(test1.d)
 
---for k, v in pairs(test1) do
---    msg(k)
---    msg(v)
---end
+for k, v in pairs(test1) do
+    msg(k)
+    --msg(v)
+end
 
 --GUI:initialize{
 --    title = "Alkamist Pitch Correction",

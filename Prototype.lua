@@ -99,6 +99,7 @@ local function implementPrototypesWithCompositionAndMethodForwarding(fields)
             end
         end
     end
+    fields.prototypes = nil
 end
 
 return {
