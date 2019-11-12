@@ -47,13 +47,13 @@ local function convertMethodForwardsToGettersAndSetters(fields)
         if type(field) == "table" and field.from then
             local fromKeys = field.from
             fields[fieldName] = {
-                get = function(self)
+                get = function(self, field)
                     local rootTable, accessKey = getAccessor(self, fromKeys)
                     return rootTable[accessKey]
                 end,
-                set = function(self, value)
+                set = function(self, field, v)
                     local rootTable, accessKey = getAccessor(self, fromKeys)
-                    rootTable[accessKey] = value
+                    rootTable[accessKey] = v
                 end
             }
         end
@@ -68,7 +68,7 @@ local function createProxy(fields)
             local private = getmetatable(t).private
             local field = private[k]
             if type(field) == "table" and field.get then
-                return field.get(t)
+                return field.get(t, field)
             end
             return field
         end,
@@ -76,7 +76,7 @@ local function createProxy(fields)
             local private = getmetatable(t).private
             local field = private[k]
             if type(field) == "table" and field.set then
-                field.set(t, v)
+                field.set(t, field, v)
             end
             private[k] = v
         end,

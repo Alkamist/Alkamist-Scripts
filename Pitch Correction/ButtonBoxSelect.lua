@@ -6,47 +6,52 @@ local Prototype = require("Prototype")
 local TestProto = Prototype:new{
     a = 5,
     b = {
-        get = function(self) return self.a end,
-        set = function(self, v) self.a = v end
+        get = function(self, field) return self.a end,
+        set = function(self, field, v) self.a = v end
     },
     c = {
-        get = function(self) return self.b end,
-        set = function(self, v) self.b = v end
+        get = function(self, field) return self.b end,
+        set = function(self, field, v) self.b = v end
     }
 }
 local Test = Prototype:new{
-    prototypes = {
-        { "test", TestProto:new() }
-    }
-    --test = TestProto:new(),
-    --a = { from = { "test", "a" } },
-    --b = { from = { "test", "b" } },
-    --c = { from = { "test", "c" } }
+    --prototypes = {
+    --    { "test", TestProto:new() }
+    --},
+    --ayylmao = {
+    --    value = 20,
+    --    get = function(self, field) return field.value end,
+    --    set = function(self, field, v) field.value = v end
+    --},
+    test = TestProto:new(),
+    a = { from = { "test", "a" } },
+    b = { from = { "test", "b" } },
+    c = { from = { "test", "c" } }
     --a = {
-    --    get = function(self) return self.test.a end,
-    --    set = function(self, v) self.test.a = v end
+    --    get = function(self, field) return self.test.a end,
+    --    set = function(self, field, v) self.test.a = v end
     --},
     --b = {
-    --    get = function(self) return self.test.b end,
-    --    set = function(self, v) self.test.b = v end
+    --    get = function(self, field) return self.test.b end,
+    --    set = function(self, field, v) self.test.b = v end
     --},
     --c = {
-    --    get = function(self) return self.test.c end,
-    --    set = function(self, v) self.test.c = v end
+    --    get = function(self, field) return self.test.c end,
+    --    set = function(self, field, v) self.test.c = v end
     --}
 }
 
 local test1 = Test:new()
 
---msg(test1.a)
---msg(test1.b)
---msg(test1.c)
---
---test1.c = 3
---
---msg(test1.a)
---msg(test1.b)
---msg(test1.c)
+msg(test1.a)
+msg(test1.b)
+msg(test1.c)
+
+test1.c = 3
+
+msg(test1.a)
+msg(test1.b)
+msg(test1.c)
 
 --local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")
