@@ -14,7 +14,6 @@ GUI:initialize{
     dock = 0
 }
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
-GUI:run()
 
 local testButton1 = Button:new{
     x = 80,

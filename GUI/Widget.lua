@@ -22,11 +22,11 @@ return Prototype:new{
     y = 0,
     width = 0,
     height = 0,
+    shouldRedraw = true,
     shouldClear = false,
     shouldDrawDirectly = false,
     visibilityState = Toggle:new{ currentState = true, previousState = true },
     isVisible = { from = { "visibilityState", "currentState" } },
-    shouldRedraw = true,
     pointIsInside = function(self, pointX, pointY)
         local x = self.x
         local y = self.y
@@ -49,19 +49,19 @@ return Prototype:new{
         if self.update then self:update() end
     end,
     doDrawFunction = function(self)
-        if self.shouldRedraw and self.draw then
-            self:clearBuffer()
+--        if self.shouldRedraw and self.draw then
+--            self:clearBuffer()
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = self.drawBuffer
             self:draw()
-
-        elseif self.shouldClear then
-            self:clearBuffer()
-            self.shouldClear = false
-        end
-
-        self.shouldRedraw = false
+--
+--        elseif self.shouldClear then
+--            self:clearBuffer()
+--            self.shouldClear = false
+--        end
+--
+--        self.shouldRedraw = false
     end,
     blitToMainWindow = function(self)
         if self.isVisible then

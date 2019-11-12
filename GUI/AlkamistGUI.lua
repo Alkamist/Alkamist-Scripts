@@ -56,16 +56,15 @@ function gui:initialize(parameters)
 end
 
 function gui:run()
-    local self = gui
-    self.widthTracker:update(gfx.w)
-    self.heightTracker:update(gfx.h)
-    self.mouse:update()
-    self.keyboard:update()
+    gui.widthTracker:update(gfx.w)
+    gui.heightTracker:update(gfx.h)
+    gui.mouse:update()
+    gui.keyboard:update()
 
-    local char = self.keyboard.currentCharacter
+    local char = gui.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    local widgets = self.widgets
+    local widgets = gui.widgets
     --if widgets then
         local numberOfWidgets = #widgets
         for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
@@ -73,12 +72,12 @@ function gui:run()
         for i = 1, numberOfWidgets do
             local widget = widgets[i]
             if widget.doDrawFunction then widget:doDrawFunction() end
-            if widget.blitToMainWindow then widget:blitToMainWindow() end
+        --    if widget.blitToMainWindow then widget:blitToMainWindow() end
         end
         for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
     --end
 
-    if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
+    if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()
 end
 

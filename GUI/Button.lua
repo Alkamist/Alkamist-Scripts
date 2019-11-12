@@ -40,7 +40,7 @@ return Prototype:new{
         get = function(self, field) return self.pressState.currentState end,
         set = function(self, value, field)
             self.pressState.currentState = value
-            self:queueRedraw()
+            self.shouldRedraw = true
         end
     },
     justPressed = { from = { "pressState", "justTurnedOn" } },
@@ -50,7 +50,7 @@ return Prototype:new{
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self:queueRedraw()
+            self.shouldRedraw = true
         end
     },
 
@@ -60,6 +60,7 @@ return Prototype:new{
     update = function(self)
         local mouse = self.mouse
         local mouseLeftButton = mouse.leftButton
+
         if self.glowOnMouseOver then
             if mouse:justEnteredWidget(self) then self.isGlowing = true end
             if mouse:justLeftWidget(self) then self.isGlowing = false end
@@ -93,7 +94,7 @@ return Prototype:new{
             self:setColor(self.pressedColor)
             self:drawRectangle(0, 0, width, height, true)
 
-        elseif _glowState then
+        elseif self.isGlowing then
             self:setColor(self.glowColor)
             self:drawRectangle(0, 0, width, height, true)
         end

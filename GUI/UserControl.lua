@@ -218,7 +218,7 @@ local MouseControl = Prototype:new{
             for i = 1, #widgets do
                 local widget = widgets[i]
                 if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
-                if self.justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+                if self:justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
             end
         end
 
