@@ -22,9 +22,12 @@ local Test = Prototype:new{
     --asdfout = { from = { "testProto", "asdfout" } },
     --asdf = { from = { "testProto", "asdf" } },
 
-    a = 5,
+    a = {
+        x = 1,
+        y = 2
+    },
     b = {
-        from = "a",
+        from = { "a", "x" },
         get = function(self, value) msg("getb") end,
         set = function(self, value) msg("setb") end,
     },
@@ -51,16 +54,18 @@ local Test = Prototype:new{
 local test1 = Test:new()
 --local test2 = Test:new()
 
-msg(test1.a)
+--msg(test1.a)
+--msg(test1.b)
+--msg(test1.c)
 msg(test1.b)
-msg(test1.c)
-msg(test1.d)
+test1.b = 7
+msg(test1.b)
 
---test1.a = 7
---test1.b = 7
---test1.c = 7
---test1.d = 7
---test1.d = 7
+
+--msg(test1.a.x)
+--msg(test1.b)
+--msg(test1.c)
+--msg(test1.d)
 
 --msg(test1.a)
 --msg(test1.b)
