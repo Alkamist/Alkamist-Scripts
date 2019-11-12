@@ -3,8 +3,8 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Prototype = require("Prototype")
 
-local Test = Prototype:new{
-    a = 1,
+local TestProto = Prototype:new{
+    a = 5,
     b = {
         get = function(self) return self.a end,
         set = function(self, v) self.a = v end
@@ -14,18 +14,39 @@ local Test = Prototype:new{
         set = function(self, v) self.b = v end
     }
 }
+local Test = Prototype:new{
+    prototypes = {
+        { "test", TestProto:new() }
+    }
+    --test = TestProto:new(),
+    --a = { from = { "test", "a" } },
+    --b = { from = { "test", "b" } },
+    --c = { from = { "test", "c" } }
+    --a = {
+    --    get = function(self) return self.test.a end,
+    --    set = function(self, v) self.test.a = v end
+    --},
+    --b = {
+    --    get = function(self) return self.test.b end,
+    --    set = function(self, v) self.test.b = v end
+    --},
+    --c = {
+    --    get = function(self) return self.test.c end,
+    --    set = function(self, v) self.test.c = v end
+    --}
+}
 
 local test1 = Test:new()
 
-msg(test1.a)
-msg(test1.b)
-msg(test1.c)
-
-test1.c = 3
-
-msg(test1.a)
-msg(test1.b)
-msg(test1.c)
+--msg(test1.a)
+--msg(test1.b)
+--msg(test1.c)
+--
+--test1.c = 3
+--
+--msg(test1.a)
+--msg(test1.b)
+--msg(test1.c)
 
 --local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")

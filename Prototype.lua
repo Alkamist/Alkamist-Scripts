@@ -1,6 +1,5 @@
 local setmetatable = setmetatable
-local rawget = rawget
-local rawset = rawset
+local getmetatable = getmetatable
 local pairs = pairs
 local type = type
 local next = next
@@ -14,10 +13,9 @@ local function deepCopy(input, seen)
     for key, value in next, input, nil do
         output[deepCopy(key, seen)] = deepCopy(value, seen)
     end
-    return setmetatable(output, getmetatable(input))
+    return setmetatable(output, deepCopy(getmetatable(input), seen))
 end
-
---[[local function implementPrototypesWithCompositionAndMethodForwarding(fields)
+local function implementPrototypesWithCompositionAndMethodForwarding(fields)
     local prototypes = fields.prototypes
     if not prototypes then return end
     for i = 1, #prototypes do
@@ -31,31 +29,63 @@ end
         end
     end
     fields.prototypes = nil
-end]]--
-
-local function createProxy(fields)
-    local copiedFields = {}
+end
+local function getAccessor(t, keys)
+    if type(keys) == "table" then
+        local numberOfKeys = #keys
+        local rootTable = t
+        for i = 1, numberOfKeys - 1 do
+            rootTable = rootTable[keys[i]]
+        end
+        return rootTable, keys[numberOfKeys]
+    else
+        return t, keys
+    end
+end
+local function convertMethodForwardsToGettersAndSetters(fields)
     for fieldName, field in pairs(fields) do
-        if type(field) == "table" and field.new then
-            copiedFields[fieldName] = field:new()
-        else
-            copiedFields[fieldName] = deepCopy(field)
+        if type(field) == "table" and field.from then
+            local fromKeys = field.from
+            fields[fieldName] = {
+                get = function(self)
+                    local rootTable, accessKey = getAccessor(self, fromKeys)
+                    return rootTable[accessKey]
+                end,
+                set = function(self, value)
+                    local rootTable, accessKey = getAccessor(self, fromKeys)
+                    rootTable[accessKey] = value
+                end
+            }
         end
     end
+end
+local function createProxy(fields)
+    implementPrototypesWithCompositionAndMethodForwarding(fields)
+    convertMethodForwardsToGettersAndSetters(fields)
     local proxyMetatable = {
+        private = deepCopy(fields),
         __index = function(t, k)
-            local field = copiedFields[k]
+            local private = getmetatable(t).private
+            local field = private[k]
             if type(field) == "table" and field.get then
                 return field.get(t)
             end
             return field
         end,
         __newindex = function(t, k, v)
-            local field = copiedFields[k]
+            local private = getmetatable(t).private
+            local field = private[k]
             if type(field) == "table" and field.set then
                 field.set(t, v)
             end
-            copiedFields[k] = v
+            private[k] = v
+        end,
+        __pairs = function(t)
+            local private = getmetatable(t).private
+            return function(t, k)
+                local prototypeKey = next(private, k)
+                return prototypeKey, t[prototypeKey]
+            end, t, nil
         end
     }
     return setmetatable({}, proxyMetatable)
