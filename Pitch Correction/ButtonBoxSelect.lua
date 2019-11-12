@@ -1,91 +1,35 @@
 function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
---local GUI = require("GUI.AlkamistGUI")
---local Button = require("GUI.Button")
---local BoxSelect = require("GUI.BoxSelect")
-
 local Prototype = require("Prototype")
 
-local TestProto = Prototype:new{
-    asdfout = "yee",
-    asdf = function(self) msg(self.asdfout) end
-}
-
 local Test = Prototype:new{
-    --initialize = function(self) msg("yeyeyeye") end,
-    prototypes = {
-        { "testProto", TestProto:new() }
-    },
-    --testProto = TestProto:new(),
-    --asdfout = { from = { "testProto", "asdfout" } },
-    --asdf = { from = { "testProto", "asdf" } },
-
-    a = {
-        x = 1,
-        y = 2
-    },
+    a = 1,
     b = {
-        from = { "a", "x" },
-        --get = function(self, value) msg("getb " .. tostring(value)) end,
-        --set = function(self, value) msg("setb " .. tostring(value)) end,
+        get = function(self) return self.a end,
+        set = function(self, v) self.a = v end
     },
     c = {
-        from = "b",
-        --get = function(self, value) msg("getc " .. tostring(value)) end,
-        --set = function(self, value) msg("setc " .. tostring(value)) end,
-    },
-    d = {
-        from = "c",
-        --get = function(self, value) msg("getd " .. tostring(value)) end,
-        --set = function(self, value) msg("setd " .. tostring(value)) end,
-    },
---    c = {
---        get = function(self) return self.b end,
---        set = function(self, value) self.b = value end
---    },
---    d = {
---        get = function(self) return self.c end,
---        set = function(self, value) self.c = value end
---    }
+        get = function(self) return self.b end,
+        set = function(self, v) self.b = v end
+    }
 }
 
 local test1 = Test:new()
---local test2 = Test:new()
 
---msg(test1.a)
---msg(test1.b)
---msg(test1.c)
---msg(test1.b)
---test1.d = 7
---msg(test1.b)
+msg(test1.a)
+msg(test1.b)
+msg(test1.c)
 
---msg(test1.asdfout)
---test1:asdf()
+test1.c = 3
 
+msg(test1.a)
+msg(test1.b)
+msg(test1.c)
 
---msg(test1.a.x)
---msg(test1.b)
---msg(test1.c)
---msg(test1.d)
-
---msg(test1.a)
---msg(test1.b)
---msg(test1.c)
---msg(test1.d)
---msg("")
---
---test1.c = 2
---
---msg(test1.a)
---msg(test1.b)
---msg(test1.c)
---msg(test1.d)
-
-for k, v in pairs(test1) do
-    msg(k)
-    --msg(v)
-end
+--local GUI = require("GUI.AlkamistGUI")
+--local Button = require("GUI.Button")
+--local BoxSelect = require("GUI.BoxSelect")
 
 --GUI:initialize{
 --    title = "Alkamist Pitch Correction",

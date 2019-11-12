@@ -24,7 +24,7 @@ local GUI = Prototype:new{
     backgroundColor = {
         default = { 0.0, 0.0, 0.0, 1.0, 0 },
         set = function(self, color)
-            self.backgroundColor = color
+            self.backgroundColor.default = color
             gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
         end
     },
