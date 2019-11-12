@@ -59,7 +59,7 @@ function gui:run()
     local char = self.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    msg(self.windowWasResized)
+    --msg(self.windowWasResized)
     --if self.windowWasResized then msg("yee") end
     --if self.mouse.leftButton.isPressed then msg("left") end
 

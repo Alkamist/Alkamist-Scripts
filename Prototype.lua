@@ -6,20 +6,35 @@ local proxyMetatable = {
     __index = function(t, k)
         local private = t.private
         local field = private[k]
-        local fieldType = type(field)
-        if fieldType == "table" and field.get then
-            return field.get(private)
+        if type(field) == "table" and field.from then
+            local fromKey = field.from
+            while true do
+                local fieldValue = t[fromKey]
+                if type(fieldValue) == "table" and fieldValue.from then
+                    fromKey = fieldValue.from
+                else
+                    if field.get then field.get(t, fieldValue) end
+                    return fieldValue
+                end
+            end
         end
         return field
     end,
     __newindex = function(t, k, v)
         local private = t.private
         local field = private[k]
-        local fieldType = type(field)
-        if fieldType == "table" and field.set then
-            return field.set(private, v)
+        if type(field) == "table" and field.value then
+            local fieldValue = field.value
+            while true do
+                if type(fieldValue) == "table" and fieldValue.from then
+                    if field.set then field.set(t, v) end
+                    fieldValue = private[fieldValue.from]
+                else
+                    t[k] = v
+                    return
+                end
+            end
         end
-        private[k] = v
     end,
     __pairs = function(t)
         local private = t.private
@@ -48,38 +63,13 @@ local function copyTable(input, seen)
     end
     return setmetatable(output, getmetatable(input))
 end
---[[local function copyTable(input, copies)
-    copies = copies or {}
-    local inputType = type(input)
-    local copy
-    if inputType == "table" then
-        if copies[input] then
-            copy = copies[input]
-        else
-            copy = {}
-            copies[input] = copy
-            setmetatable(copy, getmetatable(input), copies)
-            for inputKey, inputValue in next, input, nil do
-                copy[copyTable(inputKey, copies)] = copyTable(inputValue, copies)
-            end
-        end
-    else
-        copy = input
-    end
-    return copy
-end]]--
 
 local function implementPrototypesWithCompositionAndMethodForwarding(fields)
-    if fields.prototypes then
-        local fieldPrototypes = fields.prototypes
-        for i = 1, #fieldPrototypes do
-            local fieldPrototype = fieldPrototypes[i]
-            fields[fieldPrototype] = fieldPrototype
-            for fieldName, field in pairs(fieldPrototype) do
-                if fieldName ~= "new" then
-                    fields[fieldName] = { from = { fieldPrototype, fieldName } }
-                end
-            end
+    if not fields.prototypes then return end
+    for prototypeName, prototype in pairs(fields.prototypes) do
+        fields[prototypeName] = prototype
+        for fieldName, field in pairs(prototype) do
+            fields[fieldName] = { from = { prototypeName, fieldName } }
         end
     end
 end
@@ -105,9 +95,11 @@ return {
     new = function(self, fields)
         local output = {}
         --implementPrototypesWithCompositionAndMethodForwarding(fields)
-        convertMethodForwardsToGettersAndSetters(fields)
+        --convertMethodForwardsToGettersAndSetters(fields)
         function output:new()
-            return setmetatable({ private = copyTable(fields) }, proxyMetatable)
+            local proxy = setmetatable({ private = copyTable(fields) }, proxyMetatable)
+            if proxy.initialize then proxy:initialize() end
+            return proxy
         end
         return output
     end

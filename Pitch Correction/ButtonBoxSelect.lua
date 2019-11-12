@@ -7,40 +7,73 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local Prototype = require("Prototype")
 
-local TestProto = Prototype:new{
-    asdfout = "yee",
-    asdf = function(self) msg(self.asdfout) end
-}
+--local TestProto = Prototype:new{
+--    asdfout = "yee",
+--    asdf = function(self) msg(self.asdfout) end
+--}
 
 local Test = Prototype:new{
-    --prototypes = { TestProto },
-    testProto = TestProto:new(),
-    asdfout = { from = { "testProto", "asdfout" } },
-    asdf = { from = { "testProto", "asdf" } },
-    x = 1,
-    y = "ayy",
-    z = {
-        a = 4,
-        b = "ayylmao"
+    --initialize = function(self) msg("yeyeyeye") end,
+    --prototypes = {
+    --    testProto = TestProto:new()
+    --},
+    --testProto = { implement = TestProto:new() },
+    --testProto = TestProto:new(),
+    --asdfout = { from = { "testProto", "asdfout" } },
+    --asdf = { from = { "testProto", "asdf" } },
+
+    a = 5,
+    b = {
+        from = "a",
+        get = function(self, value) msg("getb") end,
+        set = function(self, value) msg("setb") end,
     },
-    a = {
-        value = 20,
-        get = function(self) return self.a.value end,
-        set = function(self, value) self.a.value = value end
-    }
+    c = {
+        from = "b",
+        get = function(self, value) msg("getc") end,
+        set = function(self, value) msg("setc") end,
+    },
+    d = {
+        from = "c",
+        get = function(self, value) msg("getd") end,
+        set = function(self, value) msg("setd") end,
+    },
+--    c = {
+--        get = function(self) return self.b end,
+--        set = function(self, value) self.b = value end
+--    },
+--    d = {
+--        get = function(self) return self.c end,
+--        set = function(self, value) self.c = value end
+--    }
 }
 
 local test1 = Test:new()
 --local test2 = Test:new()
---
---msg(test1.asdfout)
---test1:asdf()
+
+msg(test1.a)
+msg(test1.b)
+msg(test1.c)
+msg(test1.d)
+
+--test1.a = 7
+--test1.b = 7
+--test1.c = 7
+--test1.d = 7
+--test1.d = 7
 
 --msg(test1.a)
---msg(test2.a)
---test1.a = 5
+--msg(test1.b)
+--msg(test1.c)
+--msg(test1.d)
+--msg("")
+--
+--test1.c = 2
+--
 --msg(test1.a)
---msg(test2.a)
+--msg(test1.b)
+--msg(test1.c)
+--msg(test1.d)
 
 --for k, v in pairs(test1) do
 --    msg(k)
