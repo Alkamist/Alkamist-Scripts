@@ -31,9 +31,13 @@ local GUI = Prototype:new{
     },
     windowWasResized = { get = function(self) return self.widthJustChanged or self.heightJustChanged end },
     widgets = {
-        default = {},
-        set = function(self, value)
-            self.widgets = value
+        value = {},
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            for i = 1, #value do
+                value[i].mouse = self.mouse
+            end
+            field.value = value
             self.mouse.widgets = value
         end
     }
@@ -50,6 +54,7 @@ function gui:initialize(parameters)
     self.dock = parameters.dock or self.dock or 0
     gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
 end
+
 function gui:run()
     local self = gui
     self.widthTracker:update(gfx.w)
@@ -60,20 +65,17 @@ function gui:run()
     local char = self.keyboard.currentCharacter
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    --if self.windowWasResized then msg("yee") end
-    if self.mouse.leftButton.justReleased then msg("left") end
-
-    --local widgets = self.widgets
+    local widgets = self.widgets
     --if widgets then
-    --    local numberOfWidgets = #widgets
-    --    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
-    --    for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
-    --    for i = 1, numberOfWidgets do
-    --        local widget = widgets[i]
-    --        if widget.doDrawFunction then widget:doDrawFunction() end
-    --        if widget.blitToMainWindow then widget:blitToMainWindow() end
-    --    end
-    --    for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
+        local numberOfWidgets = #widgets
+        for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
+        for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
+        for i = 1, numberOfWidgets do
+            local widget = widgets[i]
+            if widget.doDrawFunction then widget:doDrawFunction() end
+            if widget.blitToMainWindow then widget:blitToMainWindow() end
+        end
+        for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
     --end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
