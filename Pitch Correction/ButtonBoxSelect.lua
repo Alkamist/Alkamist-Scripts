@@ -16,13 +16,15 @@ GUI:initialize{
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local testButton1 = Button:new{
-    x = 80,
-    y = 200,
+    x = 100,
+    y = 100,
     width = 400,
     height = 400,
     label = "Fix Errors",
     --toggleOnClick = true
 }
+--msg(testButton1.x)
+--msg(testButton1.drawable.x)
 
 GUI.widgets = { testButton1 }
 GUI:run()

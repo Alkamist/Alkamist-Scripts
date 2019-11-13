@@ -65,17 +65,15 @@ function gui:run()
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
     local widgets = gui.widgets
-    --if widgets then
-        local numberOfWidgets = #widgets
-        for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
-        for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
-        for i = 1, numberOfWidgets do
-            local widget = widgets[i]
-            if widget.doDrawFunction then widget:doDrawFunction() end
-        --    if widget.blitToMainWindow then widget:blitToMainWindow() end
-        end
-        for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
-    --end
+    local numberOfWidgets = #widgets
+    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
+    for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
+    for i = 1, numberOfWidgets do
+        local widget = widgets[i]
+        if widget.doDrawFunction then widget:doDrawFunction() end
+    --    if widget.blitToMainWindow then widget:blitToMainWindow() end
+    end
+    for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()

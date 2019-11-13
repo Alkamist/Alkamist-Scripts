@@ -35,13 +35,6 @@ return Prototype:new{
         return pointX >= x and pointX <= x + width
             and pointY >= y and pointY <= y + height
     end,
-    clearBuffer = function(self)
-        local drawBuffer = self.drawBuffer
-        local width = self.width
-        local height = self.height
-        gfx.setimgdim(drawBuffer, -1, -1)
-        gfx.setimgdim(drawBuffer, width, height)
-    end,
     doBeginUpdateFunction = function(self)
         if self.beginUpdate then self:beginUpdate() end
     end,

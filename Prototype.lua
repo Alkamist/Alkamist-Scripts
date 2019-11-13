@@ -3,6 +3,7 @@ local getmetatable = getmetatable
 local pairs = pairs
 local type = type
 local next = next
+local load = load
 
 local function deepCopy(input, seen)
     if type(input) ~= "table" then return input end
@@ -42,20 +43,59 @@ local function getAccessor(t, keys)
         return t, keys
     end
 end
+local function createFunctionString(keys)
+    local getter = "return function(self, ...) return "
+    if type(keys) == "table" then
+        local numberOfKeys = #keys
+        local functionBody = {}
+        for i = 1, numberOfKeys - 1 do
+            functionBody[#functionBody + 1] = keys[i]
+        end
+        return table.concat { getter, "self.", table.concat(functionBody, "."), ":", keys[numberOfKeys], "(...)", " end" }
+    else
+        return table.concat{ getter, "self:", keys, " end" }
+    end
+end
+local function createGetterString(keys)
+    local getter = "return function(self, field) return "
+    if type(keys) == "table" then
+        local numberOfKeys = #keys
+        local functionBody = {}
+        for i = 1, numberOfKeys do
+            functionBody[#functionBody + 1] = keys[i]
+        end
+        return table.concat { getter, "self.", table.concat(functionBody, "."), " end" }
+    else
+        return table.concat{ getter, "self.", keys, " end" }
+    end
+end
+local function createSetterString(keys)
+    local setter = "return function(self, value, field) "
+    if type(keys) == "table" then
+        local numberOfKeys = #keys
+        local functionBody = {}
+        for i = 1, numberOfKeys do
+            functionBody[#functionBody + 1] = keys[i]
+        end
+        return table.concat { setter, "self.", table.concat(functionBody, "."), " = value end" }
+    else
+        return table.concat{ setter, "self.", keys, " = value end" }
+    end
+end
 local function convertMethodForwardsToGettersAndSetters(fields)
     for fieldName, field in pairs(fields) do
         if type(field) == "table" and field.from then
             local fromKeys = field.from
-            fields[fieldName] = {
-                get = function(self, field)
-                    local rootTable, accessKey = getAccessor(self, fromKeys)
-                    return rootTable[accessKey]
-                end,
-                set = function(self, value, field)
-                    local rootTable, accessKey = getAccessor(self, fromKeys)
-                    rootTable[accessKey] = value
-                end
-            }
+            local rootTable, accessKey = getAccessor(fields, fromKeys)
+            local valueOfInterest = rootTable[accessKey]
+            if type(valueOfInterest) == "function" then
+                fields[fieldName] = load(createFunctionString(fromKeys))()
+            else
+                fields[fieldName] = {
+                    get = load(createGetterString(fromKeys))(),
+                    set = load(createSetterString(fromKeys))()
+                }
+            end
         end
     end
 end
