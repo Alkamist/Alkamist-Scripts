@@ -66,14 +66,24 @@ function gui:run()
 
     local widgets = gui.widgets
     local numberOfWidgets = #widgets
-    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdateFunction() end
-    for i = 1, numberOfWidgets do widgets[i]:doUpdateFunction() end
+    for i = 1, numberOfWidgets do if widgets[i].beginUpdate then widgets[i]:beginUpdate() end end
+    for i = 1, numberOfWidgets do if widgets[i].update then widgets[i]:update() end end
     for i = 1, numberOfWidgets do
         local widget = widgets[i]
-        if widget.doDrawFunction then widget:doDrawFunction() end
+        --if widget.shouldRedraw and widget.draw then
+        --    widget:clearBuffer()
+            gfx.a = 1.0
+            gfx.mode = 0
+            gfx.dest = widget.drawBuffer
+            widget:draw()
+        --elseif widget.shouldClear then
+        --    widget:clearBuffer()
+        --    widget.shouldClear = false
+        --end
+        --widget.shouldRedraw = false
     --    if widget.blitToMainWindow then widget:blitToMainWindow() end
     end
-    for i = 1, numberOfWidgets do widgets[i]:doEndUpdateFunction() end
+    for i = 1, numberOfWidgets do if widgets[i].endUpdate then widgets[i]:endUpdate() end end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()
