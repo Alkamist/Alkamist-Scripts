@@ -1,5 +1,9 @@
 local math = math
 
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
+local Drawable = require("GUI.Drawable")
+
 local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
     if pointX == nil or pointY == nil or lineX1 == nil or lineY1 == nil or lineX2 == nil or lineY2 == nil then
         return 0.0
@@ -61,48 +65,53 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
     return numberInGroup + 1
 end
 
-local function PolyLine(parameters)
-    local instance = {}
+return Prototype:new{
+    prototypes = {
+        { "drawable", Drawable:new() }
+    },
 
-    _points = {}
-    _mostRecentInsertedIndex = nil
-    _isVertical = parameters.isVertical
-    if _isVertical == nil then _isVertical = true end
+    points = {},
+    mostRecentInsertedIndex = true,
+    isVertical = false,
+    pointSize = 3,
+    segmentColor = { 0.5, 0.5, 0.5, 1, 0 },
+    pointColor = { 0.6, 0.6, 0.6, 1, 0 },
 
-    function instance:insertPoint(point)
+    insertPoint = function(self, point)
         local newIndex
-        if _isVertical then
-            newIndex = insertThingIntoGroup(_points, point, function(pointInLoop, pointToInsert)
+        if self.isVertical then
+            newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
                 return pointInLoop.y >= pointToInsert.y
             end)
         else
-            newIndex = insertThingIntoGroup(_points, point, function(pointInLoop, pointToInsert)
+            newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
                 return pointInLoop.x >= pointToInsert.x
             end)
         end
-        _mostRecentInsertedIndex = newIndex
-    end
-    function instance:sortPoints()
-        if _isVertical then
-            table.sort(_points, function(left, right)
+        mostRecentInsertedIndex = newIndex
+    end,
+    sortPoints = function(self)
+        if self.isVertical then
+            table.sort(self.points, function(left, right)
                 return left.y < right.y
             end)
         else
-            table.sort(_points, function(left, right)
+            table.sort(self.points, function(left, right)
                 return left.x < right.x
             end)
         end
-    end
-    function instance:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
-        local numberOfPoints = #_points
+    end,
+    getIndexAndDistanceOfSegmentClosestToPoint = function(self, x, y)
+        local points = self.points
+        local numberOfPoints = #points
         if numberOfPoints < 1 then return nil end
 
         local lowestDistance
         local lowestDistanceIndex = 1
 
         for i = 1, numberOfPoints do
-            local point = _points[i]
-            local nextPoint = _points[i + 1]
+            local point = points[i]
+            local nextPoint = points[i + 1]
 
             local distance
             if nextPoint then
@@ -117,16 +126,17 @@ local function PolyLine(parameters)
         end
 
         return lowestDistanceIndex, lowestDistance
-    end
-    function instance:getIndexAndDistanceOfPointClosestToPoint(x, y)
-        local numberOfPoints = #_points
+    end,
+    getIndexAndDistanceOfPointClosestToPoint = function(self, x, y)
+        local points = self.points
+        local numberOfPoints = #points
         if numberOfPoints < 1 then return nil end
 
         local lowestDistance
         local lowestDistanceIndex = 1
 
         for i = 1, numberOfPoints do
-            local point = _points[i]
+            local point = points[i]
 
             local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
             lowestDistance = lowestDistance or distance
@@ -138,12 +148,12 @@ local function PolyLine(parameters)
         end
 
         return lowestDistanceIndex, lowestDistance
-    end
-    function instance:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, distance)
+    end,
+    getIndexOfPointOrSegmentClosestToPointWithinDistance = function(self, x, y, distance)
         local index
         local indexIsPoint
-        local segmentIndex, segmentDistance = instance:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
-        local pointIndex, pointDistance = instance:getIndexAndDistanceOfPointClosestToPoint(x, y)
+        local segmentIndex, segmentDistance = self:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
+        local pointIndex, pointDistance = self:getIndexAndDistanceOfPointClosestToPoint(x, y)
         local pointIsClose = false
         local segmentIsClose = false
 
@@ -161,30 +171,38 @@ local function PolyLine(parameters)
             end
         end
         return index, indexIsPoint
-    end
+    end,
 
-    function instance:drawSegment(index, color)
-        local point = _points[index]
-        local nextPoint = _points[index + 1]
+    drawSegment = function(self, index, color)
+        local points = self.points
+        local point = points[index]
+        local nextPoint = points[index + 1]
         if point == nil then return end
         if nextPoint == nil then return end
 
-        instance:setColor(color)
-        instance:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-    function instance:drawPoint(index, color, size, asSquare)
-        local point = _points[index]
+        self:setColor(color)
+        self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end,
+    drawPoint = function(self, index, color, size, asSquare)
+        local points = self.points
+        local point = points[index]
         if point == nil then return end
 
-        instance:setColor(color)
+        self:setColor(color)
         if asSquare then
-            instance:drawRectangle(point.x - 1, point.y - 1, size, size, true)
+            self:drawRectangle(point.x - 1, point.y - 1, size, size, true)
         else
-            instance:drawCircle(point.x, point.y, size, true, true)
+            self:drawCircle(point.x, point.y, size, true, true)
+        end
+    end,
+    draw = function(self)
+        local width = self.width
+        local height = self.height
+        local points = self.points
+
+        for i = 1, #points do
+            self:drawSegment(i, self.segmentColor)
+            self:drawPoint(i, self.pointColor, self.pointSize, true)
         end
     end
-
-    return instance
-end
-
-return PolyLine
+}

@@ -6,6 +6,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
+local PolyLine = require("GUI.PolyLine")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
@@ -55,10 +56,23 @@ return Prototype:new{
     calledWhenCreated = function(self)
         self.view.x.scale = self.width
         self.view.y.scale = self.height
+
+        local time = self.timeLength / 1000
+        local timeIncrement = time
+        for i = 1, 1000 do
+            local pitch = 20.0 * math.random() + 50
+            self.testLine:insertPoint{
+                time = time,
+                pitch = pitch,
+                x = self:timeToPixels(time),
+                y = self:pitchToPixels(pitch),
+            }
+            time = time + timeIncrement
+        end
     end,
 
     prototypes = {
-        { "widget", Widget:new() }
+        { "widget", Widget:new{ shouldDrawDirectly = true } }
     },
 
     backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
@@ -92,25 +106,51 @@ return Prototype:new{
         y = ViewAxis:new()
     },
 
-    mouseTime = { get = function(self, field) return self:pixelsToTime(self.relativeMouseX) end },
-    previousMouseTime = { get = function(self, field) return self:pixelsToTime(self.previousRelativeMouseX) end },
-    mouseTimeChange = { get = function(self, field) return self.mouseTime - self.previousMouseTime end },
+    testLine = PolyLine:new{ shouldDrawDirectly = true },
+    updatePointCoordinates = function(self, points)
+        for i = 1, #points do
+            local point = points[i]
+            local pointTime = point.time
+            local pointPitch = point.pitch
+            if pointTime then point.x = self:timeToPixels(pointTime) end
+            if pointPitch then point.y = self:pitchToPixels(pointPitch) end
+        end
+    end,
 
-    mousePitch = { get = function(self, field) return self:pixelsToPitch(self.relativeMouseY) end },
-    previousMousePitch = { get = function(self, field) return self:pixelsToPitch(self.previousRelativeMouseY) end },
-    mousePitchChange = { get = function(self, field) return self.mousePitch - self.previousMousePitch end },
+    item = { get = function(self) return reaper.GetSelectedMediaItem(0, 0) end },
+    take = {
+        get = function(self)
+            local item = self.item
+            if item then return reaper.GetActiveTake(item) end
+        end
+    },
+    timeLength = {
+        get = function(self)
+            local item = self.item
+            if item then return reaper.GetMediaItemInfo_Value(item, "D_LENGTH") end
+            return 0.0
+        end
+    },
 
-    snappedMousePitch = { get = function(self, field) return round(self.mousePitch) end },
-    snappedPreviousMousePitch = { get = function(self, field) return round(self.previousMousePitch) end },
-    snappedMousePitchChange = { get = function(self, field) return self.snappedMousePitch - self.snappedPreviousMousePitch end },
+    mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end },
+    previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end },
+    mouseTimeChange = { get = function(self) return self.mouseTime - self.previousMouseTime end },
+
+    mousePitch = { get = function(self) return self:pixelsToPitch(self.relativeMouseY) end },
+    previousMousePitch = { get = function(self) return self:pixelsToPitch(self.previousRelativeMouseY) end },
+    mousePitchChange = { get = function(self) return self.mousePitch - self.previousMousePitch end },
+
+    snappedMousePitch = { get = function(self) return round(self.mousePitch) end },
+    snappedPreviousMousePitch = { get = function(self) return round(self.previousMousePitch) end },
+    snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.snappedPreviousMousePitch end },
 
     pixelsToTime = function(self, pixelsRelativeToEditor)
         local width = self.width
         if width <= 0 then return 0.0 end
-        return self.take.length * (self.view.x.scroll + pixelsRelativeToEditor / (width * self.view.x.zoom))
+        return self.timeLength * (self.view.x.scroll + pixelsRelativeToEditor / (width * self.view.x.zoom))
     end,
     timeToPixels = function(self, time)
-        local takeLength = self.take.length
+        local takeLength = self.timeLength
         if takeLength <= 0 then return 0 end
         return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
     end,
@@ -229,9 +269,12 @@ return Prototype:new{
         self.shouldRedraw = true
     end,
     draw = function(self)
-        self:setColor(self.backgroundColor)
-        self:drawRectangle(0, 0, self.width, self.height, true)
+        self:updatePointCoordinates(self.testLine.points)
 
-        self:drawKeyBackgrounds()
+        --self:setColor(self.backgroundColor)
+        --self:drawRectangle(0, 0, self.width, self.height, true)
+
+        --self:drawKeyBackgrounds()
+        self.testLine:draw()
     end,
 }
