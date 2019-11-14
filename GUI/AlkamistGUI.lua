@@ -51,6 +51,7 @@ local GUI = Prototype:new{
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
+            field.value = {}
             for i = 1, #value do
                 local widget = value[i]
                 addWidgetToTable(field.value, widget)

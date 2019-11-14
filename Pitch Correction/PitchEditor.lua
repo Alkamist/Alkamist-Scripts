@@ -122,7 +122,7 @@ return Prototype:new{
         y = ViewAxis:new()
     },
 
-    testLine = PolyLine:new{ GUI = self.GUI },
+    testLine = PolyLine:new(),
     updatePointCoordinates = function(self, points)
         for i = 1, #points do
             local point = points[i]
@@ -203,7 +203,7 @@ return Prototype:new{
         self.view.y.target = self.relativeMouseY
     end,
     handleMiddleDrag = function(self)
-        local mouse = self.mouse
+        local mouse = self.GUI.mouse
         local shiftKey = self.keyboard.shiftKey
         if shiftKey.isPressed then
             self.view.x:changeZoom(mouse.xChange)
@@ -217,7 +217,7 @@ return Prototype:new{
     handleRightDrag = function(self) end,
     handleRightRelease = function(self) end,
     handleMouseWheel = function(self)
-        local mouse = self.mouse
+        local mouse = self.GUI.mouse
         local xSensitivity = 55.0
         local ySensitivity = 55.0
         local controlKey = self.keyboard.controlKey
@@ -263,7 +263,7 @@ return Prototype:new{
     end,
     update = function(self)
         local GUI = self.GUI
-        local mouse = self.mouse
+        local mouse = self.GUI.mouse
         --local char = self.keyboard.currentCharacter
         local mouseLeftButton = mouse.leftButton
         local mouseMiddleButton = mouse.middleButton
