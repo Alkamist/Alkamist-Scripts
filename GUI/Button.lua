@@ -7,9 +7,6 @@ local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 return Prototype:new{
-    --initialize = function(self)
-    --    widget:initialize()
-    --end,
     prototypes = {
         { "widget", Widget:new() }
     },
@@ -46,8 +43,8 @@ return Prototype:new{
             self.shouldRedraw = true
         end
     },
-    justPressed = { from = { "pressState", "justTurnedOn" } },
-    justReleased = { from = { "pressState", "justTurnedOff" } },
+    justPressed = { get = function(self) return self.pressState.justTurnedOn end },
+    justReleased = { get = function(self) return self.pressState.justTurnedOff end },
     isGlowing = {
         value = false,
         get = function(self, field) return field.value end,

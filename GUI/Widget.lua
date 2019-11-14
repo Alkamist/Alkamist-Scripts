@@ -23,8 +23,12 @@ return Prototype:new{
         { "drawable", Drawable:new() }
     },
     GUI = {},
-    mouse = { from = { "GUI", "mouse" } },
-    keyboard = { from = { "GUI", "keyboard" } },
+    mouse = { get = function(self) return self.GUI.mouse end },
+    --relativeMouseX = { get = function(self) return self.mouseX - self.x end },
+    --previousRelativeMouseX = { get = function(self) return self.mouse.previousX - self.x end },
+    --relativeMouseY = { get = function(self) return self.mouse.y - self.y end },
+    --previousRelativeMouseY = { get = function(self) return self.mouse.previousY - self.y end },
+    keyboard = { get = function(self) return self.GUI.keyboard end },
     x = {
         value = 0,
         get = function(self, field) return field.value end,
@@ -51,7 +55,10 @@ return Prototype:new{
     shouldClear = false,
     shouldDrawDirectly = false,
     visibilityState = Toggle:new{ currentState = true, previousState = true },
-    isVisible = { from = { "visibilityState", "currentState" } },
+    isVisible = {
+        get = function(self) return self.visibilityState.currentState end,
+        set = function(self, value) self.visibilityState.currentState = value end
+    },
     pointIsInside = function(self, pointX, pointY)
         local x = self.x
         local y = self.y

@@ -15,7 +15,7 @@ GUI:initialize{
 }
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
-local pitchEditor = PitchEditor{
+local pitchEditor = PitchEditor:new{
     GUI = GUI,
     x = 0,
     y = 26,
@@ -23,7 +23,7 @@ local pitchEditor = PitchEditor{
     height = 700 - 26
 }
 
-local analyzeButton = Button{
+--[[local analyzeButton = Button:new{
     GUI = GUI,
     x = 0,
     y = 0,
@@ -49,7 +49,7 @@ function analyzeButton:update()
     end
 end
 
-local fixErrorButton = Button{
+local fixErrorButton = Button:new{
     GUI = GUI,
     x = 81,
     y = 0,
@@ -70,5 +70,6 @@ function fixErrorButton:update()
     end
 end
 
-GUI.widgets = { pitchEditor, analyzeButton, fixErrorButton }
+GUI.widgets = { pitchEditor, analyzeButton, fixErrorButton }]]--
+GUI.widgets = { pitchEditor }
 GUI:run()

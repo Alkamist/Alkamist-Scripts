@@ -183,9 +183,12 @@ local MouseControl = Prototype:new{
         end
     },
 
-    isPressed = { from = { "pressState", "currentState" } },
-    justPressed = { from = { "pressState", "justTurnedOn" } },
-    justReleased = { from = { "pressState", "justTurnedOff" } },
+    isPressed = {
+        get = function(self) return self.pressState.currentState end,
+        set = function(self, value) self.pressState.currentState = value end,
+    },
+    justPressed = { get = function(self) return self.pressState.justTurnedOn end },
+    justReleased = { get = function(self) return self.pressState.justTurnedOff end },
     justDoublePressed = {
         get = function(self)
             local timeSince = self.timeSincePreviousPress
@@ -250,16 +253,22 @@ local Mouse = Prototype:new{
     widgets = {},
 
     xTracker = TrackedNumber:new(),
-    x = { from = { "xTracker", "currentValue" } },
-    previousX = { from = { "xTracker", "previousValue" } },
-    xJustChanged = { from = { "xTracker", "justChanged" } },
-    xChange = { from = { "xTracker", "change" } },
+    x = {
+        get = function(self) return self.xTracker.currentValue end,
+        set = function(self, value) self.xTracker.currentValue = value end,
+    },
+    previousX = { get = function(self) return self.xTracker.previousValue end },
+    xJustChanged = { get = function(self) return self.xTracker.justChanged end },
+    xChange = { get = function(self) return self.xTracker.change end },
 
     yTracker = TrackedNumber:new(),
-    y = { from = { "yTracker", "currentValue" } },
-    previousY = { from = { "yTracker", "previousValue" } },
-    yJustChanged = { from = { "yTracker", "justChanged" } },
-    yChange = { from = { "yTracker", "change" } },
+    y = {
+        get = function(self) return self.yTracker.currentValue end,
+        set = function(self, value) self.yTracker.currentValue = value end,
+    },
+    previousY = { get = function(self) return self.yTracker.previousValue end },
+    yJustChanged = { get = function(self) return self.yTracker.justChanged end },
+    yChange = { get = function(self) return self.yTracker.change end },
 
     leftButton = MouseButton:new{ bitValue = 1 },
     middleButton = MouseButton:new{ bitValue = 64 },

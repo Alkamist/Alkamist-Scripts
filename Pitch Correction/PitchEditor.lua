@@ -3,6 +3,7 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 --local BoxSelect = require("GUI.BoxSelect")
@@ -126,9 +127,9 @@ return Prototype:new{
 
     handleWindowResize = function(self)
         if self.scaleWithWindow then
-            local GUI = self:getGUI()
-            self.width = self.width + GUI:getWidthChange()
-            self.height = self.height + GUI:getHeightChange()
+            local GUI = self.GUI
+            self.width = self.width + GUI.widthChange
+            self.height = self.height + GUI.heightChange
             self.view.x.scale = self.width
             self.view.y.scale = self.height
         end
@@ -205,13 +206,14 @@ return Prototype:new{
         end
     end,
     update = function(self)
-        local GUI = self:getGUI()
+        local GUI = self.GUI
         local mouse = self.mouse
+        --local char = self.keyboard.currentCharacter
         local mouseLeftButton = mouse.leftButton
         local mouseMiddleButton = mouse.middleButton
         local mouseRightButton = mouse.rightButton
 
-        --if GUI:windowWasResized() then self:handleWindowResize() end
+        if GUI.windowWasResized then self:handleWindowResize() end
         --if char then self:handleKeyPress(char) end
         if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
         if mouseLeftButton:justDraggedWidget(self) then self:handleLeftDrag() end

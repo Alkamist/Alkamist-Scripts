@@ -11,13 +11,19 @@ local GUI = Prototype:new{
     x = 0,
     y = 0,
     widthTracker = TrackedNumber:new(),
-    width = { from = { "widthTracker", "currentValue" } },
-    widthChange = { from = { "widthTracker", "change" } },
-    widthJustChanged = { from = { "widthTracker", "justChanged" } },
+    width = {
+        get = function(self) return self.widthTracker.currentValue end,
+        set = function(self, value) self.widthTracker.currentValue = value end
+    },
+    widthChange = { get = function(self) return self.widthTracker.change end },
+    widthJustChanged = { get = function(self) return self.widthTracker.justChanged end },
     heightTracker = TrackedNumber:new(),
-    height = { from = { "heightTracker", "currentValue" } },
-    heightChange = { from = { "heightTracker", "change" } },
-    heightJustChanged = { from = { "heightTracker", "justChanged" } },
+    height = {
+        get = function(self) return self.heightTracker.currentValue end,
+        set = function(self, value) self.heightTracker.currentValue = value end
+    },
+    heightChange = { get = function(self) return self.heightTracker.change end },
+    heightJustChanged = { get = function(self) return self.heightTracker.justChanged end },
     dock = 0,
     mouse = UserControl.mouse,
     keyboard = UserControl.keyboard,
@@ -34,9 +40,6 @@ local GUI = Prototype:new{
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
-            --for i = 1, #value do
-            --    value[i].mouse = self.mouse
-            --end
             field.value = value
             self.mouse.widgets = value
         end
