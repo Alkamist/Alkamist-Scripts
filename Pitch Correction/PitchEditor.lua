@@ -7,6 +7,7 @@ local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local PolyLine = require("GUI.PolyLine")
+local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
@@ -54,6 +55,10 @@ end
 
 return Prototype:new{
     calledWhenCreated = function(self)
+        self.testLine.parentWidget = self
+        self.analyzeButton.parentWidget = self
+        self.fixErrorButton.parentWidget = self
+
         self.view.x.scale = self.width
         self.view.y.scale = self.height
 
@@ -70,26 +75,29 @@ return Prototype:new{
             time = time + timeIncrement
         end
     end,
-
     prototypes = {
         { "widget", Widget:new() }
     },
 
-    x = {
-        get = function(self) return self.widget.x end,
-        set = function(self, value)
-            self.widget.x = value
-            self.testLine.x = value
-        end
-    },
-    y = {
-        get = function(self) return self.widget.y end,
-        set = function(self, value)
-            self.widget.y = value
-            self.testLine.y = value
-        end
-    },
+    editorVerticalOffset = 26,
 
+    testLine = PolyLine:new(),
+    analyzeButton = Button:new{
+        x = 0,
+        y = 0,
+        width = 80,
+        height = 25,
+        label = "Analyze Pitch",
+        color = { 0.5, 0.2, 0.1, 1.0, 0 }
+    },
+    fixErrorButton = Button:new{
+        x = 81,
+        y = 0,
+        width = 80,
+        height = 25,
+        label = "Fix Errors",
+        toggleOnClick = true
+    },
 
     backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
     blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
@@ -122,7 +130,6 @@ return Prototype:new{
         y = ViewAxis:new()
     },
 
-    testLine = PolyLine:new(),
     updatePointCoordinates = function(self, points)
         for i = 1, #points do
             local point = points[i]
@@ -160,25 +167,26 @@ return Prototype:new{
     snappedPreviousMousePitch = { get = function(self) return round(self.previousMousePitch) end },
     snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.snappedPreviousMousePitch end },
 
-    pixelsToTime = function(self, pixelsRelativeToEditor)
+    pixelsToTime = function(self, pixels)
         local width = self.width
         if width <= 0 then return 0.0 end
-        return self.timeLength * (self.view.x.scroll + pixelsRelativeToEditor / (width * self.view.x.zoom))
+        return self.timeLength * (self.view.x.scroll + pixels / (width * self.view.x.zoom))
     end,
     timeToPixels = function(self, time)
         local takeLength = self.timeLength
         if takeLength <= 0 then return 0 end
         return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
     end,
-    pixelsToPitch = function(self, pixelsRelativeToEditor)
+    pixelsToPitch = function(self, pixels)
+        local pixels = pixels - self.editorVerticalOffset
         local height = self.height
         if height <= 0 then return 0.0 end
-        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixelsRelativeToEditor / (height * self.view.y.zoom))) - 0.5
+        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixels / (height * self.view.y.zoom))) - 0.5
     end,
     pitchToPixels = function(self, pitch)
         local pitchHeight = self.pitchHeight
         if pitchHeight <= 0 then return 0 end
-        return self.view.y.zoom * self.height * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
+        return self.editorVerticalOffset + self.view.y.zoom * self.height * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
     end,
 
     handleWindowResize = function(self)
@@ -261,7 +269,16 @@ return Prototype:new{
             previousKeyEnd = keyEnd
         end
     end,
+    beginUpdate = function(self)
+        self.testLine:beginUpdate()
+        self.analyzeButton:beginUpdate()
+        self.fixErrorButton:beginUpdate()
+    end,
     update = function(self)
+        self.testLine:update()
+        self.analyzeButton:update()
+        self.fixErrorButton:update()
+
         local GUI = self.GUI
         local mouse = self.GUI.mouse
         --local char = self.keyboard.currentCharacter
@@ -289,8 +306,12 @@ return Prototype:new{
 
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
-
         self:drawKeyBackgrounds()
-        self.testLine:draw()
+        self:setColor(self.backgroundColor)
+        self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
+
+        --self.testLine:draw()
+        --self.analyzeButton:draw()
+        --self.fixErrorButton:draw()
     end,
 }

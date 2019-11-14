@@ -19,8 +19,6 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Prototype = require("Prototype")
 
 return Prototype:new{
-    x = 0,
-    y = 0,
     drawBuffer = -1,
     setColor = function(self, color)
         local mode = color[5] or 0
@@ -30,24 +28,14 @@ return Prototype:new{
         gfx.mode = mode
     end,
     drawRectangle = function(self, x, y, w, h, filled)
-        local x = x + self.x
-        local y = y + self.y
         gfx.dest = self.drawBuffer
         gfxRect(x, y, w, h, filled)
     end,
     drawLine = function(self, x, y, x2, y2, antiAliased)
-        local _x = self.x
-        local _y = self.y
-        local x = x + _x
-        local y = y + _y
-        local x2 = x2 + _x
-        local y2 = y2 + _y
         gfx.dest = self.drawBuffer
         gfxLine(x, y, x2, y2, antiAliased)
     end,
     drawCircle = function(self, x, y, r, filled, antiAliased)
-        local x = x + self.x
-        local y = y + self.y
         gfx.dest = self.drawBuffer
         gfxCircle(x, y, r, filled, antiAliased)
     end,
@@ -70,8 +58,6 @@ return Prototype:new{
         end
     end,
     drawRoundRectangle = function(self, x, y, w, h, r, filled, antiAliased)
-        local x = x + self.x
-        local y = y + self.y
         gfx.dest = self.drawBuffer
         local aa = antiAliased or 1
         filled = filled or 0
@@ -113,10 +99,6 @@ return Prototype:new{
         return gfxMeasureStr(str)
     end,
     drawString = function(self, str, x, y, flags, right, bottom)
-        local x = x + self.x
-        local y = y + self.y
-        local right = right + self.x
-        local bottom = bottom + self.y
         gfx.dest = self.drawBuffer
         gfx.x = x
         gfx.y = y

@@ -2,7 +2,7 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
-local Button = require("GUI.Button")
+--local Button = require("GUI.Button")
 local PitchEditor = require("Pitch Correction.PitchEditor")
 
 GUI:initialize{
@@ -17,19 +17,19 @@ GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local pitchEditor = PitchEditor:new{
     x = 0,
-    y = 26,
+    y = 0,
     width = 1000,
-    height = 700 - 26
+    height = 700
 }
 
-local analyzeButton = Button:new{
-    x = 0,
-    y = 0,
-    width = 80,
-    height = 25,
-    label = "Analyze Pitch",
-    color = { 0.5, 0.2, 0.1, 1.0, 0 }
-}
+--local analyzeButton = Button:new{
+--    x = 0,
+--    y = 0,
+--    width = 80,
+--    height = 25,
+--    label = "Analyze Pitch",
+--    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+--}
 --local analyzeButtonOriginalUpdate = analyzeButton.update
 --function analyzeButton:update()
 --    analyzeButtonOriginalUpdate(analyzeButton)
@@ -47,14 +47,14 @@ local analyzeButton = Button:new{
 --    end
 --end
 
-local fixErrorButton = Button:new{
-    x = 81,
-    y = 0,
-    width = 80,
-    height = 25,
-    label = "Fix Errors",
-    toggleOnClick = true
-}
+--local fixErrorButton = Button:new{
+--    x = 81,
+--    y = 0,
+--    width = 80,
+--    height = 25,
+--    label = "Fix Errors",
+--    toggleOnClick = true
+--}
 --local fixErrorButtonOriginalUpdate = fixErrorButton.update
 --function fixErrorButton:update()
 --    fixErrorButtonOriginalUpdate(fixErrorButton)
@@ -67,5 +67,5 @@ local fixErrorButton = Button:new{
 --    end
 --end
 
-GUI.widgets = { pitchEditor, analyzeButton, fixErrorButton }
+--GUI.widgets = { pitchEditor }
 GUI:run()

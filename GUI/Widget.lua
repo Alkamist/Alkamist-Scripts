@@ -7,13 +7,6 @@ local Prototype = require("Prototype")
 local Drawable = require("GUI.Drawable")
 local Toggle = require("GUI.Toggle")
 
-local currentBuffer = -1
-local function getNewDrawBuffer()
-    currentBuffer = currentBuffer + 1
-    if currentBuffer > 1023 then currentBuffer = 0 end
-    return currentBuffer
-end
-
 return Prototype:new{
     --calledWhenCreated = function(self)
     --end,
@@ -21,28 +14,15 @@ return Prototype:new{
         { "drawable", Drawable:new() }
     },
     GUI = { get = function(self) return GUI end },
-    widgets = {},
+    parentWidget = nil,
     relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.x end },
     previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.x end },
     relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.y end },
     previousRelativeMouseY = { get = function(self) return self.GUI.mouse.previousY - self.y end },
     keyboard = { get = function(self) return self.GUI.keyboard end },
-    x = {
-        value = 0,
-        get = function(self, field) return field.value end,
-        set = function(self, value, field)
-            self.drawable.x = value
-            field.value = value
-        end
-    },
-    y = {
-        value = 0,
-        get = function(self, field) return field.value end,
-        set = function(self, value, field)
-            self.drawable.y = value
-            field.value = value
-        end
-    },
+
+    x = 0,
+    y = 0,
     width = 0,
     height = 0,
     shouldRedraw = true,
@@ -67,7 +47,39 @@ return Prototype:new{
         gfx.setimgdim(drawBuffer, -1, -1)
         gfx.setimgdim(drawBuffer, width, height)
     end,
+
     beginUpdate = function(self)
         self.visibilityState:update()
     end,
+    update = function(self) end,
+    --doDrawFunction = function(self, drawFunction)
+        --if self.shouldRedraw and drawFunction then
+        --    self:clearBuffer()
+        --    gfx.a = 1.0
+        --    gfx.mode = 0
+        --    gfx.dest = self.drawBuffer
+        --    drawFunction()
+        --    self.shouldRedraw = false
+        --elseif self.shouldClear then
+        --    self:clearBuffer()
+        --    self.shouldClear = false
+        --end
+    --end,
+    blit = function(self)
+        if self.isVisible then
+            local x = self.x
+            local y = self.y
+            local width = self.width
+            local height = self.height
+            gfx.a = 1.0
+            local parentWidget = self.parentWidget
+            if parentWidget then
+                gfx.dest = parentWidget.drawBuffer
+            else
+                gfx.dest = -1
+            end
+            gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+        end
+    end,
+    endUpdate = function(self) end
 }

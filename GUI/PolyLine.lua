@@ -2,7 +2,7 @@ local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Prototype = require("Prototype")
-local Drawable = require("GUI.Drawable")
+local Widget = require("GUI.Widget")
 
 local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
     if pointX == nil or pointY == nil or lineX1 == nil or lineY1 == nil or lineX2 == nil or lineY2 == nil then
@@ -67,7 +67,7 @@ end
 
 return Prototype:new{
     prototypes = {
-        { "drawable", Drawable:new() }
+        { "widget", Widget:new() }
     },
 
     points = {},
