@@ -34,9 +34,9 @@ local GUI = Prototype:new{
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
-            for i = 1, #value do
-                value[i].mouse = self.mouse
-            end
+            --for i = 1, #value do
+            --    value[i].mouse = self.mouse
+            --end
             field.value = value
             self.mouse.widgets = value
         end

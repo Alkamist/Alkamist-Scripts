@@ -1,34 +1,21 @@
-local function ViewAxis(parameters)
-    local parameters = parameters or {}
-    local instance = {}
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Prototype = require("Prototype")
 
-    local _scale = parameters.scale or 1.0
-    local _zoom = parameters.zoom or 1.0
-    local _scroll = parameters.scroll or 0.0
-    local _target = parameters.target or 0.0
-
-    function instance:getScale() return _scale end
-    function instance:getZoom() return _zoom end
-    function instance:getScroll() return _scroll end
-    function instance:getTarget() return _target end
-
-    function instance:setScale(value) _scale = value end
-    function instance:setTarget(value) _target = value end
-
-    function instance:changeScroll(change)
-        local change = change / _scale
-        _scroll = _scroll - change / _zoom
-    end
-    function instance:changeZoom(change)
-        local target = _target / _scale
+return Prototype:new{
+    scale = 1.0,
+    zoom = 1.0,
+    scroll = 0.0,
+    target = 0.0,
+    changeScroll = function(self, change)
+        local change = change / self.scale
+        self.scroll = self.scroll - change / self.zoom
+    end,
+    changeZoom = function(self, change)
+        local target = self.target / self.scale
         local sensitivity = 0.01
         local change = 2 ^ (sensitivity * change)
 
-        _zoom = _zoom * change
-        _scroll = _scroll + (change - 1.0) * target / _zoom
+        self.zoom = self.zoom * change
+        self.scroll = self.scroll + (change - 1.0) * target / self.zoom
     end
-
-    return instance
-end
-
-return ViewAxis
+}

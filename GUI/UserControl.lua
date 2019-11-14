@@ -238,7 +238,7 @@ local MouseButton = Prototype:new{
 }
 
 local Mouse = Prototype:new{
-    initialize = function(self)
+    calledWhenCreated = function(self)
         self.leftButton.mouse = self
         self.middleButton.mouse = self
         self.rightButton.mouse = self
@@ -299,14 +299,17 @@ local KeyboardKey = Prototype:new{
 }
 
 local Keyboard = Prototype:new{
-    initialize = function(self)
-        self.shiftKey.mouse = self.mouse
-        self.controlKey.mouse = self.mouse
-        self.windowsKey.mouse = self.mouse
-        self.altKey.mouse = self.mouse
-    end,
-
-    mouse = {},
+    mouse = {
+        value = {},
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            self.shiftKey.mouse = value
+            self.controlKey.mouse = value
+            self.windowsKey.mouse = value
+            self.altKey.mouse = value
+            field.value = value
+        end
+    },
     currentCharacter = nil,
     shiftKey = MouseButton:new{ bitValue = 8 },
     controlKey = MouseButton:new{ bitValue = 4 },

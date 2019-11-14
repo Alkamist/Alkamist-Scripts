@@ -139,7 +139,7 @@ return {
             for k, v in pairs(defaultValues) do
                 proxy[k] = v
             end
-            if proxy.initialize then proxy:initialize() end
+            if proxy.calledWhenCreated then proxy:calledWhenCreated() end
             return proxy
         end
         return fields

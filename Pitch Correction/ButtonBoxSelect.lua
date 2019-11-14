@@ -16,6 +16,7 @@ GUI:initialize{
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local testButton1 = Button:new{
+    GUI = GUI,
     x = 100,
     y = 100,
     width = 400,
@@ -23,10 +24,11 @@ local testButton1 = Button:new{
     label = "Fix Errors",
     --toggleOnClick = true
 }
+
 local originalTestButton1Update = testButton1.update
 function testButton1:update()
     originalTestButton1Update(testButton1)
-    local mouse = GUI.mouse
+    local mouse = self.mouse
     local mouseLeftButton = mouse.leftButton
     if mouseLeftButton:justDraggedWidget(testButton1) then
         testButton1.x = testButton1.x + mouse.xChange
@@ -49,10 +51,12 @@ local function getSelectedFunction(thing)
     return thing.isPressed
 end
 
-local boxSelect = BoxSelect:new()
+local boxSelect = BoxSelect:new{
+    GUI = GUI
+}
 
-function boxSelect.update()
-    local mouse = GUI.mouse
+function boxSelect:update()
+    local mouse = self.mouse
     local mouseRightButton = mouse.rightButton
     local mouseX = mouse.x
     local mouseY = mouse.y

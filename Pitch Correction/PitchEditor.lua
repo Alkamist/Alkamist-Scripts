@@ -8,10 +8,6 @@ local ViewAxis = require("GUI.ViewAxis")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
---==============================================================
---== Helpful Functions =========================================
---==============================================================
-
 local function pointIsSelected(point)
     return point.isSelected
 end
@@ -54,185 +50,186 @@ local function round(number, places)
     end
 end
 
---==============================================================
---== Initialization ============================================
---==============================================================
+return Prototype:new{
+    initialize = function(self)
+        self.view.x.scale = self.width
+        self.view.y.scale = self.height
+    end,
 
-local function PitchEditor(parameters)
-    local instance = Widget(parameters) or {}
+    prototypes = {
+        { "widget", Widget:new() }
+    },
 
-    local _minimumKeyHeightToDrawCenterLine = parameters.minimumKeyHeightToDrawCenterLine or 16
-    local _pitchHeight = parameters.pitchHeight or 128
-    local _backgroundColor = parameters.backgroundColor or { 0.22, 0.22, 0.22, 1.0, 0 }
-    local _blackKeyColor = parameters.blackKeyColor or { 0.22, 0.22, 0.22, 1.0, 0 }
-    local _whiteKeyColor = parameters.whiteKeyColor or { 0.29, 0.29, 0.29, 1.0, 0 }
-    local _keyCenterLineColor = parameters.keyCenterLineColor or { 1.0, 1.0, 1.0, 0.09, 1 }
-    local _edgeColor = parameters.edgeColor or { 1.0, 1.0, 1.0, -0.1, 1 }
-    local _edgeShade = parameters.edgeShade or { 1.0, 1.0, 1.0, -0.04, 1 }
-    local _editCursorColor = parameters.editCursorColor or { 1.0, 1.0, 1.0, 0.34, 1 }
-    local _playCursorColor = parameters.playCursorColor or { 1.0, 1.0, 1.0, 0.2, 1 }
-    local _pitchCorrectionActiveColor = parameters.pitchCorrectionActiveColor or { 0.3, 0.6, 0.9, 1.0, 0 }
-    local _pitchCorrectionInactiveColor = parameters.pitchCorrectionInactiveColor or { 0.9, 0.3, 0.3, 1.0, 0 }
-    local _peakColor = parameters.peakColor or { 1.0, 1.0, 1.0, 1.0, 0 }
-    local _correctedPitchLineColor = parameters.correctedPitchLineColor or { 0.3, 0.7, 0.3, 1.0, 0 }
-    local _pitchLineColor = parameters.pitchLineColor or { 0.1, 0.3, 0.1, 1.0, 0 }
-    local _editPixelRange = parameters.editPixelRange or 7
-    local _scaleWithWindow = parameters.scaleWithWindow
-    if _scaleWithWindow == nil then _scaleWithWindow = true end
-    local _view = {
-        x = ViewAxis{ scale = instance:getWidth() },
-        y = ViewAxis{ scale = instance:getHeight() }
-    }
+    backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
+    blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
+    whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 },
+    keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 },
+    edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 },
+    edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 },
+    editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 },
+    playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 },
+    pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 },
+    pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 },
+    peakColor = { 1.0, 1.0, 1.0, 1.0, 0 },
+    correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 },
+    pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 },
 
-    local _whiteKeyNumbers = getWhiteKeyNumbers()
-    local _mouseTimeOnLeftDown = 0.0
-    local _mousePitchOnLeftDown = 0.0
-    local _snappedMousePitchOnLeftDown = 0.0
-    local _altKeyWasDownOnPointEdit = false
-    local _fixErrorMode =  false
-    local _enablePitchCorrections = true
+    minimumKeyHeightToDrawCenterLine = 16,
+    pitchHeight = 128,
+    editPixelRange = 7,
+    scaleWithWindow = true,
+    whiteKeyNumbers = getWhiteKeyNumbers(),
+    mouseTimeOnLeftDown = 0.0,
+    mousePitchOnLeftDown = 0.0,
+    snappedMousePitchOnLeftDown = 0.0,
+    altKeyWasDownOnPointEdit = false,
+    fixErrorMode =  false,
+    enablePitchCorrections = true,
 
-    function instance:pixelsToTime(pixelsRelativeToEditor)
-        local width = instance:getWidth()
+    view = {
+        x = ViewAxis:new(),
+        y = ViewAxis:new()
+    },
+
+    mouseTime = { get = function(self, field) return self:pixelsToTime(self.relativeMouseX) end },
+    previousMouseTime = { get = function(self, field) return self:pixelsToTime(self.previousRelativeMouseX) end },
+    mouseTimeChange = { get = function(self, field) return self.mouseTime - self.previousMouseTime end },
+
+    mousePitch = { get = function(self, field) return self:pixelsToPitch(self.relativeMouseY) end },
+    previousMousePitch = { get = function(self, field) return self:pixelsToPitch(self.previousRelativeMouseY) end },
+    mousePitchChange = { get = function(self, field) return self.mousePitch - self.previousMousePitch end },
+
+    snappedMousePitch = { get = function(self, field) return round(self.mousePitch) end },
+    snappedPreviousMousePitch = { get = function(self, field) return round(self.previousMousePitch) end },
+    snappedMousePitchChange = { get = function(self, field) return self.snappedMousePitch - self.snappedPreviousMousePitch end },
+
+    pixelsToTime = function(self, pixelsRelativeToEditor)
+        local width = self.width
         if width <= 0 then return 0.0 end
-        return _take:getLength() * (_view.x:getScroll() + pixelsRelativeToEditor / (width * _view.x:getZoom()))
-    end
-    function instance:timeToPixels(time)
-        local takeLength = _take:getLength()
+        return self.take.length * (self.view.x.scroll + pixelsRelativeToEditor / (width * self.view.x.zoom))
+    end,
+    timeToPixels = function(self, time)
+        local takeLength = self.take.length
         if takeLength <= 0 then return 0 end
-        return _view.x:getZoom() * instance:getWidth() * (time / takeLength - _view.x:getScroll())
-    end
-    function instance:pixelsToPitch(pixelsRelativeToEditor)
-        if _h <= 0 then return 0.0 end
-        return _pitchHeight * (1.0 - (_view.y:getScroll() + pixelsRelativeToEditor / (instance:getHeight() * _view.y:getZoom()))) - 0.5
-    end
-    function instance:pitchToPixels(pitch)
-        if _pitchHeight <= 0 then return 0 end
-        return _view.y:getZoom() * instance:getHeight() * ((1.0 - (0.5 + pitch) / _pitchHeight) - _view.y:getScroll())
-    end
+        return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
+    end,
+    pixelsToPitch = function(self, pixelsRelativeToEditor)
+        local height = self.height
+        if height <= 0 then return 0.0 end
+        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixelsRelativeToEditor / (height * self.view.y.zoom))) - 0.5
+    end,
+    pitchToPixels = function(self, pitch)
+        local pitchHeight = self.pitchHeight
+        if pitchHeight <= 0 then return 0 end
+        return self.view.y.zoom * self.height * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
+    end,
 
-    function instance:getMouseTime() return instance:pixelsToTime(instance:getRelativeMouseX()) end
-    function instance:getPreviousMouseTime() return instance:pixelsToTime(instance:getPreviousRelativeMouseX()) end
-    function instance:getMouseTimeChange() return instance:getMouseTime() - instance:getPreviousMouseTime() end
-
-    function instance:getMousePitch() return instance:pixelsToPitch(instance:getRelativeMouseY()) end
-    function instance:getPreviousMousePitch() return instance:pixelsToPitch(instance:getPreviousRelativeMouseY()) end
-    function instance:getMousePitchChange() return instance:getMousePitch() - instance:getPreviousMousePitch() end
-
-    function instance:getSnappedMousePitch() return round(instance:getMousePitch()) end
-    function instance:getPreviousSnappedMousePitch() return round(instance:getPreviousMousePitch()) end
-    function instance:getSnappedMousePitchChange() return instance:getSnappedMousePitch() - instance:getPreviousSnappedMousePitch() end
-
-    function instance:handleWindowResize()
-        if _scaleWithWindow then
-            local GUI = instance:getGUI()
-            instance:setWidth(instance:getWidth() + GUI:getWidthChange())
-            instance:setHeight(instance:getHeight() + GUI:getHeightChange())
-            _view.x:setScale(instance:getWidth())
-            _view.y:setScale(instance:getHeight())
+    handleWindowResize = function(self)
+        if self.scaleWithWindow then
+            local GUI = self:getGUI()
+            self.width = self.width + GUI:getWidthChange()
+            self.height = self.height + GUI:getHeightChange()
+            self.view.x.scale = self.width
+            self.view.y.scale = self.height
         end
-    end
-    function instance:handleLeftPress()
-        _mouseTimeOnLeftDown = instance:getMouseTime()
-        _mousePitchOnLeftDown = instance:getMousePitch()
-        _snappedMousePitchOnLeftDown = instance:getSnappedMousePitch()
-    end
-    function instance:handleLeftDrag() end
-    function instance:handleLeftRelease() end
-    function instance:handleLeftDoublePress() end
-    function instance:handleMiddlePress()
-        _view.x:setTarget(instance:getRelativeMouseX())
-        _view.y:setTarget(instance:getRelativeMouseY())
-    end
-    function instance:handleMiddleDrag()
-        local mouse = instance:getMouse()
-        local shiftKey = instance:getKeyboard():getModifiers().shift
-        if shiftKey:isPressed() then
-            _view.x:changeZoom(mouse:getXChange())
-            _view.y:changeZoom(mouse:getYChange())
+    end,
+    handleLeftPress = function(self)
+        self.mouseTimeOnLeftDown = self.mouseTime
+        self.mousePitchOnLeftDown = self.mousePitch
+        self.snappedMousePitchOnLeftDown = self.snappedMousePitch
+    end,
+    handleLeftDrag = function(self) end,
+    handleLeftRelease = function(self) end,
+    handleLeftDoublePress = function(self) end,
+    handleMiddlePress = function(self)
+        self.view.x.target = self.relativeMouseX
+        self.view.y.target = self.relativeMouseY
+    end,
+    handleMiddleDrag = function(self)
+        local mouse = self.mouse
+        local shiftKey = self.keyboard.shiftKey
+        if shiftKey.isPressed then
+            self.view.x:changeZoom(mouse.xChange)
+            self.view.y:changeZoom(mouse.yChange)
         else
-            _view.x:changeScroll(mouse:getXChange())
-            _view.y:changeScroll(mouse:getYChange())
+            self.view.x:changeScroll(mouse.xChange)
+            self.view.y:changeScroll(mouse.yChange)
         end
-    end
-    function instance:handleRightPress() end
-    function instance:handleRightDrag() end
-    function instance:handleRightRelease() end
-    function instance:handleMouseWheel()
-        local mouse = instance:getMouse()
+    end,
+    handleRightPress = function(self) end,
+    handleRightDrag = function(self) end,
+    handleRightRelease = function(self) end,
+    handleMouseWheel = function(self)
+        local mouse = self.mouse
         local xSensitivity = 55.0
         local ySensitivity = 55.0
-        local controlKey = instance:getKeyboard():getModifiers().control
+        local controlKey = self.keyboard.controlKey
 
-        _view.x:setTarget(instance:getRelativeMouseX())
-        _view.y:setTarget(instance:getRelativeMouseY())
+        self.view.x.target = self.relativeMouseX
+        self.view.y.target = self.relativeMouseY
 
-        if controlKey:isPressed() then
-            _view.y:changeZoom(mouse:getWheel() * ySensitivity)
+        if controlKey.isPressed then
+            self.view.y:changeZoom(mouse.wheel * ySensitivity)
         else
-            _view.x:changeZoom(mouse:getHWheel() * xSensitivity)
+            self.view.y:changeZoom(mouse.wheel * xSensitivity)
         end
-    end
+    end,
 
-    function instance:drawKeyBackgrounds()
-        local previousKeyEnd = instance:pitchToPixels(_pitchHeight + 0.5)
-        local width = instance:getWidth()
+    drawKeyBackgrounds = function(self)
+        local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
+        local width = self.width
 
-        for i = 1, _pitchHeight do
-            local keyEnd = instance:pitchToPixels(_pitchHeight - i + 0.5)
+        for i = 1, self.pitchHeight do
+            local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
             local keyHeight = keyEnd - previousKeyEnd
 
-            instance:setColor(_blackKeyColor)
-            for _, value in ipairs(_whiteKeyNumbers) do
+            self:setColor(self.blackKeyColor)
+            for _, value in ipairs(self.whiteKeyNumbers) do
                 if i == value then
-                    instance:setColor(_whiteKeyColor)
+                    self:setColor(self.whiteKeyColor)
                 end
             end
-            instance:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
+            self:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
 
-            instance:setColor(_blackKeyColor)
-            instance:drawLine(0, keyEnd, width - 1, keyEnd, false)
+            self:setColor(self.blackKeyColor)
+            self:drawLine(0, keyEnd, width - 1, keyEnd, false)
 
-            if keyHeight > _minimumKeyHeightToDrawCenterLine then
-                local keyCenterLine = instance:pitchToPixels(_pitchHeight - i)
+            if keyHeight > self.minimumKeyHeightToDrawCenterLine then
+                local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
 
-                instance:setColor(_keyCenterLineColor)
-                instance:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
+                self:setColor(self.keyCenterLineColor)
+                self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
             end
 
             previousKeyEnd = keyEnd
         end
-    end
-    function instance:update()
-        local GUI = instance:getGUI()
-        local mouse = instance:getMouse()
-        local mouseLeftButton = mouse:getButtons().left
-        local mouseMiddleButton = mouse:getButtons().middle
-        local mouseRightButton = mouse:getButtons().right
+    end,
+    update = function(self)
+        local GUI = self:getGUI()
+        local mouse = self.mouse
+        local mouseLeftButton = mouse.leftButton
+        local mouseMiddleButton = mouse.middleButton
+        local mouseRightButton = mouse.rightButton
 
-        if GUI:windowWasResized() then instance:handleWindowResize() end
-        if char then instance:handleKeyPress(char) end
-        if mouseLeftButton:justPressed(instance) then instance:handleLeftPress() end
-        if mouseLeftButton:justDragged(instance) then instance:handleLeftDrag() end
-        if mouseLeftButton:justReleased(instance) then instance:handleLeftRelease() end
-        if mouseLeftButton:justDoublePressed(instance) then instance:handleLeftDoublePress() end
-        if mouseMiddleButton:justPressed(instance) then instance:handleMiddlePress() end
-        if mouseMiddleButton:justDragged(instance) then instance:handleMiddleDrag() end
-        if mouseRightButton:justPressed(instance) then instance:handleRightPress() end
-        if mouseRightButton:justDragged(instance) then instance:handleRightDrag() end
-        if mouseRightButton:justReleased(instance) then instance:handleRightRelease() end
-        if mouse:wheelJustMoved(instance) then instance:handleMouseWheel() end
+        --if GUI:windowWasResized() then self:handleWindowResize() end
+        --if char then self:handleKeyPress(char) end
+        if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
+        if mouseLeftButton:justDraggedWidget(self) then self:handleLeftDrag() end
+        if mouseLeftButton:justReleasedWidget(self) then self:handleLeftRelease() end
+        if mouseLeftButton:justDoublePressedWidget(self) then self:handleLeftDoublePress() end
+        if mouseMiddleButton:justPressedWidget(self) then self:handleMiddlePress() end
+        if mouseMiddleButton:justDraggedWidget(self) then self:handleMiddleDrag() end
+        if mouseRightButton:justPressedWidget(self) then self:handleRightPress() end
+        if mouseRightButton:justDraggedWidget(self) then self:handleRightDrag() end
+        if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
+        if mouse:wheelJustMovedWidget(self) then self:handleMouseWheel() end
 
-        instance:queueRedraw()
-    end
-    function instance:draw()
-        instance:setColor(_backgroundColor)
-        instance:drawRectangle(0, 0, _w, _h, true)
+        self.shouldRedraw = true
+    end,
+    draw = function(self)
+        self:setColor(self.backgroundColor)
+        self:drawRectangle(0, 0, self.width, self.height, true)
 
-        instance:drawKeyBackgrounds()
-    end
-
-    return instance
-end
-
-return PitchEditor
+        self:drawKeyBackgrounds()
+    end,
+}

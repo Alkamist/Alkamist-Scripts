@@ -7,6 +7,9 @@ local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 return Prototype:new{
+    --initialize = function(self)
+    --    widget:initialize()
+    --end,
     prototypes = {
         { "widget", Widget:new() }
     },

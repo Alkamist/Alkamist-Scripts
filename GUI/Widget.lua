@@ -14,7 +14,7 @@ local function getNewDrawBuffer()
 end
 
 return Prototype:new{
-    initialize = function(self)
+    calledWhenCreated = function(self)
         if not self.shouldDrawDirectly then
             self.drawBuffer = getNewDrawBuffer()
         end
@@ -22,7 +22,9 @@ return Prototype:new{
     prototypes = {
         { "drawable", Drawable:new() }
     },
-    mouse = {},
+    GUI = {},
+    mouse = { from = { "GUI", "mouse" } },
+    keyboard = { from = { "GUI", "keyboard" } },
     x = {
         value = 0,
         get = function(self, field) return field.value end,

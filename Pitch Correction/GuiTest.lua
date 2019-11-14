@@ -13,7 +13,7 @@ GUI:initialize{
     height = 700,
     dock = 0
 }
-GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
+GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local pitchEditor = PitchEditor{
     GUI = GUI,
@@ -34,17 +34,17 @@ local analyzeButton = Button{
 }
 local analyzeButtonOriginalUpdate = analyzeButton.update
 function analyzeButton:update()
-    analyzeButtonOriginalUpdate()
-    if analyzeButton:justPressed() then
-        if pitchEditor:isVisible() then
-            pitchEditor:analyzeTakePitches{
-                windowStep = 0.04,
-                windowOverlap = 2.0,
-                minimumFrequency = 80,
-                maximumFrequency = 1000,
-                threshold = 0.2,
-                minimumRMSdB = -60.0
-            }
+    analyzeButtonOriginalUpdate(analyzeButton)
+    if analyzeButton.justPressed then
+        if pitchEditor.isVisible then
+            --pitchEditor:analyzeTakePitches{
+            --    windowStep = 0.04,
+            --    windowOverlap = 2.0,
+            --    minimumFrequency = 80,
+            --    maximumFrequency = 1000,
+            --    threshold = 0.2,
+            --    minimumRMSdB = -60.0
+            --}
         end
     end
 end
@@ -60,15 +60,15 @@ local fixErrorButton = Button{
 }
 local fixErrorButtonOriginalUpdate = fixErrorButton.update
 function fixErrorButton:update()
-    fixErrorButtonOriginalUpdate()
-    if pitchEditor:isVisible() then
-        if self:justPressed() then
-            pitchEditor:setFixErrorMode(true)
-        elseif self:justReleased() then
-            pitchEditor:setFixErrorMode(false)
+    fixErrorButtonOriginalUpdate(fixErrorButton)
+    if pitchEditor.isVisible then
+        if self.justPressed then
+            --pitchEditor:setFixErrorMode(true)
+        elseif self.justReleased then
+            --pitchEditor:setFixErrorMode(false)
         end
     end
 end
 
-GUI:addWidgets{ pitchEditor, analyzeButton, fixErrorButton }
+GUI.widgets = { pitchEditor, analyzeButton, fixErrorButton }
 GUI:run()
