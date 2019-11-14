@@ -72,8 +72,24 @@ return Prototype:new{
     end,
 
     prototypes = {
-        { "widget", Widget:new{ shouldDrawDirectly = true } }
+        { "widget", Widget:new() }
     },
+
+    x = {
+        get = function(self) return self.widget.x end,
+        set = function(self, value)
+            self.widget.x = value
+            self.testLine.x = value
+        end
+    },
+    y = {
+        get = function(self) return self.widget.y end,
+        set = function(self, value)
+            self.widget.y = value
+            self.testLine.y = value
+        end
+    },
+
 
     backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
     blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
@@ -106,7 +122,7 @@ return Prototype:new{
         y = ViewAxis:new()
     },
 
-    testLine = PolyLine:new{ shouldDrawDirectly = true },
+    testLine = PolyLine:new{ GUI = self.GUI },
     updatePointCoordinates = function(self, points)
         for i = 1, #points do
             local point = points[i]
@@ -271,10 +287,10 @@ return Prototype:new{
     draw = function(self)
         self:updatePointCoordinates(self.testLine.points)
 
-        --self:setColor(self.backgroundColor)
-        --self:drawRectangle(0, 0, self.width, self.height, true)
+        self:setColor(self.backgroundColor)
+        self:drawRectangle(0, 0, self.width, self.height, true)
 
-        --self:drawKeyBackgrounds()
+        self:drawKeyBackgrounds()
         self.testLine:draw()
     end,
 }

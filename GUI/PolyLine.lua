@@ -75,7 +75,12 @@ return Prototype:new{
     isVertical = false,
     pointSize = 3,
     segmentColor = { 0.5, 0.5, 0.5, 1, 0 },
-    pointColor = { 0.6, 0.6, 0.6, 1, 0 },
+    segmentGlowColor = { 0.8, 0.8, 0.8, 1, 0 },
+    pointColor = { 0.56, 0.56, 0.56, 1, 0 },
+    pointGlowColor = { 0.85, 0.85, 0.85, 1, 0 },
+    glowWhenMouseOverSegment = false,
+    glowWhenMouseOverPoint = false,
+    glowIndex = nil,
 
     insertPoint = function(self, point)
         local newIndex
@@ -173,6 +178,9 @@ return Prototype:new{
         return index, indexIsPoint
     end,
 
+    update = function(self)
+        local mouse = self.GUI.mouse
+    end,
     drawSegment = function(self, index, color)
         local points = self.points
         local point = points[index]
@@ -201,8 +209,17 @@ return Prototype:new{
         local points = self.points
 
         for i = 1, #points do
-            self:drawSegment(i, self.segmentColor)
-            self:drawPoint(i, self.pointColor, self.pointSize, true)
+            if glowWhenMouseOverSegment and glowIndex == i then
+                self:drawSegment(i, self.segmentGlowColor)
+            else
+                self:drawSegment(i, self.segmentColor)
+            end
+
+            if glowWhenMouseOverPoint and glowIndex == i then
+                self:drawPoint(i, self.pointGlowColor, self.pointSize, true)
+            else
+                self:drawPoint(i, self.pointColor, self.pointSize, true)
+            end
         end
     end
 }

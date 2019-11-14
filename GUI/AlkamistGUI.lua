@@ -6,6 +6,17 @@ local Prototype = require("Prototype")
 local UserControl = require("GUI.UserControl")
 local TrackedNumber = require("GUI.TrackedNumber")
 
+local function addWidgetToTable(t, widget)
+    if widget.widgets and #widget.widgets > 0 then
+        local childWidgets = widget.widgets
+        for i = 1, #childWidgets do
+            addWidgetToTable(t, childWidgets[i])
+        end
+    else
+        t[#t + 1] = widget
+    end
+end
+
 local GUI = Prototype:new{
     title = "",
     x = 0,
@@ -40,8 +51,11 @@ local GUI = Prototype:new{
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
-            field.value = value
-            self.mouse.widgets = value
+            for i = 1, #value do
+                local widget = value[i]
+                addWidgetToTable(field.value, widget)
+            end
+            self.mouse.widgets = field.value
         end
     }
 }
@@ -74,28 +88,28 @@ function gui:run()
     for i = 1, numberOfWidgets do
         local widget = widgets[i]
         if widget.draw then
-            if widget.shouldDrawDirectly or widget.shouldRedraw then
-                widget:clearBuffer()
+            --if widget.shouldDrawDirectly or widget.shouldRedraw then
+            --    widget:clearBuffer()
                 gfx.a = 1.0
                 gfx.mode = 0
                 gfx.dest = widget.drawBuffer
                 widget:draw()
-                widget.shouldRedraw = false
-            end
-        elseif widget.shouldClear then
-            widget:clearBuffer()
-            widget.shouldClear = false
+            --    widget.shouldRedraw = false
+            --end
+        --elseif widget.shouldClear then
+        --    widget:clearBuffer()
+        --    widget.shouldClear = false
         end
-        if widget.isVisible and not widget.shouldDrawDirectly then
-            local x = widget.x
-            local y = widget.y
-            local width = widget.width
-            local height = widget.height
-            gfx.a = 1.0
-            gfx.mode = 0
-            gfx.dest = -1
-            gfx.blit(widget.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
-        end
+        --if widget.isVisible and not widget.shouldDrawDirectly then
+        --    local x = widget.x
+        --    local y = widget.y
+        --    local width = widget.width
+        --    local height = widget.height
+        --    gfx.a = 1.0
+        --    gfx.mode = 0
+        --    gfx.dest = -1
+        --    gfx.blit(widget.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+        --end
     end
     for i = 1, numberOfWidgets do if widgets[i].endUpdate then widgets[i]:endUpdate() end end
 
