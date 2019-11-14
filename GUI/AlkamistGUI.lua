@@ -70,18 +70,29 @@ function gui:run()
     for i = 1, numberOfWidgets do if widgets[i].update then widgets[i]:update() end end
     for i = 1, numberOfWidgets do
         local widget = widgets[i]
-        --if widget.shouldRedraw and widget.draw then
-        --    widget:clearBuffer()
+        if widget.draw then
+            if widget.shouldDrawDirectly or widget.shouldRedraw then
+                widget:clearBuffer()
+                gfx.a = 1.0
+                gfx.mode = 0
+                gfx.dest = widget.drawBuffer
+                widget:draw()
+                widget.shouldRedraw = false
+            end
+        elseif widget.shouldClear then
+            widget:clearBuffer()
+            widget.shouldClear = false
+        end
+        if widget.isVisible and not widget.shouldDrawDirectly then
+            local x = widget.x
+            local y = widget.y
+            local width = widget.width
+            local height = widget.height
             gfx.a = 1.0
             gfx.mode = 0
-            gfx.dest = widget.drawBuffer
-            widget:draw()
-        --elseif widget.shouldClear then
-        --    widget:clearBuffer()
-        --    widget.shouldClear = false
-        --end
-        --widget.shouldRedraw = false
-    --    if widget.blitToMainWindow then widget:blitToMainWindow() end
+            gfx.dest = -1
+            gfx.blit(widget.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+        end
     end
     for i = 1, numberOfWidgets do if widgets[i].endUpdate then widgets[i]:endUpdate() end end
 

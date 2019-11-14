@@ -116,7 +116,7 @@ local function createProxy(fields)
             local private = getmetatable(t).private
             local field = private[k]
             if type(field) == "table" and field.set then
-                field.set(t, v, field)
+                return field.set(t, v, field)
             end
             private[k] = v
         end,

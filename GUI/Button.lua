@@ -55,12 +55,12 @@ return Prototype:new{
     },
 
     beginUpdate = function(self)
+        self.widget:beginUpdate()
         self.pressState:update()
     end,
     update = function(self)
         local mouse = self.mouse
         local mouseLeftButton = mouse.leftButton
-
         if self.glowOnMouseOver then
             if mouse:justEnteredWidget(self) then self.isGlowing = true end
             if mouse:justLeftWidget(self) then self.isGlowing = false end

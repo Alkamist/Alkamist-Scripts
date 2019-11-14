@@ -22,13 +22,6 @@ return Prototype:new{
     x = 0,
     y = 0,
     drawBuffer = -1,
-    clearBuffer = function(self)
-        local drawBuffer = self.drawBuffer
-        local width = self.width
-        local height = self.height
-        gfx.setimgdim(drawBuffer, -1, -1)
-        gfx.setimgdim(drawBuffer, width, height)
-    end,
     setColor = function(self, color)
         local mode = color[5] or 0
         gfxSet(color[1], color[2], color[3], color[4], mode)
@@ -132,5 +125,5 @@ return Prototype:new{
         else
             gfxDrawStr(str)
         end
-    end,
+    end
 }

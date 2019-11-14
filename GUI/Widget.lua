@@ -14,12 +14,35 @@ local function getNewDrawBuffer()
 end
 
 return Prototype:new{
+    initialize = function(self)
+        if not self.shouldDrawDirectly then
+            self.drawBuffer = getNewDrawBuffer()
+        end
+    end,
     prototypes = {
         { "drawable", Drawable:new() }
     },
     mouse = {},
-    x = 0,
-    y = 0,
+    x = {
+        value = 0,
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            if self.shouldDrawDirectly then
+                self.drawable.x = value
+            end
+            field.value = value
+        end
+    },
+    y = {
+        value = 0,
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            if self.shouldDrawDirectly then
+                self.drawable.y = value
+            end
+            field.value = value
+        end
+    },
     width = 0,
     height = 0,
     shouldRedraw = true,
@@ -34,5 +57,15 @@ return Prototype:new{
         local height = self.height
         return pointX >= x and pointX <= x + width
             and pointY >= y and pointY <= y + height
-    end
+    end,
+    clearBuffer = function(self)
+        local drawBuffer = self.drawBuffer
+        local width = self.width
+        local height = self.height
+        gfx.setimgdim(drawBuffer, -1, -1)
+        gfx.setimgdim(drawBuffer, width, height)
+    end,
+    beginUpdate = function(self)
+        self.visibilityState:update()
+    end,
 }
