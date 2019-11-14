@@ -52,7 +52,7 @@ local function round(number, places)
 end
 
 return Prototype:new{
-    initialize = function(self)
+    calledWhenCreated = function(self)
         self.view.x.scale = self.width
         self.view.y.scale = self.height
     end,
@@ -172,7 +172,7 @@ return Prototype:new{
         if controlKey.isPressed then
             self.view.y:changeZoom(mouse.wheel * ySensitivity)
         else
-            self.view.y:changeZoom(mouse.wheel * xSensitivity)
+            self.view.x:changeZoom(mouse.wheel * xSensitivity)
         end
     end,
 
@@ -224,7 +224,7 @@ return Prototype:new{
         if mouseRightButton:justPressedWidget(self) then self:handleRightPress() end
         if mouseRightButton:justDraggedWidget(self) then self:handleRightDrag() end
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
-        if mouse:wheelJustMovedWidget(self) then self:handleMouseWheel() end
+        if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
         self.shouldRedraw = true
     end,
