@@ -22,15 +22,42 @@ local GUI = require("GUI.AlkamistGUI")
 local Prototype = require("Prototype")
 local Toggle = require("GUI.Toggle")
 
+local function generateAbsoluteCoordinateGetterAndSetter(coordinateName)
+    return {
+        get = function(self)
+            local parentWidget = self.parentWidget
+            local absolute = self[coordinateName]
+            while true do
+                if parentWidget then
+                    absolute = absolute + parentWidget[coordinateName]
+                    parentWidget = parentWidget.parentWidget
+                else break end
+            end
+            return absolute
+        end,
+        set = function(self, value)
+            local parentWidget = self.parentWidget
+            local relative = value
+            while true do
+                if parentWidget then
+                    relative = relative - parentWidget[coordinateName]
+                    parentWidget = parentWidget.parentWidget
+                else break end
+            end
+            self[coordinateName] = relative
+        end
+    }
+end
+
 return Prototype:new{
     calledWhenCreated = function(self)
         self.drawBuffer = self.GUI:getNewDrawBuffer()
     end,
     GUI = { get = function(self) return GUI end },
-    relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.x end },
-    previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.x end },
-    relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.y end },
-    previousRelativeMouseY = { get = function(self) return self.GUI.mouse.previousY - self.y end },
+    relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.absoluteX end },
+    previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.absoluteX end },
+    relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.absoluteY end },
+    previousRelativeMouseY = { get = function(self) return self.GUI.mouse.previousY - self.absoluteY end },
     keyboard = { get = function(self) return self.GUI.keyboard end },
     widgets = {
         value = {},
@@ -46,6 +73,8 @@ return Prototype:new{
         get = function(self, field) return field.value end,
         set = function(self, value, field) field.value = value end
     },
+    absoluteX = generateAbsoluteCoordinateGetterAndSetter("x"),
+    absoluteY = generateAbsoluteCoordinateGetterAndSetter("y"),
     x = 0,
     y = 0,
     width = 0,
@@ -53,14 +82,15 @@ return Prototype:new{
     drawBuffer = -1,
     shouldRedraw = true,
     shouldClear = false,
+    mouseWasPressedInside = false,
     visibilityState = Toggle:withDefaults{ currentState = true, previousState = true },
     isVisible = {
         get = function(self) return self.visibilityState.currentState end,
         set = function(self, value) self.visibilityState.currentState = value end
     },
     pointIsInside = function(self, pointX, pointY)
-        local x = self.x
-        local y = self.y
+        local x = self.absoluteX
+        local y = self.absoluteY
         local width = self.width
         local height = self.height
         return pointX >= x and pointX <= x + width

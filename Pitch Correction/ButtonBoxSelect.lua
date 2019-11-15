@@ -16,8 +16,8 @@ GUI:initialize{
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local testButton1 = Button:new{
-    x = 100,
-    y = 100,
+    x = 50,
+    y = 50,
     width = 400,
     height = 400,
     label = "Fix Errors",
@@ -26,11 +26,20 @@ local testButton1 = Button:new{
 local testButton2 = Button:new{
     x = 50,
     y = 50,
-    width = 100,
-    height = 50,
+    width = 400,
+    height = 400,
     label = "Fix Errors 2",
     toggleOnClick = true
 }
+local testButton3 = Button:new{
+    x = 50,
+    y = 50,
+    width = 400,
+    height = 400,
+    label = "Fix Errors 3",
+    --toggleOnClick = false
+}
+testButton2.widgets = { testButton3 }
 testButton1.widgets = { testButton2 }
 
 --local originalTestButton1Update = testButton1.update

@@ -208,21 +208,26 @@ local MouseControl = Prototype:new{
     justDraggedWidget = function(self, widget) return self.justDragged and self.wasPressedInsideWidget[widget] end,
     justStartedDraggingWidget = function(self, widget) return self.justDragged and not self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end,
     justStoppedDraggingWidget = function(self, widget) return self.justReleased and self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end,
+    updateWidgetPressState = function(self, widget)
+        if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
+        if self:justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
+        local childWidgets = widget.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                self:updateWidgetPressState(childWidgets[i])
+            end
+        end
+    end,
     update = function(self, state)
-        local widgets = self.mouse.widgets
-
         if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
         if self.justReleased then self.isAlreadyDragging = false end
 
         self.wasJustReleasedLastFrame = self.justReleased
         self.pressState:update(state)
 
+        local widgets = self.mouse.widgets
         if widgets then
-            for i = 1, #widgets do
-                local widget = widgets[i]
-                if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
-                if self:justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
-            end
+            for i = 1, #widgets do self:updateWidgetPressState(widgets[i]) end
         end
 
         if self.justDragged then self.isAlreadyDragging = true end
