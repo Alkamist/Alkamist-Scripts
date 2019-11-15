@@ -76,13 +76,13 @@ return Prototype:new{
         end
     end,
     prototypes = {
-        { "widget", Widget:new() }
+        { "widget", Widget }
     },
 
     editorVerticalOffset = 26,
 
-    testLine = PolyLine:new(),
-    analyzeButton = Button:new{
+    testLine = PolyLine,
+    analyzeButton = Button:withDefaults{
         x = 0,
         y = 0,
         width = 80,
@@ -90,7 +90,7 @@ return Prototype:new{
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     },
-    fixErrorButton = Button:new{
+    fixErrorButton = Button:withDefaults{
         x = 81,
         y = 0,
         width = 80,

@@ -172,7 +172,7 @@ local TrackedNumber = require("GUI.TrackedNumber")
 local MouseControl = Prototype:new{
     mouse = {},
     wasPressedInsideWidget = {},
-    pressState = Toggle:new(),
+    pressState = Toggle,
     isAlreadyDragging = false,
     wasJustReleasedLastFrame = false,
     timeOfPreviousPress = 0,
@@ -231,9 +231,7 @@ local MouseControl = Prototype:new{
 }
 
 local MouseButton = Prototype:new{
-    prototypes = {
-        { "mouseControl", MouseControl:new() }
-    },
+    prototypes = { { "mouseControl", MouseControl } },
     bitValue = 0,
     update = function(self)
         self.mouseControl:update(self.mouse.cap & self.bitValue == self.bitValue)
@@ -252,7 +250,7 @@ local Mouse = Prototype:new{
     hWheel = 0,
     widgets = {},
 
-    xTracker = TrackedNumber:new(),
+    xTracker = TrackedNumber,
     x = {
         get = function(self) return self.xTracker.currentValue end,
         set = function(self, value) self.xTracker.currentValue = value end,
@@ -261,7 +259,7 @@ local Mouse = Prototype:new{
     xJustChanged = { get = function(self) return self.xTracker.justChanged end },
     xChange = { get = function(self) return self.xTracker.change end },
 
-    yTracker = TrackedNumber:new(),
+    yTracker = TrackedNumber,
     y = {
         get = function(self) return self.yTracker.currentValue end,
         set = function(self, value) self.yTracker.currentValue = value end,
@@ -270,9 +268,9 @@ local Mouse = Prototype:new{
     yJustChanged = { get = function(self) return self.yTracker.justChanged end },
     yChange = { get = function(self) return self.yTracker.change end },
 
-    leftButton = MouseButton:new{ bitValue = 1 },
-    middleButton = MouseButton:new{ bitValue = 64 },
-    rightButton = MouseButton:new{ bitValue = 2 },
+    leftButton = MouseButton:withDefaults{ bitValue = 1 },
+    middleButton = MouseButton:withDefaults{ bitValue = 64 },
+    rightButton = MouseButton:withDefaults{ bitValue = 2 },
 
     justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end },
     wheelJustMoved = { get = function(self) return self.wheel ~= 0 end },
@@ -300,9 +298,7 @@ local Mouse = Prototype:new{
 --==============================================================
 
 local KeyboardKey = Prototype:new{
-    prototypes = {
-        { "mouseControl", MouseControl:new() }
-    },
+    prototypes = { { "mouseControl", MouseControl } },
     character = "",
     update = function(self) self.mouseControl:update(gfx.getchar(characterTable[self.character]) > 0) end
 }
@@ -320,10 +316,10 @@ local Keyboard = Prototype:new{
         end
     },
     currentCharacter = nil,
-    shiftKey = MouseButton:new{ bitValue = 8 },
-    controlKey = MouseButton:new{ bitValue = 4 },
-    windowsKey = MouseButton:new{ bitValue = 32 },
-    altKey = MouseButton:new{ bitValue = 16 },
+    shiftKey = MouseButton:withDefaults{ bitValue = 8 },
+    controlKey = MouseButton:withDefaults{ bitValue = 4 },
+    windowsKey = MouseButton:withDefaults{ bitValue = 32 },
+    altKey = MouseButton:withDefaults{ bitValue = 16 },
     keys = {},
     createKey = function(self, character)
         self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }

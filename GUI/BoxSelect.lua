@@ -8,7 +8,7 @@ local Widget = require("GUI.Widget")
 
 return Prototype:new{
     prototypes = {
-        { "widget", Widget:new() }
+        { "widget", Widget }
     },
     x1 = 0,
     x2 = 0,

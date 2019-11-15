@@ -7,9 +7,12 @@ local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 return Prototype:new{
+    calledWhenCreated = function(self) end,
+
     prototypes = {
-        { "widget", Widget:new() }
+        { "widget", Widget }
     },
+
     label = "",
     labelFont = "Arial",
     labelFontSize = 14,
@@ -35,7 +38,7 @@ return Prototype:new{
             if field.value == true then self.pressOnClick = false end
         end
     },
-    pressState = Toggle:new(),
+    pressState = Toggle,
     isPressed = {
         get = function(self, field) return self.pressState.currentState end,
         set = function(self, value, field)
@@ -55,7 +58,6 @@ return Prototype:new{
     },
 
     beginUpdate = function(self)
-        self.widget:beginUpdate()
         self.pressState:update()
     end,
     update = function(self)
@@ -78,15 +80,15 @@ return Prototype:new{
         local width = self.width
         local height = self.height
 
-        -- Draw the main self.
+        -- Draw the body.
         self:setColor(self.color)
         self:drawRectangle(0, 0, width, height, true)
 
-        -- Draw a light outline around the self.
+        -- Draw a light outline around.
         self:setColor(self.edgeColor)
         self:drawRectangle(0, 0, width, height, false)
 
-        -- Draw the self's label.
+        -- Draw the label.
         self:setColor(self.labelColor)
         self:setFont(self.labelFont, self.labelFontSize)
         self:drawString(self.label, 0, 0, 5, width, height)

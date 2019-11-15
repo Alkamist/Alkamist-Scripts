@@ -10,14 +10,14 @@ local GUI = Prototype:new{
     title = "",
     x = 0,
     y = 0,
-    widthTracker = TrackedNumber:new(),
+    widthTracker = TrackedNumber,
     width = {
         get = function(self) return self.widthTracker.currentValue end,
         set = function(self, value) self.widthTracker.currentValue = value end
     },
     widthChange = { get = function(self) return self.widthTracker.change end },
     widthJustChanged = { get = function(self) return self.widthTracker.justChanged end },
-    heightTracker = TrackedNumber:new(),
+    heightTracker = TrackedNumber,
     height = {
         get = function(self) return self.heightTracker.currentValue end,
         set = function(self, value) self.heightTracker.currentValue = value end
@@ -46,10 +46,52 @@ local GUI = Prototype:new{
     },
     bufferIsUsed = {},
     getNewDrawBuffer = function(self)
-        for i = 1, 1023 do
-            if not bufferIsUsed[i] then
-                bufferIsUsed[i] = true
+        for i = 0, 1023 do
+            if not self.bufferIsUsed[i] then
+                self.bufferIsUsed[i] = true
                 return i
+            end
+        end
+    end,
+    beginUpdateWidget = function(self, widget)
+        widget.widget:beginUpdate()
+        if widget.beginUpdate then widget:beginUpdate() end
+        local childWidgets = widget.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                self:beginUpdateWidget(childWidgets[i])
+            end
+        end
+    end,
+    updateWidget = function(self, widget)
+        widget.widget:update()
+        if widget.update then widget:update() end
+        local childWidgets = widget.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                self:updateWidget(childWidgets[i])
+            end
+        end
+    end,
+    drawWidget = function(self, widget)
+        widget.widget:draw()
+        if widget.draw then widget:draw() end
+        local childWidgets = widget.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                self:drawWidget(childWidgets[i])
+            end
+        end
+        widget.widget:blit()
+        if widget.blit then widget:blit() end
+    end,
+    endUpdateWidget = function(self, widget)
+        widget.widget:endUpdate()
+        if widget.endUpdate then widget:endUpdate() end
+        local childWidgets = widget.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                self:endUpdateWidget(childWidgets[i])
             end
         end
     end
@@ -78,15 +120,10 @@ function gui:run()
 
     local widgets = gui.widgets
     local numberOfWidgets = #widgets
-    for i = 1, numberOfWidgets do if widgets[i].beginUpdate then widgets[i]:beginUpdate() end end
-    for i = 1, numberOfWidgets do if widgets[i].update then widgets[i]:update() end end
-    for i = 1, numberOfWidgets do
-        if widgets[i].draw then
-            widgets[i]:draw()
-            widgets[i]:blit()
-        end
-    end
-    for i = 1, numberOfWidgets do if widgets[i].endUpdate then widgets[i]:endUpdate() end end
+    for i = 1, numberOfWidgets do gui:beginUpdateWidget(widgets[i]) end
+    for i = 1, numberOfWidgets do gui:updateWidget(widgets[i]) end
+    for i = 1, numberOfWidgets do gui:drawWidget(widgets[i]) end
+    for i = 1, numberOfWidgets do gui:endUpdateWidget(widgets[i]) end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()
