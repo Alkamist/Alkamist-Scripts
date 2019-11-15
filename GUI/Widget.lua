@@ -93,7 +93,13 @@ return Prototype:new{
         local y = self.absoluteY
         local width = self.width
         local height = self.height
-        return pointX >= x and pointX <= x + width
+        local parentWidget = self.parentWidget
+        local isInsideParent = true
+        if parentWidget and not parentWidget:pointIsInside(pointX, pointY) then
+            isInsideParent = false
+        end
+        return isInsideParent
+            and pointX >= x and pointX <= x + width
             and pointY >= y and pointY <= y + height
     end,
     clearBuffer = function(self)
