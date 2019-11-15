@@ -197,11 +197,11 @@ return Prototype:new{
             gfxDrawStr(str)
         end
     end,
-    beginUpdate = function(self)
+    prepareBeginUpdate = function(self)
         self.visibilityState:update()
     end,
-    update = function(self) end,
-    draw = function(self)
+    prepareUpdate = function(self) end,
+    prepareDraw = function(self)
         self:clearBuffer()
     end,
     blit = function(self)
@@ -221,7 +221,7 @@ return Prototype:new{
             gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
         end
     end,
-    endUpdate = function(self) end
+    prepareEndUpdate = function(self) end
     --doDrawFunction = function(self, drawFunction)
     --    if self.shouldRedraw and drawFunction then
     --        self:clearBuffer()

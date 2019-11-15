@@ -101,7 +101,5 @@ return Prototype:new{
             self:setColor(self.glowColor)
             self:drawRectangle(0, 0, width, height, true)
         end
-    end,
-    blit = function(self) end,
-    endUpdate = function(self) end
+    end
 }

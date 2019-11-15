@@ -6,7 +6,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
-local PolyLine = require("GUI.PolyLine")
+--local PolyLine = require("GUI.PolyLine")
 local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
@@ -55,11 +55,11 @@ end
 
 return Prototype:new{
     calledWhenCreated = function(self)
-        self.widgets = {
-            self.analyzeButton,
-            self.fixErrorButton,
-            --self.testLine
-        }
+        --self.widgets = {
+        --    self.analyzeButton,
+        --    --self.fixErrorButton,
+        --    --self.testLine
+        --}
 
         self.view.x.scale = self.width
         self.view.y.scale = self.editorHeight
@@ -93,14 +93,14 @@ return Prototype:new{
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     },
-    fixErrorButton = Button:withDefaults{
-        x = 81,
-        y = 0,
-        width = 80,
-        height = 25,
-        label = "Fix Errors",
-        toggleOnClick = true
-    },
+    --fixErrorButton = Button:withDefaults{
+    --    x = 81,
+    --    y = 0,
+    --    width = 80,
+    --    height = 25,
+    --    label = "Fix Errors",
+    --    toggleOnClick = true
+    --},
 
     backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
     blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
@@ -272,7 +272,6 @@ return Prototype:new{
             previousKeyEnd = keyEnd
         end
     end,
-    beginUpdate = function(self) end,
     update = function(self)
         local GUI = self.GUI
         local mouse = self.GUI.mouse
@@ -304,6 +303,5 @@ return Prototype:new{
         self:drawKeyBackgrounds()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
-    end,
-    endUpdate = function(self) end
+    end
 }

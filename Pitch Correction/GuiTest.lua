@@ -21,6 +21,7 @@ local pitchEditor = PitchEditor:new{
     width = 1000,
     height = 700
 }
+pitchEditor.widgets = { pitchEditor.analyzeButton }
 
 --local analyzeButton = Button:new{
 --    x = 0,
@@ -30,6 +31,7 @@ local pitchEditor = PitchEditor:new{
 --    label = "Analyze Pitch",
 --    color = { 0.5, 0.2, 0.1, 1.0, 0 }
 --}
+--pitchEditor.widgets = { analyzeButton }
 --local analyzeButtonOriginalUpdate = analyzeButton.update
 --function analyzeButton:update()
 --    analyzeButtonOriginalUpdate(analyzeButton)

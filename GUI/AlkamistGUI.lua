@@ -54,7 +54,7 @@ local GUI = Prototype:new{
         end
     end,
     beginUpdateWidget = function(self, widget)
-        widget.widget:beginUpdate()
+        widget:prepareBeginUpdate()
         if widget.beginUpdate then widget:beginUpdate() end
         local childWidgets = widget.widgets
         if childWidgets then
@@ -64,7 +64,7 @@ local GUI = Prototype:new{
         end
     end,
     updateWidget = function(self, widget)
-        widget.widget:update()
+        widget:prepareUpdate()
         if widget.update then widget:update() end
         local childWidgets = widget.widgets
         if childWidgets then
@@ -74,7 +74,7 @@ local GUI = Prototype:new{
         end
     end,
     drawWidget = function(self, widget)
-        widget.widget:draw()
+        widget:prepareDraw()
         if widget.draw then widget:draw() end
         local childWidgets = widget.widgets
         if childWidgets then
@@ -82,11 +82,10 @@ local GUI = Prototype:new{
                 self:drawWidget(childWidgets[i])
             end
         end
-        widget.widget:blit()
-        if widget.blit then widget:blit() end
+        widget:blit()
     end,
     endUpdateWidget = function(self, widget)
-        widget.widget:endUpdate()
+        widget:prepareEndUpdate()
         if widget.endUpdate then widget:endUpdate() end
         local childWidgets = widget.widgets
         if childWidgets then

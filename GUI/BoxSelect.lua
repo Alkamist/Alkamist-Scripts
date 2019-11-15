@@ -7,6 +7,8 @@ local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 
 return Prototype:new{
+    calledWhenCreated = function(self) end,
+
     prototypes = {
         { "widget", Widget }
     },
@@ -70,8 +72,6 @@ return Prototype:new{
         self.shouldRedraw = true
     end,
 
-    beginUpdate = function(self) end,
-    update = function(self) end,
     draw = function(self)
         local width = self.width
         local height = self.height
@@ -84,5 +84,4 @@ return Prototype:new{
             self:drawRectangle(1, 1, width - 2, height - 2, true)
         end
     end,
-    endUpdate = function(self) end
 }

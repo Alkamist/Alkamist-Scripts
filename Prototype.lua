@@ -84,7 +84,7 @@ return {
         implementPrototypesWithCompositionAndMethodForwarding(fields)
         function fields:withDefaults(defaultValues)
             local defaultValues = defaultValues or {}
-            local fieldsCopy = deepCopy(fields)
+            local fieldsCopy = deepCopy(self)
             for k, v in pairs(defaultValues) do
                 fieldsCopy[k] = v
             end
