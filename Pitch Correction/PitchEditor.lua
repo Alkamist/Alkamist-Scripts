@@ -55,33 +55,36 @@ end
 
 return Prototype:new{
     calledWhenCreated = function(self)
-        self.testLine.parentWidget = self
-        self.analyzeButton.parentWidget = self
-        self.fixErrorButton.parentWidget = self
+        self.widgets = {
+            self.analyzeButton,
+            self.fixErrorButton,
+            --self.testLine
+        }
 
         self.view.x.scale = self.width
-        self.view.y.scale = self.height
+        self.view.y.scale = self.editorHeight
 
-        local time = self.timeLength / 1000
-        local timeIncrement = time
-        for i = 1, 1000 do
-            local pitch = 20.0 * math.random() + 50
-            self.testLine:insertPoint{
-                time = time,
-                pitch = pitch,
-                x = self:timeToPixels(time),
-                y = self:pitchToPixels(pitch),
-            }
-            time = time + timeIncrement
-        end
+        --local time = self.timeLength / 1000
+        --local timeIncrement = time
+        --for i = 1, 1000 do
+        --    local pitch = 20.0 * math.random() + 50
+        --    self.testLine:insertPoint{
+        --        time = time,
+        --        pitch = pitch,
+        --        x = self:timeToPixels(time),
+        --        y = self:pitchToPixels(pitch),
+        --    }
+        --    time = time + timeIncrement
+        --end
     end,
     prototypes = {
         { "widget", Widget }
     },
 
     editorVerticalOffset = 26,
+    editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end },
 
-    testLine = PolyLine,
+    --testLine = PolyLine,
     analyzeButton = Button:withDefaults{
         x = 0,
         y = 0,
@@ -179,14 +182,14 @@ return Prototype:new{
     end,
     pixelsToPitch = function(self, pixels)
         local pixels = pixels - self.editorVerticalOffset
-        local height = self.height
+        local height = self.editorHeight
         if height <= 0 then return 0.0 end
         return self.pitchHeight * (1.0 - (self.view.y.scroll + pixels / (height * self.view.y.zoom))) - 0.5
     end,
     pitchToPixels = function(self, pitch)
         local pitchHeight = self.pitchHeight
         if pitchHeight <= 0 then return 0 end
-        return self.editorVerticalOffset + self.view.y.zoom * self.height * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
+        return self.editorVerticalOffset + self.view.y.zoom * self.editorHeight * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
     end,
 
     handleWindowResize = function(self)
@@ -195,7 +198,7 @@ return Prototype:new{
             self.width = self.width + GUI.widthChange
             self.height = self.height + GUI.heightChange
             self.view.x.scale = self.width
-            self.view.y.scale = self.height
+            self.view.y.scale = self.editorHeight
         end
     end,
     handleLeftPress = function(self)
@@ -208,7 +211,7 @@ return Prototype:new{
     handleLeftDoublePress = function(self) end,
     handleMiddlePress = function(self)
         self.view.x.target = self.relativeMouseX
-        self.view.y.target = self.relativeMouseY
+        self.view.y.target = self.relativeMouseY - self.editorVerticalOffset
     end,
     handleMiddleDrag = function(self)
         local mouse = self.GUI.mouse
@@ -231,7 +234,7 @@ return Prototype:new{
         local controlKey = self.keyboard.controlKey
 
         self.view.x.target = self.relativeMouseX
-        self.view.y.target = self.relativeMouseY
+        self.view.y.target = self.relativeMouseY - self.editorVerticalOffset
 
         if controlKey.isPressed then
             self.view.y:changeZoom(mouse.wheel * ySensitivity)
@@ -269,16 +272,8 @@ return Prototype:new{
             previousKeyEnd = keyEnd
         end
     end,
-    beginUpdate = function(self)
-        self.testLine:beginUpdate()
-        self.analyzeButton:beginUpdate()
-        self.fixErrorButton:beginUpdate()
-    end,
+    beginUpdate = function(self) end,
     update = function(self)
-        self.testLine:update()
-        self.analyzeButton:update()
-        self.fixErrorButton:update()
-
         local GUI = self.GUI
         local mouse = self.GUI.mouse
         --local char = self.keyboard.currentCharacter
@@ -302,16 +297,13 @@ return Prototype:new{
         self.shouldRedraw = true
     end,
     draw = function(self)
-        self:updatePointCoordinates(self.testLine.points)
+        --self:updatePointCoordinates(self.testLine.points)
 
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
         self:drawKeyBackgrounds()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
-
-        --self.testLine:draw()
-        --self.analyzeButton:draw()
-        --self.fixErrorButton:draw()
     end,
+    endUpdate = function(self) end
 }

@@ -69,6 +69,9 @@ return Prototype:new{
         self.isActive = false
         self.shouldRedraw = true
     end,
+
+    beginUpdate = function(self) end,
+    update = function(self) end,
     draw = function(self)
         local width = self.width
         local height = self.height
@@ -80,5 +83,6 @@ return Prototype:new{
             self:setColor(self.insideColor)
             self:drawRectangle(1, 1, width - 2, height - 2, true)
         end
-    end
+    end,
+    endUpdate = function(self) end
 }

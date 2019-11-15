@@ -67,5 +67,5 @@ local pitchEditor = PitchEditor:new{
 --    end
 --end
 
---GUI.widgets = { pitchEditor }
+GUI.widgets = { pitchEditor }
 GUI:run()
