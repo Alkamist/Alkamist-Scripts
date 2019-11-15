@@ -10,25 +10,11 @@ local function deepCopy(input, seen)
     if seen[input] then return seen[input] end
     local output = {}
     seen[input] = output
+    setmetatable(output, deepCopy(getmetatable(input), seen))
     for key, value in next, input, nil do
         output[deepCopy(key, seen)] = deepCopy(value, seen)
     end
-    return setmetatable(output, deepCopy(getmetatable(input), seen))
-end
-local function deepCopyWhileCallingNew(input, seen)
-    if type(input) ~= "table" then return input end
-    local seen = seen or {}
-    if seen[input] then return seen[input] end
-    local output = {}
-    seen[input] = output
-    for key, value in next, input, nil do
-        if type(value) == "table" and value.new then
-            output[deepCopy(key, seen)] = value:new()
-        elseif k ~= "new" and k ~= "withDefaults" then
-            output[deepCopy(key, seen)] = deepCopy(value, seen)
-        end
-    end
-    return setmetatable(output, deepCopy(getmetatable(input), seen))
+    return output
 end
 local function implementPrototypesWithCompositionAndMethodForwarding(fields)
     local prototypes = fields.prototypes
@@ -53,7 +39,19 @@ local function implementPrototypesWithCompositionAndMethodForwarding(fields)
     fields.prototypes = nil
 end
 local function createProxy(fields)
-    local copiedFields = deepCopyWhileCallingNew(fields)
+    local copiedFields = {}
+    for k, v in pairs(fields) do
+        if type(v) == "table" and v.new then
+            copiedFields[k] = v:new()
+        end
+    end
+    for k, v in pairs(fields) do
+        if copiedFields[k] == nil then
+            copiedFields[k] = deepCopy(v)
+        end
+    end
+    copiedFields.new = nil
+    copiedFields.withDefaults = nil
     local proxyMetatable = {
         __index = function(t, k)
             local field = copiedFields[k]
@@ -84,11 +82,11 @@ return {
         implementPrototypesWithCompositionAndMethodForwarding(fields)
         function fields:withDefaults(defaultValues)
             local defaultValues = defaultValues or {}
-            local fieldsCopy = deepCopy(self)
+            local copiedFields = deepCopy(self)
             for k, v in pairs(defaultValues) do
-                fieldsCopy[k] = v
+                copiedFields[k] = v
             end
-            return fieldsCopy
+            return copiedFields
         end
         function fields:new(defaultValues)
             local defaultValues = defaultValues or {}
