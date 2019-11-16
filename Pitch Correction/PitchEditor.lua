@@ -57,6 +57,23 @@ local PitchEditor = {}
 function PitchEditor:new(initialValues)
     local self = Widget:new(initialValues)
 
+    self.width = {
+        value = self.width,
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            field.value = value
+            self.testLine.width = value
+        end
+    }
+    self.height = {
+        value = self.height,
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            field.value = value
+            self.testLine.height = value - self.editorVerticalOffset
+        end
+    }
+
     self.testLine = PolyLine:new()
     self.analyzeButton = Button:new{
         x = 0,
@@ -74,7 +91,7 @@ function PitchEditor:new(initialValues)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.widgets = { self.analyzeButton, self.fixErrorButton }
+    self.widgets = { self.analyzeButton, self.fixErrorButton, self.testLine }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -156,12 +173,14 @@ function PitchEditor:new(initialValues)
         return self.editorVerticalOffset + self.view.y.zoom * self.editorHeight * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
     end
     function self:updatePointCoordinates(points)
+        local timeToPixels = self.timeToPixels
+        local pitchToPixels = self.pitchToPixels
         for i = 1, #points do
             local point = points[i]
             local pointTime = point.time
             local pointPitch = point.pitch
-            if pointTime then point.x = self:timeToPixels(pointTime) end
-            if pointPitch then point.y = self:pitchToPixels(pointPitch) end
+            if pointTime then point.x = timeToPixels(self, pointTime) end
+            if pointPitch then point.y = pitchToPixels(self, pointPitch) end
         end
     end
 
@@ -278,7 +297,7 @@ function PitchEditor:new(initialValues)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        --self:updatePointCoordinates(self.testLine.points)
+        self:updatePointCoordinates(self.testLine.points)
         self.shouldRedraw = true
     end
     function self:draw()
@@ -292,18 +311,20 @@ function PitchEditor:new(initialValues)
     local proxy = Proxy:new(self, initialValues)
     proxy.view.x.scale = proxy.width
     proxy.view.y.scale = proxy.editorHeight
-    --local time = self.timeLength / 1000
-    --local timeIncrement = time
-    --for i = 1, 1000 do
-    --    local pitch = 20.0 * math.random() + 50
-    --    self.testLine:insertPoint{
-    --        time = time,
-    --        pitch = pitch,
-    --        x = self:timeToPixels(time),
-    --        y = self:pitchToPixels(pitch),
-    --    }
-    --    time = time + timeIncrement
-    --end
+
+    local time = self.timeLength / 1000
+    local timeIncrement = time
+    for i = 1, 1000 do
+        local pitch = 20.0 * math.random() + 50
+        self.testLine:insertPoint{
+            time = time,
+            pitch = pitch,
+            x = self:timeToPixels(time),
+            y = self:pitchToPixels(pitch),
+        }
+        time = time + timeIncrement
+    end
+
     return proxy
 end
 

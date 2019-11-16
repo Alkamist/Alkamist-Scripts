@@ -208,17 +208,17 @@ function PolyLine:new(initialValues)
         local points = self.points
 
         for i = 1, #points do
-            if glowWhenMouseOverSegment and glowIndex == i then
-                self:drawSegment(i, self.segmentGlowColor)
-            else
+            --if glowWhenMouseOverSegment and glowIndex == i then
+            --    self:drawSegment(i, self.segmentGlowColor)
+            --else
                 self:drawSegment(i, self.segmentColor)
-            end
+            --end
 
-            if glowWhenMouseOverPoint and glowIndex == i then
-                self:drawPoint(i, self.pointGlowColor, self.pointSize, true)
-            else
+            --if glowWhenMouseOverPoint and glowIndex == i then
+            --    self:drawPoint(i, self.pointGlowColor, self.pointSize, true)
+            --else
                 self:drawPoint(i, self.pointColor, self.pointSize, true)
-            end
+            --end
         end
     end
 
