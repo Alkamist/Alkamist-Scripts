@@ -77,7 +77,6 @@ function Widget:new(initialValues)
     self.width = 0
     self.height = 0
     self.shouldDrawDirectly = false
-    self.imageChangedThisFrame = false
     self.shouldRedraw = true
     self.shouldClear = false
     self.mouseWasPressedInside = false
@@ -227,6 +226,12 @@ function Widget:new(initialValues)
         end
     end
     function self:doUpdate()
+        local char = self.GUI.keyboard.currentCharacter
+        local keyPressFunctions = self.keyPressFunctions
+        if type(keyPressFunctions) == "table" then
+            local keyPressFunction = keyPressFunctions[char]
+            if keyPressFunction then keyPressFunction(self) end
+        end
         if self.update then self:update() end
 
         local childWidgets = self.widgets
@@ -244,11 +249,9 @@ function Widget:new(initialValues)
                 gfx.mode = 0
                 gfx.dest = self.drawBuffer
                 self:draw()
-                self.imageChangedThisFrame = true
                 self.shouldRedraw = false
             elseif self.shouldClear then
                 self:clearBuffer()
-                self.imageChangedThisFrame = true
                 self.shouldClear = false
             end
         end

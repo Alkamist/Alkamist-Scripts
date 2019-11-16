@@ -135,6 +135,13 @@ function PitchEditor:new(initialValues)
             return 0.0
         end
     }
+    self.startTime = {
+        get = function(self)
+            local item = self.item
+            if item then return reaper.GetMediaItemInfo_Value(item, "D_POSITION") end
+            return 0.0
+        end
+    }
 
     self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
     self.previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end }
@@ -184,6 +191,16 @@ function PitchEditor:new(initialValues)
         end
     end
 
+    self.keyPressFunctions = {
+        ["Delete"] = function(self)
+            msg("delete")
+        end,
+        ["e"] = function(self)
+            reaper.SetEditCurPos(self.startTime + self.mouseTime, false, true)
+            reaper.UpdateArrange()
+            reaper.Main_OnCommandEx(1007, 0, 0)
+        end
+    }
     function self:handleWindowResize()
         if self.scaleWithWindow then
             local GUI = self.GUI
@@ -235,6 +252,28 @@ function PitchEditor:new(initialValues)
         end
     end
 
+    function self:update()
+        local GUI = self.GUI
+        local mouse = self.GUI.mouse
+        local mouseLeftButton = mouse.leftButton
+        local mouseMiddleButton = mouse.middleButton
+        local mouseRightButton = mouse.rightButton
+
+        if GUI.windowWasResized then self:handleWindowResize() end
+        if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
+        if mouseLeftButton:justDraggedWidget(self) then self:handleLeftDrag() end
+        if mouseLeftButton:justReleasedWidget(self) then self:handleLeftRelease() end
+        if mouseLeftButton:justDoublePressedWidget(self) then self:handleLeftDoublePress() end
+        if mouseMiddleButton:justPressedWidget(self) then self:handleMiddlePress() end
+        if mouseMiddleButton:justDraggedWidget(self) then self:handleMiddleDrag() end
+        if mouseRightButton:justPressedWidget(self) then self:handleRightPress() end
+        if mouseRightButton:justDraggedWidget(self) then self:handleRightDrag() end
+        if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
+        if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
+
+        self:updatePointCoordinates(self.testLine.points)
+        self.shouldRedraw = true
+    end
     function self:drawKeyBackgrounds()
         local pitchHeight = self.pitchHeight
         local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
@@ -276,34 +315,46 @@ function PitchEditor:new(initialValues)
             previousKeyEnd = keyEnd
         end
     end
-    function self:update()
-        local GUI = self.GUI
-        local mouse = self.GUI.mouse
-        --local char = self.keyboard.currentCharacter
-        local mouseLeftButton = mouse.leftButton
-        local mouseMiddleButton = mouse.middleButton
-        local mouseRightButton = mouse.rightButton
+    function self:drawEdges()
+        local width = self.width
+        local height = self.height
 
-        if GUI.windowWasResized then self:handleWindowResize() end
-        --if char then self:handleKeyPress(char) end
-        if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
-        if mouseLeftButton:justDraggedWidget(self) then self:handleLeftDrag() end
-        if mouseLeftButton:justReleasedWidget(self) then self:handleLeftRelease() end
-        if mouseLeftButton:justDoublePressedWidget(self) then self:handleLeftDoublePress() end
-        if mouseMiddleButton:justPressedWidget(self) then self:handleMiddlePress() end
-        if mouseMiddleButton:justDraggedWidget(self) then self:handleMiddleDrag() end
-        if mouseRightButton:justPressedWidget(self) then self:handleRightPress() end
-        if mouseRightButton:justDraggedWidget(self) then self:handleRightDrag() end
-        if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
-        if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
+        self:setColor(self.edgeColor)
+        local leftEdgePixels = self:timeToPixels(0.0)
+        local rightEdgePixels = self:timeToPixels(self.timeLength)
+        self:drawLine(leftEdgePixels, 0, leftEdgePixels, height, false)
+        self:drawLine(rightEdgePixels, 0, rightEdgePixels, height, false)
 
-        self:updatePointCoordinates(self.testLine.points)
-        self.shouldRedraw = true
+        self:setColor(self.edgeShade)
+        self:drawRectangle(0, 0, leftEdgePixels, height, true)
+        local rightShadeStart = rightEdgePixels + 1
+        self:drawRectangle(rightShadeStart, 0, width - rightShadeStart, height, true)
+    end
+    function self:drawEditCursor()
+        local startTime = self.startTime
+        local height = self.height
+        local editCursorPixels = self:timeToPixels(reaper.GetCursorPosition() - startTime)
+        local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - startTime)
+
+        self:setColor(self.editCursorColor)
+        self:drawLine(editCursorPixels, 0, editCursorPixels, height, false)
+
+        local playState = reaper.GetPlayState()
+        local projectIsPlaying = playState & 1 == 1
+        local projectIsRecording = playState & 4 == 4
+        if projectIsPlaying or projectIsRecording then
+            self:setColor(self.playCursorColor)
+            self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
+        end
     end
     function self:draw()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
+
         self:drawKeyBackgrounds()
+        self:drawEdges()
+        self:drawEditCursor()
+
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
     end
