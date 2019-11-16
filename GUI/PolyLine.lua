@@ -220,6 +220,9 @@ function PolyLine:new(initialValues)
         local glowWhenMouseOver = self.glowWhenMouseOver
         local mouseIsOverPoint = self.mouseIsOverPoint
 
+        --self:setColor{0,0,0,1,0}
+        --self:drawRectangle(0, 0, self.width, self.height, true)
+
         for i = 1, #points do
             if glowWhenMouseOver and glowIndex == i and not mouseIsOverPoint then
                 drawSegment(self, i, segmentGlowColor)

@@ -70,16 +70,13 @@ function PitchEditor:new(initialValues)
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self.testLine.height = value - self.editorVerticalOffset
+            self.testLine.height = value
         end
     }
     self.editorVerticalOffset = 26
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.testLine = PolyLine:new{
-        y = self.editorVerticalOffset,
-        glowWhenMouseOver = true
-    }
+    self.testLine = PolyLine:new{ glowWhenMouseOver = true }
     self.analyzeButton = Button:new{
         x = 0,
         y = 0,
