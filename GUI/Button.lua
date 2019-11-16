@@ -2,65 +2,62 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
-return Prototype:new{
-    calledWhenCreated = function(self) end,
+local Button = {}
+function Button:new(initialValues)
+    local self = Widget:new(initialValues)
 
-    prototypes = {
-        { "widget", Widget }
-    },
-
-    label = "",
-    labelFont = "Arial",
-    labelFontSize = 14,
-    labelColor = { 1.0, 1.0, 1.0, 0.4, 1 },
-    color = { 0.3, 0.3, 0.3, 1.0, 0 },
-    edgeColor = { 1.0, 1.0, 1.0, 0.1, 1 },
-    glowColor = { 1.0, 1.0, 1.0, 0.15, 1 },
-    pressedColor = { 1.0, 1.0, 1.0, -0.15, 1 },
-    glowOnMouseOver = true,
-    pressOnClick = {
+    self.label = ""
+    self.labelFont = "Arial"
+    self.labelFontSize = 14
+    self.labelColor = { 1.0, 1.0, 1.0, 0.4, 1 }
+    self.color = { 0.3, 0.3, 0.3, 1.0, 0 }
+    self.edgeColor = { 1.0, 1.0, 1.0, 0.1, 1 }
+    self.glowColor = { 1.0, 1.0, 1.0, 0.15, 1 }
+    self.pressedColor = { 1.0, 1.0, 1.0, -0.15, 1 }
+    self.glowOnMouseOver = true
+    self.pressOnClick = {
         value = true,
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
             if field.value == true then self.toggleOnClick = false end
         end
-    },
-    toggleOnClick = {
+    }
+    self.toggleOnClick = {
         value = false,
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
             if field.value == true then self.pressOnClick = false end
         end
-    },
-    pressState = Toggle,
-    isPressed = {
+    }
+    self.pressState = Toggle:new()
+    self.isPressed = {
         get = function(self, field) return self.pressState.currentState end,
         set = function(self, value, field)
             self.pressState.currentState = value
             self.shouldRedraw = true
         end
-    },
-    justPressed = { get = function(self) return self.pressState.justTurnedOn end },
-    justReleased = { get = function(self) return self.pressState.justTurnedOff end },
-    isGlowing = {
+    }
+    self.justPressed = { get = function(self) return self.pressState.justTurnedOn end }
+    self.justReleased = { get = function(self) return self.pressState.justTurnedOff end }
+    self.isGlowing = {
         value = false,
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
             self.shouldRedraw = true
         end
-    },
+    }
 
-    beginUpdate = function(self)
+    function self:beginUpdate()
         self.pressState:update()
-    end,
-    update = function(self)
+    end
+    function self:update()
         local mouse = self.GUI.mouse
         local mouseLeftButton = mouse.leftButton
 
@@ -75,8 +72,8 @@ return Prototype:new{
         if self.toggleOnClick then
             if mouseLeftButton:justPressedWidget(self) then self.isPressed = not self.isPressed end
         end
-    end,
-    draw = function(self)
+    end
+    function self:draw()
         local width = self.width
         local height = self.height
 
@@ -102,4 +99,8 @@ return Prototype:new{
             self:drawRectangle(0, 0, width, height, true)
         end
     end
-}
+
+    return Proxy:new(self, initialValues)
+end
+
+return Button

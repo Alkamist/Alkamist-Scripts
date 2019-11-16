@@ -3,23 +3,21 @@ local min = math.min
 local abs = math.abs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 
-return Prototype:new{
-    calledWhenCreated = function(self) end,
+local BoxSelect = {}
+function BoxSelect:new(initialValues)
+    local self = Widget:new(initialValues)
 
-    prototypes = {
-        { "widget", Widget }
-    },
-    x1 = 0,
-    x2 = 0,
-    y1 = 0,
-    y2 = 0,
-    insideColor = { 0, 0, 0, 0.3, 0 },
-    edgeColor = { 1, 1, 1, 0.6, 0 },
-    isActive = false,
-    startSelection = function(self, startingX, startingY)
+    self.x1 = 0
+    self.x2 = 0
+    self.y1 = 0
+    self.y2 = 0
+    self.insideColor = { 0, 0, 0, 0.3, 0 }
+    self.edgeColor = { 1, 1, 1, 0.6, 0 }
+    self.isActive = false
+    function self:startSelection(startingX, startingY)
         self.x1 = startingX
         self.x2 = startingX
         self.y1 = startingY
@@ -31,8 +29,8 @@ return Prototype:new{
         self.height = 0
 
         self.shouldRedraw = true
-    end,
-    editSelection = function(self, editX, editY)
+    end
+    function self:editSelection(editX, editY)
         self.isActive = true
         self.x2 = editX
         self.y2 = editY
@@ -43,8 +41,8 @@ return Prototype:new{
         self.height = abs(self.y1 - self.y2)
 
         self.shouldRedraw = true
-    end,
-    makeSelection = function(self, parameters)
+    end
+    function self:makeSelection(parameters)
         local thingsToSelect = parameters.thingsToSelect
         local isInsideFunction = parameters.isInsideFunction
         local setSelectedFunction = parameters.setSelectedFunction
@@ -70,9 +68,9 @@ return Prototype:new{
 
         self.isActive = false
         self.shouldRedraw = true
-    end,
+    end
 
-    draw = function(self)
+    function self:draw()
         local width = self.width
         local height = self.height
 
@@ -83,5 +81,9 @@ return Prototype:new{
             self:setColor(self.insideColor)
             self:drawRectangle(1, 1, width - 2, height - 2, true)
         end
-    end,
-}
+    end
+
+    return Proxy:new(self, initialValues)
+end
+
+return BoxSelect

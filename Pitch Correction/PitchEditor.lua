@@ -3,7 +3,7 @@ local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local PolyLine = require("GUI.PolyLine")
@@ -53,87 +53,110 @@ local function round(number, places)
     end
 end
 
-return Prototype:new{
-    calledWhenCreated = function(self)
-        --self.widgets = {
-        --    self.analyzeButton,
-        --    self.fixErrorButton,
-        --    --self.testLine
-        --}
+local PitchEditor = {}
 
-        self.view.x.scale = self.width
-        self.view.y.scale = self.editorHeight
+function PitchEditor:new(initialValues)
+    local self = {}
 
-        --local time = self.timeLength / 1000
-        --local timeIncrement = time
-        --for i = 1, 1000 do
-        --    local pitch = 20.0 * math.random() + 50
-        --    self.testLine:insertPoint{
-        --        time = time,
-        --        pitch = pitch,
-        --        x = self:timeToPixels(time),
-        --        y = self:pitchToPixels(pitch),
-        --    }
-        --    time = time + timeIncrement
-        --end
-    end,
-    prototypes = {
-        { "widget", Widget }
-    },
+    self.testLine = PolyLine:new()
+    self.analyzeButton = Button:new{
+        x = 0,
+        y = 0,
+        width = 80,
+        height = 25,
+        label = "Analyze Pitch",
+        color = { 0.5, 0.2, 0.1, 1.0, 0 }
+    }
+    self.fixErrorButton = Button:new{
+        x = 81,
+        y = 0,
+        width = 80,
+        height = 25,
+        label = "Fix Errors",
+        toggleOnClick = true
+    }
+    self.widgets = { self.testLine, self.analyzeButton, self.fixErrorButton }
 
-    editorVerticalOffset = 26,
-    editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end },
+    self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
+    self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
+    self.whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
+    self.keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 }
+    self.edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 }
+    self.edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 }
+    self.editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 }
+    self.playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 }
+    self.pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 }
+    self.pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 }
+    self.peakColor = { 1.0, 1.0, 1.0, 1.0, 0 }
+    self.correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 }
+    self.pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 }
 
-    testLine = PolyLine,
-    --analyzeButton = Button:withDefaults{
-    --    x = 0,
-    --    y = 0,
-    --    width = 80,
-    --    height = 25,
-    --    label = "Analyze Pitch",
-    --    color = { 0.5, 0.2, 0.1, 1.0, 0 }
-    --},
-    --fixErrorButton = Button:withDefaults{
-    --    x = 81,
-    --    y = 0,
-    --    width = 80,
-    --    height = 25,
-    --    label = "Fix Errors",
-    --    toggleOnClick = true
-    --},
+    self.editorVerticalOffset = 26
+    self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
+    self.minimumKeyHeightToDrawCenterLine = 16
+    self.pitchHeight = 128
+    self.editPixelRange = 7
+    self.scaleWithWindow = true
+    self.whiteKeyNumbers = getWhiteKeyNumbers()
+    self.mouseTimeOnLeftDown = 0.0
+    self.mousePitchOnLeftDown = 0.0
+    self.snappedMousePitchOnLeftDown = 0.0
+    self.altKeyWasDownOnPointEdit = false
+    self.fixErrorMode = false
+    self.enablePitchCorrections = true
 
-    backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 },
-    blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 },
-    whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 },
-    keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 },
-    edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 },
-    edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 },
-    editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 },
-    playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 },
-    pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 },
-    pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 },
-    peakColor = { 1.0, 1.0, 1.0, 1.0, 0 },
-    correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 },
-    pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 },
+    self.item = { get = function(self) return reaper.GetSelectedMediaItem(0, 0) end }
+    self.take = {
+        get = function(self)
+            local item = self.item
+            if item then return reaper.GetActiveTake(item) end
+        end
+    }
+    self.timeLength = {
+        get = function(self)
+            local item = self.item
+            if item then return reaper.GetMediaItemInfo_Value(item, "D_LENGTH") end
+            return 0.0
+        end
+    }
 
-    minimumKeyHeightToDrawCenterLine = 16,
-    pitchHeight = 128,
-    editPixelRange = 7,
-    scaleWithWindow = true,
-    whiteKeyNumbers = getWhiteKeyNumbers(),
-    mouseTimeOnLeftDown = 0.0,
-    mousePitchOnLeftDown = 0.0,
-    snappedMousePitchOnLeftDown = 0.0,
-    altKeyWasDownOnPointEdit = false,
-    fixErrorMode =  false,
-    enablePitchCorrections = true,
+    self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
+    self.previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end }
+    self.mouseTimeChange = { get = function(self) return self.mouseTime - self.previousMouseTime end }
+    self.mousePitch = { get = function(self) return self:pixelsToPitch(self.relativeMouseY) end }
+    self.previousMousePitch = { get = function(self) return self:pixelsToPitch(self.previousRelativeMouseY) end }
+    self.mousePitchChange = { get = function(self) return self.mousePitch - self.previousMousePitch end }
+    self.snappedMousePitch = { get = function(self) return round(self.mousePitch) end }
+    self.snappedPreviousMousePitch = { get = function(self) return round(self.previousMousePitch) end }
+    self.snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.snappedPreviousMousePitch end }
 
-    view = {
+    self.view = {
         x = ViewAxis:new(),
         y = ViewAxis:new()
-    },
+    }
 
-    updatePointCoordinates = function(self, points)
+    function self:pixelsToTime(pixels)
+        local width = self.width
+        if width <= 0 then return 0.0 end
+        return self.timeLength * (self.view.x.scroll + pixels / (width * self.view.x.zoom))
+    end
+    function self:timeToPixels(time)
+        local takeLength = self.timeLength
+        if takeLength <= 0 then return 0 end
+        return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
+    end
+    function self:pixelsToPitch(pixels)
+        local pixels = pixels - self.editorVerticalOffset
+        local height = self.editorHeight
+        if height <= 0 then return 0.0 end
+        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixels / (height * self.view.y.zoom))) - 0.5
+    end
+    function self:pitchToPixels(pitch)
+        local pitchHeight = self.pitchHeight
+        if pitchHeight <= 0 then return 0 end
+        return self.editorVerticalOffset + self.view.y.zoom * self.editorHeight * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
+    end
+    function self:updatePointCoordinates(points)
         for i = 1, #points do
             local point = points[i]
             local pointTime = point.time
@@ -141,58 +164,9 @@ return Prototype:new{
             if pointTime then point.x = self:timeToPixels(pointTime) end
             if pointPitch then point.y = self:pitchToPixels(pointPitch) end
         end
-    end,
+    end
 
-    item = { get = function(self) return reaper.GetSelectedMediaItem(0, 0) end },
-    take = {
-        get = function(self)
-            local item = self.item
-            if item then return reaper.GetActiveTake(item) end
-        end
-    },
-    timeLength = {
-        get = function(self)
-            local item = self.item
-            if item then return reaper.GetMediaItemInfo_Value(item, "D_LENGTH") end
-            return 0.0
-        end
-    },
-
-    mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end },
-    previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end },
-    mouseTimeChange = { get = function(self) return self.mouseTime - self.previousMouseTime end },
-
-    mousePitch = { get = function(self) return self:pixelsToPitch(self.relativeMouseY) end },
-    previousMousePitch = { get = function(self) return self:pixelsToPitch(self.previousRelativeMouseY) end },
-    mousePitchChange = { get = function(self) return self.mousePitch - self.previousMousePitch end },
-
-    snappedMousePitch = { get = function(self) return round(self.mousePitch) end },
-    snappedPreviousMousePitch = { get = function(self) return round(self.previousMousePitch) end },
-    snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.snappedPreviousMousePitch end },
-
-    pixelsToTime = function(self, pixels)
-        local width = self.width
-        if width <= 0 then return 0.0 end
-        return self.timeLength * (self.view.x.scroll + pixels / (width * self.view.x.zoom))
-    end,
-    timeToPixels = function(self, time)
-        local takeLength = self.timeLength
-        if takeLength <= 0 then return 0 end
-        return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
-    end,
-    pixelsToPitch = function(self, pixels)
-        local pixels = pixels - self.editorVerticalOffset
-        local height = self.editorHeight
-        if height <= 0 then return 0.0 end
-        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixels / (height * self.view.y.zoom))) - 0.5
-    end,
-    pitchToPixels = function(self, pitch)
-        local pitchHeight = self.pitchHeight
-        if pitchHeight <= 0 then return 0 end
-        return self.editorVerticalOffset + self.view.y.zoom * self.editorHeight * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
-    end,
-
-    handleWindowResize = function(self)
+    function self:handleWindowResize()
         if self.scaleWithWindow then
             local GUI = self.GUI
             self.width = self.width + GUI.widthChange
@@ -200,20 +174,20 @@ return Prototype:new{
             self.view.x.scale = self.width
             self.view.y.scale = self.editorHeight
         end
-    end,
-    handleLeftPress = function(self)
+    end
+    function self:handleLeftPress()
         self.mouseTimeOnLeftDown = self.mouseTime
         self.mousePitchOnLeftDown = self.mousePitch
         self.snappedMousePitchOnLeftDown = self.snappedMousePitch
-    end,
-    handleLeftDrag = function(self) end,
-    handleLeftRelease = function(self) end,
-    handleLeftDoublePress = function(self) end,
-    handleMiddlePress = function(self)
+    end
+    function self:handleLeftDrag() end
+    function self:handleLeftRelease() end
+    function self:handleLeftDoublePress() end
+    function self:handleMiddlePress()
         self.view.x.target = self.relativeMouseX
         self.view.y.target = self.relativeMouseY - self.editorVerticalOffset
-    end,
-    handleMiddleDrag = function(self)
+    end
+    function self:handleMiddleDrag()
         local mouse = self.GUI.mouse
         local shiftKey = self.keyboard.shiftKey
         if shiftKey.isPressed then
@@ -223,11 +197,11 @@ return Prototype:new{
             self.view.x:changeScroll(mouse.xChange)
             self.view.y:changeScroll(mouse.yChange)
         end
-    end,
-    handleRightPress = function(self) end,
-    handleRightDrag = function(self) end,
-    handleRightRelease = function(self) end,
-    handleMouseWheel = function(self)
+    end
+    function self:handleRightPress() end,
+    function self:handleRightDrag() end,
+    function self:handleRightRelease() end,
+    function self:handleMouseWheel()
         local mouse = self.GUI.mouse
         local xSensitivity = 55.0
         local ySensitivity = 55.0
@@ -241,38 +215,47 @@ return Prototype:new{
         else
             self.view.x:changeZoom(mouse.wheel * xSensitivity)
         end
-    end,
+    end
 
-    drawKeyBackgrounds = function(self)
+    function self:drawKeyBackgrounds()
         local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
         local width = self.width
+        local whiteKeyNumbers = self.whiteKeyNumbers
+        local numberOfWhiteKeyNumbers = #whiteKeyNumbers
+        local whiteKeyColor = self.whiteKeyColor
+        local blackKeyColor = self.blackKeyColor
+        local keyCenterLineColor = self.keyCenterLineColor
+        local pitchToPixels = self.pitchToPixels
+        local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
+        local pitchHeight = self.pitchHeight
 
-        for i = 1, self.pitchHeight do
-            local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
+        for i = 1, pitchHeight do
+            local keyEnd = pitchToPixels(self, pitchHeight - i + 0.5)
             local keyHeight = keyEnd - previousKeyEnd
 
-            self:setColor(self.blackKeyColor)
-            for _, value in ipairs(self.whiteKeyNumbers) do
+            self:setColor(blackKeyColor)
+            for i = 1, #numberOfWhiteKeyNumbers do
+                local value = whiteKeyNumbers[i]
                 if i == value then
-                    self:setColor(self.whiteKeyColor)
+                    self:setColor(whiteKeyColor)
                 end
             end
             self:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
 
-            self:setColor(self.blackKeyColor)
+            self:setColor(blackKeyColor)
             self:drawLine(0, keyEnd, width - 1, keyEnd, false)
 
-            if keyHeight > self.minimumKeyHeightToDrawCenterLine then
-                local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
+            if keyHeight > minimumKeyHeightToDrawCenterLine then
+                local keyCenterLine = pitchToPixels(self, pitchHeight - i)
 
-                self:setColor(self.keyCenterLineColor)
+                self:setColor(keyCenterLineColor)
                 self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
             end
 
             previousKeyEnd = keyEnd
         end
-    end,
-    update = function(self)
+    end
+    function self:update()
         local GUI = self.GUI
         local mouse = self.GUI.mouse
         --local char = self.keyboard.currentCharacter
@@ -295,12 +278,16 @@ return Prototype:new{
 
         --self:updatePointCoordinates(self.testLine.points)
         self.shouldRedraw = true
-    end,
-    draw = function(self)
+    end
+    function self:draw()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
         self:drawKeyBackgrounds()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
     end
-}
+
+    return Proxy:new(self, initialValues)
+end
+
+return PitchEditor

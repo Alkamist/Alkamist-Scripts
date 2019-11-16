@@ -2,58 +2,61 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local Proxy = require("Proxy")
 local UserControl = require("GUI.UserControl")
 local TrackedNumber = require("GUI.TrackedNumber")
 
-local GUI = Prototype:new{
-    title = "",
-    x = 0,
-    y = 0,
-    widthTracker = TrackedNumber,
-    width = {
+local GUI = {}
+function GUI:new(initialValues)
+    local self = {}
+
+    self.title = ""
+    self.x = 0
+    self.y = 0
+    self.widthTracker = TrackedNumber:new()
+    self.width = {
         get = function(self) return self.widthTracker.currentValue end,
         set = function(self, value) self.widthTracker.currentValue = value end
-    },
-    widthChange = { get = function(self) return self.widthTracker.change end },
-    widthJustChanged = { get = function(self) return self.widthTracker.justChanged end },
-    heightTracker = TrackedNumber,
-    height = {
+    }
+    self.widthChange = { get = function(self) return self.widthTracker.change end }
+    self.widthJustChanged = { get = function(self) return self.widthTracker.justChanged end }
+    self.heightTracker = TrackedNumber:new()
+    self.height = {
         get = function(self) return self.heightTracker.currentValue end,
         set = function(self, value) self.heightTracker.currentValue = value end
-    },
-    heightChange = { get = function(self) return self.heightTracker.change end },
-    heightJustChanged = { get = function(self) return self.heightTracker.justChanged end },
-    dock = 0,
-    mouse = UserControl.mouse,
-    keyboard = UserControl.keyboard,
-    backgroundColor = {
+    }
+    self.heightChange = { get = function(self) return self.heightTracker.change end }
+    self.heightJustChanged = { get = function(self) return self.heightTracker.justChanged end }
+    self.dock = 0
+    self.mouse = UserControl.mouse
+    self.keyboard = UserControl.keyboard
+    self.backgroundColor = {
         value = { 0.0, 0.0, 0.0, 1.0, 0 },
         set = function(self, value, field)
             field.value = value
             gfx.clear = value[1] * 255 + value[2] * 255 * 256 + value[3] * 255 * 65536
         end,
         get = function(self, field) return field.value end
-    },
-    windowWasResized = { get = function(self) return self.widthJustChanged or self.heightJustChanged end },
-    widgets = {
+    }
+    self.windowWasResized = { get = function(self) return self.widthJustChanged or self.heightJustChanged end }
+    self.widgets = {
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
             self.mouse.widgets = field.value
         end
-    },
-    bufferIsUsed = {},
-    getNewDrawBuffer = function(self)
+    }
+    self.bufferIsUsed = {}
+    function self:getNewDrawBuffer()
         for i = 0, 1023 do
             if not self.bufferIsUsed[i] then
                 self.bufferIsUsed[i] = true
                 return i
             end
         end
-    end,
-    beginUpdateWidget = function(self, widget)
+    end
+    function self:beginUpdateWidget(widget)
         widget:prepareBeginUpdate()
         if widget.beginUpdate then widget:beginUpdate() end
         local childWidgets = widget.widgets
@@ -62,8 +65,8 @@ local GUI = Prototype:new{
                 self:beginUpdateWidget(childWidgets[i])
             end
         end
-    end,
-    updateWidget = function(self, widget)
+    end
+    function self:updateWidget(widget)
         widget:prepareUpdate()
         if widget.update then widget:update() end
         local childWidgets = widget.widgets
@@ -72,8 +75,8 @@ local GUI = Prototype:new{
                 self:updateWidget(childWidgets[i])
             end
         end
-    end,
-    drawWidget = function(self, widget)
+    end
+    function self:drawWidget(widget)
         widget:prepareDraw()
         if widget.draw then widget:draw() end
         local childWidgets = widget.widgets
@@ -83,8 +86,8 @@ local GUI = Prototype:new{
             end
         end
         widget:blit()
-    end,
-    endUpdateWidget = function(self, widget)
+    end
+    function self:endUpdateWidget(widget)
         widget:prepareEndUpdate()
         if widget.endUpdate then widget:endUpdate() end
         local childWidgets = widget.widgets
@@ -94,19 +97,22 @@ local GUI = Prototype:new{
             end
         end
     end
-}
+
+    function self:initialize(parameters)
+        local parameters = parameters or {}
+        self.title = parameters.title or self.title or ""
+        self.x = parameters.x or self.x or 0
+        self.y = parameters.y or self.y or 0
+        self.width = parameters.width or self.width or 0
+        self.height = parameters.height or self.height or 0
+        self.dock = parameters.dock or self.dock or 0
+        gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
+    end
+
+    return Proxy:new(self, initialValues)
+end
 
 local gui = GUI:new()
-function gui:initialize(parameters)
-    local parameters = parameters or {}
-    self.title = parameters.title or self.title or ""
-    self.x = parameters.x or self.x or 0
-    self.y = parameters.y or self.y or 0
-    self.width = parameters.width or self.width or 0
-    self.height = parameters.height or self.height or 0
-    self.dock = parameters.dock or self.dock or 0
-    gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
-end
 
 function gui:run()
     gui.widthTracker:update(gfx.w)
