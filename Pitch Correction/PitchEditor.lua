@@ -216,68 +216,42 @@ function PitchEditor:new(initialValues)
         end
     end
 
-    --[[function self:drawKeyBackgrounds()
-        local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
+    function self:drawKeyBackgrounds()
+        local pitchHeight = self.pitchHeight
+        local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
         local width = self.width
         local whiteKeyNumbers = self.whiteKeyNumbers
-        local numberOfWhiteKeyNumbers = #whiteKeyNumbers
-        local whiteKeyColor = self.whiteKeyColor
+        local numberOfWhiteKeys = #whiteKeyNumbers
         local blackKeyColor = self.blackKeyColor
+        local whiteKeyColor = self.whiteKeyColor
         local keyCenterLineColor = self.keyCenterLineColor
-        local pitchToPixels = self.pitchToPixels
         local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
-        local pitchHeight = self.pitchHeight
+        local pitchToPixels = self.pitchToPixels
+        local setColor = self.setColor
+        local drawLine = self.drawLine
+        local drawRectangle = self.drawRectangle
 
         for i = 1, pitchHeight do
             local keyEnd = pitchToPixels(self, pitchHeight - i + 0.5)
             local keyHeight = keyEnd - previousKeyEnd
 
-            self:setColor(blackKeyColor)
-            for i = 1, numberOfWhiteKeyNumbers do
-                local value = whiteKeyNumbers[i]
+            setColor(self, blackKeyColor)
+            for j = 1, numberOfWhiteKeys do
+                local value = whiteKeyNumbers[j]
                 if i == value then
-                    self:setColor(whiteKeyColor)
+                    setColor(self, whiteKeyColor)
                 end
             end
-            self:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
+            drawRectangle(self, 0, keyEnd, width, keyHeight + 1, true)
 
-            self:setColor(blackKeyColor)
-            self:drawLine(0, keyEnd, width - 1, keyEnd, false)
+            setColor(self, blackKeyColor)
+            drawLine(self, 0, keyEnd, width - 1, keyEnd, false)
 
             if keyHeight > minimumKeyHeightToDrawCenterLine then
                 local keyCenterLine = pitchToPixels(self, pitchHeight - i)
 
-                self:setColor(keyCenterLineColor)
-                self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
-            end
-
-            previousKeyEnd = keyEnd
-        end
-    end]]--
-    function self:drawKeyBackgrounds()
-        local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
-        local width = self.width
-
-        for i = 1, self.pitchHeight do
-            local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
-            local keyHeight = keyEnd - previousKeyEnd
-
-            self:setColor(self.blackKeyColor)
-            for _, value in ipairs(self.whiteKeyNumbers) do
-                if i == value then
-                    self:setColor(self.whiteKeyColor)
-                end
-            end
-            self:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
-
-            self:setColor(self.blackKeyColor)
-            self:drawLine(0, keyEnd, width - 1, keyEnd, false)
-
-            if keyHeight > self.minimumKeyHeightToDrawCenterLine then
-                local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
-
-                self:setColor(self.keyCenterLineColor)
-                self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
+                setColor(self, keyCenterLineColor)
+                drawLine(self, 0, keyCenterLine, width - 1, keyCenterLine, false)
             end
 
             previousKeyEnd = keyEnd
