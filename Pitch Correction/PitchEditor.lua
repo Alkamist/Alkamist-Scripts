@@ -73,7 +73,7 @@ function PitchEditor:new(initialValues)
             self.testLine.height = value
         end
     }
-    self.editorVerticalOffset = 26
+    self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
     self.testLine = PolyLine:new{ glowWhenMouseOver = true }
@@ -86,7 +86,7 @@ function PitchEditor:new(initialValues)
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
     self.fixErrorButton = Button:new{
-        x = 81,
+        x = 79,
         y = 0,
         width = 80,
         height = 25,

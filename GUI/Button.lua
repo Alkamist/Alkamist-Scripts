@@ -15,6 +15,7 @@ function Button:new(initialValues)
     self.labelFontSize = 14
     self.labelColor = { 1.0, 1.0, 1.0, 0.4, 1 }
     self.color = { 0.3, 0.3, 0.3, 1.0, 0 }
+    self.outlineColor = { 0.15, 0.15, 0.15, 1.0, 0 }
     self.edgeColor = { 1.0, 1.0, 1.0, 0.1, 1 }
     self.glowColor = { 1.0, 1.0, 1.0, 0.15, 1 }
     self.pressedColor = { 1.0, 1.0, 1.0, -0.15, 1 }
@@ -81,9 +82,13 @@ function Button:new(initialValues)
         self:setColor(self.color)
         self:drawRectangle(0, 0, width, height, true)
 
+        -- Draw a dark outline around.
+        self:setColor(self.outlineColor)
+        self:drawRectangle(0, 0, width, height, false)
+
         -- Draw a light outline around.
         self:setColor(self.edgeColor)
-        self:drawRectangle(0, 0, width, height, false)
+        self:drawRectangle(1, 1, width - 2, height - 2, false)
 
         -- Draw the label.
         self:setColor(self.labelColor)
@@ -92,11 +97,11 @@ function Button:new(initialValues)
 
         if self.isPressed then
             self:setColor(self.pressedColor)
-            self:drawRectangle(0, 0, width, height, true)
+            self:drawRectangle(1, 1, width - 2, height - 2, true)
 
         elseif self.isGlowing then
             self:setColor(self.glowColor)
-            self:drawRectangle(0, 0, width, height, true)
+            self:drawRectangle(1, 1, width - 2, height - 2, true)
         end
     end
 
