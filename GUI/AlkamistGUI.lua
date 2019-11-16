@@ -47,53 +47,13 @@ function GUI:new(initialValues)
             self.mouse.widgets = field.value
         end
     }
+
     self.bufferIsUsed = {}
     function self:getNewDrawBuffer()
         for i = 0, 1023 do
             if not self.bufferIsUsed[i] then
                 self.bufferIsUsed[i] = true
                 return i
-            end
-        end
-    end
-    function self:beginUpdateWidget(widget)
-        widget:prepareBeginUpdate()
-        if widget.beginUpdate then widget:beginUpdate() end
-        local childWidgets = widget.widgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                self:beginUpdateWidget(childWidgets[i])
-            end
-        end
-    end
-    function self:updateWidget(widget)
-        widget:prepareUpdate()
-        if widget.update then widget:update() end
-        local childWidgets = widget.widgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                self:updateWidget(childWidgets[i])
-            end
-        end
-    end
-    function self:drawWidget(widget)
-        widget:prepareDraw()
-        if widget.draw then widget:draw() end
-        local childWidgets = widget.widgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                self:drawWidget(childWidgets[i])
-            end
-        end
-        widget:blit()
-    end
-    function self:endUpdateWidget(widget)
-        widget:prepareEndUpdate()
-        if widget.endUpdate then widget:endUpdate() end
-        local childWidgets = widget.widgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                self:endUpdateWidget(childWidgets[i])
             end
         end
     end
@@ -125,10 +85,11 @@ function gui:run()
 
     local widgets = gui.widgets
     local numberOfWidgets = #widgets
-    for i = 1, numberOfWidgets do gui:beginUpdateWidget(widgets[i]) end
-    for i = 1, numberOfWidgets do gui:updateWidget(widgets[i]) end
-    for i = 1, numberOfWidgets do gui:drawWidget(widgets[i]) end
-    for i = 1, numberOfWidgets do gui:endUpdateWidget(widgets[i]) end
+    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToBuffer() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
+    for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()

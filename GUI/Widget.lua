@@ -54,7 +54,7 @@ function Widget:new(initialValues)
     local self = {}
 
     self.GUI = { get = function(self) return GUI end }
-    self.drawBuffer = GUI:getNewDrawBuffer()
+    self.drawBuffer = -1
     self.relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.absoluteX end }
     self.previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.absoluteX end }
     self.relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.absoluteY end }
@@ -70,16 +70,14 @@ function Widget:new(initialValues)
             field.value = value
         end
     }
-    self.parentWidget = {
-        get = function(self, field) return field.value end,
-        set = function(self, value, field) field.value = value end
-    }
     self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
     self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
     self.x = 0
     self.y = 0
     self.width = 0
     self.height = 0
+    self.shouldDrawDirectly = false
+    self.imageChangedThisFrame = false
     self.shouldRedraw = true
     self.shouldClear = false
     self.mouseWasPressedInside = false
@@ -88,6 +86,7 @@ function Widget:new(initialValues)
         get = function(self) return self.visibilityState.currentState end,
         set = function(self, value) self.visibilityState.currentState = value end
     }
+
     function self:pointIsInside(pointX, pointY)
         local x = self.absoluteX
         local y = self.absoluteY
@@ -117,19 +116,15 @@ function Widget:new(initialValues)
         gfx.mode = mode
     end
     function self:drawRectangle(x, y, w, h, filled)
-        gfx.dest = self.drawBuffer
         gfxRect(x, y, w, h, filled)
     end
     function self:drawLine(x, y, x2, y2, antiAliased)
-        gfx.dest = self.drawBuffer
         gfxLine(x, y, x2, y2, antiAliased)
     end
     function self:drawCircle(x, y, r, filled, antiAliased)
-        gfx.dest = self.drawBuffer
         gfxCircle(x, y, r, filled, antiAliased)
     end
     function self:drawPolygon(filled, ...)
-        gfx.dest = self.drawBuffer
         if filled then
             gfxTriangle(...)
         else
@@ -147,7 +142,6 @@ function Widget:new(initialValues)
         end
     end
     function self:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-        gfx.dest = self.drawBuffer
         local aa = antiAliased or 1
         filled = filled or 0
         w = mathMax(0, w - 1)
@@ -188,7 +182,6 @@ function Widget:new(initialValues)
         return gfxMeasureStr(str)
     end
     function self:drawString(str, x, y, flags, right, bottom)
-        gfx.dest = self.drawBuffer
         gfx.x = x
         gfx.y = y
         if flags then
@@ -197,46 +190,100 @@ function Widget:new(initialValues)
             gfxDrawStr(str)
         end
     end
-    function self:prepareBeginUpdate()
+
+    function self:doBeginUpdate()
         self.visibilityState:update()
+        if self.beginUpdate then self:beginUpdate() end
+
+        local childWidgets = self.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                childWidgets[i]:doBeginUpdate()
+            end
+        end
     end
-    function self:prepareUpdate() end
-    function self:prepareDraw()
-        self:clearBuffer()
+    function self:doUpdate()
+        if self.update then self:update() end
+
+        local childWidgets = self.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                childWidgets[i]:doUpdate()
+            end
+        end
     end
-    function self:blit()
+    function self:doDrawToBuffer()
+        if not self.shouldDrawDirectly then
+            if self.shouldRedraw and self.draw then
+                self:clearBuffer()
+                gfx.a = 1.0
+                gfx.mode = 0
+                gfx.dest = self.drawBuffer
+                self:draw()
+                self.imageChangedThisFrame = true
+                self.shouldRedraw = false
+            elseif self.shouldClear then
+                self:clearBuffer()
+                self.imageChangedThisFrame = true
+                self.shouldClear = false
+            end
+        end
+
+        local childWidgets = self.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                childWidgets[i]:doDrawToBuffer()
+            end
+        end
+    end
+    function self:doDrawToParent()
         if self.isVisible then
-            local x = self.x
-            local y = self.y
-            local width = self.width
-            local height = self.height
-            gfx.a = 1.0
-            gfx.mode = 0
+            local childWidgets = self.widgets
+            if childWidgets then
+                for i = 1, #childWidgets do
+                    childWidgets[i]:doDrawToParent()
+                end
+            end
+
             local parentWidget = self.parentWidget
             if parentWidget then
                 gfx.dest = parentWidget.drawBuffer
             else
                 gfx.dest = -1
             end
-            gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+            gfx.a = 1.0
+            gfx.mode = 0
+            if self.draw then
+                if self.shouldDrawDirectly then
+                    self:draw()
+                else
+                    local x = self.x
+                    local y = self.y
+                    local width = self.width
+                    local height = self.height
+                    gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+                end
+            end
         end
     end
-    function self:prepareEndUpdate() end
-    --doDrawFunction = function(self, drawFunction)
-    --    if self.shouldRedraw and drawFunction then
-    --        self:clearBuffer()
-    --        gfx.a = 1.0
-    --        gfx.mode = 0
-    --        gfx.dest = self.drawBuffer
-    --        drawFunction()
-    --        self.shouldRedraw = false
-    --    elseif self.shouldClear then
-    --        self:clearBuffer()
-    --        self.shouldClear = false
-    --    end
-    --end,
+    function self:doEndUpdate()
+        if self.endUpdate then self:endUpdate() end
 
-    return Proxy:new(self, initialValues)
+        local childWidgets = self.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                childWidgets[i]:doEndUpdate()
+            end
+        end
+    end
+
+    local proxy = Proxy:new(self, initialValues)
+    if proxy.shouldDrawDirectly then
+        proxy.drawBuffer = -1
+    else
+        proxy.drawBuffer = proxy.GUI:getNewDrawBuffer()
+    end
+    return proxy
 end
 
 return Widget

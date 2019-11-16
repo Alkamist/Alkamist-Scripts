@@ -67,6 +67,8 @@ end
 
 local PolyLine = {}
 function PolyLine:new(initialValues)
+    local initialValues = initialValues or {}
+    initialValues.shouldDrawDirectly = true
     local self = Widget:new(initialValues)
 
     self.points = {}

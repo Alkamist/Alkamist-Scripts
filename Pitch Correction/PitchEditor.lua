@@ -73,8 +73,10 @@ function PitchEditor:new(initialValues)
             self.testLine.height = value - self.editorVerticalOffset
         end
     }
+    self.editorVerticalOffset = 26
+    self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.testLine = PolyLine:new()
+    self.testLine = PolyLine:new{ y = self.editorVerticalOffset }
     self.analyzeButton = Button:new{
         x = 0,
         y = 0,
@@ -107,8 +109,6 @@ function PitchEditor:new(initialValues)
     self.correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 }
     self.pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 }
 
-    self.editorVerticalOffset = 26
-    self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
     self.minimumKeyHeightToDrawCenterLine = 16
     self.pitchHeight = 128
     self.editPixelRange = 7
