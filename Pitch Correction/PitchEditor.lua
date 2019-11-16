@@ -6,7 +6,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Prototype = require("Prototype")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
---local PolyLine = require("GUI.PolyLine")
+local PolyLine = require("GUI.PolyLine")
 local Button = require("GUI.Button")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
@@ -57,7 +57,7 @@ return Prototype:new{
     calledWhenCreated = function(self)
         --self.widgets = {
         --    self.analyzeButton,
-        --    --self.fixErrorButton,
+        --    self.fixErrorButton,
         --    --self.testLine
         --}
 
@@ -84,15 +84,15 @@ return Prototype:new{
     editorVerticalOffset = 26,
     editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end },
 
-    --testLine = PolyLine,
-    analyzeButton = Button:withDefaults{
-        x = 0,
-        y = 0,
-        width = 80,
-        height = 25,
-        label = "Analyze Pitch",
-        color = { 0.5, 0.2, 0.1, 1.0, 0 }
-    },
+    testLine = PolyLine,
+    --analyzeButton = Button:withDefaults{
+    --    x = 0,
+    --    y = 0,
+    --    width = 80,
+    --    height = 25,
+    --    label = "Analyze Pitch",
+    --    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+    --},
     --fixErrorButton = Button:withDefaults{
     --    x = 81,
     --    y = 0,
@@ -293,11 +293,10 @@ return Prototype:new{
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
+        --self:updatePointCoordinates(self.testLine.points)
         self.shouldRedraw = true
     end,
     draw = function(self)
-        --self:updatePointCoordinates(self.testLine.points)
-
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
         self:drawKeyBackgrounds()

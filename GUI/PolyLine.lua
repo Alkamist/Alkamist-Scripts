@@ -66,8 +66,10 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
 end
 
 return Prototype:new{
+    calledWhenCreated = function(self) end,
+
     prototypes = {
-        { "widget", Widget:new() }
+        { "widget", Widget }
     },
 
     points = {},
@@ -178,9 +180,9 @@ return Prototype:new{
         return index, indexIsPoint
     end,
 
-    update = function(self)
-        local mouse = self.GUI.mouse
-    end,
+    --update = function(self)
+    --    local mouse = self.GUI.mouse
+    --end,
     drawSegment = function(self, index, color)
         local points = self.points
         local point = points[index]

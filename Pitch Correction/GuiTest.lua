@@ -7,7 +7,7 @@ local PitchEditor = require("Pitch Correction.PitchEditor")
 
 GUI:initialize{
     title = "Alkamist Pitch Correction",
-    x = 200,
+    x = 400,
     y = 200,
     width = 1000,
     height = 700,
@@ -16,12 +16,11 @@ GUI:initialize{
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
 local pitchEditor = PitchEditor:new{
-    x = 0,
-    y = 0,
-    width = 1000,
-    height = 700
+    x = 50,
+    y = 50,
+    width = 900,
+    height = 600
 }
-pitchEditor.widgets = { pitchEditor.analyzeButton }
 
 --local analyzeButton = Button:new{
 --    x = 0,
