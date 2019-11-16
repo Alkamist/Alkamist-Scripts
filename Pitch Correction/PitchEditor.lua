@@ -54,9 +54,8 @@ local function round(number, places)
 end
 
 local PitchEditor = {}
-
 function PitchEditor:new(initialValues)
-    local self = {}
+    local self = Widget:new(initialValues)
 
     self.testLine = PolyLine:new()
     self.analyzeButton = Button:new{
@@ -75,7 +74,7 @@ function PitchEditor:new(initialValues)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.widgets = { self.testLine, self.analyzeButton, self.fixErrorButton }
+    self.widgets = { self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -198,9 +197,9 @@ function PitchEditor:new(initialValues)
             self.view.y:changeScroll(mouse.yChange)
         end
     end
-    function self:handleRightPress() end,
-    function self:handleRightDrag() end,
-    function self:handleRightRelease() end,
+    function self:handleRightPress() end
+    function self:handleRightDrag() end
+    function self:handleRightRelease() end
     function self:handleMouseWheel()
         local mouse = self.GUI.mouse
         local xSensitivity = 55.0
@@ -217,7 +216,7 @@ function PitchEditor:new(initialValues)
         end
     end
 
-    function self:drawKeyBackgrounds()
+    --[[function self:drawKeyBackgrounds()
         local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
         local width = self.width
         local whiteKeyNumbers = self.whiteKeyNumbers
@@ -234,7 +233,7 @@ function PitchEditor:new(initialValues)
             local keyHeight = keyEnd - previousKeyEnd
 
             self:setColor(blackKeyColor)
-            for i = 1, #numberOfWhiteKeyNumbers do
+            for i = 1, numberOfWhiteKeyNumbers do
                 local value = whiteKeyNumbers[i]
                 if i == value then
                     self:setColor(whiteKeyColor)
@@ -249,6 +248,35 @@ function PitchEditor:new(initialValues)
                 local keyCenterLine = pitchToPixels(self, pitchHeight - i)
 
                 self:setColor(keyCenterLineColor)
+                self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
+            end
+
+            previousKeyEnd = keyEnd
+        end
+    end]]--
+    function self:drawKeyBackgrounds()
+        local previousKeyEnd = self:pitchToPixels(self.pitchHeight + 0.5)
+        local width = self.width
+
+        for i = 1, self.pitchHeight do
+            local keyEnd = self:pitchToPixels(self.pitchHeight - i + 0.5)
+            local keyHeight = keyEnd - previousKeyEnd
+
+            self:setColor(self.blackKeyColor)
+            for _, value in ipairs(self.whiteKeyNumbers) do
+                if i == value then
+                    self:setColor(self.whiteKeyColor)
+                end
+            end
+            self:drawRectangle(0, keyEnd, width, keyHeight + 1, true)
+
+            self:setColor(self.blackKeyColor)
+            self:drawLine(0, keyEnd, width - 1, keyEnd, false)
+
+            if keyHeight > self.minimumKeyHeightToDrawCenterLine then
+                local keyCenterLine = self:pitchToPixels(self.pitchHeight - i)
+
+                self:setColor(self.keyCenterLineColor)
                 self:drawLine(0, keyCenterLine, width - 1, keyCenterLine, false)
             end
 
@@ -287,7 +315,22 @@ function PitchEditor:new(initialValues)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
     end
 
-    return Proxy:new(self, initialValues)
+    local proxy = Proxy:new(self, initialValues)
+    proxy.view.x.scale = proxy.width
+    proxy.view.y.scale = proxy.editorHeight
+    --local time = self.timeLength / 1000
+    --local timeIncrement = time
+    --for i = 1, 1000 do
+    --    local pitch = 20.0 * math.random() + 50
+    --    self.testLine:insertPoint{
+    --        time = time,
+    --        pitch = pitch,
+    --        x = self:timeToPixels(time),
+    --        y = self:pitchToPixels(pitch),
+    --    }
+    --    time = time + timeIncrement
+    --end
+    return proxy
 end
 
 return PitchEditor

@@ -1,5 +1,6 @@
 local ViewAxis = {}
 function ViewAxis:new(initialValues)
+    local initialValues = initialValues or {}
     local self = {}
 
     self.scale = initialValues.scale or 1.0
@@ -20,3 +21,5 @@ function ViewAxis:new(initialValues)
 
     return self
 end
+
+return ViewAxis

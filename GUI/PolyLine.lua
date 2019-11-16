@@ -1,7 +1,7 @@
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Prototype = require("Prototype")
+local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 
 local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
@@ -65,26 +65,23 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
     return numberInGroup + 1
 end
 
-return Prototype:new{
-    calledWhenCreated = function(self) end,
+local PolyLine = {}
+function PolyLine:new(initialValues)
+    local self = Widget:new(initialValues)
 
-    prototypes = {
-        { "widget", Widget }
-    },
+    self.points = {}
+    self.mostRecentInsertedIndex = true
+    self.isVertical = false
+    self.pointSize = 3
+    self.segmentColor = { 0.5, 0.5, 0.5, 1, 0 }
+    self.segmentGlowColor = { 0.8, 0.8, 0.8, 1, 0 }
+    self.pointColor = { 0.56, 0.56, 0.56, 1, 0 }
+    self.pointGlowColor = { 0.85, 0.85, 0.85, 1, 0 }
+    self.glowWhenMouseOverSegment = false
+    self.glowWhenMouseOverPoint = false
+    self.glowIndex = nil
 
-    points = {},
-    mostRecentInsertedIndex = true,
-    isVertical = false,
-    pointSize = 3,
-    segmentColor = { 0.5, 0.5, 0.5, 1, 0 },
-    segmentGlowColor = { 0.8, 0.8, 0.8, 1, 0 },
-    pointColor = { 0.56, 0.56, 0.56, 1, 0 },
-    pointGlowColor = { 0.85, 0.85, 0.85, 1, 0 },
-    glowWhenMouseOverSegment = false,
-    glowWhenMouseOverPoint = false,
-    glowIndex = nil,
-
-    insertPoint = function(self, point)
+    function self:insertPoint(point)
         local newIndex
         if self.isVertical then
             newIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
@@ -96,8 +93,8 @@ return Prototype:new{
             end)
         end
         mostRecentInsertedIndex = newIndex
-    end,
-    sortPoints = function(self)
+    end
+    function self:sortPoints()
         if self.isVertical then
             table.sort(self.points, function(left, right)
                 return left.y < right.y
@@ -107,8 +104,8 @@ return Prototype:new{
                 return left.x < right.x
             end)
         end
-    end,
-    getIndexAndDistanceOfSegmentClosestToPoint = function(self, x, y)
+    end
+    function self:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
         local points = self.points
         local numberOfPoints = #points
         if numberOfPoints < 1 then return nil end
@@ -133,8 +130,8 @@ return Prototype:new{
         end
 
         return lowestDistanceIndex, lowestDistance
-    end,
-    getIndexAndDistanceOfPointClosestToPoint = function(self, x, y)
+    end
+    function self:getIndexAndDistanceOfPointClosestToPoint(x, y)
         local points = self.points
         local numberOfPoints = #points
         if numberOfPoints < 1 then return nil end
@@ -155,8 +152,8 @@ return Prototype:new{
         end
 
         return lowestDistanceIndex, lowestDistance
-    end,
-    getIndexOfPointOrSegmentClosestToPointWithinDistance = function(self, x, y, distance)
+    end
+    function self:getIndexOfPointOrSegmentClosestToPointWithinDistance(x, y, distance)
         local index
         local indexIsPoint
         local segmentIndex, segmentDistance = self:getIndexAndDistanceOfSegmentClosestToPoint(x, y)
@@ -178,12 +175,12 @@ return Prototype:new{
             end
         end
         return index, indexIsPoint
-    end,
+    end
 
     --update = function(self)
     --    local mouse = self.GUI.mouse
     --end,
-    drawSegment = function(self, index, color)
+    function self:drawSegment(index, color)
         local points = self.points
         local point = points[index]
         local nextPoint = points[index + 1]
@@ -192,8 +189,8 @@ return Prototype:new{
 
         self:setColor(color)
         self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end,
-    drawPoint = function(self, index, color, size, asSquare)
+    end
+    function self:drawPoint(index, color, size, asSquare)
         local points = self.points
         local point = points[index]
         if point == nil then return end
@@ -204,8 +201,8 @@ return Prototype:new{
         else
             self:drawCircle(point.x, point.y, size, true, true)
         end
-    end,
-    draw = function(self)
+    end
+    function self:draw()
         local width = self.width
         local height = self.height
         local points = self.points
@@ -224,4 +221,8 @@ return Prototype:new{
             end
         end
     end
-}
+
+    return Proxy:new(self, initialValues)
+end
+
+return PolyLine
