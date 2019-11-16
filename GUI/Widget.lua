@@ -116,15 +116,29 @@ function Widget:new(initialValues)
         gfx.mode = mode
     end
     function self:drawRectangle(x, y, w, h, filled)
+        if self.shouldDrawDirectly then
+            x = x + self.x
+            y = y + self.y
+        end
         gfxRect(x, y, w, h, filled)
     end
     function self:drawLine(x, y, x2, y2, antiAliased)
+        if self.shouldDrawDirectly then
+            x = x + self.x
+            y = y + self.y
+            x2 = x2 + self.x
+            y2 = y2 + self.y
+        end
         gfxLine(x, y, x2, y2, antiAliased)
     end
     function self:drawCircle(x, y, r, filled, antiAliased)
+        if self.shouldDrawDirectly then
+            x = x + self.x
+            y = y + self.y
+        end
         gfxCircle(x, y, r, filled, antiAliased)
     end
-    function self:drawPolygon(filled, ...)
+    --[[function self:drawPolygon(filled, ...)
         if filled then
             gfxTriangle(...)
         else
@@ -140,8 +154,12 @@ function Widget:new(initialValues)
                 gfxLine(coords[i], coords[i+1], coords[i+2], coords[i+3])
             end
         end
-    end
+    end]]--
     function self:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+        if self.shouldDrawDirectly then
+            x = x + self.x
+            y = y + self.y
+        end
         local aa = antiAliased or 1
         filled = filled or 0
         w = mathMax(0, w - 1)
@@ -182,6 +200,12 @@ function Widget:new(initialValues)
         return gfxMeasureStr(str)
     end
     function self:drawString(str, x, y, flags, right, bottom)
+        if self.shouldDrawDirectly then
+            x = x + self.x
+            y = y + self.y
+            right = right + self.x
+            bottom = bottom + self.y
+        end
         gfx.x = x
         gfx.y = y
         if flags then

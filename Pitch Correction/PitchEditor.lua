@@ -76,7 +76,10 @@ function PitchEditor:new(initialValues)
     self.editorVerticalOffset = 26
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.testLine = PolyLine:new{ y = self.editorVerticalOffset }
+    self.testLine = PolyLine:new{
+        y = self.editorVerticalOffset,
+        glowWhenMouseOver = true
+    }
     self.analyzeButton = Button:new{
         x = 0,
         y = 0,
@@ -93,7 +96,7 @@ function PitchEditor:new(initialValues)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.widgets = { self.analyzeButton, self.fixErrorButton, self.testLine }
+    self.widgets = { self.testLine, self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }

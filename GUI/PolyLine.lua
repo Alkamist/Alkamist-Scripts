@@ -79,9 +79,8 @@ function PolyLine:new(initialValues)
     self.segmentGlowColor = { 0.8, 0.8, 0.8, 1, 0 }
     self.pointColor = { 0.56, 0.56, 0.56, 1, 0 }
     self.pointGlowColor = { 0.85, 0.85, 0.85, 1, 0 }
-    self.glowWhenMouseOverSegment = false
-    self.glowWhenMouseOverPoint = false
-    self.glowIndex = nil
+    self.glowWhenMouseOver = false
+    self.mouseIsOverPoint = false
 
     function self:insertPoint(point)
         local newIndex
@@ -179,9 +178,11 @@ function PolyLine:new(initialValues)
         return index, indexIsPoint
     end
 
-    --update = function(self)
-    --    local mouse = self.GUI.mouse
-    --end,
+    function self:update()
+        if self.glowWhenMouseOver then
+            self.glowIndex, self.mouseIsOverPoint = self:getIndexOfPointOrSegmentClosestToPointWithinDistance(self.relativeMouseX, self.relativeMouseY, 7)
+        end
+    end
     function self:drawSegment(index, color)
         local points = self.points
         local point = points[index]
@@ -208,19 +209,29 @@ function PolyLine:new(initialValues)
         local width = self.width
         local height = self.height
         local points = self.points
+        local drawSegment = self.drawSegment
+        local drawPoint = self.drawPoint
+        local segmentGlowColor = self.segmentGlowColor
+        local segmentColor = self.segmentColor
+        local pointGlowColor = self.pointGlowColor
+        local pointColor = self.pointColor
+        local glowIndex = self.glowIndex
+        local pointSize = self.pointSize
+        local glowWhenMouseOver = self.glowWhenMouseOver
+        local mouseIsOverPoint = self.mouseIsOverPoint
 
         for i = 1, #points do
-            --if glowWhenMouseOverSegment and glowIndex == i then
-            --    self:drawSegment(i, self.segmentGlowColor)
-            --else
-                self:drawSegment(i, self.segmentColor)
-            --end
+            if glowWhenMouseOver and glowIndex == i and not mouseIsOverPoint then
+                drawSegment(self, i, segmentGlowColor)
+            else
+                drawSegment(self, i, segmentColor)
+            end
 
-            --if glowWhenMouseOverPoint and glowIndex == i then
-            --    self:drawPoint(i, self.pointGlowColor, self.pointSize, true)
-            --else
-                self:drawPoint(i, self.pointColor, self.pointSize, true)
-            --end
+            if glowWhenMouseOver and glowIndex == i and mouseIsOverPoint then
+                drawPoint(self, i, pointGlowColor, pointSize, true)
+            else
+                drawPoint(self, i, pointColor, pointSize, true)
+            end
         end
     end
 
