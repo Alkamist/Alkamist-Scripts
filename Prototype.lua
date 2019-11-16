@@ -52,6 +52,7 @@ local function createProxy(fields)
     end
     copiedFields.new = nil
     copiedFields.withDefaults = nil
+
     local proxyMetatable = {
         __index = function(t, k)
             local field = copiedFields[k]
@@ -74,26 +75,32 @@ local function createProxy(fields)
             end, t, nil
         end
     }
+
     return setmetatable({}, proxyMetatable)
 end
 
 return {
     new = function(self, fields)
         implementPrototypesWithCompositionAndMethodForwarding(fields)
+
         function fields:withDefaults(defaultValues)
             local defaultValues = defaultValues or {}
             local copiedFields = deepCopy(self)
-            for k, v in pairs(defaultValues) do
-                copiedFields[k] = v
-            end
+            copiedFields._proxyDefaults = defaultValues
             return copiedFields
         end
+
         function fields:new(defaultValues)
             local defaultValues = defaultValues or {}
-            local proxy = createProxy(self)
+            self._proxyDefaults = self._proxyDefaults or {}
             for k, v in pairs(defaultValues) do
+                self._proxyDefaults[k] = v
+            end
+            local proxy = createProxy(self)
+            for k, v in pairs(self._proxyDefaults) do
                 proxy[k] = v
             end
+            self._proxyDefaults = nil
             if proxy.calledWhenCreated then proxy:calledWhenCreated() end
             return proxy
         end
