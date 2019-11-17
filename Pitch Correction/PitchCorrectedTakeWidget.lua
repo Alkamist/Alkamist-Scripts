@@ -5,10 +5,10 @@ local Take = require("Pitch Correction.Take")
 local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
 local PitchCorrectedTakeWidget = {}
-function PitchCorrectedTakeWidget:new(initialValues)
-    local self = Widget:new(PitchCorrectedTake:new(initialValues))
-
-    self.take = Take:new(initialValues.takePointer)
+function PitchCorrectedTakeWidget:new(parameters)
+    local parameters = parameters or {}
+    parameters.from = PitchCorrectedTake:new(parameters)
+    local self = Widget:new(parameters)
 
     function self:draw()
         local points = self.pitchAnalyzer.points
@@ -19,7 +19,7 @@ function PitchCorrectedTakeWidget:new(initialValues)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return PitchCorrectedTakeWidget

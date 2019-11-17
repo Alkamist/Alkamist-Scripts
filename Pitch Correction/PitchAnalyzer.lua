@@ -56,10 +56,11 @@ local function getValuesFromStringLine(str)
 end
 
 local PitchAnalyzer = {}
-function PitchAnalyzer:new(initialValues, fromObject)
-    local self = TimeSeries:new({}, fromObject or {})
+function PitchAnalyzer:new(parameters)
+    local parameters = parameters or {}
+    local self = TimeSeries:new(parameters)
 
-    self.take = Take:new{ pointer = initialValues.pointer }
+    self.take = Take:new{ pointer = parameters.pointer }
     self.settings = {
         windowStep = 0.04,
         windowOverlap = 2.0,
@@ -166,7 +167,7 @@ function PitchAnalyzer:new(initialValues, fromObject)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return PitchAnalyzer

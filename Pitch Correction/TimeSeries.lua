@@ -25,8 +25,9 @@ local function arrayRemove(t, fn)
 end
 
 local TimeSeries = {}
-function TimeSeries:new(initialValues, fromObject)
-    local self = fromObject or {}
+function TimeSeries:new(parameters)
+    local parameters = parameters or {}
+    local self = parameters.from or {}
 
     self.leftBound = 0
     self.rightBound = 0
@@ -105,7 +106,7 @@ function TimeSeries:new(initialValues, fromObject)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return TimeSeries

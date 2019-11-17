@@ -143,18 +143,18 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
 end
 
 local PitchCorrectedTake = {}
-function PitchCorrectedTake:new(initialValues)
-    local self = {}
+function PitchCorrectedTake:new(parameters)
+    local parameters = parameters or {}
+    local self = Take:new(parameters)
 
-    self.take = Take:new(initialValues.takePointer)
-    self.pitchAnalyzer = PitchAnalyzer:new{ take = self.take }
+    self.pitchAnalyzer = PitchAnalyzer:new{ take = self }
     self.pitchCorrections = TimeSeries:new()
 
     function self:correctAllPitchPoints()
-        self.take:clearPitchEnvelope()
+        self:clearPitchEnvelope()
         local corrections = self.pitchCorrections
         local pitchPoints = self.pitchAnalyzer.points
-        local envelope = self.take.pitchEnvelope
+        local envelope = self.pitchEnvelope
         local playRate = self.playRate
         for i = 1, #corrections do
             local correction = corrections[i]
@@ -168,14 +168,14 @@ function PitchCorrectedTake:new(initialValues)
         reaper.UpdateArrange()
     end
     function self:insertPitchCorrectionPoint(point)
-        point.sourceTime = self.take:getSourceTime(point.time)
+        point.sourceTime = self:getSourceTime(point.time)
         point.driftTime = point.driftTime or defaultDriftTime
         point.driftCorrection = point.driftCorrection or defaultDriftCorrection
         point.modCorrection = point.modCorrection or defaultModCorrection
         self.pitchCorrections[#self.pitchCorrections + 1] = point
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return PitchCorrectedTake

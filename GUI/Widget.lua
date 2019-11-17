@@ -50,8 +50,9 @@ local function generateAbsoluteCoordinateGetterAndSetter(coordinateName)
 end
 
 local Widget = {}
-function Widget:new(initialValues)
-    local self = {}
+function Widget:new(parameters)
+    local parameters = parameters or {}
+    local self = parameters.from or {}
 
     self.GUI = { get = function(self) return GUI end }
     self.drawBuffer = -1
@@ -304,7 +305,7 @@ function Widget:new(initialValues)
         end
     end
 
-    local proxy = Proxy:new(self, initialValues)
+    local proxy = Proxy:new(self, parameters)
     if proxy.shouldDrawDirectly then
         proxy.drawBuffer = -1
     else

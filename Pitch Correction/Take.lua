@@ -23,8 +23,9 @@ local function activateAndGetPitchEnvelope(pointer)
 end
 
 local Take = {}
-function Take:new(initialValues, fromObject)
-    local self = fromObject or {}
+function Take:new(parameters)
+    local parameters = parameters or {}
+    local self = parameters.from or {}
 
     self.pointer = nil
     self.item = {
@@ -162,7 +163,7 @@ function Take:new(initialValues, fromObject)
         reaper.UpdateArrange()
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return Take
