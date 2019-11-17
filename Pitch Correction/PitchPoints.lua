@@ -214,9 +214,9 @@ function PitchPoints:new(initialValues)
         minimumFrequency = 80,
         maximumFrequency = 1000,
         threshold = 0.2,
-        minimumRMSdB = -60.0,
-        analyzeFullSource = false
+        minimumRMSdB = -60.0
     }
+    self.analyzeFullSource = false
     self.numberOfPointsToAnalyzePerLoop = 10
     self.analysisTimeWindow = {
         get = function(self)
@@ -226,13 +226,20 @@ function PitchPoints:new(initialValues)
         end
     }
     self.analysisStartTime = 0
-    self.analysisEndTime = { get = function(self) return getSourceTime(self.take, self.length) end }
+    self.analysisEndTime = {
+        get = function(self)
+            if self.analyzeFullSource then
+                return self.sourceLength
+            end
+            return getSourceTime(self.take, self.length)
+        end
+    }
     self.analysisLength = { get = function(self) return self.analysisEndTime - self.analysisStartTime end }
     self.numberOfAnalysisLoops = {
         get = function(self)
             local timeWindow = self.analysisTimeWindow
             if timeWindow == 0 then return 0 end
-            if self.pitchDetectionSettings.analyzeFullSource then
+            if self.analyzeFullSource then
                 return ceil(self.sourceLength / timeWindow)
             end
             return ceil(self.analysisLength / timeWindow)
@@ -311,10 +318,11 @@ function PitchPoints:new(initialValues)
         reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD", settings.threshold, false)
         reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB", settings.minimumRMSdB, false)
 
+        self.analyzeFullSource = analyzeFullSource
         self.analysisLoopsCompleted = 0
         self.isAnalyzingPitch = true
         self.newPointsHaveBeenInitialized = false
-        if settings.analyzeFullSource then
+        if self.analyzeFullSource then
             self.analysisStartTime = 0.0
         else
             self.analysisStartTime = self.startOffset
