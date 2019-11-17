@@ -7,9 +7,8 @@ local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local Button = require("GUI.Button")
-local PitchPoints = require("Pitch Correction.PitchPoints")
+local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 --local BoxSelect = require("GUI.BoxSelect")
---local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
 local function pointIsSelected(point)
     return point.isSelected
@@ -62,7 +61,7 @@ function PitchEditor:new(initialValues)
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self.pitchPoints.points.width = value
+            self.pitchCorrectedTake.width = value
         end
     }
     self.height = {
@@ -70,29 +69,30 @@ function PitchEditor:new(initialValues)
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self.pitchPoints.points.height = value
+            self.pitchCorrectedTake.height = value
         end
     }
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.pitchPoints = PitchPoints:new()
-    self.analyzeButton = Button:new{
-        x = 0,
-        y = 0,
-        width = 80,
-        height = 25,
-        label = "Analyze Pitch",
-        color = { 0.5, 0.2, 0.1, 1.0, 0 }
-    }
-    local pitchPoints = self.pitchPoints
-    local originalAnalyzeButtonUpdate = self.analyzeButton.update
-    function self.analyzeButton:update()
-        originalAnalyzeButtonUpdate(self)
-        if self.justPressed then
-            pitchPoints:prepareToAnalyzePitch()
+    self.pitchCorrectedTake = PitchCorrectedTake:new()
+    self.item = { get = function(self) return self.pitchCorrectedTake.item end }
+    self.take = { get = function(self) return self.pitchCorrectedTake.take end }
+    self.timeLength = {
+        get = function(self)
+            local length = self.pitchCorrectedTake.length
+            if length then return length end
+            return 0.0
         end
-    end
+    }
+    self.startTime = {
+        get = function(self)
+            local startTime = self.pitchCorrectedTake.leftTime
+            if startTime then return startTime end
+            return 0.0
+        end
+    }
+
     self.fixErrorButton = Button:new{
         x = 79,
         y = 0,
@@ -101,7 +101,24 @@ function PitchEditor:new(initialValues)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.widgets = { self.pitchPoints.polyLine, self.analyzeButton, self.fixErrorButton }
+    self.analyzeButton = Button:new{
+        x = 0,
+        y = 0,
+        width = 80,
+        height = 25,
+        label = "Analyze Pitch",
+        color = { 0.5, 0.2, 0.1, 1.0, 0 }
+    }
+    local pitchCorrectedTake = self.pitchCorrectedTake
+    local originalAnalyzeButtonUpdate = self.analyzeButton.update
+    function self.analyzeButton:update()
+        originalAnalyzeButtonUpdate(self)
+        if self.justPressed then
+            pitchCorrectedTake:prepareToAnalyzePitch()
+        end
+    end
+
+    self.widgets = { self.pitchCorrectedTake, self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -128,23 +145,6 @@ function PitchEditor:new(initialValues)
     self.altKeyWasDownOnPointEdit = false
     self.fixErrorMode = false
     self.enablePitchCorrections = true
-
-    self.item = { get = function(self) return self.pitchPoints.item end }
-    self.take = { get = function(self) return self.pitchPoints.take end }
-    self.timeLength = {
-        get = function(self)
-            local length = self.pitchPoints.length
-            if length then return length end
-            return 0.0
-        end
-    }
-    self.startTime = {
-        get = function(self)
-            local startTime = self.pitchPoints.leftTime
-            if startTime then return startTime end
-            return 0.0
-        end
-    }
 
     self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
     self.previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end }
@@ -274,8 +274,8 @@ function PitchEditor:new(initialValues)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        self.pitchPoints:analyzePitch()
-        self:updatePointCoordinates(self.pitchPoints.points)
+        self.pitchCorrectedTake:analyzePitch()
+        self:updatePointCoordinates(self.pitchCorrectedTake.pitchPoints)
         self.shouldRedraw = true
     end
     function self:drawKeyBackgrounds()
@@ -366,20 +366,6 @@ function PitchEditor:new(initialValues)
     local proxy = Proxy:new(self, initialValues)
     proxy.view.x.scale = proxy.width
     proxy.view.y.scale = proxy.editorHeight
-
-    --local time = self.timeLength / 1000
-    --local timeIncrement = time
-    --for i = 1, 1000 do
-    --    local pitch = 20.0 * math.random() + 50
-    --    self.testLine:insertPoint{
-    --        time = time,
-    --        pitch = pitch,
-    --        x = self:timeToPixels(time),
-    --        y = self:pitchToPixels(pitch),
-    --    }
-    --    time = time + timeIncrement
-    --end
-
     return proxy
 end
 
