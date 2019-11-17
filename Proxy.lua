@@ -17,8 +17,8 @@ local function createProxy(fields, initialValues)
         end,
         __newindex = function(t, k, v)
             local field = fields[k]
-            if type(field) == "table" and field.set
-            and not (type(v) == "table" and v.set) then
+            local valueIsNewField = type(v) == "table" and (v.set or v.get)
+            if type(field) == "table" and field.set and not valueIsNewField then
                 return field.set(t, v, field)
             end
             fields[k] = v
@@ -45,16 +45,5 @@ end
 return {
     new = function(self, fields, initialValues)
         return createProxy(fields, initialValues)
-    end,
-    --extend = function(self, fields)
-    --    if type(fields) ~= "table" then return {} end
-    --    local output = {}
-    --    for k, v in pairs(fields) do
-    --        output[k] = {
-    --            get = function(self) return fields[k] end,
-    --            set = function(self, value) fields[k] = value end
-    --        }
-    --    end
-    --    return output
-    --end
+    end
 }

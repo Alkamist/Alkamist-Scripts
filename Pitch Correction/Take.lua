@@ -4,6 +4,13 @@ local math = math
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Proxy = require("Proxy")
 
+local function mainCommand(id)
+    if type(id) == "string" then
+        reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
+    else
+        reaper.Main_OnCommand(id, 0)
+    end
+end
 local function activateAndGetPitchEnvelope(pointer)
     local take = pointer
     local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
@@ -16,10 +23,10 @@ local function activateAndGetPitchEnvelope(pointer)
 end
 
 local Take = {}
-function Take:new(pointer)
-    local self = {}
+function Take:new(initialValues, fromObject)
+    local self = fromObject or {}
 
-    self.pointer = pointer
+    self.pointer = nil
     self.item = {
         get = function(self)
             local take = self.pointer
@@ -90,7 +97,7 @@ function Take:new(pointer)
         get = function(self)
             local leftTime = self.leftTime
             local rightTime = self.length
-            if leftTime and rightTime then return leftTime + length end
+            if leftTime and rightTime then return leftTime + rightTime end
         end
     }
     self.sourceLength = {
@@ -122,7 +129,7 @@ function Take:new(pointer)
         local take = self.pointer
         local getSourceTime = self.getSourceTime
         if reaper.GetTakeNumStretchMarkers(take) < 1 then
-            local startOffset = getSourceTime(take, 0.0)
+            local startOffset = getSourceTime(self, 0.0)
             local playRate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
             return (sourceTime - startOffset) / playRate
         end
@@ -130,17 +137,17 @@ function Take:new(pointer)
         local tolerance = 0.000001
 
         local guessTime = 0.0
-        local guessSourceTime = getSourceTime(take, guessTime)
+        local guessSourceTime = getSourceTime(self, guessTime)
         local numberOfLoops = 0
         while true do
             local error = sourceTime - guessSourceTime
             if math.abs(error) < tolerance then break end
 
-            local testGuessSourceTime = getSourceTime(take, guessTime + error)
+            local testGuessSourceTime = getSourceTime(self, guessTime + error)
             local seekRatio = math.abs( error / (testGuessSourceTime - guessSourceTime) )
 
             guessTime = guessTime + error * seekRatio
-            guessSourceTime = getSourceTime(take, guessTime)
+            guessSourceTime = getSourceTime(self, guessTime)
 
             numberOfLoops = numberOfLoops + 1
             if numberOfLoops > 100 then break end
@@ -155,7 +162,7 @@ function Take:new(pointer)
         reaper.UpdateArrange()
     end
 
-    return Proxy:new(self)
+    return Proxy:new(self, initialValues)
 end
 
 return Take

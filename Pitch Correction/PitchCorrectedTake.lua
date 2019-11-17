@@ -3,8 +3,9 @@ local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Proxy = require("Proxy")
+local Take = require("Pitch Correction.Take")
 local TimeSeries = require("Pitch Correction.TimeSeries")
-local PitchPoints = require("Pitch Correction.PitchPoints")
+local PitchAnalyzer = require("Pitch Correction.PitchAnalyzer")
 
 local defaultModCorrection = 0.0
 local defaultDriftCorrection = 1.0
@@ -146,13 +147,13 @@ function PitchCorrectedTake:new(initialValues)
     local self = {}
 
     self.take = Take:new(initialValues.takePointer)
-    self.pitchPoints = PitchPoints:new{ take = self.take }
+    self.pitchAnalyzer = PitchAnalyzer:new{ take = self.take }
     self.pitchCorrections = TimeSeries:new()
 
     function self:correctAllPitchPoints()
         self.take:clearPitchEnvelope()
         local corrections = self.pitchCorrections
-        local pitchPoints = self.pitchPoints
+        local pitchPoints = self.pitchAnalyzer.points
         local envelope = self.take.pitchEnvelope
         local playRate = self.playRate
         for i = 1, #corrections do

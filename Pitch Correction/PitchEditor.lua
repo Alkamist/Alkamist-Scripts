@@ -1,5 +1,4 @@
 local reaper = reaper
-local gfx = gfx
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
@@ -7,7 +6,8 @@ local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local Button = require("GUI.Button")
-local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
+local Take = require("Pitch Correction.Take")
+local PitchCorrectedTakeWidget = require("Pitch Correction.PitchCorrectedTakeWidget")
 --local BoxSelect = require("GUI.BoxSelect")
 
 local function pointIsSelected(point)
@@ -75,23 +75,28 @@ function PitchEditor:new(initialValues)
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.pitchCorrectedTake = PitchCorrectedTake:new()
-    self.item = { get = function(self) return self.pitchCorrectedTake.item end }
-    self.take = { get = function(self) return self.pitchCorrectedTake.take end }
+    self.takePointer = {
+        get = function(self)
+            local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+            return reaper.GetActiveTake(selectedItem)
+        end
+    }
+    self.take = Take:new(self.takePointer)
     self.timeLength = {
         get = function(self)
-            local length = self.pitchCorrectedTake.length
+            local length = self.take.length
             if length then return length end
             return 0.0
         end
     }
     self.startTime = {
         get = function(self)
-            local startTime = self.pitchCorrectedTake.leftTime
+            local startTime = self.take.leftTime
             if startTime then return startTime end
             return 0.0
         end
     }
+    self.pitchCorrectedTake = PitchCorrectedTakeWidget:new{ take = self.take }
 
     self.fixErrorButton = Button:new{
         x = 79,
@@ -114,7 +119,7 @@ function PitchEditor:new(initialValues)
     function self.analyzeButton:update()
         originalAnalyzeButtonUpdate(self)
         if self.justPressed then
-            pitchCorrectedTake:prepareToAnalyzePitch()
+            pitchCorrectedTake.pitchAnalyzer:prepareToAnalyzePitch()
         end
     end
 
@@ -187,7 +192,7 @@ function PitchEditor:new(initialValues)
         local pitchToPixels = self.pitchToPixels
         for i = 1, #points do
             local point = points[i]
-            self.pitchCorrectedTake:updateRealTimeOfPoint(point)
+            point.time = self.take:getRealTime(point.sourceTime)
             local pointTime = point.time
             local pointPitch = point.pitch
             if pointTime then point.x = timeToPixels(self, pointTime) end
@@ -275,9 +280,10 @@ function PitchEditor:new(initialValues)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        self.pitchCorrectedTake:analyzePitch()
-        self.pitchCorrectedTake:sortPointsByTime(self.pitchCorrectedTake.pitchPoints)
-        self:updatePointCoordinates(self.pitchCorrectedTake.pitchPoints)
+        local pitchAnalyzer = self.pitchCorrectedTake.pitchAnalyzer
+        pitchAnalyzer:analyzePitch()
+        pitchAnalyzer:sortPoints()
+        self:updatePointCoordinates(pitchAnalyzer.points)
         self.shouldRedraw = true
     end
     function self:drawKeyBackgrounds()

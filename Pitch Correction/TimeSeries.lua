@@ -25,8 +25,8 @@ local function arrayRemove(t, fn)
 end
 
 local TimeSeries = {}
-function TimeSeries:new(initialValues)
-    local self = {}
+function TimeSeries:new(initialValues, fromObject)
+    local self = fromObject or {}
 
     self.leftBound = 0
     self.rightBound = 0
