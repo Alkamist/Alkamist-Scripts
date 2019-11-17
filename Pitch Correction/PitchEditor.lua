@@ -6,8 +6,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
-local PolyLine = require("GUI.PolyLine")
 local Button = require("GUI.Button")
+local PitchPoints = require("Pitch Correction.PitchPoints")
 --local BoxSelect = require("GUI.BoxSelect")
 --local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
@@ -62,7 +62,7 @@ function PitchEditor:new(initialValues)
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self.testLine.width = value
+            self.pitchPoints.points.width = value
         end
     }
     self.height = {
@@ -70,13 +70,13 @@ function PitchEditor:new(initialValues)
         get = function(self, field) return field.value end,
         set = function(self, value, field)
             field.value = value
-            self.testLine.height = value
+            self.pitchPoints.points.height = value
         end
     }
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.testLine = PolyLine:new{ glowWhenMouseOver = true }
+    self.pitchPoints = PitchPoints:new()
     self.analyzeButton = Button:new{
         x = 0,
         y = 0,
@@ -85,6 +85,14 @@ function PitchEditor:new(initialValues)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
+    local pitchPoints = self.pitchPoints
+    local originalAnalyzeButtonUpdate = self.analyzeButton.update
+    function self.analyzeButton:update()
+        originalAnalyzeButtonUpdate(self)
+        if self.justPressed then
+            pitchPoints:prepareToAnalyzePitch()
+        end
+    end
     self.fixErrorButton = Button:new{
         x = 79,
         y = 0,
@@ -93,7 +101,7 @@ function PitchEditor:new(initialValues)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.widgets = { self.testLine, self.analyzeButton, self.fixErrorButton }
+    self.widgets = { self.pitchPoints.polyLine, self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -121,24 +129,19 @@ function PitchEditor:new(initialValues)
     self.fixErrorMode = false
     self.enablePitchCorrections = true
 
-    self.item = { get = function(self) return reaper.GetSelectedMediaItem(0, 0) end }
-    self.take = {
-        get = function(self)
-            local item = self.item
-            if item then return reaper.GetActiveTake(item) end
-        end
-    }
+    self.item = { get = function(self) return self.pitchPoints.item end }
+    self.take = { get = function(self) return self.pitchPoints.take end }
     self.timeLength = {
         get = function(self)
-            local item = self.item
-            if item then return reaper.GetMediaItemInfo_Value(item, "D_LENGTH") end
+            local length = self.pitchPoints.length
+            if length then return length end
             return 0.0
         end
     }
     self.startTime = {
         get = function(self)
-            local item = self.item
-            if item then return reaper.GetMediaItemInfo_Value(item, "D_POSITION") end
+            local startTime = self.pitchPoints.leftTime
+            if startTime then return startTime end
             return 0.0
         end
     }
@@ -271,7 +274,8 @@ function PitchEditor:new(initialValues)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        self:updatePointCoordinates(self.testLine.points)
+        self.pitchPoints:analyzePitch()
+        self:updatePointCoordinates(self.pitchPoints.points)
         self.shouldRedraw = true
     end
     function self:drawKeyBackgrounds()
@@ -363,18 +367,18 @@ function PitchEditor:new(initialValues)
     proxy.view.x.scale = proxy.width
     proxy.view.y.scale = proxy.editorHeight
 
-    local time = self.timeLength / 1000
-    local timeIncrement = time
-    for i = 1, 1000 do
-        local pitch = 20.0 * math.random() + 50
-        self.testLine:insertPoint{
-            time = time,
-            pitch = pitch,
-            x = self:timeToPixels(time),
-            y = self:pitchToPixels(pitch),
-        }
-        time = time + timeIncrement
-    end
+    --local time = self.timeLength / 1000
+    --local timeIncrement = time
+    --for i = 1, 1000 do
+    --    local pitch = 20.0 * math.random() + 50
+    --    self.testLine:insertPoint{
+    --        time = time,
+    --        pitch = pitch,
+    --        x = self:timeToPixels(time),
+    --        y = self:pitchToPixels(pitch),
+    --    }
+    --    time = time + timeIncrement
+    --end
 
     return proxy
 end
