@@ -187,6 +187,7 @@ function PitchEditor:new(initialValues)
         local pitchToPixels = self.pitchToPixels
         for i = 1, #points do
             local point = points[i]
+            self.pitchCorrectedTake:updateRealTimeOfPoint(point)
             local pointTime = point.time
             local pointPitch = point.pitch
             if pointTime then point.x = timeToPixels(self, pointTime) end
@@ -275,6 +276,7 @@ function PitchEditor:new(initialValues)
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
         self.pitchCorrectedTake:analyzePitch()
+        self.pitchCorrectedTake:sortPointsByTime(self.pitchCorrectedTake.pitchPoints)
         self:updatePointCoordinates(self.pitchCorrectedTake.pitchPoints)
         self.shouldRedraw = true
     end

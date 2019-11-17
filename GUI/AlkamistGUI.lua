@@ -75,6 +75,7 @@ end
 local gui = GUI:new()
 
 function gui:run()
+    --local timer = reaper.time_precise()
     gui.widthTracker:update(gfx.w)
     gui.heightTracker:update(gfx.h)
     gui.mouse:update()
@@ -93,6 +94,7 @@ function gui:run()
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()
+    --msg(1 / (reaper.time_precise() - timer))
 end
 
 return gui
