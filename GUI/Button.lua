@@ -7,8 +7,8 @@ local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 local Button = {}
-function Button:new(initialValues)
-    local self = Widget:new(initialValues)
+function Button:new(parameters)
+    local self = Widget:new()
 
     self.label = ""
     self.labelFont = "Arial"
@@ -105,7 +105,8 @@ function Button:new(initialValues)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return Button

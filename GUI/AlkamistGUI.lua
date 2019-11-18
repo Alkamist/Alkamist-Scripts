@@ -7,8 +7,8 @@ local UserControl = require("GUI.UserControl")
 local TrackedNumber = require("GUI.TrackedNumber")
 
 local GUI = {}
-function GUI:new(initialValues)
-    local self = {}
+function GUI:new(parameters)
+    local self = Proxy:new()
 
     self.title = ""
     self.x = 0
@@ -69,7 +69,8 @@ function GUI:new(initialValues)
         gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
     end
 
-    return Proxy:new(self, initialValues)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 local gui = GUI:new()

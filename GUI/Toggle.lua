@@ -3,8 +3,8 @@ local Proxy = require("Proxy")
 
 local Toggle = {}
 
-function Toggle:new(initialValues)
-    local self = {}
+function Toggle:new(parameters)
+    local self = Proxy:new()
 
     self.currentState = false
     self.previousState = false
@@ -16,7 +16,8 @@ function Toggle:new(initialValues)
         if state ~= nil then self.currentState = state end
     end
 
-    return Proxy:new(self, initialValues)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return Toggle

@@ -57,8 +57,7 @@ end
 
 local PitchAnalyzer = {}
 function PitchAnalyzer:new(parameters)
-    local parameters = parameters or {}
-    local self = TimeSeries:new(parameters)
+    local self = TimeSeries:new()
 
     self.take = Take:new{ pointer = parameters.pointer }
     self.settings = {
@@ -151,6 +150,7 @@ function PitchAnalyzer:new(parameters)
     function self:analyzePitch()
         if self.isAnalyzingPitch then
             local analysisTimeWindow = self.analysisTimeWindow
+
             reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.analysisStartTime,  false)
             reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", analysisTimeWindow, false)
 
@@ -167,7 +167,8 @@ function PitchAnalyzer:new(parameters)
         end
     end
 
-    return Proxy:new(self, parameters)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return PitchAnalyzer

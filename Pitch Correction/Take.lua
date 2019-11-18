@@ -1,5 +1,6 @@
 local reaper = reaper
 local math = math
+local pairs = pairs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Proxy = require("Proxy")
@@ -24,8 +25,7 @@ end
 
 local Take = {}
 function Take:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.from or {}
+    local self = Proxy:new()
 
     self.pointer = nil
     self.item = {
@@ -163,7 +163,8 @@ function Take:new(parameters)
         reaper.UpdateArrange()
     end
 
-    return Proxy:new(self, parameters)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return Take

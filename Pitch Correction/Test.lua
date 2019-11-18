@@ -6,13 +6,18 @@ local PitchCorrectedTakeWidget = require("Pitch Correction.PitchCorrectedTakeWid
 local pointer = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
 local test = PitchCorrectedTakeWidget:new{ pointer = pointer }
 
---test.pitchAnalyzer:prepareToAnalyzePitch()
---repeat
---    test.pitchAnalyzer:analyzePitch()
---until test.pitchAnalyzer.isAnalyzingPitch == false
---
---msg(test.pitchAnalyzer:encodeAsString{ time = 0, pitch = 0 })
+test.pitchAnalyzer:prepareToAnalyzePitch()
+repeat
+    test.pitchAnalyzer:analyzePitch()
+until test.pitchAnalyzer.isAnalyzingPitch == false
 
-for k, v in pairs(test) do
-    msg(k .. ": " .. tostring(v))
-end
+msg(test.pitchAnalyzer:encodeAsString{ time = 0, pitch = 0 })
+
+--local Take = require("Pitch Correction.Take")
+--
+--local pointer = reaper.GetActiveTake(reaper.GetSelectedMediaItem(0, 0))
+--local test = Take:new{ pointer = pointer }
+--
+--for k, v in pairs(test) do
+--    msg(k .. ": " .. tostring(v))
+--end

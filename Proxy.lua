@@ -4,9 +4,8 @@ local pairs = pairs
 local type = type
 local next = next
 
-local function createProxy(fields, initialValues)
+local function createProxy(fields)
     local fields = fields or {}
-    local initialValues = initialValues or {}
     local proxyMetatable = {
         __index = function(t, k)
             local field = fields[k]
@@ -36,14 +35,12 @@ local function createProxy(fields, initialValues)
     else
         proxy = setmetatable({}, proxyMetatable)
     end
-    for k, v in pairs(initialValues) do
-        proxy[k] = v
-    end
     return proxy
 end
 
 return {
-    new = function(self, fields, initialValues)
-        return createProxy(fields, initialValues)
+    new = function(self, parameters)
+        local parameters = parameters or {}
+        return createProxy(parameters)
     end
 }

@@ -3,8 +3,8 @@ local Proxy = require("Proxy")
 
 local TrackedNumber = {}
 
-function TrackedNumber:new(initialValues)
-    local self = {}
+function TrackedNumber:new(parameters)
+    local self = Proxy:new()
 
     self.currentValue = 0
     self.previousValue = 0
@@ -16,7 +16,8 @@ function TrackedNumber:new(initialValues)
         if value ~= nil then self.currentValue = value end
     end
 
-    return Proxy:new(self, initialValues)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return TrackedNumber

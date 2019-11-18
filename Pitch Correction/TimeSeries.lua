@@ -26,8 +26,7 @@ end
 
 local TimeSeries = {}
 function TimeSeries:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.from or {}
+    local self = Proxy:new()
 
     self.leftBound = 0
     self.rightBound = 0
@@ -106,7 +105,8 @@ function TimeSeries:new(parameters)
         end
     end
 
-    return Proxy:new(self, parameters)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return TimeSeries

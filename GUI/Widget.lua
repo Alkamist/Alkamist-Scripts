@@ -51,11 +51,9 @@ end
 
 local Widget = {}
 function Widget:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.from or {}
+    local self = Proxy:new()
 
     self.GUI = { get = function(self) return GUI end }
-    self.drawBuffer = -1
     self.relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.absoluteX end }
     self.previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.absoluteX end }
     self.relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.absoluteY end }
@@ -305,13 +303,13 @@ function Widget:new(parameters)
         end
     end
 
-    local proxy = Proxy:new(self, parameters)
-    if proxy.shouldDrawDirectly then
-        proxy.drawBuffer = -1
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    if self.shouldDrawDirectly then
+        self.drawBuffer = -1
     else
-        proxy.drawBuffer = proxy.GUI:getNewDrawBuffer()
+        self.drawBuffer = self.GUI:getNewDrawBuffer()
     end
-    return proxy
+    return self
 end
 
 return Widget

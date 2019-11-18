@@ -53,8 +53,8 @@ local function round(number, places)
 end
 
 local PitchEditor = {}
-function PitchEditor:new(initialValues)
-    local self = Widget:new(initialValues)
+function PitchEditor:new(parameters)
+    local self = Widget:new()
 
     self.width = {
         value = self.width,
@@ -75,13 +75,13 @@ function PitchEditor:new(initialValues)
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.takePointer = {
+    self.pitchCorrectedTake = PitchCorrectedTakeWidget:new{ pointer = {
         get = function(self)
             local selectedItem = reaper.GetSelectedMediaItem(0, 0)
             return reaper.GetActiveTake(selectedItem)
         end
-    }
-    self.take = Take:new(self.takePointer)
+    } }
+    self.take = { get = function(self) return self.pitchCorrectedTake end }
     self.timeLength = {
         get = function(self)
             local length = self.take.length
@@ -96,7 +96,6 @@ function PitchEditor:new(initialValues)
             return 0.0
         end
     }
-    self.pitchCorrectedTake = PitchCorrectedTakeWidget:new{ take = self.take }
 
     self.fixErrorButton = Button:new{
         x = 79,
@@ -371,10 +370,10 @@ function PitchEditor:new(initialValues)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
     end
 
-    local proxy = Proxy:new(self, initialValues)
-    proxy.view.x.scale = proxy.width
-    proxy.view.y.scale = proxy.editorHeight
-    return proxy
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    self.view.x.scale = self.width
+    self.view.y.scale = self.editorHeight
+    return self
 end
 
 return PitchEditor

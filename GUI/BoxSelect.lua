@@ -7,8 +7,8 @@ local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 
 local BoxSelect = {}
-function BoxSelect:new(initialValues)
-    local self = Widget:new(initialValues)
+function BoxSelect:new(parameters)
+    local self = Widget:new()
 
     self.x1 = 0
     self.x2 = 0
@@ -83,7 +83,8 @@ function BoxSelect:new(initialValues)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    for k, v in pairs(parameters or {}) do self[k] = v end
+    return self
 end
 
 return BoxSelect

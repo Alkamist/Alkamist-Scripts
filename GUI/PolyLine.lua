@@ -66,10 +66,10 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
 end
 
 local PolyLine = {}
-function PolyLine:new(initialValues)
-    local initialValues = initialValues or {}
-    initialValues.shouldDrawDirectly = true
-    local self = Widget:new(initialValues)
+function PolyLine:new(parameters)
+    local parameters = parameters or {}
+    parameters.shouldDrawDirectly = true
+    local self = Widget:new(parameters)
 
     self.points = {}
     self.mostRecentInsertedIndex = true
@@ -235,7 +235,7 @@ function PolyLine:new(initialValues)
         end
     end
 
-    return Proxy:new(self, initialValues)
+    return Proxy:new(self, parameters)
 end
 
 return PolyLine
