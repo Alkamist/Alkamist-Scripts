@@ -1,5 +1,6 @@
 local ViewAxis = {}
 function ViewAxis:new(parameters)
+    local parameters = parameters or {}
     local self = {}
 
     self.scale = 1.0
@@ -18,7 +19,7 @@ function ViewAxis:new(parameters)
         self.scroll = self.scroll + (change - 1.0) * target / self.zoom
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

@@ -8,7 +8,8 @@ local Widget = require("GUI.Widget")
 
 local BoxSelect = {}
 function BoxSelect:new(parameters)
-    local self = Widget:new()
+    local parameters = parameters or {}
+    local self = Widget:new(parameters)
 
     self.x1 = 0
     self.x2 = 0
@@ -83,7 +84,7 @@ function BoxSelect:new(parameters)
         end
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

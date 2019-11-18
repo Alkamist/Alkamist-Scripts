@@ -4,9 +4,9 @@ local pairs = pairs
 local type = type
 local next = next
 
-local function createProxy(fields)
-    local fields = fields or {}
-    local proxyMetatable = {
+local function createProxy()
+    local fields = {}
+    return setmetatable({}, {
         __index = function(t, k)
             local field = fields[k]
             if type(field) == "table" and field.get then
@@ -28,19 +28,11 @@ local function createProxy(fields)
                 return fieldKey, t[fieldKey]
             end, t, nil
         end
-    }
-    local proxy
-    if getmetatable(fields) then
-        proxy = fields
-    else
-        proxy = setmetatable({}, proxyMetatable)
-    end
-    return proxy
+    })
 end
 
 return {
-    new = function(self, parameters)
-        local parameters = parameters or {}
-        return createProxy(parameters)
+    new = function(self)
+        return createProxy()
     end
 }

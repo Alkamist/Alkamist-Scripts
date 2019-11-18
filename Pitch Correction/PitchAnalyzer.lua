@@ -57,9 +57,16 @@ end
 
 local PitchAnalyzer = {}
 function PitchAnalyzer:new(parameters)
-    local self = TimeSeries:new()
+    local parameters = parameters or {}
+    local self = TimeSeries:new(parameters)
 
     self.take = Take:new{ pointer = parameters.pointer }
+    self.pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    self.fileName = { get = function(self) return self.take.fileName .. ".pitch" end }
+    self.pointMembers = {
+        sourceTime = 0,
+        pitch = 0
+    }
     self.settings = {
         windowStep = 0.04,
         windowOverlap = 2.0,
@@ -162,12 +169,22 @@ function PitchAnalyzer:new(parameters)
         else
             if not self.newPointsHaveBeenInitialized then
                 self:removeDuplicatePoints()
+                self:savePoints(self.pathName, self.fileName, self.pointMembers)
                 self.newPointsHaveBeenInitialized = true
             end
         end
     end
+    function self:updatePointRealTimes()
+        local points = self.points
+        for i = 1, #points do
+            local point = points[i]
+            point.time = self.take:getRealTime(point.sourceTime)
+        end
+    end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
+    self:loadPoints(self.pathName, self.fileName, self.pointMembers)
+    self:updatePointRealTimes()
     return self
 end
 

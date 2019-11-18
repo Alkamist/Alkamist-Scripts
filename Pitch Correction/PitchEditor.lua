@@ -7,7 +7,7 @@ local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local Button = require("GUI.Button")
 local Take = require("Pitch Correction.Take")
-local PitchCorrectedTakeWidget = require("Pitch Correction.PitchCorrectedTakeWidget")
+local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 --local BoxSelect = require("GUI.BoxSelect")
 
 local function pointIsSelected(point)
@@ -54,34 +54,20 @@ end
 
 local PitchEditor = {}
 function PitchEditor:new(parameters)
-    local self = Widget:new()
+    local parameters = parameters or {}
+    local self = Widget:new(parameters)
 
-    self.width = {
-        value = self.width,
-        get = function(self, field) return field.value end,
-        set = function(self, value, field)
-            field.value = value
-            self.pitchCorrectedTake.width = value
-        end
-    }
-    self.height = {
-        value = self.height,
-        get = function(self, field) return field.value end,
-        set = function(self, value, field)
-            field.value = value
-            self.pitchCorrectedTake.height = value
-        end
-    }
+    self.width = 0
+    self.height = 0
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.pitchCorrectedTake = PitchCorrectedTakeWidget:new{ pointer = {
+    self.take = PitchCorrectedTake:new{ pointer = {
         get = function(self)
             local selectedItem = reaper.GetSelectedMediaItem(0, 0)
             return reaper.GetActiveTake(selectedItem)
         end
     } }
-    self.take = { get = function(self) return self.pitchCorrectedTake end }
     self.timeLength = {
         get = function(self)
             local length = self.take.length
@@ -113,16 +99,16 @@ function PitchEditor:new(parameters)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
-    local pitchCorrectedTake = self.pitchCorrectedTake
+    local take = self.take
     local originalAnalyzeButtonUpdate = self.analyzeButton.update
     function self.analyzeButton:update()
         originalAnalyzeButtonUpdate(self)
         if self.justPressed then
-            pitchCorrectedTake.pitchAnalyzer:prepareToAnalyzePitch()
+            take.pitchAnalyzer:prepareToAnalyzePitch()
         end
     end
 
-    self.widgets = { self.pitchCorrectedTake, self.analyzeButton, self.fixErrorButton }
+    self.widgets = { self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -189,13 +175,20 @@ function PitchEditor:new(parameters)
     function self:updatePointCoordinates(points)
         local timeToPixels = self.timeToPixels
         local pitchToPixels = self.pitchToPixels
+        local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
+        local envelope = self.take.pitchEnvelope
+        local playRate = self.take.playRate
         for i = 1, #points do
             local point = points[i]
             point.time = self.take:getRealTime(point.sourceTime)
             local pointTime = point.time
             local pointPitch = point.pitch
             if pointTime then point.x = timeToPixels(self, pointTime) end
-            if pointPitch then point.y = pitchToPixels(self, pointPitch) end
+            if pointPitch then
+                point.y = pitchToPixels(self, pointPitch)
+                local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
+                point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
+            end
         end
     end
 
@@ -279,7 +272,7 @@ function PitchEditor:new(parameters)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        local pitchAnalyzer = self.pitchCorrectedTake.pitchAnalyzer
+        local pitchAnalyzer = self.take.pitchAnalyzer
         pitchAnalyzer:analyzePitch()
         pitchAnalyzer:sortPoints()
         self:updatePointCoordinates(pitchAnalyzer.points)
@@ -358,6 +351,35 @@ function PitchEditor:new(parameters)
             self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
         end
     end
+    function self:drawPitchPoints()
+        local points = self.take.pitchAnalyzer.points
+        local drawRectangle = self.drawRectangle
+        local drawLine = self.drawLine
+        local setColor = self.setColor
+        local pointColor = self.pitchLineColor
+        local lineColor = self.pitchLineColor
+        local correctedLineColor = self.correctedPitchLineColor
+        local correctedPointColor = self.correctedPitchLineColor
+        local pitchToPixels = self.pitchToPixels
+        local abs = math.abs
+        for i = 1, #points do
+            local point = points[i]
+            local nextPoint = points[i + 1]
+            local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
+            if shouldDrawLine then
+                setColor(self, lineColor)
+                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+            end
+            setColor(self, pointColor)
+            drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+            if shouldDrawLine then
+                setColor(self, correctedLineColor)
+                drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
+            end
+            setColor(self, correctedPointColor)
+            drawRectangle(self, point.x - 1, point.correctedY - 1, 3, 3, true)
+        end
+    end
     function self:draw()
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.height, true)
@@ -365,12 +387,13 @@ function PitchEditor:new(parameters)
         self:drawKeyBackgrounds()
         self:drawEdges()
         self:drawEditCursor()
+        self:drawPitchPoints()
 
         self:setColor(self.backgroundColor)
         self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     self.view.x.scale = self.width
     self.view.y.scale = self.editorHeight
     return self

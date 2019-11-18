@@ -167,6 +167,7 @@ local TrackedNumber = require("GUI.TrackedNumber")
 
 local MouseControl = {}
 function MouseControl:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.mouse = {}
@@ -232,12 +233,13 @@ function MouseControl:new(parameters)
         self.justDragged = self.isPressed and mouse.justMoved
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 local MouseButton = {}
 function MouseButton:new(parameters)
-    local self = MouseControl:new()
+    local parameters = parameters or {}
+    local self = MouseControl:new(parameters)
 
     self.bitValue = 0
     local originalUpdate = self.update
@@ -245,11 +247,12 @@ function MouseButton:new(parameters)
         originalUpdate(self, self.mouse.cap & self.bitValue == self.bitValue)
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 local Mouse = {}
 function Mouse:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.cap = 0
@@ -299,7 +302,7 @@ function Mouse:new(parameters)
         self.rightButton:update()
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     self.leftButton.mouse = self
     self.middleButton.mouse = self
     self.rightButton.mouse = self
@@ -308,7 +311,8 @@ end
 
 local KeyboardKey = {}
 function KeyboardKey:new(parameters)
-    local self = MouseControl:new()
+    local parameters = parameters or {}
+    local self = MouseControl:new(parameters)
 
     self.character = ""
     local originalUpdate = self.update
@@ -316,11 +320,12 @@ function KeyboardKey:new(parameters)
         originalUpdate(self, gfx.getchar(characterTable[self.character]) > 0)
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 local Keyboard = {}
 function Keyboard:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.mouse = {
@@ -334,10 +339,10 @@ function Keyboard:new(parameters)
             field.value = value
         end
     }
-    self.shiftKey = MouseButton:new{ mouse = parameters.mouse, bitValue = 8 }
-    self.controlKey = MouseButton:new{ mouse = parameters.mouse, bitValue = 4 }
-    self.windowsKey = MouseButton:new{ mouse = parameters.mouse, bitValue = 32 }
-    self.altKey = MouseButton:new{ mouse = parameters.mouse, bitValue = 16 }
+    self.shiftKey = MouseButton:new{ bitValue = 8 }
+    self.controlKey = MouseButton:new{ bitValue = 4 }
+    self.windowsKey = MouseButton:new{ bitValue = 32 }
+    self.altKey = MouseButton:new{ bitValue = 16 }
     self.keys = {}
     function self:createKey(character)
         self.keys[character] = KeyboardKey:new{ mouse = self.mouse, character = character }
@@ -351,7 +356,7 @@ function Keyboard:new(parameters)
         self.currentCharacter = characterTableInverted[gfx.getchar()]
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

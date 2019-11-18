@@ -2,13 +2,13 @@ local reaper = reaper
 local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local Toggle = require("GUI.Toggle")
 
 local Button = {}
 function Button:new(parameters)
-    local self = Widget:new()
+    local parameters = parameters or {}
+    local self = Widget:new(parameters)
 
     self.label = ""
     self.labelFont = "Arial"
@@ -105,7 +105,7 @@ function Button:new(parameters)
         end
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

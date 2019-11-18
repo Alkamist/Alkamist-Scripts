@@ -25,6 +25,7 @@ end
 
 local Take = {}
 function Take:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.pointer = nil
@@ -163,7 +164,7 @@ function Take:new(parameters)
         reaper.UpdateArrange()
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

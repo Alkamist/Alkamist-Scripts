@@ -8,6 +8,7 @@ local TrackedNumber = require("GUI.TrackedNumber")
 
 local GUI = {}
 function GUI:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.title = ""
@@ -69,7 +70,7 @@ function GUI:new(parameters)
         gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

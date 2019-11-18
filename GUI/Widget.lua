@@ -51,6 +51,7 @@ end
 
 local Widget = {}
 function Widget:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.GUI = { get = function(self) return GUI end }
@@ -303,7 +304,7 @@ function Widget:new(parameters)
         end
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     if self.shouldDrawDirectly then
         self.drawBuffer = -1
     else

@@ -2,6 +2,7 @@ local reaper = reaper
 local math = math
 local table = table
 local pairs = pairs
+local io = io
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Json = require("dkjson")
@@ -26,6 +27,7 @@ end
 
 local TimeSeries = {}
 function TimeSeries:new(parameters)
+    local parameters = parameters or {}
     local self = Proxy:new()
 
     self.leftBound = 0
@@ -104,8 +106,27 @@ function TimeSeries:new(parameters)
             end
         end
     end
+    function self:loadPoints(pathName, fileName, pointMembers)
+        local fullFileName = pathName .. "\\" .. fileName
+        local file = io.open(fullFileName)
+        if file then
+            local saveString = file:read("*all")
+            file:close()
+            self:decodeFromString(saveString, pointMembers)
+        end
+    end
+    function self:savePoints(pathName, fileName, pointMembers)
+        local fullFileName = pathName .. "\\" .. fileName
+        reaper.RecursiveCreateDirectory(pathName, 0)
+        local saveString = self:encodeAsString(pointMembers)
+        local file = io.open(fullFileName, "w")
+        if file then
+            file:write(saveString)
+            file:close()
+        end
+    end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

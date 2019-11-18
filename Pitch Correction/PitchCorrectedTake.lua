@@ -144,7 +144,8 @@ end
 
 local PitchCorrectedTake = {}
 function PitchCorrectedTake:new(parameters)
-    local self = Take:new()
+    local parameters = parameters or {}
+    local self = Take:new(parameters)
 
     self.pitchAnalyzer = PitchAnalyzer:new{ take = self }
     self.pitchCorrections = TimeSeries:new()
@@ -174,7 +175,7 @@ function PitchCorrectedTake:new(parameters)
         self.pitchCorrections[#self.pitchCorrections + 1] = point
     end
 
-    for k, v in pairs(parameters or {}) do self[k] = v end
+    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 
