@@ -100,7 +100,6 @@ function PitchEditor:new(parameters)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
-
     self.widgets = { self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -114,8 +113,10 @@ function PitchEditor:new(parameters)
     self.pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 }
     self.pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 }
     self.peakColor = { 1.0, 1.0, 1.0, 1.0, 0 }
-    self.correctedPitchLineColor = { 0.3, 0.7, 0.3, 1.0, 0 }
-    self.pitchLineColor = { 0.1, 0.3, 0.1, 1.0, 0 }
+    self.correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
+    self.correctedPitchPointColor = { 0.3, 0.7, 0.3, 1.0, 0 }
+    self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
+    self.pitchPointColor = { 0.1, 0.3, 0.1, 1.0, 0 }
 
     self.minimumKeyHeightToDrawCenterLine = 16
     self.pitchHeight = 128
@@ -126,7 +127,6 @@ function PitchEditor:new(parameters)
     self.mousePitchOnLeftDown = 0.0
     self.snappedMousePitchOnLeftDown = 0.0
     self.altKeyWasDownOnPointEdit = false
-    self.fixErrorMode = false
     self.enablePitchCorrections = true
 
     self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
@@ -350,28 +350,40 @@ function PitchEditor:new(parameters)
         local drawRectangle = self.drawRectangle
         local drawLine = self.drawLine
         local setColor = self.setColor
-        local pointColor = self.pitchLineColor
+        local pointColor = self.pitchPointColor
         local lineColor = self.pitchLineColor
         local correctedLineColor = self.correctedPitchLineColor
-        local correctedPointColor = self.correctedPitchLineColor
+        local correctedPointColor = self.correctedPitchPointColor
         local pitchToPixels = self.pitchToPixels
         local abs = math.abs
+        local fixErrorMode = self.fixErrorMode
         for i = 1, #points do
             local point = points[i]
             local nextPoint = points[i + 1]
             local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
-            if shouldDrawLine then
-                setColor(self, lineColor)
-                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+
+            if fixErrorMode then
+                if shouldDrawLine then
+                    setColor(self, correctedLineColor)
+                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                end
+                setColor(self, correctedPointColor)
+                drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+            else
+                if shouldDrawLine then
+                    setColor(self, lineColor)
+                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                end
+                setColor(self, pointColor)
+                drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+
+                if shouldDrawLine then
+                    setColor(self, correctedLineColor)
+                    drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
+                end
+                setColor(self, correctedPointColor)
+                drawRectangle(self, point.x - 1, point.correctedY - 1, 3, 3, true)
             end
-            setColor(self, pointColor)
-            drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-            if shouldDrawLine then
-                setColor(self, correctedLineColor)
-                drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
-            end
-            setColor(self, correctedPointColor)
-            drawRectangle(self, point.x - 1, point.correctedY - 1, 3, 3, true)
         end
     end
     function self:draw()
