@@ -51,6 +51,117 @@ local function round(number, places)
                           or math.ceil(number * places - 0.5) / places
     end
 end
+local function minimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
+    if pointX == nil or pointY == nil or lineX1 == nil or lineY1 == nil or lineX2 == nil or lineY2 == nil then
+        return 0.0
+    end
+    local A = pointX - lineX1
+    local B = pointY - lineY1
+    local C = lineX2 - lineX1
+    local D = lineY2 - lineY1
+    local dotProduct = A * C + B * D
+    local lengthSquared = C * C + D * D
+    local param = -1
+    local xx
+    local yy
+
+    if lengthSquared ~= 0 then
+        param = dotProduct / lengthSquared
+    end
+
+    if param < 0 then
+        xx = lineX1
+        yy = lineY1
+    elseif param > 1 then
+        xx = lineX2
+        yy = lineY2
+    else
+        xx = lineX1 + param * C
+        yy = lineY1 + param * D
+    end
+
+    local dx = pointX - xx
+    local dy = pointY - yy
+
+    return math.sqrt(dx * dx + dy * dy)
+end
+local function distanceBetweenTwoPoints(x1, y1, x2, y2)
+    if x1 == nil or y1 == nil or x2 == nil or y2 == nil then
+        return 0.0
+    end
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt(dx * dx + dy * dy)
+end
+local function getIndexAndDistanceOfSegmentClosestToPoint(points, x, y)
+    local numberOfPoints = #points
+    if numberOfPoints < 1 then return nil end
+
+    local lowestDistance
+    local lowestDistanceIndex = 1
+
+    for i = 1, numberOfPoints do
+        local point = points[i]
+        local nextPoint = points[i + 1]
+
+        local distance
+        if nextPoint then
+            distance = minimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
+        end
+        lowestDistance = lowestDistance or distance
+
+        if distance and distance < lowestDistance then
+            lowestDistance = distance
+            lowestDistanceIndex = i
+        end
+    end
+
+    return lowestDistanceIndex, lowestDistance
+end
+local function getIndexAndDistanceOfPointClosestToPoint(points, x, y)
+    local numberOfPoints = #points
+    if numberOfPoints < 1 then return nil end
+
+    local lowestDistance
+    local lowestDistanceIndex = 1
+
+    for i = 1, numberOfPoints do
+        local point = points[i]
+
+        local distance = distanceBetweenTwoPoints(x, y, point.x, point.y)
+        lowestDistance = lowestDistance or distance
+
+        if distance and distance < lowestDistance then
+            lowestDistance = distance
+            lowestDistanceIndex = i
+        end
+    end
+
+    return lowestDistanceIndex, lowestDistance
+end
+local function getIndexOfPointOrSegmentClosestToPointWithinDistance(points, x, y, distance)
+    local index
+    local indexIsPoint
+    local segmentIndex, segmentDistance = getIndexAndDistanceOfSegmentClosestToPoint(points, x, y)
+    local pointIndex, pointDistance = getIndexAndDistanceOfPointClosestToPoint(points, x, y)
+    local pointIsClose = false
+    local segmentIsClose = false
+
+    if pointDistance then pointIsClose = pointDistance <= distance end
+    if segmentDistance then segmentIsClose = segmentDistance <= distance end
+
+    if pointIsClose or segmentIsClose then
+        if segmentIsClose then
+            index = segmentIndex
+            indexIsPoint = false
+        end
+        if pointIsClose then
+            index = pointIndex
+            indexIsPoint = true
+        end
+    end
+    return index, indexIsPoint
+end
 
 local PitchEditor = {}
 function PitchEditor:new(parameters)
@@ -117,6 +228,8 @@ function PitchEditor:new(parameters)
     self.correctedPitchPointColor = { 0.3, 0.7, 0.3, 1.0, 0 }
     self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
     self.pitchPointColor = { 0.1, 0.3, 0.1, 1.0, 0 }
+    self.pitchPointMouseOverColor = { 0.6, 0.9, 0.6, 1.0, 0 }
+    self.pitchLineMouseOverColor = { 0.53, 0.83, 0.53, 1.0, 0 }
 
     self.minimumKeyHeightToDrawCenterLine = 16
     self.pitchHeight = 128
@@ -128,6 +241,8 @@ function PitchEditor:new(parameters)
     self.snappedMousePitchOnLeftDown = 0.0
     self.altKeyWasDownOnPointEdit = false
     self.enablePitchCorrections = true
+    self.mouseIsOverPitchPoint = false
+    self.mouseOverPitchPointIndex = nil
 
     self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
     self.previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end }
@@ -252,6 +367,11 @@ function PitchEditor:new(parameters)
         local mouseLeftButton = mouse.leftButton
         local mouseMiddleButton = mouse.middleButton
         local mouseRightButton = mouse.rightButton
+        local pitchAnalyzer = self.take.pitchAnalyzer
+
+        if self.fixErrorMode then
+            self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(pitchAnalyzer.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
+        end
 
         if GUI.windowWasResized then self:handleWindowResize() end
         if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
@@ -265,7 +385,6 @@ function PitchEditor:new(parameters)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        local pitchAnalyzer = self.take.pitchAnalyzer
         if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
         pitchAnalyzer:analyzePitch()
         pitchAnalyzer:sortPoints()
@@ -353,10 +472,14 @@ function PitchEditor:new(parameters)
         local pointColor = self.pitchPointColor
         local lineColor = self.pitchLineColor
         local correctedLineColor = self.correctedPitchLineColor
+        local mouseOverLineColor = self.pitchLineMouseOverColor
         local correctedPointColor = self.correctedPitchPointColor
+        local mouseOverPointColor = self.pitchPointMouseOverColor
         local pitchToPixels = self.pitchToPixels
         local abs = math.abs
         local fixErrorMode = self.fixErrorMode
+        local mouseOverIndex = self.mouseOverPitchPointIndex
+        local mouseIsOverPoint = self.mouseIsOverPitchPoint
         for i = 1, #points do
             local point = points[i]
             local nextPoint = points[i + 1]
@@ -364,10 +487,18 @@ function PitchEditor:new(parameters)
 
             if fixErrorMode then
                 if shouldDrawLine then
-                    setColor(self, correctedLineColor)
+                    if mouseOverIndex == i and not mouseIsOverPoint then
+                        setColor(self, mouseOverLineColor)
+                    else
+                        setColor(self, correctedLineColor)
+                    end
                     drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
                 end
-                setColor(self, correctedPointColor)
+                if mouseOverIndex == i and mouseIsOverPoint then
+                    setColor(self, mouseOverPointColor)
+                else
+                    setColor(self, correctedPointColor)
+                end
                 drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
             else
                 if shouldDrawLine then
