@@ -91,6 +91,7 @@ function PitchEditor:new(parameters)
         label = "Fix Errors",
         toggleOnClick = true
     }
+    self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
     self.analyzeButton = Button:new{
         x = 0,
         y = 0,
@@ -99,14 +100,6 @@ function PitchEditor:new(parameters)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
-    local take = self.take
-    local originalAnalyzeButtonUpdate = self.analyzeButton.update
-    function self.analyzeButton:update()
-        originalAnalyzeButtonUpdate(self)
-        if self.justPressed then
-            take.pitchAnalyzer:prepareToAnalyzePitch()
-        end
-    end
 
     self.widgets = { self.analyzeButton, self.fixErrorButton }
 
@@ -273,6 +266,7 @@ function PitchEditor:new(parameters)
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
         local pitchAnalyzer = self.take.pitchAnalyzer
+        if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
         pitchAnalyzer:analyzePitch()
         pitchAnalyzer:sortPoints()
         self:updatePointCoordinates(pitchAnalyzer.points)

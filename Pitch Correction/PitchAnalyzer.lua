@@ -63,6 +63,14 @@ function PitchAnalyzer:new(parameters)
     self.take = Take:new{ pointer = parameters.pointer }
     self.pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
     self.fileName = { get = function(self) return self.take.fileName .. ".pitch" end }
+    self.leftBound = {
+        get = function(self) return self.take.leftTime end,
+        set = function(self, value) end
+    }
+    self.rightBound = {
+        get = function(self) return self.take.rightTime end,
+        set = function(self, value) end
+    }
     self.pointMembers = {
         sourceTime = 0,
         pitch = 0

@@ -215,17 +215,24 @@ function Widget:new(parameters)
     end
 
     function self:doBeginUpdate()
-        self.visibilityState:update()
-        if self.beginUpdate then self:beginUpdate() end
-
         local childWidgets = self.widgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doBeginUpdate()
             end
         end
+
+        self.visibilityState:update()
+        if self.beginUpdate then self:beginUpdate() end
     end
     function self:doUpdate()
+        local childWidgets = self.widgets
+        if childWidgets then
+            for i = 1, #childWidgets do
+                childWidgets[i]:doUpdate()
+            end
+        end
+
         local char = self.GUI.keyboard.currentCharacter
         local keyPressFunctions = self.keyPressFunctions
         if type(keyPressFunctions) == "table" then
@@ -233,15 +240,15 @@ function Widget:new(parameters)
             if keyPressFunction then keyPressFunction(self) end
         end
         if self.update then self:update() end
-
+    end
+    function self:doDrawToBuffer()
         local childWidgets = self.widgets
         if childWidgets then
             for i = 1, #childWidgets do
-                childWidgets[i]:doUpdate()
+                childWidgets[i]:doDrawToBuffer()
             end
         end
-    end
-    function self:doDrawToBuffer()
+
         if not self.shouldDrawDirectly then
             if self.shouldRedraw and self.draw then
                 self:clearBuffer()
@@ -253,13 +260,6 @@ function Widget:new(parameters)
             elseif self.shouldClear then
                 self:clearBuffer()
                 self.shouldClear = false
-            end
-        end
-
-        local childWidgets = self.widgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                childWidgets[i]:doDrawToBuffer()
             end
         end
     end
@@ -294,14 +294,14 @@ function Widget:new(parameters)
         end
     end
     function self:doEndUpdate()
-        if self.endUpdate then self:endUpdate() end
-
         local childWidgets = self.widgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doEndUpdate()
             end
         end
+
+        if self.endUpdate then self:endUpdate() end
     end
 
     for k, v in pairs(parameters) do self[k] = v end
