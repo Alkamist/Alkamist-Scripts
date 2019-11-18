@@ -302,6 +302,15 @@ function PitchEditor:new(parameters)
             end
         end
     end
+    function self:moveSelectedPitchPointsPitchesBy(value)
+        local points = self.take.pitchAnalyzer.points
+        for i = 1, #points do
+            local point = points[i]
+            if point.isSelected then
+                point.pitch = point.pitch + value
+            end
+        end
+    end
 
     self.keyPressFunctions = {
         ["Delete"] = function(self)
@@ -311,6 +320,24 @@ function PitchEditor:new(parameters)
             reaper.SetEditCurPos(self.startTime + self.mouseTime, false, true)
             reaper.UpdateArrange()
             reaper.Main_OnCommandEx(1007, 0, 0)
+        end,
+        ["Down"] = function(self)
+            if self.fixErrorMode then
+                if self.GUI.keyboard.shiftKey.isPressed then
+                    self:moveSelectedPitchPointsPitchesBy(-12.0)
+                else
+                    self:moveSelectedPitchPointsPitchesBy(-1.0)
+                end
+            end
+        end,
+        ["Up"] = function(self)
+            if self.fixErrorMode then
+                if self.GUI.keyboard.shiftKey.isPressed then
+                    self:moveSelectedPitchPointsPitchesBy(12.0)
+                else
+                    self:moveSelectedPitchPointsPitchesBy(1.0)
+                end
+            end
         end
     }
     function self:handleWindowResize()
@@ -352,7 +379,23 @@ function PitchEditor:new(parameters)
         self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
     end
     function self:handleRightRelease()
-        self.boxSelect:makeSelection()
+        local selectionParameters = {}
+        if self.fixErrorMode then
+            selectionParameters.thingsToSelect = self.take.pitchAnalyzer.points
+            selectionParameters.isInsideFunction = function(box, thing)
+                return box:pointIsInside(thing.x + self.absoluteX, thing.y + self.absoluteY)
+            end
+            selectionParameters.setSelectedFunction = function(point, shouldSelect)
+                point.isSelected = shouldSelect
+            end
+            selectionParameters.getSelectedFunction = function(point)
+                return point.isSelected
+            end
+            local keyboard = self.GUI.keyboard
+            selectionParameters.shouldAdd = keyboard.shiftKey.isPressed
+            selectionParameters.shouldInvert = keyboard.controlKey.isPressed
+        end
+        self.boxSelect:makeSelection(selectionParameters)
     end
     function self:handleMouseWheel()
         local mouse = self.GUI.mouse
@@ -501,6 +544,7 @@ function PitchEditor:new(parameters)
         local fixErrorMode = self.fixErrorMode
         local mouseOverIndex = self.mouseOverPitchPointIndex
         local mouseIsOverPoint = self.mouseIsOverPitchPoint
+        local selectedColor = { 1.0, 1.0, 1.0, 0.3, 1 }
         for i = 1, #points do
             local point = points[i]
             local nextPoint = points[i + 1]
@@ -521,6 +565,10 @@ function PitchEditor:new(parameters)
                     setColor(self, correctedPointColor)
                 end
                 drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+                if point.isSelected then
+                    setColor(self, selectedColor)
+                    drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+                end
             else
                 if shouldDrawLine then
                     setColor(self, lineColor)

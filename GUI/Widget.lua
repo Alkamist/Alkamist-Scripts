@@ -96,9 +96,11 @@ function Widget:new(parameters)
         if parentWidget and not parentWidget:pointIsInside(pointX, pointY) then
             isInsideParent = false
         end
-        return isInsideParent
-            and pointX >= x and pointX <= x + width
-            and pointY >= y and pointY <= y + height
+        if pointX and pointY then
+            return isInsideParent
+                and pointX >= x and pointX <= x + width
+                and pointY >= y and pointY <= y + height
+        end
     end
     function self:clearBuffer()
         local drawBuffer = self.drawBuffer
