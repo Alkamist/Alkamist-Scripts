@@ -64,11 +64,11 @@ function PitchAnalyzer:new(parameters)
     self.pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
     self.fileName = { get = function(self) return self.take.fileName .. ".pitch" end }
     self.leftBound = {
-        get = function(self) return self.take.leftTime end,
+        get = function(self) return self.take.startOffset end,
         set = function(self, value) end
     }
     self.rightBound = {
-        get = function(self) return self.take.rightTime end,
+        get = function(self) return self.take:getSourceTime(self.take.length) end,
         set = function(self, value) end
     }
     self.pointMembers = {
