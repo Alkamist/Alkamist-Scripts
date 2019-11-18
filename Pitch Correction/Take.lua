@@ -14,13 +14,15 @@ local function mainCommand(id)
 end
 local function activateAndGetPitchEnvelope(pointer)
     local take = pointer
-    local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
-    if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
-        mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
-        pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
-        --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+    if take then
+        local pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
+        if not pitchEnvelope or not reaper.ValidatePtr2(0, pitchEnvelope, "TrackEnvelope*") then
+            mainCommand("_S&M_TAKEENV10") -- Show and unbypass take pitch envelope
+            pitchEnvelope = reaper.GetTakeEnvelopeByName(take, "Pitch")
+            --mainCommand("_S&M_TAKEENVSHOW8") -- Hide take pitch envelope
+        end
+        return pitchEnvelope
     end
-    return pitchEnvelope
 end
 
 local Take = {}
@@ -129,6 +131,7 @@ function Take:new(parameters)
     end
     function self:getRealTime(sourceTime)
         local take = self.pointer
+        if take == nil then return nil end
         local getSourceTime = self.getSourceTime
         if reaper.GetTakeNumStretchMarkers(take) < 1 then
             local startOffset = getSourceTime(self, 0.0)

@@ -2,7 +2,6 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
 local Take = require("Pitch Correction.Take")
 local TimeSeries = require("Pitch Correction.TimeSeries")
 local PitchAnalyzer = require("Pitch Correction.PitchAnalyzer")

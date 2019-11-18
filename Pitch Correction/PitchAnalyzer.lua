@@ -3,7 +3,6 @@ local math = math
 local io = io
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
 local Take = require("Pitch Correction.Take")
 local TimeSeries = require("Pitch Correction.TimeSeries")
 
@@ -62,7 +61,12 @@ function PitchAnalyzer:new(parameters)
 
     self.take = Take:new{ pointer = parameters.pointer }
     self.pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    self.fileName = { get = function(self) return self.take.fileName .. ".pitch" end }
+    self.fileName = {
+            get = function(self)
+            local takeFileName = self.take.fileName
+            if takeFileName then return takeFileName .. ".pitch" end
+        end
+    }
     self.leftBound = {
         get = function(self) return self.take.startOffset end,
         set = function(self, value) end
@@ -189,10 +193,18 @@ function PitchAnalyzer:new(parameters)
             point.time = self.take:getRealTime(point.sourceTime)
         end
     end
+    local timeSeriesLoadPoints = self.loadPoints
+    function self:loadPoints(...)
+        timeSeriesLoadPoints(self, ...)
+        self:updatePointRealTimes()
+    end
+    function self:loadPointsFromTakeFile()
+        if self.take.pointer then
+            self:loadPoints(self.pathName, self.fileName, self.pointMembers)
+        end
+    end
 
     for k, v in pairs(parameters) do self[k] = v end
-    self:loadPoints(self.pathName, self.fileName, self.pointMembers)
-    self:updatePointRealTimes()
     return self
 end
 

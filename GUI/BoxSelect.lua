@@ -3,7 +3,6 @@ local min = math.min
 local abs = math.abs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 
 local BoxSelect = {}
@@ -15,8 +14,8 @@ function BoxSelect:new(parameters)
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
-    self.insideColor = { 0, 0, 0, 0.3, 0 }
-    self.edgeColor = { 1, 1, 1, 0.6, 0 }
+    self.insideColor = { 0, 0, 0, 0.4, 0 }
+    self.edgeColor = { 1, 1, 1, 0.7, 0 }
     self.isActive = false
     function self:startSelection(startingX, startingY)
         self.x1 = startingX
@@ -44,6 +43,7 @@ function BoxSelect:new(parameters)
         self.shouldRedraw = true
     end
     function self:makeSelection(parameters)
+        local parameters = parameters or {}
         local thingsToSelect = parameters.thingsToSelect
         local isInsideFunction = parameters.isInsideFunction
         local setSelectedFunction = parameters.setSelectedFunction
@@ -51,18 +51,20 @@ function BoxSelect:new(parameters)
         local shouldAdd = parameters.shouldAdd
         local shouldInvert = parameters.shouldInvert
 
-        for i = 1, #thingsToSelect do
-            local thing = thingsToSelect[i]
+        if thingsToSelect then
+            for i = 1, #thingsToSelect do
+                local thing = thingsToSelect[i]
 
-            if isInsideFunction(self, thing) then
-                if shouldInvert then
-                    setSelectedFunction(thing, not getSelectedFunction(thing))
+                if isInsideFunction(self, thing) then
+                    if shouldInvert then
+                        setSelectedFunction(thing, not getSelectedFunction(thing))
+                    else
+                        setSelectedFunction(thing, true)
+                    end
                 else
-                    setSelectedFunction(thing, true)
-                end
-            else
-                if not shouldAdd and not shouldInvert then
-                    setSelectedFunction(thing, false)
+                    if not shouldAdd and not shouldInvert then
+                        setSelectedFunction(thing, false)
+                    end
                 end
             end
         end

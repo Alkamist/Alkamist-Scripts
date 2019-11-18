@@ -8,7 +8,7 @@ local ViewAxis = require("GUI.ViewAxis")
 local Button = require("GUI.Button")
 local Take = require("Pitch Correction.Take")
 local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
---local BoxSelect = require("GUI.BoxSelect")
+local BoxSelect = require("GUI.BoxSelect")
 
 local function pointIsSelected(point)
     return point.isSelected
@@ -176,7 +176,7 @@ function PitchEditor:new(parameters)
     self.take = PitchCorrectedTake:new{ pointer = {
         get = function(self)
             local selectedItem = reaper.GetSelectedMediaItem(0, 0)
-            return reaper.GetActiveTake(selectedItem)
+            if selectedItem then return reaper.GetActiveTake(selectedItem) end
         end
     } }
     self.timeLength = {
@@ -211,7 +211,8 @@ function PitchEditor:new(parameters)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
-    self.widgets = { self.analyzeButton, self.fixErrorButton }
+    self.boxSelect = BoxSelect:new()
+    self.widgets = { self.boxSelect, self.analyzeButton, self.fixErrorButton }
 
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
@@ -291,11 +292,13 @@ function PitchEditor:new(parameters)
             point.time = self.take:getRealTime(point.sourceTime)
             local pointTime = point.time
             local pointPitch = point.pitch
-            if pointTime then point.x = timeToPixels(self, pointTime) end
-            if pointPitch then
-                point.y = pitchToPixels(self, pointPitch)
-                local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
-                point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
+            if pointTime then
+                point.x = timeToPixels(self, pointTime)
+                if pointPitch then
+                    point.y = pitchToPixels(self, pointPitch)
+                    local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
+                    point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
+                end
             end
         end
     end
@@ -342,9 +345,15 @@ function PitchEditor:new(parameters)
             self.view.y:changeScroll(mouse.yChange)
         end
     end
-    function self:handleRightPress() end
-    function self:handleRightDrag() end
-    function self:handleRightRelease() end
+    function self:handleRightPress()
+        self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    function self:handleRightDrag()
+        self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    function self:handleRightRelease()
+        self.boxSelect:makeSelection()
+    end
     function self:handleMouseWheel()
         local mouse = self.GUI.mouse
         local xSensitivity = 55.0
@@ -361,6 +370,7 @@ function PitchEditor:new(parameters)
         end
     end
 
+    local previousTakePointer = self.take.pointer
     function self:update()
         local GUI = self.GUI
         local mouse = self.GUI.mouse
@@ -368,6 +378,11 @@ function PitchEditor:new(parameters)
         local mouseMiddleButton = mouse.middleButton
         local mouseRightButton = mouse.rightButton
         local pitchAnalyzer = self.take.pitchAnalyzer
+        local takePointer = self.take.pointer
+
+        if takePointer ~= previousTakePointer then
+            pitchAnalyzer:loadPointsFromTakeFile()
+        end
 
         if self.fixErrorMode then
             self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(pitchAnalyzer.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
@@ -385,11 +400,15 @@ function PitchEditor:new(parameters)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
-        pitchAnalyzer:analyzePitch()
-        pitchAnalyzer:sortPoints()
-        self:updatePointCoordinates(pitchAnalyzer.points)
+        if takePointer ~= nil then
+            if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
+            pitchAnalyzer:analyzePitch()
+            pitchAnalyzer:sortPoints()
+            self:updatePointCoordinates(pitchAnalyzer.points)
+        end
+
         self.shouldRedraw = true
+        previousTakePointer = takePointer
     end
     function self:drawKeyBackgrounds()
         local pitchHeight = self.pitchHeight
@@ -433,6 +452,7 @@ function PitchEditor:new(parameters)
         end
     end
     function self:drawEdges()
+        if self.take.pointer == nil then return end
         local width = self.width
         local height = self.height
 
@@ -465,6 +485,7 @@ function PitchEditor:new(parameters)
         end
     end
     function self:drawPitchPoints()
+        if self.take.pointer == nil then return end
         local points = self.take.pitchAnalyzer.points
         local drawRectangle = self.drawRectangle
         local drawLine = self.drawLine
@@ -533,6 +554,7 @@ function PitchEditor:new(parameters)
     for k, v in pairs(parameters) do self[k] = v end
     self.view.x.scale = self.width
     self.view.y.scale = self.editorHeight
+    self.take.pitchAnalyzer:loadPointsFromTakeFile()
     return self
 end
 
