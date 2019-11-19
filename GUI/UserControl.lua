@@ -262,6 +262,8 @@ function Mouse:new(parameters)
         right = MouseButton:new{ mouse = self, bitValue = 2 }
     }
 
+    function self:getWidgets(widgets) return _widgets end
+    function self:setWidgets(widgets) _widgets = widgets end
     function self:getLeftButton() return _buttons.left end
     function self:getMiddleButton() return _buttons.middle end
     function self:getRightButton() return _buttons.right end
