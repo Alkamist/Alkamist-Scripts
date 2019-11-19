@@ -146,10 +146,21 @@ function PitchCorrectedTake:new(parameters)
     local parameters = parameters or {}
     local self = Take:new(parameters)
 
-    self.pitchAnalyzer = PitchAnalyzer:new{ take = self }
-    self.pitchCorrections = TimeSeries:new()
+    local _pitchAnalyzer = PitchAnalyzer:new{ pointer = parameters.pointer }
+    --local _pitchCorrections = TimeSeries:new()
 
-    function self:correctAllPitchPoints()
+    local _takeSetPointer = self.setPointer
+    function self:setPointer(pointer)
+        _takeSetPointer(self, pointer)
+        _pitchAnalyzer:setTakePointer(pointer)
+    end
+    self.prepareToAnalyzePitch = _pitchAnalyzer.prepareToAnalyzePitch
+    self.analyzePitch = _pitchAnalyzer.analyzePitch
+    self.updatePointRealTimes = _pitchAnalyzer.updatePointRealTimes
+    self.loadPitchPoints = _pitchAnalyzer.loadPoints
+    self.loadPitchPointsFromTakeFile = _pitchAnalyzer.loadPointsFromTakeFile
+
+    --[[function self:correctAllPitchPoints()
         self:clearPitchEnvelope()
         local corrections = self.pitchCorrections.points
         local pitchPoints = self.pitchAnalyzer.points
@@ -172,9 +183,8 @@ function PitchCorrectedTake:new(parameters)
         point.driftCorrection = point.driftCorrection or defaultDriftCorrection
         point.modCorrection = point.modCorrection or defaultModCorrection
         self.pitchCorrections.points[#self.pitchCorrections.points + 1] = point
-    end
+    end]]--
 
-    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

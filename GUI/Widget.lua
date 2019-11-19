@@ -1,11 +1,6 @@
 local reaper = reaper
-
 local math = math
-local mathMax = math.max
-
 local table = table
-local tableInsert = table.insert
-
 local gfx = gfx
 local gfxSet = gfx.set
 local gfxRect = gfx.rect
@@ -19,93 +14,120 @@ local gfxDrawStr = gfx.drawstr
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
-local Proxy = require("Proxy")
 local Toggle = require("GUI.Toggle")
-
-local function generateAbsoluteCoordinateGetterAndSetter(coordinateName)
-    return {
-        get = function(self)
-            local parentWidget = self.parentWidget
-            local absolute = self[coordinateName]
-            while true do
-                if parentWidget then
-                    absolute = absolute + parentWidget[coordinateName]
-                    parentWidget = parentWidget.parentWidget
-                else break end
-            end
-            return absolute
-        end,
-        set = function(self, value)
-            local parentWidget = self.parentWidget
-            local relative = value
-            while true do
-                if parentWidget then
-                    relative = relative - parentWidget[coordinateName]
-                    parentWidget = parentWidget.parentWidget
-                else break end
-            end
-            self[coordinateName] = relative
-        end
-    }
-end
 
 local Widget = {}
 function Widget:new(parameters)
     local parameters = parameters or {}
-    local self = Proxy:new()
+    local self = parameters.fromObject or {}
 
-    self.GUI = { get = function(self) return GUI end }
-    self.relativeMouseX = { get = function(self) return self.GUI.mouse.x - self.absoluteX end }
-    self.previousRelativeMouseX = { get = function(self) return self.GUI.mouse.previousX - self.absoluteX end }
-    self.relativeMouseY = { get = function(self) return self.GUI.mouse.y - self.absoluteY end }
-    self.previousRelativeMouseY = { get = function(self) return self.GUI.mouse.previousY - self.absoluteY end }
-    self.keyboard = { get = function(self) return self.GUI.keyboard end }
-    self.widgets = {
-        value = {},
-        get = function(self, field) return field.value end,
-        set = function(self, value, field)
-            for i = 1, #value do
-                value[i].parentWidget = self
-            end
-            field.value = value
+    local _x = parameters.x or 0
+    local _y = parameters.y or 0
+    local _width = parameters.width or 0
+    local _height = parameters.height or 0
+    local _childWidgets = {}
+    local _shouldDrawDirectly = parameters.shouldDrawDirectly
+    local _shouldRedraw = true
+    local _shouldClear = false
+    local _visibilityState = Toggle:new{ state = true, previousState = true }
+    local _parentWidget = nil
+    local _drawBuffer = -1
+    local _keyboard = GUI:getKeyboard()
+    local _mouse = GUI:getMouse()
+
+    function self:getGUI() return GUI end
+    function self:getKeyboard() return _keyboard end
+    function self:getMouse() return _mouse end
+    function self:getParentWidget() return _parentWidget end
+    function self:setParentWidget(value) _parentWidget = value end
+    function self:getChildWidgets() return _childWidgets end
+    function self:setChildWidgets(value)
+        _childWidgets = value
+        for i = 1, #_childWidgets do
+            _childWidgets[i]:setParentWidget(self)
         end
-    }
-    self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
-    self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
-    self.x = 0
-    self.y = 0
-    self.width = 0
-    self.height = 0
-    self.shouldDrawDirectly = false
-    self.shouldRedraw = true
-    self.shouldClear = false
-    self.mouseWasPressedInside = false
-    self.visibilityState = Toggle:new{ currentState = true, previousState = true }
-    self.isVisible = {
-        get = function(self) return self.visibilityState.currentState end,
-        set = function(self, value) self.visibilityState.currentState = value end
-    }
-
+    end
+    function self:getX() return _x end
+    function self:setX(value) _x = value end
+    function self:getY() return _y end
+    function self:setY(value) _y = value end
+    function self:getWidth() return _width end
+    function self:setWidth(value) _width = value end
+    function self:getHeight() return _height end
+    function self:setHeight(value) _height = value end
+    function self:getAbsoluteX()
+        local parentWidget = _parentWidget
+        local absolute = _x
+        while true do
+            if parentWidget then
+                absolute = absolute + parentWidget:getX()
+                parentWidget = parentWidget:getParentWidget()
+            else break end
+        end
+        return absolute
+    end
+    function self:setAbsoluteX(value)
+        local parentWidget = _parentWidget
+        local relative = value
+        while true do
+            if parentWidget then
+                relative = relative - parentWidget:getX()
+                parentWidget = parentWidget:getParentWidget()
+            else break end
+        end
+        self:setX(relative)
+    end
+    function self:getAbsoluteY()
+        local parentWidget = _parentWidget
+        local absolute = _y
+        while true do
+            if parentWidget then
+                absolute = absolute + parentWidget:getY()
+                parentWidget = parentWidget:getParentWidget()
+            else break end
+        end
+        return absolute
+    end
+    function self:setAbsoluteY(value)
+        local parentWidget = _parentWidget
+        local relative = value
+        while true do
+            if parentWidget then
+                relative = relative - parentWidget:getY()
+                parentWidget = parentWidget:getParentWidget()
+            else break end
+        end
+        self:setY(relative)
+    end
+    function self:getRelativeMouseX() return _mouse:getX() - self:getAbsoluteX() end
+    function self:getRelativeMouseY() return _mouse:getY() - self:getAbsoluteY() end
+    function self:isVisible() return _visibilityState:getState() end
+    function self:setVisibility(value) _visibilityState:setState(value) end
+    function self:toggleVisibility() _visibilityState:toggle() end
+    function self:hide() _visibilityState:setState(false) end
+    function self:show() _visibilityState:setState(true) end
+    function self:queueRedraw() _shouldRedraw = true end
+    function self:queueClear() _shouldClear = true end
     function self:pointIsInside(pointX, pointY)
-        local x = self.absoluteX
-        local y = self.absoluteY
-        local width = self.width
-        local height = self.height
-        local parentWidget = self.parentWidget
+        local x = self:getAbsoluteX()
+        local y = self:getAbsoluteY()
+        local width = _width
+        local height = _height
+        local parentWidget = _parentWidget
         local isInsideParent = true
         if parentWidget and not parentWidget:pointIsInside(pointX, pointY) then
             isInsideParent = false
         end
         if pointX and pointY then
             return isInsideParent
-                and pointX >= x and pointX <= x + width
-                and pointY >= y and pointY <= y + height
+               and pointX >= x and pointX <= x + width
+               and pointY >= y and pointY <= y + height
         end
     end
     function self:clearBuffer()
-        local drawBuffer = self.drawBuffer
-        local width = self.width
-        local height = self.height
+        local drawBuffer = _drawBuffer
+        local width = _width
+        local height = _height
         gfx.setimgdim(drawBuffer, -1, -1)
         gfx.setimgdim(drawBuffer, width, height)
     end
@@ -113,29 +135,27 @@ function Widget:new(parameters)
         local mode = color[5] or 0
         gfxSet(color[1], color[2], color[3], color[4], mode)
     end
-    function self:setBlendMode(mode)
-        gfx.mode = mode
-    end
+    function self:setBlendMode(mode) gfx.mode = mode end
     function self:drawRectangle(x, y, w, h, filled)
-        if self.shouldDrawDirectly then
-            x = x + self.x
-            y = y + self.y
+        if _shouldDrawDirectly then
+            x = x + _x
+            y = y + _y
         end
         gfxRect(x, y, w, h, filled)
     end
     function self:drawLine(x, y, x2, y2, antiAliased)
-        if self.shouldDrawDirectly then
-            x = x + self.x
-            y = y + self.y
-            x2 = x2 + self.x
-            y2 = y2 + self.y
+        if _shouldDrawDirectly then
+            x = x + _x
+            y = y + _y
+            x2 = x2 + _x
+            y2 = y2 + _y
         end
         gfxLine(x, y, x2, y2, antiAliased)
     end
     function self:drawCircle(x, y, r, filled, antiAliased)
-        if self.shouldDrawDirectly then
-            x = x + self.x
-            y = y + self.y
+        if _shouldDrawDirectly then
+            x = x + _x
+            y = y + _y
         end
         gfxCircle(x, y, r, filled, antiAliased)
     end
@@ -147,8 +167,8 @@ function Widget:new(parameters)
 
             -- Duplicate the first pair at the end, so the last line will
             -- be drawn back to the starting point.
-            tableInsert(coords, coords[1])
-            tableInsert(coords, coords[2])
+            table.insert(coords, coords[1])
+            table.insert(coords, coords[2])
 
             -- Draw a line from each pair of coords to the next pair.
             for i = 1, #coords - 2, 2 do
@@ -157,14 +177,14 @@ function Widget:new(parameters)
         end
     end]]--
     function self:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-        if self.shouldDrawDirectly then
-            x = x + self.x
-            y = y + self.y
+        if _shouldDrawDirectly then
+            x = x + _x
+            y = y + _y
         end
         local aa = antiAliased or 1
         filled = filled or 0
-        w = mathMax(0, w - 1)
-        h = mathMax(0, h - 1)
+        w = math.max(0, w - 1)
+        h = math.max(0, h - 1)
 
         if filled == 0 or false then
             gfxRoundRect(x, y, w, h, r, aa)
@@ -194,18 +214,14 @@ function Widget:new(parameters)
             end
         end
     end
-    function self:setFont(font, size, flags)
-        gfxSetFont(1, font, size)
-    end
-    function self:measureString(str)
-        return gfxMeasureStr(str)
-    end
+    function self:setFont(font, size, flags) gfxSetFont(1, font, size) end
+    function self:measureString(str) return gfxMeasureStr(str) end
     function self:drawString(str, x, y, flags, right, bottom)
-        if self.shouldDrawDirectly then
-            x = x + self.x
-            y = y + self.y
-            right = right + self.x
-            bottom = bottom + self.y
+        if _shouldDrawDirectly then
+            x = x + _x
+            y = y + _y
+            right = right + _x
+            bottom = bottom + _y
         end
         gfx.x = x
         gfx.y = y
@@ -217,25 +233,25 @@ function Widget:new(parameters)
     end
 
     function self:doBeginUpdate()
-        local childWidgets = self.widgets
+        local childWidgets = _childWidgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doBeginUpdate()
             end
         end
 
-        self.visibilityState:update()
+        _visibilityState:update()
         if self.beginUpdate then self:beginUpdate() end
     end
     function self:doUpdate()
-        local childWidgets = self.widgets
+        local childWidgets = _childWidgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doUpdate()
             end
         end
 
-        local char = self.GUI.keyboard.currentCharacter
+        local char = _keyboard:getCurrentCharacter()
         local keyPressFunctions = self.keyPressFunctions
         if type(keyPressFunctions) == "table" then
             local keyPressFunction = keyPressFunctions[char]
@@ -244,59 +260,59 @@ function Widget:new(parameters)
         if self.update then self:update() end
     end
     function self:doDrawToBuffer()
-        local childWidgets = self.widgets
+        local childWidgets = _childWidgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doDrawToBuffer()
             end
         end
 
-        if not self.shouldDrawDirectly then
-            if self.shouldRedraw and self.draw then
+        if not _shouldDrawDirectly then
+            if _shouldRedraw and self.draw then
                 self:clearBuffer()
                 gfx.a = 1.0
                 gfx.mode = 0
-                gfx.dest = self.drawBuffer
+                gfx.dest = _drawBuffer
                 self:draw()
-                self.shouldRedraw = false
-            elseif self.shouldClear then
+                _shouldRedraw = false
+            elseif _shouldClear then
                 self:clearBuffer()
-                self.shouldClear = false
+                _shouldClear = false
             end
         end
     end
     function self:doDrawToParent()
-        if self.isVisible then
-            local childWidgets = self.widgets
+        if self:isVisible() then
+            local childWidgets = _childWidgets
             if childWidgets then
                 for i = 1, #childWidgets do
                     childWidgets[i]:doDrawToParent()
                 end
             end
 
-            local parentWidget = self.parentWidget
+            local parentWidget = _parentWidget
             if parentWidget then
-                gfx.dest = parentWidget.drawBuffer
+                gfx.dest = parentWidget:getDrawBuffer()
             else
                 gfx.dest = -1
             end
             gfx.a = 1.0
             gfx.mode = 0
             if self.draw then
-                if self.shouldDrawDirectly then
+                if _shouldDrawDirectly then
                     self:draw()
                 else
-                    local x = self.x
-                    local y = self.y
-                    local width = self.width
-                    local height = self.height
-                    gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+                    local x = _x
+                    local y = _y
+                    local width = _width
+                    local height = _height
+                    gfx.blit(_drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
                 end
             end
         end
     end
     function self:doEndUpdate()
-        local childWidgets = self.widgets
+        local childWidgets = _childWidgets
         if childWidgets then
             for i = 1, #childWidgets do
                 childWidgets[i]:doEndUpdate()
@@ -306,11 +322,8 @@ function Widget:new(parameters)
         if self.endUpdate then self:endUpdate() end
     end
 
-    for k, v in pairs(parameters) do self[k] = v end
-    if self.shouldDrawDirectly then
-        self.drawBuffer = -1
-    else
-        self.drawBuffer = self.GUI:getNewDrawBuffer()
+    if not _shouldDrawDirectly then
+        _drawBuffer = GUI:getNewDrawBuffer()
     end
     return self
 end

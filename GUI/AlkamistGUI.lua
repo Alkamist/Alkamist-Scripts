@@ -86,17 +86,13 @@ function gui:run()
     local char = keyboard:getCurrentCharacter()
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    --if char then msg(char) end
-    --local mouse = gui:getMouse()
-    --local leftButton = mouse:getLeftButton()
-    --if leftButton:justStoppedDragging() then msg("left") end
-
-    --local numberOfWidgets = #_widgets
-    --for i = 1, numberOfWidgets do _widgets[i]:doBeginUpdate() end
-    --for i = 1, numberOfWidgets do _widgets[i]:doUpdate() end
-    --for i = 1, numberOfWidgets do _widgets[i]:doDrawToBuffer() end
-    --for i = 1, numberOfWidgets do _widgets[i]:doDrawToParent() end
-    --for i = 1, numberOfWidgets do _widgets[i]:doEndUpdate() end
+    local widgets = gui:getWidgets()
+    local numberOfWidgets = #widgets
+    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToBuffer() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
+    for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(gui.run) end
     gfx.update()

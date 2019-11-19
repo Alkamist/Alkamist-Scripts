@@ -6,7 +6,6 @@ local io = io
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Json = require("dkjson")
-local Proxy = require("Proxy")
 
 local function arrayRemove(t, fn)
     local n = #t
@@ -28,20 +27,27 @@ end
 local TimeSeries = {}
 function TimeSeries:new(parameters)
     local parameters = parameters or {}
-    local self = Proxy:new()
+    local self = parameters.fromObject or {}
 
-    self.leftBound = 0
-    self.rightBound = 0
-    self.points = {}
+    local _points = {}
 
+    function self:getPoints()
+        return _points
+    end
+    function self:insertPoint(point)
+        _points[#_points + 1] = point
+    end
+    function self:clearAllPoints()
+        _points = {}
+    end
     function self:sortPoints()
-        local points = self.points
+        local points = _points
         table.sort(points, function(left, right)
             return left.time < right.time
         end)
     end
     function self:clearPointsWithinTimeRange(leftTime, rightTime)
-        local points = self.points
+        local points = _points
         arrayRemove(points, function(i, j)
             return points[i].time >= leftTime and points[i].time <= rightTime
         end)
@@ -49,7 +55,7 @@ function TimeSeries:new(parameters)
     function self:removeDuplicatePoints(tolerance)
         local tolerance = tolerance or 0.0001
         local newPoints = {}
-        local points = self.points
+        local points = _points
         for i = 1, #points do
             local point = points[i]
             local pointIsDuplicate = false
@@ -62,15 +68,13 @@ function TimeSeries:new(parameters)
                 newPoints[#newPoints + 1] = point
             end
         end
-        self.points = newPoints
+        _points = newPoints
     end
     function self:encodeAsString(pointMembers)
-        local points = self.points
+        local points = _points
         local numberOfPoints = #points
         local numberOfMembers = #pointMembers
         local saveTable = {
-            leftBound = self.leftBound,
-            rightBound = self.rightBound,
             numberOfPoints = numberOfPoints,
             points = {}
         }
@@ -87,10 +91,8 @@ function TimeSeries:new(parameters)
         return Json.encode(saveTable, { indent = true })
     end
     function self:decodeFromString(stringToDecode, pointMembers)
+        _points = {}
         local decodedTable = Json.decode(stringToDecode)
-        self.leftBound = decodedTable.leftBound
-        self.rightBound = decodedTable.rightBound
-        self.points = {}
         local numberOfPoints = decodedTable.numberOfPoints
         for name, defaultValue in pairs(pointMembers) do
             for i = 1, numberOfPoints do
@@ -101,8 +103,8 @@ function TimeSeries:new(parameters)
                     if value == nil then value = defaultValue end
                     if value == nil then value = 0 end
                 end
-                self.points[i] = self.points[i] or {}
-                self.points[i][name] = value
+                _points[i] = _points[i] or {}
+                _points[i][name] = value
             end
         end
     end
@@ -126,7 +128,6 @@ function TimeSeries:new(parameters)
         end
     end
 
-    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 
