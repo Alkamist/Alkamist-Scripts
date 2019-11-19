@@ -151,7 +151,7 @@ function PitchCorrectedTake:new(parameters)
 
     function self:correctAllPitchPoints()
         self:clearPitchEnvelope()
-        local corrections = self.pitchCorrections
+        local corrections = self.pitchCorrections.points
         local pitchPoints = self.pitchAnalyzer.points
         local envelope = self.pitchEnvelope
         local playRate = self.playRate
@@ -171,7 +171,7 @@ function PitchCorrectedTake:new(parameters)
         point.driftTime = point.driftTime or defaultDriftTime
         point.driftCorrection = point.driftCorrection or defaultDriftCorrection
         point.modCorrection = point.modCorrection or defaultModCorrection
-        self.pitchCorrections[#self.pitchCorrections + 1] = point
+        self.pitchCorrections.points[#self.pitchCorrections.points + 1] = point
     end
 
     for k, v in pairs(parameters) do self[k] = v end

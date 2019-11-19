@@ -162,6 +162,41 @@ local function getIndexOfPointOrSegmentClosestToPointWithinDistance(points, x, y
     end
     return index, indexIsPoint
 end
+local function drawPolyLine(parameters)
+    local points = parameters.points
+    local drawLineFunction = parameters.drawLineFunction
+    local drawPointFunction = parameters.drawPointFunction
+    local setColorFunction = parameters.setColorFunction
+    local shouldDrawLineFunction = parameters.shouldDrawLineFunction
+    local shouldDrawPointFunction = parameters.shouldDrawPointFunction
+    local shouldGlowLineFunction = parameters.shouldGlowLineFunction
+    local shouldGlowPointFunction = parameters.shouldGlowPointFunction
+    local lineColor = parameters.lineColor
+    local pointColor = parameters.pointColor
+    local glowColor = { 1.0, 1.0, 1.0, 0.3, 1 }
+    for i = 1, #points do
+        local shouldDrawLine = shouldDrawLineFunction(i, points)
+        local shouldDrawPoint = shouldDrawPointFunction(i, points)
+        local shouldGlowLine = shouldGlowLineFunction(i, points)
+        local shouldGlowPoint = shouldGlowPointFunction(i, points)
+        if shouldDrawLine then
+            setColorFunction(lineColor)
+            drawLineFunction(i, points)
+            if shouldGlowLine then
+                setColorFunction(glowColor)
+                drawLineFunction(i, points)
+            end
+        end
+        if shouldDrawPoint then
+            setColorFunction(pointColor)
+            drawPointFunction(i, points)
+            if shouldGlowPoint then
+                setColorFunction(glowColor)
+                drawPointFunction(i, points)
+            end
+        end
+    end
+end
 
 local PitchEditor = {}
 function PitchEditor:new(parameters)
@@ -173,12 +208,14 @@ function PitchEditor:new(parameters)
     self.editorVerticalOffset = 25
     self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
 
-    self.take = PitchCorrectedTake:new{ pointer = {
-        get = function(self)
-            local selectedItem = reaper.GetSelectedMediaItem(0, 0)
-            if selectedItem then return reaper.GetActiveTake(selectedItem) end
-        end
-    } }
+    self.take = PitchCorrectedTake:new{
+        pointer = {
+            get = function(self)
+                local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+                if selectedItem then return reaper.GetActiveTake(selectedItem) end
+            end
+        }
+    }
     self.timeLength = {
         get = function(self)
             local length = self.take.length
@@ -241,7 +278,7 @@ function PitchEditor:new(parameters)
     self.mousePitchOnLeftDown = 0.0
     self.snappedMousePitchOnLeftDown = 0.0
     self.altKeyWasDownOnPointEdit = false
-    self.enablePitchCorrections = true
+    self.enablePitchCorrections = { get = function(self) return self.fixErrorMode end }
     self.mouseIsOverPitchPoint = false
     self.mouseOverPitchPointIndex = nil
 
@@ -311,6 +348,17 @@ function PitchEditor:new(parameters)
             end
         end
     end
+    function self:insertPitchCorrectionPoint(point)
+        if not self.enablePitchCorrections then return end
+        self.take:insertPitchCorrectionPoint{
+            x = self:timeToPixels(point.time),
+            y = self:pitchToPixels(point.pitch),
+            time = point.time,
+            pitch = point.pitch,
+            isSelected = point.isSelected,
+            isActive = point.isActive
+        }
+    end
 
     self.keyPressFunctions = {
         ["Delete"] = function(self)
@@ -338,6 +386,26 @@ function PitchEditor:new(parameters)
                     self:moveSelectedPitchPointsPitchesBy(1.0)
                 end
             end
+        end,
+        ["s"] = function(self)
+            if not self.enablePitchCorrections then return end
+            self:insertPitchCorrectionPoint{
+                time = self.mouseTime,
+                pitch = self.snappedMousePitch,
+                isActive = false,
+                isSelected = false
+            }
+            --self.take:correctAllPitchPoints()
+        end,
+        ["d"] = function(self)
+            if not self.enablePitchCorrections then return end
+            self:insertPitchCorrectionPoint{
+                time = self.mouseTime,
+                pitch = self.snappedMousePitch,
+                isActive = true,
+                isSelected = false
+            }
+            --self.take:correctAllPitchPoints()
         end
     }
     function self:handleWindowResize()
@@ -443,6 +511,7 @@ function PitchEditor:new(parameters)
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
         if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
+        self.take.pitchCorrections:sortPoints()
         if takePointer ~= nil then
             if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
             pitchAnalyzer:analyzePitch()
@@ -529,62 +598,75 @@ function PitchEditor:new(parameters)
     end
     function self:drawPitchPoints()
         if self.take.pointer == nil then return end
-        local points = self.take.pitchAnalyzer.points
-        local drawRectangle = self.drawRectangle
-        local drawLine = self.drawLine
-        local setColor = self.setColor
-        local pointColor = self.pitchPointColor
-        local lineColor = self.pitchLineColor
-        local correctedLineColor = self.correctedPitchLineColor
-        local mouseOverLineColor = self.pitchLineMouseOverColor
-        local correctedPointColor = self.correctedPitchPointColor
-        local mouseOverPointColor = self.pitchPointMouseOverColor
-        local pitchToPixels = self.pitchToPixels
-        local abs = math.abs
+
         local fixErrorMode = self.fixErrorMode
         local mouseOverIndex = self.mouseOverPitchPointIndex
         local mouseIsOverPoint = self.mouseIsOverPitchPoint
-        local selectedColor = { 1.0, 1.0, 1.0, 0.3, 1 }
-        for i = 1, #points do
+        local drawLine = self.drawLine
+        local drawRectangle = self.drawRectangle
+        local pointSize = 3
+        local halfPointSize = math.floor(pointSize * 0.5)
+        local emptyFunction = function(i, points) end
+
+        local drawParameters = {
+            points = self.take.pitchAnalyzer.points,
+            lineColor = self.pitchLineColor,
+            pointColor = self.pitchPointColor,
+            drawPointFunction = emptyFunction,
+            shouldGlowLineFunction = emptyFunction,
+            shouldGlowPointFunction = emptyFunction,
+            drawLineFunction = function(i, points)
+                if not fixErrorMode then
+                    local point = points[i]
+                    local nextPoint = points[i + 1]
+                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                end
+            end,
+            setColorFunction = function(color)
+                self:setColor(color)
+            end,
+            shouldDrawLineFunction = function(i, points)
+                local point = points[i]
+                local nextPoint = points[i + 1]
+                return nextPoint and math.abs(nextPoint.time - point.time) < 0.1
+            end,
+            shouldDrawPointFunction = function(i, points)
+                return true
+            end
+        }
+
+        drawPolyLine(drawParameters)
+
+        drawParameters.lineColor = self.correctedPitchLineColor
+        drawParameters.pointColor = self.correctedPitchPointColor
+        drawParameters.drawLineFunction = function(i, points)
             local point = points[i]
             local nextPoint = points[i + 1]
-            local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
-
             if fixErrorMode then
-                if shouldDrawLine then
-                    if mouseOverIndex == i and not mouseIsOverPoint then
-                        setColor(self, mouseOverLineColor)
-                    else
-                        setColor(self, correctedLineColor)
-                    end
-                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
-                end
-                if mouseOverIndex == i and mouseIsOverPoint then
-                    setColor(self, mouseOverPointColor)
-                else
-                    setColor(self, correctedPointColor)
-                end
-                drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-                if point.isSelected then
-                    setColor(self, selectedColor)
-                    drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-                end
+                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
             else
-                if shouldDrawLine then
-                    setColor(self, lineColor)
-                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
-                end
-                setColor(self, pointColor)
-                drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-
-                if shouldDrawLine then
-                    setColor(self, correctedLineColor)
-                    drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
-                end
-                setColor(self, correctedPointColor)
-                drawRectangle(self, point.x - 1, point.correctedY - 1, 3, 3, true)
+                drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
             end
         end
+        drawParameters.drawPointFunction = function(i, points)
+            local point = points[i]
+            if fixErrorMode then
+                drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
+            else
+                drawRectangle(self, point.x - halfPointSize, point.correctedY - halfPointSize, pointSize, pointSize, true)
+            end
+        end
+        drawParameters.shouldGlowLineFunction = function(i, points)
+            local glowMouseOver = mouseOverIndex == i and not mouseIsOverPoint
+            return glowMouseOver
+        end
+        drawParameters.shouldGlowPointFunction = function(i, points)
+            local glowMouseOver = mouseOverIndex == i and mouseIsOverPoint
+            local glowSelection = points[i].isSelected and fixErrorMode
+            return glowMouseOver or glowSelection
+        end
+
+        drawPolyLine(drawParameters)
     end
     function self:draw()
         self:setColor(self.backgroundColor)

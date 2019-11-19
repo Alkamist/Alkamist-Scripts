@@ -1,23 +1,22 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
-
 local TrackedNumber = {}
 
 function TrackedNumber:new(parameters)
     local parameters = parameters or {}
-    local self = Proxy:new()
+    local self = parameters.fromObject or {}
 
-    self.currentValue = 0
-    self.previousValue = 0
-    self.justChanged = { get = function(self) return self.currentValue ~= self.previousValue end }
-    self.change = { get = function(self) return self.currentValue - self.previousValue end }
+    local _currentValue = parameters.value or 0
+    local _previousValue = parameters.previousValue or 0
 
+    function self:getValue() return _currentValue end
+    function self:setValue(value) _currentValue = value end
+    function self:getPreviousValue() return _previousValue end
+    function self:getChange() return _currentValue - _previousValue end
+    function self:justChanged() return _currentValue ~= _previousValue end
     function self:update(value)
-        self.previousValue = self.currentValue
-        if value ~= nil then self.currentValue = value end
+        _previousValue = _currentValue
+        if value ~= nil then _currentValue = value end
     end
 
-    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 
