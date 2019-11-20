@@ -14,7 +14,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 --end
 
 local GUI = require("GUI.AlkamistGUI")
---local Button = require("GUI.Button")
+local Button = require("GUI.Button")
 
 GUI:initialize{
     title = "Alkamist Pitch Correction",
@@ -26,14 +26,14 @@ GUI:initialize{
 }
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
---local test1 = Button:new{
---    x = 100,
---    y = 100,
---    width = 80,
---    height = 25,
---    label = "Fix Errors",
---    --toggleOnClick = true
---}
+local test1 = Button:new{
+    x = 100,
+    y = 100,
+    width = 80,
+    height = 25,
+    label = "Fix Errors",
+    --toggleOnClick = true
+}
 
---GUI:setWidgets{ test1 }
+GUI.widgets = { test1 }
 GUI:run()

@@ -3,6 +3,7 @@ local math = math
 local table = table
 local type = type
 local pairs = pairs
+local ipairs = ipairs
 local gfx = gfx
 local gfxSet = gfx.set
 local gfxRect = gfx.rect
@@ -15,6 +16,7 @@ local gfxMeasureStr = gfx.measurestr
 local gfxDrawStr = gfx.drawstr
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Proxy = require("Proxy")
 local GUI = require("GUI.AlkamistGUI")
 
 local function generateAbsoluteCoordinateGetterAndSetter(coordinateName)
@@ -48,6 +50,7 @@ local Widget = {}
 function Widget:new(object)
     local self = Proxy:new(self)
 
+    self.GUI = GUI
     self.x = 0
     self.y = 0
     self.width = 0
@@ -60,14 +63,16 @@ function Widget:new(object)
     self.shouldDrawDirectly = false
     self.previousRelativeMouseX = 0
     self.previousRelativeMouseY = 0
-    self.relativeMouseX = { get = function(self) return self.mouseX - self.absoluteX end }
-    self.relativeMouseY = { get = function(self) return self.mouseY - self.absoluteY end }
+    self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
+    self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
+    self.relativeMouseX = { get = function(self) return self.GUI.mouseX - self.absoluteX end }
+    self.relativeMouseY = { get = function(self) return self.GUI.mouseY - self.absoluteY end }
     self.childWidgets = {
         value = {},
         set = function(self, value, field)
             if type(value) ~= "table" then return end
-            for i = 1, #value do
-                value[i]:setParentWidget(self)
+            for _, widget in ipairs(value) do
+                widget:setParentWidget(self)
             end
             field.value = value
         end
@@ -86,6 +91,8 @@ function Widget:new(object)
     return self
 end
 
+function Widget:queueRedraw() self.shouldRedraw = true end
+function Widget:queueClear() self.shouldClear = true end
 function Widget:hide() self.isVisible = false end
 function Widget:show() self.isVisible = true end
 function Widget:pointIsInside(pointX, pointY)

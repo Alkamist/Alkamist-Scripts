@@ -169,7 +169,7 @@ local GUI = Proxy:new()
 
 local MouseControl = {}
 function MouseControl:new()
-    local self = Proxy:new(MouseControl)
+    local self = Proxy:new(self)
 
     self.wasPressedInsideWidget = {}
     self.isPressed = false
