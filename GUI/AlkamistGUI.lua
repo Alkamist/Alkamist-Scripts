@@ -160,9 +160,7 @@ local characterTable = {
 }
 local characterTableInverted = invertTable(characterTable)
 
-local Mouse = Proxy:new()
-local widgets = {}
-local currentCharacter = nil
+local GUI = Proxy:new()
 
 local MouseControl = {}
 function MouseControl:new(object)
@@ -256,29 +254,6 @@ local function KeyboardKey(character)
     return self
 end
 
-local mouseLeftButton = MouseButton(1)
-local mouseMiddleButton = MouseButton(64)
-local mouseRightButton = MouseButton(2)
-local shiftKey = MouseButton(8)
-local controlKey = MouseButton(4)
-local windowsKey = MouseButton(32)
-local altKey = MouseButton(16)
-local keyboardKeys = {}
-
-Mouse.x = 0
-Mouse.previousX = 0
-Mouse.xChange = { get = function(self) return self.x - self.previousX end }
-Mouse.xJustChanged = { get = function(self) return self.x ~= self.previousX end }
-Mouse.y = 0
-Mouse.previousY = 0
-Mouse.yChange = { get = function(self) return self.y - self.previousY end }
-Mouse.yJustChanged = { get = function(self) return self.y ~= self.previousY end }
-Mouse.justMoved = { get = function(self) return self.xJustChanged or self.yJustChanged end }
-Mouse.cap = 0
-Mouse.wheel = 0
-Mouse.wheelJustMoved = { get = function(self) return self.wheel ~= 0 end }
-Mouse.hWheel = 0
-Mouse.hWheelJustMoved = { get = function(self) return self.hWheel ~= 0 end }
 function Mouse:isInsideWidget(widget) return widget:pointIsInside(self.x, self.y) end
 function Mouse:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self.previousX, self.previousY) end
 function Mouse:justEnteredWidget(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInsideWidget(widget) end
@@ -293,12 +268,10 @@ function Mouse:update()
     gfx.mouse_wheel = 0
     self.hWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
-    mouseLeftButton:update()
-    mouseMiddleButton:update()
-    mouseRightButton:update()
 end
 
-local Keyboard = {}
+local Keyboard = Proxy:new()
+
 
 function Keyboard:getCurrentCharacter() return currentCharacter end
 function Keyboard:getShiftKey() return shiftKey end
@@ -310,82 +283,99 @@ function Keyboard:createKey(character)
     keyboardKeys[character] = KeyboardKey(character)
 end
 function Keyboard:update()
-    shiftKey:update()
-    controlKey:update()
-    windowsKey:update()
-    altKey:update()
     for name, key in pairs(keyboardKeys) do key:update() end
     currentCharacter = characterTableInverted[gfx.getchar()]
 end
 
-local GUI = {}
-
-local _title = ""
-local _x = 0
-local _y = 0
-local _width = 0
-local _previousWidth = 0
-local _height = 0
-local _previousHeight = 0
-local _dock = 0
-local _backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
-local _bufferIsUsed = {}
-
-function GUI:getMouse() return Mouse end
-function GUI:getKeyboard() return Keyboard end
-function GUI:getWidgets() return widgets end
-function GUI:setWidgets(widgets)
-    for i = 1, #widgets do
-        widgets[i] = widgets[i]
+GUI.mouseX = 0
+GUI.previousMouseX = 0
+GUI.mouseXChange = { get = function(self) return self.mouseX - self.previousMouseX end }
+GUI.mouseXJustChanged = { get = function(self) return self.mouseX ~= self.previousMouseX end }
+GUI.mouseY = 0
+GUI.previousMouseY = 0
+GUI.yChange = { get = function(self) return self.mouseY - self.previousMouseY end }
+GUI.mouseYJustChanged = { get = function(self) return self.mouseY ~= self.previousMouseY end }
+GUI.mouseJustMoved = { get = function(self) return self.mouseXJustChanged or self.mouseYJustChanged end }
+GUI.mouseCap = 0
+GUI.mouseWheel = 0
+GUI.mouseWheelJustMoved = { get = function(self) return self.mouseWheel ~= 0 end }
+GUI.mouseHWheel = 0
+GUI.mouseHWheelJustMoved = { get = function(self) return self.mouseHWheel ~= 0 end }
+GUI.leftMouseButton = MouseButton(1)
+GUI.middleMouseButton = MouseButton(64)
+GUI.rightMouseButton = MouseButton(2)
+GUI.shiftKey = MouseButton(8)
+GUI.controlKey = MouseButton(4)
+GUI.windowsKey = MouseButton(32)
+GUI.altKey = MouseButton(16)
+GUI.keys = {}
+GUI.title = ""
+GUI.x = 0
+GUI.y = 0
+GUI.width = 0
+GUI.previousWidth = 0
+GUI.widthJustChanged = { get = function(self) return self.width ~= self.previousWidth end }
+GUI.widthChange = { get = function(self) return self.width - self.previousWidth end }
+GUI.height = 0
+GUI.previousHeight = 0
+GUI.heightJustChanged = { get = function(self) return self.height ~= self.previousHeight end }
+GUI.heightChange = { get = function(self) return self.height - self.previousHeight end }
+GUI.windowWasResized = { get = function(self) return self.heightJustChanged or self.widthJustChanged end }
+GUI.dock = 0
+GUI.backgroundColor = {
+    value = { 0.0, 0.0, 0.0, 1.0, 0 },
+    get = function(self, field) return field.value end,
+    set = function(self, value, field)
+        field.value = value
+        gfx.clear = value[1] * 255 + value[2] * 255 * 256 + value[3] * 255 * 65536
     end
-    Mouse:setWidgets(widgets)
-end
-function GUI:getX() return _x end
-function GUI:setX(value) _x = value end
-function GUI:getY() return _y end
-function GUI:setY(value) _y = value end
-function GUI:getWidth() return _width end
-function GUI:setWidth(value) _width = value end
-function GUI:getPreviousWidth() return _previousWidth end
-function GUI:getWidthChange() return _width - _previousWidth end
-function GUI:widthJustChanged() return _width ~= _previousWidth end
-function GUI:getHeight() return _height end
-function GUI:setHeight(value) _height = value end
-function GUI:getPreviousHeight() return _previousHeight end
-function GUI:getHeightChange() return _height - _previousHeight end
-function GUI:heightJustChanged() return _height ~= _previousHeight end
-function GUI:windowWasResized() return self:heightJustChanged() or self:widthJustChanged() end
+}
+GUI.bufferIsUsed = {}
+
 function GUI:getNewDrawBuffer()
     for i = 0, 1023 do
-        if not _bufferIsUsed[i] then
-            _bufferIsUsed[i] = true
+        if not bufferIsUsed[i] then
+            bufferIsUsed[i] = true
             return i
         end
     end
 end
-function GUI:setBackgroundColor(color)
-    _backgroundColor = color
-    gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
-end
 function GUI:initialize(parameters)
     local parameters = parameters or {}
-    _title = parameters.title or _title or ""
-    self:setX(parameters.x or self:getX() or 0)
-    self:setY(parameters.y or self:getY() or 0)
-    self:setWidth(parameters.width or self:getWidth() or 0)
-    self:setHeight(parameters.height or self:getHeight() or 0)
-    _dock = parameters.dock or _dock or 0
-    gfx.init(_title, self:getWidth(), self:getHeight(), _dock, self:getX(), self:getY())
+    self.title = parameters.title or self.title or ""
+    self.x = parameters.x or self.x or 0
+    self.y = parameters.y or self.y or 0
+    self.width = parameters.width or self.width  or 0
+    self.height = parameters.height or self.height or 0
+    self.dock = parameters.dock or self.dock or 0
+    gfx.init(self.title, self.width, self.height, self.dock, self.x, self.y)
 end
 function GUI:run()
-    _previousWidth = _width
-    _previousHeight = _height
-    _width = gfx.w
-    _height = gfx.h
-    Mouse:update()
-    Keyboard:update()
+    local self = GUI
+    self.previousWidth = self.width
+    self.previousHeight = self.height
+    self.width = gfx.w
+    self.height = gfx.h
+    self.previousMouseX = self.mouseX
+    self.previousMouseY = self.mouseY
+    self.mouseX = gfx.mouse_x
+    self.mouseY = gfx.mouse_y
+    self.mouseCap = gfx.mouse_cap
+    self.mouseWheel = gfx.mouse_wheel / 120
+    gfx.mouse_wheel = 0
+    self.mouseHWheel = gfx.mouse_hwheel / 120
+    gfx.mouse_hwheel = 0
+    self.mouseLeftButton:update()
+    self.mouseMiddleButton:update()
+    self.mouseRightButton:update()
+    self.shiftKey:update()
+    self.controlKey:update()
+    self.windowsKey:update()
+    self.altKey:update()
+    for name, key in pairs(self.keys) do key:update() end
+    local char = characterTableInverted[gfx.getchar()]
+    self.currentCharacter = char
 
-    local char = Keyboard:getCurrentCharacter()
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
     --local widgets = widgets
@@ -396,7 +386,7 @@ function GUI:run()
     --for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
     --for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
-    if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
+    if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
     gfx.update()
 end
 
