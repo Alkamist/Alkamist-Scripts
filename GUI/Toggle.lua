@@ -1,24 +1,26 @@
 local Toggle = {}
 
-function Toggle:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.fromObject or {}
+function Toggle:new(state)
+    local self = setmetatable({}, { __index = self })
 
-    local _currentState = parameters.state
-    local _previousState = parameters.previousState
-
-    function self:getState() return _currentState end
-    function self:setState(value) _currentState = value end
-    function self:toggle() _currentState = not _currentState end
-    function self:getPreviousState() return _previousState end
-    function self:justTurnedOn() return _currentState and not _previousState end
-    function self:justTurnedOff() return not _currentState and _previousState end
-    function self:update(state)
-        _previousState = _currentState
-        if state ~= nil then _currentState = state end
-    end
+    self:setState(state)
+    self:setPreviousState(state)
 
     return self
+end
+
+function Toggle:getState() return self._state end
+function Toggle:setState(value) self._state = value end
+function Toggle:getPreviousState() return self._previousState end
+function Toggle:setPreviousState(value) self._previousState = value end
+
+function Toggle:toggle() self:setState(not self:getState()) end
+function Toggle:justChanged() return self:getState() ~= self:getPreviousState() end
+function Toggle:justTurnedOn() return self:getState() and not self:getPreviousState() end
+function Toggle:justTurnedOff() return not self:getState() and self:getPreviousState() end
+function Toggle:update(state)
+    self:setPreviousState(self:getState())
+    if state ~= nil then self:setState(state) end
 end
 
 return Toggle

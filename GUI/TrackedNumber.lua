@@ -1,23 +1,24 @@
 local TrackedNumber = {}
 
-function TrackedNumber:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.fromObject or {}
+function TrackedNumber:new(value)
+    local self = setmetatable({}, { __index = self })
 
-    local _currentValue = parameters.value or 0
-    local _previousValue = parameters.previousValue or 0
-
-    function self:getValue() return _currentValue end
-    function self:setValue(value) _currentValue = value end
-    function self:getPreviousValue() return _previousValue end
-    function self:getChange() return _currentValue - _previousValue end
-    function self:justChanged() return _currentValue ~= _previousValue end
-    function self:update(value)
-        _previousValue = _currentValue
-        if value ~= nil then _currentValue = value end
-    end
+    self:setValue(value)
+    self:setPreviousValue(value)
 
     return self
+end
+
+function TrackedNumber:getValue() return self._value end
+function TrackedNumber:setValue(value) self._value = value end
+function TrackedNumber:getPreviousValue() return self._previousValue end
+function TrackedNumber:setPreviousValue(value) self._previousValue = value end
+
+function TrackedNumber:getChange() return self:getValue() - self:getPreviousValue() end
+function TrackedNumber:justChanged() return self:getValue() ~= self:getPreviousValue() end
+function TrackedNumber:update(value)
+    self:setPreviousValue(self:getValue())
+    if value ~= nil then self:setValue(value) end
 end
 
 return TrackedNumber

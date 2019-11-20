@@ -2,11 +2,9 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
 local Widget = require("GUI.Widget")
 local ViewAxis = require("GUI.ViewAxis")
 local Button = require("GUI.Button")
-local Take = require("Pitch Correction.Take")
 local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 local BoxSelect = require("GUI.BoxSelect")
 
@@ -203,35 +201,39 @@ function PitchEditor:new(parameters)
     local parameters = parameters or {}
     local self = Widget:new(parameters)
 
-    self.width = 0
-    self.height = 0
-    self.editorVerticalOffset = 25
-    self.editorHeight = { get = function(self) return self.height - self.editorVerticalOffset end }
-
-    self.take = PitchCorrectedTake:new{
-        pointer = {
-            get = function(self)
-                local selectedItem = reaper.GetSelectedMediaItem(0, 0)
-                if selectedItem then return reaper.GetActiveTake(selectedItem) end
-            end
-        }
+    local _gui = self:getGUI()
+    local _mouse = self:getMouse()
+    local _keyboard = self:getKeyboard()
+    local _backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
+    local _blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
+    local _whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
+    local _keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 }
+    local _edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 }
+    local _edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 }
+    local _editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 }
+    local _playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 }
+    local _pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 }
+    local _pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 }
+    local _pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
+    local _correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
+    local _minimumKeyHeightToDrawCenterLine = 16
+    local _pitchHeight = 128
+    local _editPixelRange = 7
+    local _scaleWithWindow = true
+    local _whiteKeyNumbers = getWhiteKeyNumbers()
+    local _mouseTimeOnLeftDown = 0.0
+    local _mousePitchOnLeftDown = 0.0
+    local _snappedMousePitchOnLeftDown = 0.0
+    local _altKeyWasDownOnPointEdit = false
+    local _mouseIsOverPitchPoint = false
+    local _mouseOverPitchPointIndex = nil
+    local _editorVerticalOffset = 25
+    local _view = {
+        x = ViewAxis:new(),
+        y = ViewAxis:new()
     }
-    self.timeLength = {
-        get = function(self)
-            local length = self.take.length
-            if length then return length end
-            return 0.0
-        end
-    }
-    self.startTime = {
-        get = function(self)
-            local startTime = self.take.leftTime
-            if startTime then return startTime end
-            return 0.0
-        end
-    }
-
-    self.fixErrorButton = Button:new{
+    local _take = PitchCorrectedTake:new()
+    local _fixEditorButton = Button:new{
         x = 79,
         y = 0,
         width = 80,
@@ -239,8 +241,7 @@ function PitchEditor:new(parameters)
         label = "Fix Errors",
         toggleOnClick = true
     }
-    self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
-    self.analyzeButton = Button:new{
+    local _analyzeButton = Button:new{
         x = 0,
         y = 0,
         width = 80,
@@ -248,119 +249,67 @@ function PitchEditor:new(parameters)
         label = "Analyze Pitch",
         color = { 0.5, 0.2, 0.1, 1.0, 0 }
     }
-    self.boxSelect = BoxSelect:new()
-    self.widgets = { self.boxSelect, self.analyzeButton, self.fixErrorButton }
+    local _boxSelect = BoxSelect:new()
 
-    self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
-    self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
-    self.whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
-    self.keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 }
-    self.edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 }
-    self.edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 }
-    self.editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 }
-    self.playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 }
-    self.pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 }
-    self.pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 }
-    self.peakColor = { 1.0, 1.0, 1.0, 1.0, 0 }
-    self.correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
-    self.correctedPitchPointColor = { 0.3, 0.7, 0.3, 1.0, 0 }
-    self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
-    self.pitchPointColor = { 0.1, 0.3, 0.1, 1.0, 0 }
-    self.pitchPointMouseOverColor = { 0.6, 0.9, 0.6, 1.0, 0 }
-    self.pitchLineMouseOverColor = { 0.53, 0.83, 0.53, 1.0, 0 }
-
-    self.minimumKeyHeightToDrawCenterLine = 16
-    self.pitchHeight = 128
-    self.editPixelRange = 7
-    self.scaleWithWindow = true
-    self.whiteKeyNumbers = getWhiteKeyNumbers()
-    self.mouseTimeOnLeftDown = 0.0
-    self.mousePitchOnLeftDown = 0.0
-    self.snappedMousePitchOnLeftDown = 0.0
-    self.altKeyWasDownOnPointEdit = false
-    self.enablePitchCorrections = { get = function(self) return self.fixErrorMode end }
-    self.mouseIsOverPitchPoint = false
-    self.mouseOverPitchPointIndex = nil
-
-    self.mouseTime = { get = function(self) return self:pixelsToTime(self.relativeMouseX) end }
-    self.previousMouseTime = { get = function(self) return self:pixelsToTime(self.previousRelativeMouseX) end }
-    self.mouseTimeChange = { get = function(self) return self.mouseTime - self.previousMouseTime end }
-    self.mousePitch = { get = function(self) return self:pixelsToPitch(self.relativeMouseY) end }
-    self.previousMousePitch = { get = function(self) return self:pixelsToPitch(self.previousRelativeMouseY) end }
-    self.mousePitchChange = { get = function(self) return self.mousePitch - self.previousMousePitch end }
-    self.snappedMousePitch = { get = function(self) return round(self.mousePitch) end }
-    self.snappedPreviousMousePitch = { get = function(self) return round(self.previousMousePitch) end }
-    self.snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.snappedPreviousMousePitch end }
-
-    self.view = {
-        x = ViewAxis:new(),
-        y = ViewAxis:new()
-    }
+    local function _getEditorHeight() return self:getHeight() - _editorVerticalOffset end
+    local function _getTimeLength()
+        local length = _take:getLength()
+        if length then return length end
+        return 0.0
+    end
+    local function _getStartTime()
+        local startTime = _take:getLeftTime()
+        if startTime then return startTime end
+        return 0.0
+    end
+    local function _getFixErrorMode() return _fixErrorButton:isPressed() end
+    local function _pitchCorrectionsAreEnabled() return not _getFixErrorMode() end
 
     function self:pixelsToTime(pixels)
-        local width = self.width
+        local width = self:getWidth()
         if width <= 0 then return 0.0 end
-        return self.timeLength * (self.view.x.scroll + pixels / (width * self.view.x.zoom))
+        local scroll = _view.x:getScroll()
+        local zoom = _view.x:getZoom()
+        local timeLength = _getTimeLength()
+        return timeLength * (scroll + pixels / (width * zoom))
     end
     function self:timeToPixels(time)
-        local takeLength = self.timeLength
-        if takeLength <= 0 then return 0 end
-        return self.view.x.zoom * self.width * (time / takeLength - self.view.x.scroll)
+        local timeLength = self.timeLength
+        if timeLength <= 0 then return 0 end
+        local scroll = _view.x:getScroll()
+        local zoom = _view.x:getZoom()
+        local timeLength = _getTimeLength()
+        local width = self:getWidth()
+        return zoom * width * (time / timeLength - scroll)
     end
     function self:pixelsToPitch(pixels)
-        local pixels = pixels - self.editorVerticalOffset
-        local height = self.editorHeight
+        local height = _getEditorHeight()
         if height <= 0 then return 0.0 end
-        return self.pitchHeight * (1.0 - (self.view.y.scroll + pixels / (height * self.view.y.zoom))) - 0.5
+        local pixels = pixels - _editorVerticalOffset
+        local pitchHeight = _pitchHeight
+        local scroll = _view.y:getScroll()
+        local zoom = _view.y:getZoom()
+        return pitchHeight * (1.0 - (scroll + pixels / (height * zoom))) - 0.5
     end
     function self:pitchToPixels(pitch)
-        local pitchHeight = self.pitchHeight
+        local pitchHeight = _pitchHeight
         if pitchHeight <= 0 then return 0 end
-        return self.editorVerticalOffset + self.view.y.zoom * self.editorHeight * ((1.0 - (0.5 + pitch) / pitchHeight) - self.view.y.scroll)
+        local height = _getEditorHeight()
+        local scroll = _view.y:getScroll()
+        local zoom = _view.y:getZoom()
+        return _editorVerticalOffset + zoom * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scroll)
     end
-    function self:updatePointCoordinates(points)
-        local timeToPixels = self.timeToPixels
-        local pitchToPixels = self.pitchToPixels
-        local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
-        local envelope = self.take.pitchEnvelope
-        local playRate = self.take.playRate
-        for i = 1, #points do
-            local point = points[i]
-            point.time = self.take:getRealTime(point.sourceTime)
-            local pointTime = point.time
-            local pointPitch = point.pitch
-            if pointTime then
-                point.x = timeToPixels(self, pointTime)
-                if pointPitch then
-                    point.y = pitchToPixels(self, pointPitch)
-                    local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
-                    point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
-                end
-            end
-        end
-    end
-    function self:moveSelectedPitchPointsPitchesBy(value)
-        local points = self.take.pitchAnalyzer.points
-        for i = 1, #points do
-            local point = points[i]
-            if point.isSelected then
-                point.pitch = point.pitch + value
-            end
-        end
-    end
-    function self:insertPitchCorrectionPoint(point)
-        if not self.enablePitchCorrections then return end
-        self.take:insertPitchCorrectionPoint{
-            x = self:timeToPixels(point.time),
-            y = self:pitchToPixels(point.pitch),
-            time = point.time,
-            pitch = point.pitch,
-            isSelected = point.isSelected,
-            isActive = point.isActive
-        }
-    end
+    function self:getMouseTime() return self:pixelsToTime(self:getRelativeMouseX()) end
+    function self:getPreviousMouseTime() return self:pixelsToTime(self:getPreviousRelativeMouseX()) end
+    function self:getMouseTimeChange() return self:getMouseTime() - self:getPreviousMouseTime() end
+    function self:getMousePitch() return self:pixelsToPitch(self:getRelativeMouseY()) end
+    function self:getPreviousMousePitch() return self:pixelsToPitch(self:getPreviousRelativeMouseY()) end
+    function self:getMousePitchChange() return self:getMousePitch() - self:getPreviousMousePitch() end
+    function self:getSnappedMousePitch() return round(self:getMousePitch()) end
+    function self:getPreviousSnappedMousePitch() return round(self:getPreviousMousePitch()) end
+    function self:getMouseSnappedPitchChange() return self:getSnappedMousePitch() - self:getPreviousSnappedMousePitch() end
 
-    self.keyPressFunctions = {
+    --[[self.keyPressFunctions = {
         ["Delete"] = function(self)
             msg("delete")
         end,
@@ -407,47 +356,45 @@ function PitchEditor:new(parameters)
             }
             --self.take:correctAllPitchPoints()
         end
-    }
+    }]]--
     function self:handleWindowResize()
-        if self.scaleWithWindow then
-            local GUI = self.GUI
-            self.width = self.width + GUI.widthChange
-            self.height = self.height + GUI.heightChange
-            self.view.x.scale = self.width
-            self.view.y.scale = self.editorHeight
+        if _scaleWithWindow then
+            self:setWidth(self:getWidth() + _gui:getWidthChange())
+            self:setHeight(self:getHeight() + _gui:getHeightChange())
+            _view.x:setScale(self:getWidth())
+            _view.y:setScale(_getEditorHeight())
         end
     end
     function self:handleLeftPress()
-        self.mouseTimeOnLeftDown = self.mouseTime
-        self.mousePitchOnLeftDown = self.mousePitch
-        self.snappedMousePitchOnLeftDown = self.snappedMousePitch
+        _mouseTimeOnLeftDown = self:getMouseTime()
+        _mousePitchOnLeftDown = self:getMousePitch()
+        _snappedMousePitchOnLeftDown = self:getSnappedMousePitch()
     end
     function self:handleLeftDrag() end
     function self:handleLeftRelease() end
     function self:handleLeftDoublePress() end
     function self:handleMiddlePress()
-        self.view.x.target = self.relativeMouseX
-        self.view.y.target = self.relativeMouseY - self.editorVerticalOffset
+        _view.x:setTarget(self:getRelativeMouseX())
+        _view.y:setTarget(self:getRelativeMouseY() - _editorVerticalOffset)
     end
     function self:handleMiddleDrag()
-        local mouse = self.GUI.mouse
-        local shiftKey = self.keyboard.shiftKey
-        if shiftKey.isPressed then
-            self.view.x:changeZoom(mouse.xChange)
-            self.view.y:changeZoom(mouse.yChange)
+        local shiftKey = _keyboard:getShiftKey()
+        if shiftKey:isPressed() then
+            _view.x:changeZoom(_mouse:getXChange())
+            _view.y:changeZoom(_mouse:getYChange())
         else
-            self.view.x:changeScroll(mouse.xChange)
-            self.view.y:changeScroll(mouse.yChange)
+            _view.x:changeScroll(_mouse:getXChange())
+            _view.y:changeScroll(_mouse:getYChange())
         end
     end
     function self:handleRightPress()
-        self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+        _boxSelect:startSelection(self:getRelativeMouseX(), self:getRelativeMouseY())
     end
     function self:handleRightDrag()
-        self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+        _boxSelect:editSelection(self:getRelativeMouseX(), self:getRelativeMouseY())
     end
     function self:handleRightRelease()
-        local selectionParameters = {}
+        --[[local selectionParameters = {}
         if self.fixErrorMode then
             selectionParameters.thingsToSelect = self.take.pitchAnalyzer.points
             selectionParameters.isInsideFunction = function(box, thing)
@@ -463,43 +410,30 @@ function PitchEditor:new(parameters)
             selectionParameters.shouldAdd = keyboard.shiftKey.isPressed
             selectionParameters.shouldInvert = keyboard.controlKey.isPressed
         end
-        self.boxSelect:makeSelection(selectionParameters)
+        self.boxSelect:makeSelection(selectionParameters)]]--
+        _boxSelect:makeSelection{}
     end
     function self:handleMouseWheel()
-        local mouse = self.GUI.mouse
         local xSensitivity = 55.0
         local ySensitivity = 55.0
-        local controlKey = self.keyboard.controlKey
+        local controlKey = _keyboard:getControlKey()
 
-        self.view.x.target = self.relativeMouseX
-        self.view.y.target = self.relativeMouseY - self.editorVerticalOffset
+        _view.x:setTarget(self:getRelativeMouseX())
+        _view.y:setTarget(self:getRelativeMouseY() - _editorVerticalOffset)
 
-        if controlKey.isPressed then
-            self.view.y:changeZoom(mouse.wheel * ySensitivity)
+        if controlKey:isPressed() then
+            _view.y:changeZoom(_mouse:getWheelValue() * ySensitivity)
         else
-            self.view.x:changeZoom(mouse.wheel * xSensitivity)
+            _view.x:changeZoom(_mouse:getWheelValue() * xSensitivity)
         end
     end
 
-    local previousTakePointer = self.take.pointer
     function self:update()
-        local GUI = self.GUI
-        local mouse = self.GUI.mouse
-        local mouseLeftButton = mouse.leftButton
-        local mouseMiddleButton = mouse.middleButton
-        local mouseRightButton = mouse.rightButton
-        local pitchAnalyzer = self.take.pitchAnalyzer
-        local takePointer = self.take.pointer
+        local mouseLeftButton = _mouse:getLeftButton()
+        local mouseMiddleButton = _mouse:getMiddleButton()
+        local mouseRightButton = _mouse:getRightButton()
 
-        if takePointer ~= previousTakePointer then
-            pitchAnalyzer:loadPointsFromTakeFile()
-        end
-
-        if self.fixErrorMode then
-            self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(pitchAnalyzer.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
-        end
-
-        if GUI.windowWasResized then self:handleWindowResize() end
+        if _gui:windowWasResized() then self:handleWindowResize() end
         if mouseLeftButton:justPressedWidget(self) then self:handleLeftPress() end
         if mouseLeftButton:justDraggedWidget(self) then self:handleLeftDrag() end
         if mouseLeftButton:justReleasedWidget(self) then self:handleLeftRelease() end
@@ -509,29 +443,20 @@ function PitchEditor:new(parameters)
         if mouseRightButton:justPressedWidget(self) then self:handleRightPress() end
         if mouseRightButton:justDraggedWidget(self) then self:handleRightDrag() end
         if mouseRightButton:justReleasedWidget(self) then self:handleRightRelease() end
-        if mouse.wheelJustMoved and mouse:isInsideWidget(self) then self:handleMouseWheel() end
+        if _mouse:wheelJustMoved() and _mouse:isInsideWidget(self) then self:handleMouseWheel() end
 
-        self.take.pitchCorrections:sortPoints()
-        if takePointer ~= nil then
-            if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
-            pitchAnalyzer:analyzePitch()
-            pitchAnalyzer:sortPoints()
-            self:updatePointCoordinates(pitchAnalyzer.points)
-        end
-
-        self.shouldRedraw = true
-        previousTakePointer = takePointer
+        self:queueRedraw()
     end
     function self:drawKeyBackgrounds()
-        local pitchHeight = self.pitchHeight
+        local pitchHeight = _pitchHeight
         local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
-        local width = self.width
-        local whiteKeyNumbers = self.whiteKeyNumbers
+        local width = self:getWidth()
+        local whiteKeyNumbers = _whiteKeyNumbers
         local numberOfWhiteKeys = #whiteKeyNumbers
-        local blackKeyColor = self.blackKeyColor
-        local whiteKeyColor = self.whiteKeyColor
-        local keyCenterLineColor = self.keyCenterLineColor
-        local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
+        local blackKeyColor = _blackKeyColor
+        local whiteKeyColor = _whiteKeyColor
+        local keyCenterLineColor = _keyCenterLineColor
+        local minimumKeyHeightToDrawCenterLine = _minimumKeyHeightToDrawCenterLine
         local pitchToPixels = self.pitchToPixels
         local setColor = self.setColor
         local drawLine = self.drawLine
@@ -564,127 +489,51 @@ function PitchEditor:new(parameters)
         end
     end
     function self:drawEdges()
-        if self.take.pointer == nil then return end
-        local width = self.width
-        local height = self.height
+        if _take:getPointer() == nil then return end
+        local width = self:getWidth()
+        local height = self:getHeight()
 
-        self:setColor(self.edgeColor)
+        self:setColor(_edgeColor)
         local leftEdgePixels = self:timeToPixels(0.0)
-        local rightEdgePixels = self:timeToPixels(self.timeLength)
+        local rightEdgePixels = self:timeToPixels(_getTimeLength())
         self:drawLine(leftEdgePixels, 0, leftEdgePixels, height, false)
         self:drawLine(rightEdgePixels, 0, rightEdgePixels, height, false)
 
-        self:setColor(self.edgeShade)
+        self:setColor(_edgeShade)
         self:drawRectangle(0, 0, leftEdgePixels, height, true)
         local rightShadeStart = rightEdgePixels + 1
         self:drawRectangle(rightShadeStart, 0, width - rightShadeStart, height, true)
     end
     function self:drawEditCursor()
-        local startTime = self.startTime
-        local height = self.height
+        local startTime = _getStartTime()
+        local height = self:getHeight()
         local editCursorPixels = self:timeToPixels(reaper.GetCursorPosition() - startTime)
         local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - startTime)
 
-        self:setColor(self.editCursorColor)
+        self:setColor(_editCursorColor)
         self:drawLine(editCursorPixels, 0, editCursorPixels, height, false)
 
         local playState = reaper.GetPlayState()
         local projectIsPlaying = playState & 1 == 1
         local projectIsRecording = playState & 4 == 4
         if projectIsPlaying or projectIsRecording then
-            self:setColor(self.playCursorColor)
+            self:setColor(_playCursorColor)
             self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
         end
     end
-    function self:drawPitchPoints()
-        if self.take.pointer == nil then return end
-
-        local fixErrorMode = self.fixErrorMode
-        local mouseOverIndex = self.mouseOverPitchPointIndex
-        local mouseIsOverPoint = self.mouseIsOverPitchPoint
-        local drawLine = self.drawLine
-        local drawRectangle = self.drawRectangle
-        local pointSize = 3
-        local halfPointSize = math.floor(pointSize * 0.5)
-        local emptyFunction = function(i, points) end
-
-        local drawParameters = {
-            points = self.take.pitchAnalyzer.points,
-            lineColor = self.pitchLineColor,
-            pointColor = self.pitchPointColor,
-            drawPointFunction = emptyFunction,
-            shouldGlowLineFunction = emptyFunction,
-            shouldGlowPointFunction = emptyFunction,
-            drawLineFunction = function(i, points)
-                if not fixErrorMode then
-                    local point = points[i]
-                    local nextPoint = points[i + 1]
-                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
-                end
-            end,
-            setColorFunction = function(color)
-                self:setColor(color)
-            end,
-            shouldDrawLineFunction = function(i, points)
-                local point = points[i]
-                local nextPoint = points[i + 1]
-                return nextPoint and math.abs(nextPoint.time - point.time) < 0.1
-            end,
-            shouldDrawPointFunction = function(i, points)
-                return true
-            end
-        }
-
-        drawPolyLine(drawParameters)
-
-        drawParameters.lineColor = self.correctedPitchLineColor
-        drawParameters.pointColor = self.correctedPitchPointColor
-        drawParameters.drawLineFunction = function(i, points)
-            local point = points[i]
-            local nextPoint = points[i + 1]
-            if fixErrorMode then
-                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
-            else
-                drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
-            end
-        end
-        drawParameters.drawPointFunction = function(i, points)
-            local point = points[i]
-            if fixErrorMode then
-                drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
-            else
-                drawRectangle(self, point.x - halfPointSize, point.correctedY - halfPointSize, pointSize, pointSize, true)
-            end
-        end
-        drawParameters.shouldGlowLineFunction = function(i, points)
-            local glowMouseOver = mouseOverIndex == i and not mouseIsOverPoint
-            return glowMouseOver
-        end
-        drawParameters.shouldGlowPointFunction = function(i, points)
-            local glowMouseOver = mouseOverIndex == i and mouseIsOverPoint
-            local glowSelection = points[i].isSelected and fixErrorMode
-            return glowMouseOver or glowSelection
-        end
-
-        drawPolyLine(drawParameters)
-    end
     function self:draw()
-        self:setColor(self.backgroundColor)
-        self:drawRectangle(0, 0, self.width, self.height, true)
+        local width = self:getWidth()
+        local height = self:getHeight()
+        self:setColor(_backgroundColor)
+        self:drawRectangle(0, 0, width, height, true)
 
         self:drawKeyBackgrounds()
-        self:drawEdges()
-        self:drawEditCursor()
-        self:drawPitchPoints()
 
-        self:setColor(self.backgroundColor)
-        self:drawRectangle(0, 0, self.width, self.editorVerticalOffset, true)
+        self:setColor(_backgroundColor)
+        self:drawRectangle(0, 0, width, _editorVerticalOffset, true)
     end
 
-    for k, v in pairs(parameters) do self[k] = v end
-    self.view.x.scale = self.width
-    self.view.y.scale = self.editorHeight
-    self.take.pitchAnalyzer:loadPointsFromTakeFile()
+    self:setChildWidgets{ _boxSelect, _analyzeButton, _fixErrorButton }
     return self
 end
 

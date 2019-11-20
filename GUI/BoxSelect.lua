@@ -10,37 +10,35 @@ function BoxSelect:new(parameters)
     local parameters = parameters or {}
     local self = Widget:new(parameters)
 
-    self.x1 = 0
-    self.x2 = 0
-    self.y1 = 0
-    self.y2 = 0
-    self.insideColor = { 0, 0, 0, 0.4, 0 }
-    self.edgeColor = { 1, 1, 1, 0.7, 0 }
-    self.isActive = false
+    local _x1 = 0
+    local _x2 = 0
+    local _y1 = 0
+    local _y2 = 0
+    local _insideColor = parameters.insideColor or { 0, 0, 0, 0.4, 0 }
+    local _edgeColor = parameters.edgeColor or { 1, 1, 1, 0.7, 0 }
+    local _isActive = false
+
     function self:startSelection(startingX, startingY)
-        self.x1 = startingX
-        self.x2 = startingX
-        self.y1 = startingY
-        self.y2 = startingY
-
-        self.x = startingX
-        self.y = startingY
-        self.width = 0
-        self.height = 0
-
-        self.shouldRedraw = true
+        _x1 = startingX
+        _x2 = startingX
+        _y1 = startingY
+        _y2 = startingY
+        self:setX(startingX)
+        self:setY(startingY)
+        self:setWidth(0)
+        self:setHeight(0)
+        self:queueRedraw()
     end
     function self:editSelection(editX, editY)
-        self.isActive = true
-        self.x2 = editX
-        self.y2 = editY
+        _isActive = true
+        _x2 = editX
+        _y2 = editY
 
-        self.x = min(self.x1, self.x2)
-        self.y = min(self.y1, self.y2)
-        self.width = abs(self.x1 - self.x2)
-        self.height = abs(self.y1 - self.y2)
-
-        self.shouldRedraw = true
+        self:setX(min(_x1, _x2))
+        self:setY(min(_y1, _y2))
+        self:setWidth(abs(_x1 - _x2))
+        self:setHeight(abs(_y1 - _y2))
+        self:queueRedraw()
     end
     function self:makeSelection(parameters)
         local parameters = parameters or {}
@@ -69,24 +67,23 @@ function BoxSelect:new(parameters)
             end
         end
 
-        self.isActive = false
-        self.shouldRedraw = true
+        _isActive = false
+        self:queueClear()
     end
 
     function self:draw()
-        local width = self.width
-        local height = self.height
+        local width = self:getWidth()
+        local height = self:getHeight()
 
-        if self.isActive then
-            self:setColor(self.edgeColor)
+        if _isActive then
+            self:setColor(_edgeColor)
             self:drawRectangle(0, 0, width, height, false)
 
-            self:setColor(self.insideColor)
+            self:setColor(_insideColor)
             self:drawRectangle(1, 1, width - 2, height - 2, true)
         end
     end
 
-    for k, v in pairs(parameters) do self[k] = v end
     return self
 end
 

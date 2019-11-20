@@ -1,35 +1,47 @@
 local ViewAxis = {}
 
 function ViewAxis:new(parameters)
+    local self = setmetatable({}, { __index = self })
     local parameters = parameters or {}
-    local self = parameters.fromObject or {}
 
-    local _scale = parameters.scale or 1.0
-    local _zoom = parameters.zoom or 1.0
-    local _scroll = parameters.scroll or 0.0
-    local _target = parameters.target or 0.0
-
-    function self:getScale() return _scale end
-    function self:setScale(value) _scale = value end
-    function self:getZoom() return _zoom end
-    function self:setZoom(value) _zoom = value end
-    function self:getScroll() return _scroll end
-    function self:setScroll(value) _scroll = value end
-    function self:getTarget() return _target end
-    function self:setTarget(value) _target = value end
-    function self:changeScroll(change)
-        local change = change / _scale
-        _scroll = _scroll - change / _zoom
-    end
-    function self:changeZoom(change)
-        local target = _target / _scale
-        local sensitivity = 0.01
-        local change = 2 ^ (sensitivity * change)
-        _zoom = _zoom * change
-        _scroll = _scroll + (change - 1.0) * target / _zoom
-    end
+    self:setScale(parameters.scale or 1.0)
+    self:setZoom(parameters.zoom or 1.0)
+    self:setScroll(parameters.scroll or 0.0)
+    self:setTarget(parameters.target or 0.0)
 
     return self
+end
+
+function ViewAxis:getScale() return self._scale end
+function ViewAxis:setScale(value) self._scale = value end
+function ViewAxis:getZoom() return self._zoom end
+function ViewAxis:setZoom(value) self._zoom = value end
+function ViewAxis:getScroll() return self._scroll end
+function ViewAxis:setScroll(value) self._scroll = value end
+function ViewAxis:getTarget() return self._target end
+function ViewAxis:setTarget(value) self._target = value end
+
+function ViewAxis:changeScroll(change)
+    local scale = self:getScale()
+    local scroll = self:getScroll()
+    local zoom = self:getZoom()
+
+    local change = change / scale
+
+    self:setScroll(scroll - change / zoom)
+end
+function ViewAxis:changeZoom(change)
+    local target = self:getTarget()
+    local scale = self:getScale()
+    local scroll = self:getScroll()
+    local zoom = self:getZoom()
+
+    local sensitivity = 0.01
+    local scaledTarget = target / scale
+    local change = 2 ^ (sensitivity * change)
+
+    self:setZoom(zoom * change)
+    self:setScroll(scroll + (change - 1.0) * target / zoom)
 end
 
 return ViewAxis

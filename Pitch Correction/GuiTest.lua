@@ -12,7 +12,7 @@ GUI:initialize{
     height = 700,
     dock = 0
 }
-GUI.backgroundColor = { 0.2, 0.2, 0.2 }
+GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
 local pitchEditor = PitchEditor:new{
     x = 50,
@@ -21,5 +21,5 @@ local pitchEditor = PitchEditor:new{
     height = 600
 }
 
-GUI.widgets = { pitchEditor }
+GUI:setWidgets{ pitchEditor }
 GUI:run()
