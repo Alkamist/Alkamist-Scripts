@@ -1,5 +1,7 @@
 local reaper = reaper
 local gfx = gfx
+local pairs = pairs
+local ipairs = ipairs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Proxy = require("Proxy")
@@ -223,8 +225,8 @@ function MouseControl:updateWidgetPressState(widget)
     if self:justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
     local childWidgets = widget.childWidgets
     if childWidgets then
-        for i = 1, #childWidgets do
-            self:updateWidgetPressState(childWidgets[i])
+        for _, childWidget in ipairs(childWidgets) do
+            self:updateWidgetPressState(childWidget)
         end
     end
 end
@@ -238,7 +240,9 @@ function MouseControl:update(state)
 
     local widgets = GUI.widgets
     if widgets then
-        for i = 1, #widgets do self:updateWidgetPressState(widgets[i]) end
+        for _, widget in ipairs(widgets) do
+            self:updateWidgetPressState(widget)
+        end
     end
 
     if self.justDragged then self.isAlreadyDragging = true end
@@ -312,7 +316,6 @@ GUI.backgroundColor = {
         gfx.clear = value[1] * 255 + value[2] * 255 * 256 + value[3] * 255 * 65536
     end
 }
-GUI.bufferIsUsed = {}
 GUI.widgets = {}
 
 function GUI:mouseIsInsideWidget(widget)
@@ -330,12 +333,30 @@ end
 function GUI:createKey(character)
     self.keys[character] = KeyboardKey(character)
 end
+function GUI:widgetIsUsingBuffer(widget, buffer)
+    if buffer == widget.drawBuffer then return true end
+    local childWidgets = widget.childWidgets
+    if childWidgets then
+        for _, childWidget in ipairs(childWidgets) do
+            if self:widgetIsUsingBuffer(childWidget, buffer) then
+                return true
+            end
+        end
+    end
+    return false
+end
+function GUI:bufferIsUsed(buffer)
+    local widgets = self.widgets
+    for _, widget in ipairs(widgets) do
+        if self:widgetIsUsingBuffer(widget, buffer) then
+            return true
+        end
+    end
+    return false
+end
 function GUI:getNewDrawBuffer()
     for i = 0, 1023 do
-        if not bufferIsUsed[i] then
-            bufferIsUsed[i] = true
-            return i
-        end
+        if not self:bufferIsUsed(i) then return i end
     end
 end
 function GUI:initialize(parameters)
@@ -376,13 +397,13 @@ function GUI:run()
 
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    --local widgets = widgets
-    --local numberOfWidgets = #widgets
-    --for i = 1, numberOfWidgets do widgets[i]:doBeginUpdate() end
-    --for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
-    --for i = 1, numberOfWidgets do widgets[i]:doDrawToBuffer() end
-    --for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
-    --for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
+    local widgets = self.widgets
+    local numberOfWidgets = #widgets
+    for i = 1, numberOfWidgets do widgets[i]:doBeginUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToBuffer() end
+    for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
+    for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end
     gfx.update()
