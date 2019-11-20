@@ -15,24 +15,15 @@ function ViewAxis:new(object)
 end
 
 function ViewAxis:changeScroll(change)
-    local scale = self.scale
-    local scroll = self.scroll
-    local zoom = self.zoom
-    local change = change / scale
-
-    self.scroll = scroll - change / zoom
+    local change = change / self.scale
+    self.scroll = self.scroll - change / self.zoom
 end
 function ViewAxis:changeZoom(change)
-    local target = self.target
-    local scale = self.scale
-    local scroll = self.scroll
-    local zoom = self.zoom
+    local target = self.target / self.scale
     local sensitivity = 0.01
-    local scaledTarget = target / scale
     local change = 2 ^ (sensitivity * change)
-
-    self.zoom = zoom * change
-    self.scroll = scroll + (change - 1.0) * target / zoom
+    self.zoom = self.zoom * change
+    self.scroll = self.scroll + (change - 1.0) * target / self.zoom
 end
 
 return ViewAxis

@@ -279,7 +279,7 @@ GUI.mouseXChange = { get = function(self) return self.mouseX - self.previousMous
 GUI.mouseXJustChanged = { get = function(self) return self.mouseX ~= self.previousMouseX end }
 GUI.mouseY = 0
 GUI.previousMouseY = 0
-GUI.yChange = { get = function(self) return self.mouseY - self.previousMouseY end }
+GUI.mouseYChange = { get = function(self) return self.mouseY - self.previousMouseY end }
 GUI.mouseYJustChanged = { get = function(self) return self.mouseY ~= self.previousMouseY end }
 GUI.mouseJustMoved = { get = function(self) return self.mouseXJustChanged or self.mouseYJustChanged end }
 GUI.mouseCap = 0

@@ -35,6 +35,7 @@ function KeyEditor:new(object)
     self.whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
     self.keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 }
     self.minimumKeyHeightToDrawCenterLine = 16
+    self.timeLength = 0
     self.pitchHeight = 128
     self.scaleWithWindow = true
     self.mouseTimeOnLeftDown = 0.0
@@ -49,8 +50,8 @@ function KeyEditor:new(object)
     self.snappedMousePitch = { get = function(self) return round(self.mousePitch) end }
     self.previousSnappedMousePitch = 0
     self.mouseSnappedPitchChange = { get = function(self) return self.snappedMousePitch - self.previousSnappedMousePitch end }
-    self.xView = ViewAxis:new()
-    self.yView = ViewAxis:new()
+    self.xView = ViewAxis:new{ scale = object.width }
+    self.yView = ViewAxis:new{ scale = object.height }
 
     --self.childWidgets = { _boxSelect }
 
@@ -113,35 +114,35 @@ function KeyEditor:update()
             self.yView.scale = self.height
         end
     end
-    if mouseLeftButton:justPressedWidget(self) then
+    if leftMouseButton:justPressedWidget(self) then
         self.mouseTimeOnLeftDown = self.mouseTime
         self.mousePitchOnLeftDown = self.mousePitch
         self.snappedMousePitchOnLeftDown = self.snappedMousePitch
     end
-    if mouseMiddleButton:justPressedWidget(self) then
-        _xView:setTarget(self:getRelativeMouseX())
-        _yView:setTarget(self:getRelativeMouseY())
+    if middleMouseButton:justPressedWidget(self) then
+        self.xView.target = self.relativeMouseX
+        self.yView.target = self.relativeMouseY
     end
-    if mouseMiddleButton:justDraggedWidget(self) then
-        if shiftKey:isPressed() then
-            _xView:changeZoom(mouse:getXChange())
-            _yView:changeZoom(mouse:getYChange())
+    if middleMouseButton:justDraggedWidget(self) then
+        if shiftKey.isPressed then
+            self.xView:changeZoom(GUI.mouseXChange)
+            self.yView:changeZoom(GUI.mouseYChange)
         else
-            _xView:changeScroll(mouse:getXChange())
-            _yView:changeScroll(mouse:getYChange())
+            self.xView:changeScroll(GUI.mouseXChange)
+            self.yView:changeScroll(GUI.mouseYChange)
         end
     end
-    if _mouse:wheelJustMoved() and _mouse:isInsideWidget(self) then
+    if GUI.mouseWheelJustMoved and GUI:mouseIsInsideWidget(self) then
         local xSensitivity = 55.0
         local ySensitivity = 55.0
 
-        _xView:setTarget(self:getRelativeMouseX())
-        _yView:setTarget(self:getRelativeMouseY())
+        self.xView.target = self.relativeMouseX
+        self.yView.target = self.relativeMouseY
 
-        if controlKey:isPressed() then
-            _xView:changeZoom(mouse:getWheelValue() * ySensitivity)
+        if controlKey.isPressed then
+            self.yView:changeZoom(GUI.mouseWheel * ySensitivity)
         else
-            _yView:changeZoom(mouse:getWheelValue() * xSensitivity)
+            self.xView:changeZoom(GUI.mouseWheel * xSensitivity)
         end
     end
 
@@ -151,12 +152,12 @@ function KeyEditor:drawKeyBackgrounds()
     local pitchHeight = self.pitchHeight
     local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
     local width = self.width
-    local whiteKeyNumbers = _whiteKeyNumbers
+    local whiteKeyNumbers = self.whiteKeyNumbers
     local numberOfWhiteKeys = #whiteKeyNumbers
-    local blackKeyColor = _blackKeyColor
-    local whiteKeyColor = _whiteKeyColor
-    local keyCenterLineColor = _keyCenterLineColor
-    local minimumKeyHeightToDrawCenterLine = _minimumKeyHeightToDrawCenterLine
+    local blackKeyColor = self.blackKeyColor
+    local whiteKeyColor = self.whiteKeyColor
+    local keyCenterLineColor = self.keyCenterLineColor
+    local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
     local pitchToPixels = self.pitchToPixels
     local setColor = self.setColor
     local drawLine = self.drawLine
@@ -188,7 +189,7 @@ function KeyEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
-function KeyEditor:drawEdges()
+--[[function KeyEditor:drawEdges()
     if _take:getPointer() == nil then return end
     local width = self.width
     local height = self:getHeight()
@@ -203,8 +204,8 @@ function KeyEditor:drawEdges()
     self:drawRectangle(0, 0, leftEdgePixels, height, true)
     local rightShadeStart = rightEdgePixels + 1
     self:drawRectangle(rightShadeStart, 0, width - rightShadeStart, height, true)
-end
-function KeyEditor:drawEditCursor()
+end]]--
+--[[function KeyEditor:drawEditCursor()
     local startTime = _getStartTime()
     local height = self:getHeight()
     local editCursorPixels = self:timeToPixels(reaper.GetCursorPosition() - startTime)
@@ -220,16 +221,16 @@ function KeyEditor:drawEditCursor()
         self:setColor(_playCursorColor)
         self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
     end
-end
+end]]--
 function KeyEditor:draw()
     local width = self.width
-    local height = self:getHeight()
-    self:setColor(_backgroundColor)
+    local height = self.height
+    self:setColor(self.backgroundColor)
     self:drawRectangle(0, 0, width, height, true)
 
     self:drawKeyBackgrounds()
 
-    self:setColor(_backgroundColor)
+    self:setColor(self.backgroundColor)
     self:drawRectangle(0, 0, width, _editorVerticalOffset, true)
 end
 
