@@ -229,7 +229,7 @@ local function MouseControl()
     return self
 end
 local function MouseButton(bitValue)
-    local self = {}
+    local self = MouseControl()
 
     local _bitValue = bitValue or 0
 

@@ -26,14 +26,14 @@ GUI:initialize{
 }
 GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
 
-local test1 = Button:new{
-    x = 100,
-    y = 100,
-    width = 80,
-    height = 25,
-    label = "Fix Errors",
-    --toggleOnClick = true
-}
+--local test1 = Button:new{
+--    x = 100,
+--    y = 100,
+--    width = 80,
+--    height = 25,
+--    label = "Fix Errors",
+--    --toggleOnClick = true
+--}
 
-GUI:setWidgets{ test1 }
+--GUI:setWidgets{ test1 }
 GUI:run()
