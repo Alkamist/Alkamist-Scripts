@@ -176,7 +176,7 @@ function TakeWithPitchPoints:analyzePitch()
     else
         if not self.newPitchPointsHaveBeenInitialized then
             self.pitches:removeDuplicatePoints()
-            --self.pitches:savePoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
+            self.pitches:savePoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
             self.newPitchPointsHaveBeenInitialized = true
         end
     end
@@ -194,7 +194,7 @@ function TakeWithPitchPoints:loadPoints(...)
 end
 function TakeWithPitchPoints:loadPointsFromTakeFile()
     if self.pointer then
-        self.pitches:loadPoints(self.pathName, self.fileName, self.pointMembers)
+        self.pitches:loadPoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
     end
 end
 
