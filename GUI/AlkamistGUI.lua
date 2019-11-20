@@ -16,8 +16,8 @@ local _dock = 0
 local _backgroundColor = { 0.0, 0.0, 0.0, 1.0, 0 }
 local _widgets = {}
 local _bufferIsUsed = {}
-local _mouse = UserControl:getMouse()
-local _keyboard = UserControl:getKeyboard()
+local _mouse = UserControl.mouse
+local _keyboard = UserControl.keyboard
 
 function GUI:getMouse() return _mouse end
 function GUI:getKeyboard() return _keyboard end

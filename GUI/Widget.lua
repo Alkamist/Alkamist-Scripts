@@ -86,52 +86,6 @@ function Widget:setChildWidgets(value)
     end
 end
 
-Widget.getMouseX
-Widget.getPreviousMouseX
-Widget.getMouseXChange
-Widget.mouseXJustChanged
-Widget.getMouseY
-Widget.getPreviousMouseY
-Widget.getMouseYChange
-Widget.mouseYJustChanged
-Widget.mouseJustMoved
-Widget.getMouseWheelValue
-Widget.mouseWheelJustMoved
-Widget.getMouseHWheelValue
-Widget.mouseHWheelJustMoved
-Widget.mouseIsInside
-Widget.mouseWasPreviouslyInside
-Widget.mouseJustEntered
-Widget.mouseJustLeft
-
-Widget.mouseLeftButtonIsPressed
-Widget.mouseLeftButtonJustPressed
-Widget.mouseLeftButtonJustReleased
-Widget.mouseLeftButtonJustDoublePressed
-Widget.mouseLeftButtonJustDragged
-Widget.mouseLeftButtonJustStartedDragging
-Widget.mouseLeftButtonJustStoppedDragging
-Widget.mouseLeftButtonIsAlreadyDragging
-
-Widget.mouseMiddleButtonIsPressed
-Widget.mouseMiddleButtonJustPressed
-Widget.mouseMiddleButtonJustReleased
-Widget.mouseMiddleButtonJustDoublePressed
-Widget.mouseMiddleButtonJustDragged
-Widget.mouseMiddleButtonJustStartedDragging
-Widget.mouseMiddleButtonJustStoppedDragging
-Widget.mouseMiddleButtonIsAlreadyDragging
-
-Widget.mouseRightButtonIsPressed
-Widget.mouseRightButtonJustPressed
-Widget.mouseRightButtonJustReleased
-Widget.mouseRightButtonJustDoublePressed
-Widget.mouseRightButtonJustDragged
-Widget.mouseRightButtonJustStartedDragging
-Widget.mouseRightButtonJustStoppedDragging
-Widget.mouseRightButtonIsAlreadyDragging
-
-
 Widget.getMouse = GUI.getMouse
 function Widget:getRelativeMouseX() return self:getMouse():getX() - self:getAbsoluteX() end
 function Widget:getRelativeMouseY() return self:getMouse():getY() - self:getAbsoluteY() end

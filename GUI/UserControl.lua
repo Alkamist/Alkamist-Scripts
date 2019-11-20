@@ -164,12 +164,13 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Toggle = require("GUI.Toggle")
 local TrackedNumber = require("GUI.TrackedNumber")
 
-local MouseControl = {}
-function MouseControl:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.fromObject or {}
+local Mouse = {}
+local _widgets = {}
+local _mouseCap = 0
 
-    local _mouse = parameters.mouse or {}
+local function MouseControl()
+    local self = {}
+
     local _wasPressedInsideWidget = {}
     local _pressState = Toggle:new()
     local _isAlreadyDragging = false
@@ -194,10 +195,10 @@ function MouseControl:new(parameters)
     function self:justStartedDragging() return _justDragged and not _isAlreadyDragging end
     function self:justStoppedDragging() return self:justReleased() and _isAlreadyDragging end
 
-    function self:isPressedInWidget(widget) return self:isPressed() and _mouse:isInsideWidget(widget) end
-    function self:justPressedWidget(widget) return self:justPressed() and _mouse:isInsideWidget(widget) end
+    function self:isPressedInWidget(widget) return self:isPressed() and Mouse:isInsideWidget(widget) end
+    function self:justPressedWidget(widget) return self:justPressed() and Mouse:isInsideWidget(widget) end
     function self:justReleasedWidget(widget) return self:justReleased() and _wasPressedInsideWidget[widget] end
-    function self:justDoublePressedWidget(widget) return self:justDoublePressed() and _mouse:isInsideWidget(widget) end
+    function self:justDoublePressedWidget(widget) return self:justDoublePressed() and Mouse:isInsideWidget(widget) end
     function self:justDraggedWidget(widget) return _justDragged and _wasPressedInsideWidget[widget] end
     function self:justStartedDraggingWidget(widget) return _justDragged and not _isAlreadyDragging and _wasPressedInsideWidget[widget] end
     function self:justStoppedDraggingWidget(widget) return self:justReleased() and _isAlreadyDragging and _wasPressedInsideWidget[widget] end
@@ -218,97 +219,33 @@ function MouseControl:new(parameters)
         _wasJustReleasedLastFrame = self:justReleased()
         _pressState:update(state)
 
-        local widgets = _mouse:getWidgets()
+        local widgets = _widgets
         if widgets then
             for i = 1, #widgets do self:updateWidgetPressState(widgets[i]) end
         end
 
         if self:justDragged() then _isAlreadyDragging = true end
-        _justDragged = self:isPressed() and _mouse:justMoved()
+        _justDragged = self:isPressed() and Mouse:justMoved()
     end
 
     return self
 end
-local MouseButton = {}
-function MouseButton:new(parameters)
-    local parameters = parameters or {}
-    local self = MouseControl:new(parameters)
+local function MouseButton(bitValue)
+    local self = {}
 
-    local _mouse = parameters.mouse or {}
-    local _bitValue = parameters.bitValue or 0
+    local _bitValue = bitValue or 0
 
     local _originalUpdate = self.update
     function self:update()
-        _originalUpdate(self, _mouse:getCap() & _bitValue == _bitValue)
+        _originalUpdate(self, _mouseCap & _bitValue == _bitValue)
     end
 
     return self
 end
-local Mouse = {}
-function Mouse:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.fromObject or {}
+local function KeyboardKey(character)
+    local self = MouseControl()
 
-    local _cap = 0
-    local _wheel = 0
-    local _hWheel = 0
-    local _widgets = {}
-    local _xTracker = TrackedNumber:new()
-    local _yTracker = TrackedNumber:new()
-
-    local _buttons = {
-        left = MouseButton:new{ mouse = self, bitValue = 1 },
-        middle = MouseButton:new{ mouse = self, bitValue = 64 },
-        right = MouseButton:new{ mouse = self, bitValue = 2 }
-    }
-
-    function self:getWidgets(widgets) return _widgets end
-    function self:setWidgets(widgets) _widgets = widgets end
-    function self:getLeftButton() return _buttons.left end
-    function self:getMiddleButton() return _buttons.middle end
-    function self:getRightButton() return _buttons.right end
-    function self:getCap() return _cap end
-    function self:getX() return _xTracker:getValue() end
-    function self:setX(value) _xTracker:setValue(value) end
-    function self:getPreviousX() return _xTracker:getPreviousValue() end
-    function self:getXChange() return _xTracker:getChange() end
-    function self:xJustChanged() return _xTracker:justChanged() end
-    function self:getY() return _yTracker:getValue() end
-    function self:setY(value) _yTracker:setValue(value) end
-    function self:getPreviousY() return _yTracker:getPreviousValue() end
-    function self:getYChange() return _yTracker:getChange() end
-    function self:yJustChanged() return _yTracker:justChanged() end
-    function self:justMoved() return self:xJustChanged() or self:yJustChanged() end
-    function self:getWheelValue() return _wheel end
-    function self:wheelJustMoved() return _wheel ~= 0 end
-    function self:getHWheelValue() return _hWheel end
-    function self:hWheelJustMoved() return _hWheel ~= 0 end
-    function self:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self:getPreviousX(), self:getPreviousY()) end
-    function self:isInsideWidget(widget) return widget:pointIsInside(self:getX(), self:getY()) end
-    function self:justEnteredWidget(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInsideWidget(widget) end
-    function self:justLeftWidget(widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInsideWidget(widget) end
-    function self:update()
-        _xTracker:update(gfx.mouse_x)
-        _yTracker:update(gfx.mouse_y)
-        _cap = gfx.mouse_cap
-        _wheel = gfx.mouse_wheel / 120
-        gfx.mouse_wheel = 0
-        _hWheel = gfx.mouse_hwheel / 120
-        gfx.mouse_hwheel = 0
-        _buttons.left:update()
-        _buttons.middle:update()
-        _buttons.right:update()
-    end
-
-    return self
-end
-
-local KeyboardKey = {}
-function KeyboardKey:new(parameters)
-    local parameters = parameters or {}
-    local self = MouseControl:new(parameters)
-
-    local _character = parameters.character or ""
+    local _character = character or ""
 
     local _originalUpdate = self.update
     function self:update()
@@ -317,43 +254,81 @@ function KeyboardKey:new(parameters)
 
     return self
 end
-local Keyboard = {}
-function Keyboard:new(parameters)
-    local parameters = parameters or {}
-    local self = parameters.fromObject or {}
 
-    local _mouse = parameters.mouse or {}
-    local _shiftKey = MouseButton:new{ mouse = _mouse, bitValue = 8 }
-    local _controlKey = MouseButton:new{ mouse = _mouse, bitValue = 4 }
-    local _windowsKey = MouseButton:new{ mouse = _mouse, bitValue = 32 }
-    local _altKey = MouseButton:new{ mouse = _mouse, bitValue = 16 }
-    local _keys = {}
-    local _currentCharacter = nil
+local _mouseWheel = 0
+local _mouseHWheel = 0
+local _mouseXTracker = TrackedNumber:new()
+local _mouseYTracker = TrackedNumber:new()
+local _mouseLeftButton = MouseButton(1)
+local _mouseMiddleButton = MouseButton(64)
+local _mouseRightButton = MouseButton(2)
 
-    function self:getCurrentCharacter() return _currentCharacter end
-    function self:getShiftKey() return _shiftKey end
-    function self:getControlKey() return _controlKey end
-    function self:getWindowsKey() return _windowsKey end
-    function self:getAltKey() return _altKey end
-    function self:getKey(character) return _keys[character] end
-    function self:createKey(character)
-        _keys[character] = KeyboardKey:new{ mouse = _mouse, character = character }
-    end
-    function self:update()
-        _shiftKey:update()
-        _controlKey:update()
-        _windowsKey:update()
-        _altKey:update()
-        for name, key in pairs(_keys) do key:update() end
-        _currentCharacter = characterTableInverted[gfx.getchar()]
-    end
-
-    return self
+function Mouse:getWidgets(widgets) return _widgets end
+function Mouse:setWidgets(widgets) _widgets = widgets end
+function Mouse:getLeftButton() return _mouseLeftButton end
+function Mouse:getMiddleButton() return _mouseMiddleButton end
+function Mouse:getRightButton() return _mouseRightButton end
+function Mouse:getCap() return _mouseCap end
+function Mouse:getX() return _mouseXTracker:getValue() end
+function Mouse:setX(value) _mouseXTracker:setValue(value) end
+function Mouse:getPreviousX() return _mouseXTracker:getPreviousValue() end
+function Mouse:getXChange() return _mouseXTracker:getChange() end
+function Mouse:xJustChanged() return _mouseXTracker:justChanged() end
+function Mouse:getY() return _mouseYTracker:getValue() end
+function Mouse:setY(value) _mouseYTracker:setValue(value) end
+function Mouse:getPreviousY() return _mouseYTracker:getPreviousValue() end
+function Mouse:getYChange() return _mouseYTracker:getChange() end
+function Mouse:yJustChanged() return _mouseYTracker:justChanged() end
+function Mouse:justMoved() return self:xJustChanged() or self:yJustChanged() end
+function Mouse:getWheelValue() return _mouseWheel end
+function Mouse:wheelJustMoved() return _mouseWheel ~= 0 end
+function Mouse:getHWheelValue() return _mouseHWheel end
+function Mouse:hWheelJustMoved() return _mouseHWheel ~= 0 end
+function Mouse:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self:getPreviousX(), self:getPreviousY()) end
+function Mouse:isInsideWidget(widget) return widget:pointIsInside(self:getX(), self:getY()) end
+function Mouse:justEnteredWidget(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInsideWidget(widget) end
+function Mouse:justLeftWidget(widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInsideWidget(widget) end
+function Mouse:update()
+    _mouseXTracker:update(gfx.mouse_x)
+    _mouseYTracker:update(gfx.mouse_y)
+    _mouseCap = gfx.mouse_cap
+    _mouseWheel = gfx.mouse_wheel / 120
+    gfx.mouse_wheel = 0
+    _mouseHWheel = gfx.mouse_hwheel / 120
+    gfx.mouse_hwheel = 0
+    _mouseLeftButton:update()
+    _mouseMiddleButton:update()
+    _mouseRightButton:update()
 end
 
-local mouse = Mouse:new()
-local keyboard = Keyboard:new{ mouse = mouse }
+local Keyboard = {}
+
+local _shiftKey = MouseButton(8)
+local _controlKey = MouseButton(4)
+local _windowsKey = MouseButton(32)
+local _altKey = MouseButton(16)
+local _keys = {}
+local _currentCharacter = nil
+
+function self:getCurrentCharacter() return _currentCharacter end
+function self:getShiftKey() return _shiftKey end
+function self:getControlKey() return _controlKey end
+function self:getWindowsKey() return _windowsKey end
+function self:getAltKey() return _altKey end
+function self:getKey(character) return _keys[character] end
+function self:createKey(character)
+    _keys[character] = KeyboardKey(character)
+end
+function self:update()
+    _shiftKey:update()
+    _controlKey:update()
+    _windowsKey:update()
+    _altKey:update()
+    for name, key in pairs(_keys) do key:update() end
+    _currentCharacter = characterTableInverted[gfx.getchar()]
+end
+
 return {
-    getMouse = function(self) return mouse end,
-    getKeyboard = function(self) return keyboard end,
+    mouse = Mouse,
+    keyboard = Keyboard
 }
