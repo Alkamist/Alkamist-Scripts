@@ -253,7 +253,7 @@ function PitchEditor:update()
     end
     if rightMouseButton:justReleasedWidget(self) then
         local thingsToSelect = nil
-        if self.fixErrorMode then thingsToSelect = self.pitches.points end
+        if self.fixErrorMode then thingsToSelect = self.take.pitches.points end
         self.boxSelect:makeSelection{
             thingsToSelect = thingsToSelect,
             shouldAdd = GUI.shiftKey.isPressed,
@@ -306,13 +306,24 @@ function PitchEditor:drawPitchPoints()
         local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
 
         if fixErrorMode then
-            -- Draw the normal line in the corrected color.
+            -- Draw the normal line in the corrected color
+            -- with additional mouse over and selection glow.
+            local shouldGlowLine = point.isSelected or (mouseOverIndex == i and not mouseIsOverPoint)
+            local shouldGlowPoint = point.isSelected or (mouseOverIndex == i and mouseIsOverPoint)
             if shouldDrawLine then
                 setColor(self, correctedLineColor)
                 drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                if shouldGlowLine then
+                    setColor(self, glowColor)
+                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                end
             end
             setColor(self, correctedPointColor)
             drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
+            if shouldGlowPoint then
+                setColor(self, glowColor)
+                drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
+            end
         else
             -- Draw the normal line and point.
             if shouldDrawLine then

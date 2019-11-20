@@ -32,7 +32,7 @@ function BoxSelect:new(object)
 end
 
 function BoxSelect:thingIsInside(thing)
-    return self:pointIsInside(thing.x + self.absoluteX, thing.y + self.absoluteY)
+    return self:pointIsInside(thing.x, thing.y)
 end
 function BoxSelect:setThingSelected(thing, shouldSelect)
     thing.isSelected = shouldSelect
