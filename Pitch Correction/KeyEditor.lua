@@ -34,8 +34,13 @@ function KeyEditor:new(object)
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
     self.keyCenterLineColor = { 1.0, 1.0, 1.0, 0.09, 1 }
+    self.edgeColor = { 1.0, 1.0, 1.0, -0.1, 1 }
+    self.edgeShade = { 1.0, 1.0, 1.0, -0.04, 1 }
+    self.editCursorColor = { 1.0, 1.0, 1.0, 0.34, 1 }
+    self.playCursorColor = { 1.0, 1.0, 1.0, 0.2, 1 }
     self.minimumKeyHeightToDrawCenterLine = 16
     self.timeLength = 0
+    self.startTime = 0
     self.pitchHeight = 128
     self.scaleWithWindow = true
     self.mouseTimeOnLeftDown = 0.0
@@ -189,39 +194,38 @@ function KeyEditor:drawKeyBackgrounds()
         previousKeyEnd = keyEnd
     end
 end
---[[function KeyEditor:drawEdges()
-    if _take:getPointer() == nil then return end
+function KeyEditor:drawEdges()
     local width = self.width
-    local height = self:getHeight()
+    local height = self.height
 
-    self:setColor(_edgeColor)
+    self:setColor(self.edgeColor)
     local leftEdgePixels = self:timeToPixels(0.0)
     local rightEdgePixels = self:timeToPixels(self.timeLength)
     self:drawLine(leftEdgePixels, 0, leftEdgePixels, height, false)
     self:drawLine(rightEdgePixels, 0, rightEdgePixels, height, false)
 
-    self:setColor(_edgeShade)
+    self:setColor(self.edgeShade)
     self:drawRectangle(0, 0, leftEdgePixels, height, true)
     local rightShadeStart = rightEdgePixels + 1
     self:drawRectangle(rightShadeStart, 0, width - rightShadeStart, height, true)
-end]]--
---[[function KeyEditor:drawEditCursor()
-    local startTime = _getStartTime()
-    local height = self:getHeight()
+end
+function KeyEditor:drawEditCursor()
+    local startTime = self.startTime
+    local height = self.height
     local editCursorPixels = self:timeToPixels(reaper.GetCursorPosition() - startTime)
     local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - startTime)
 
-    self:setColor(_editCursorColor)
+    self:setColor(self.editCursorColor)
     self:drawLine(editCursorPixels, 0, editCursorPixels, height, false)
 
     local playState = reaper.GetPlayState()
     local projectIsPlaying = playState & 1 == 1
     local projectIsRecording = playState & 4 == 4
     if projectIsPlaying or projectIsRecording then
-        self:setColor(_playCursorColor)
+        self:setColor(self.playCursorColor)
         self:drawLine(playPositionPixels, 0, playPositionPixels, height, false)
     end
-end]]--
+end
 function KeyEditor:draw()
     local width = self.width
     local height = self.height
@@ -229,6 +233,8 @@ function KeyEditor:draw()
     self:drawRectangle(0, 0, width, height, true)
 
     self:drawKeyBackgrounds()
+    self:drawEdges()
+    self:drawEditCursor()
 
     self:setColor(self.backgroundColor)
     self:drawRectangle(0, 0, width, _editorVerticalOffset, true)

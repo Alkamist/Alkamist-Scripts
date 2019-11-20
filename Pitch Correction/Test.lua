@@ -37,7 +37,8 @@ local editor = KeyEditor:new{
     x = 50,
     y = 50,
     width = 900,
-    height = 600
+    height = 600,
+    timeLength = 20
 }
 
 --local test1 = Button:new{
