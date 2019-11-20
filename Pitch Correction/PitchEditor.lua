@@ -5,6 +5,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Widget = require("GUI.Widget")
 local Button = require("GUI.Button")
 local KeyEditor = require("Pitch Correction.KeyEditor")
+local TakeWithPitchPoints = require("Pitch Correction.TakeWithPitchPoints")
 
 local function arrayRemove(t, fn)
     local n = #t
@@ -138,6 +139,35 @@ local PitchEditor = {}
 function PitchEditor:new(object)
     local self = Widget:new(self)
 
+    local timeLength = {
+        get = function()
+            local takeLength = self.take.length
+            if takeLength then return takeLength end
+            return 0.0
+        end
+    }
+    local startTime = {
+        get = function()
+            local startTime = self.take.leftTime
+            if startTime then return startTime end
+            return 0.0
+        end
+    }
+
+    self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
+    self.correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
+    self.timeLength = timeLength
+    self.startTime = startTime
+    self.take = TakeWithPitchPoints:new{
+        pointer = {
+            get = function(self)
+                local selectedItem = reaper.GetSelectedMediaItem(0, 0)
+                if selectedItem then return reaper.GetActiveTake(selectedItem) end
+            end
+        }
+    }
+    self.previousTakePointer = self.take.pointer
+
     self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
 
     self.fixErrorButton = Button:new{
@@ -160,17 +190,24 @@ function PitchEditor:new(object)
         x = 0,
         y = 25,
         width = object.width,
-        height = object.height
+        height = object.height,
+        timeLength = timeLength,
+        startTime = startTime
     }
+    self.keyEditor.draw = function()
+        KeyEditor.draw(self.keyEditor)
+        self:drawPitchPoints()
+    end
     self.childWidgets = { self.keyEditor, self.analyzeButton, self.fixErrorButton }
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 
---[[function self:updatePointCoordinates(points)
-    local timeToPixels = self.timeToPixels
-    local pitchToPixels = self.pitchToPixels
+function PitchEditor:updatePointCoordinates(points)
+    local keyEditor = self.keyEditor
+    local timeToPixels = keyEditor.timeToPixels
+    local pitchToPixels = keyEditor.pitchToPixels
     local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
     local envelope = self.take.pitchEnvelope
     local playRate = self.take.playRate
@@ -180,16 +217,16 @@ end
         local pointTime = point.time
         local pointPitch = point.pitch
         if pointTime then
-            point.x = timeToPixels(self, pointTime)
+            point.x = timeToPixels(keyEditor, pointTime)
             if pointPitch then
-                point.y = pitchToPixels(self, pointPitch)
+                point.y = pitchToPixels(keyEditor, pointPitch)
                 local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
-                point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
+                point.correctedY = pitchToPixels(keyEditor, pointPitch + envelopeValue)
             end
         end
     end
 end
-function self:moveSelectedPitchPointsPitchesBy(value)
+--[[function self:moveSelectedPitchPointsPitchesBy(value)
     local points = self.take.pitchAnalyzer.points
     for i = 1, #points do
         local point = points[i]
@@ -228,80 +265,67 @@ end]]--
     end
 }]]--
 
---[[function PitchEditor:update()
+function PitchEditor:update()
+    local take = self.take
+    local takePointer = take.pointer
+
     --if self.fixErrorMode then
     --    self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(pitchAnalyzer.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
     --end
 
-    --if takePointer ~= nil then
-    --    if self.analyzeButton.justPressed then pitchAnalyzer:prepareToAnalyzePitch() end
-    --    pitchAnalyzer:analyzePitch()
-    --    pitchAnalyzer:sortPoints()
-    --    self:updatePointCoordinates(pitchAnalyzer.points)
-    --end
+    if takePointer ~= nil then
+        if self.analyzeButton.justPressed then take:prepareToAnalyzePitch() end
+        take:analyzePitch()
+        take.pitches:sortPoints()
+        self:updatePointCoordinates(take.pitches.points)
+    end
 
-    --self:queueRedraw()
-end]]--
---[[function self:drawPitchPoints()
+    self:queueRedraw()
+    self.previousTakePointer = takePointer
+end
+function PitchEditor:drawPitchPoints()
     if self.take.pointer == nil then return end
-    local points = self.take.pitchAnalyzer.points
+    local pointBrightness = 0.03
+    local pointSize = 3
+    local halfPointSize = math.floor(pointSize * 0.5)
+    local points = self.take.pitches.points
     local drawRectangle = self.drawRectangle
     local drawLine = self.drawLine
     local setColor = self.setColor
-    local pointColor = self.pitchPointColor
     local lineColor = self.pitchLineColor
+    local pointColor = { lineColor[1] + pointBrightness, lineColor[2] + pointBrightness, lineColor[3] + pointBrightness, lineColor[4], lineColor[5] }
     local correctedLineColor = self.correctedPitchLineColor
-    local mouseOverLineColor = self.pitchLineMouseOverColor
-    local correctedPointColor = self.correctedPitchPointColor
-    local mouseOverPointColor = self.pitchPointMouseOverColor
+    local correctedPointColor = { correctedLineColor[1] + pointBrightness, correctedLineColor[2] + pointBrightness, correctedLineColor[3] + pointBrightness, correctedLineColor[4], correctedLineColor[5] }
     local pitchToPixels = self.pitchToPixels
     local abs = math.abs
     local fixErrorMode = self.fixErrorMode
     local mouseOverIndex = self.mouseOverPitchPointIndex
     local mouseIsOverPoint = self.mouseIsOverPitchPoint
-    local selectedColor = { 1.0, 1.0, 1.0, 0.3, 1 }
+    local glowColor = { 1.0, 1.0, 1.0, 0.3, 1 }
     for i = 1, #points do
         local point = points[i]
         local nextPoint = points[i + 1]
         local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
 
         if fixErrorMode then
-            if shouldDrawLine then
-                if mouseOverIndex == i and not mouseIsOverPoint then
-                    setColor(self, mouseOverLineColor)
-                else
-                    setColor(self, correctedLineColor)
-                end
-                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
-            end
-            if mouseOverIndex == i and mouseIsOverPoint then
-                setColor(self, mouseOverPointColor)
-            else
-                setColor(self, correctedPointColor)
-            end
-            drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-            if point.isSelected then
-                setColor(self, selectedColor)
-                drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
-            end
         else
+            -- Draw the normal line and point.
             if shouldDrawLine then
                 setColor(self, lineColor)
                 drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
             end
             setColor(self, pointColor)
-            drawRectangle(self, point.x - 1, point.y - 1, 3, 3, true)
+            drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
 
+            -- Draw the corrected line and point.
             if shouldDrawLine then
                 setColor(self, correctedLineColor)
                 drawLine(self, point.x, point.correctedY, nextPoint.x, nextPoint.correctedY, true)
             end
             setColor(self, correctedPointColor)
-            drawRectangle(self, point.x - 1, point.correctedY - 1, 3, 3, true)
+            drawRectangle(self, point.x - halfPointSize, point.correctedY - halfPointSize, pointSize, pointSize, true)
         end
     end
-end]]--
---[[function PitchEditor:draw()
-end]]--
+end
 
 return PitchEditor
