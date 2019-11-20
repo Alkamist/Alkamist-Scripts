@@ -15,6 +15,7 @@ local function getWhiteKeyNumbers()
     end
     return whiteKeys
 end
+local whiteKeyNumbers = getWhiteKeyNumbers()
 local function round(number, places)
     if not places then
         return number > 0 and math.floor(number + 0.5) or math.ceil(number - 0.5)
@@ -29,7 +30,6 @@ local KeyEditor = {}
 function KeyEditor:new(object)
     local self = Widget:new(self)
 
-    self.whiteKeyNumbers = getWhiteKeyNumbers()
     self.backgroundColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.blackKeyColor = { 0.22, 0.22, 0.22, 1.0, 0 }
     self.whiteKeyColor = { 0.29, 0.29, 0.29, 1.0, 0 }
@@ -157,7 +157,7 @@ function KeyEditor:drawKeyBackgrounds()
     local pitchHeight = self.pitchHeight
     local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
     local width = self.width
-    local whiteKeyNumbers = self.whiteKeyNumbers
+    local whiteKeyNumbers = whiteKeyNumbers
     local numberOfWhiteKeys = #whiteKeyNumbers
     local blackKeyColor = self.blackKeyColor
     local whiteKeyColor = self.whiteKeyColor

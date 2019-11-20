@@ -317,6 +317,7 @@ GUI.backgroundColor = {
     end
 }
 GUI.widgets = {}
+GUI.bufferIsUsed = {}
 
 function GUI:mouseIsInsideWidget(widget)
     return widget:pointIsInside(self.mouseX, self.mouseY)
@@ -333,30 +334,12 @@ end
 function GUI:createKey(character)
     self.keys[character] = KeyboardKey(character)
 end
-function GUI:widgetIsUsingBuffer(widget, buffer)
-    if buffer == widget.drawBuffer then return true end
-    local childWidgets = widget.childWidgets
-    if childWidgets then
-        for _, childWidget in ipairs(childWidgets) do
-            if self:widgetIsUsingBuffer(childWidget, buffer) then
-                return true
-            end
-        end
-    end
-    return false
-end
-function GUI:bufferIsUsed(buffer)
-    local widgets = self.widgets
-    for _, widget in ipairs(widgets) do
-        if self:widgetIsUsingBuffer(widget, buffer) then
-            return true
-        end
-    end
-    return false
-end
 function GUI:getNewDrawBuffer()
     for i = 0, 1023 do
-        if not self:bufferIsUsed(i) then return i end
+        if not self.bufferIsUsed[i] then
+            self.bufferIsUsed[i] = true
+            return i
+        end
     end
 end
 function GUI:initialize(parameters)

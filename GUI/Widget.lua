@@ -69,10 +69,11 @@ function Widget:new(object)
     self.relativeMouseY = { get = function(self) return self.GUI.mouseY - self.absoluteY end }
     self.childWidgets = {
         value = {},
+        get = function(self, field) return field.value end,
         set = function(self, value, field)
             if type(value) ~= "table" then return end
             for _, widget in ipairs(value) do
-                widget:setParentWidget(self)
+                widget.parentWidget = self
             end
             field.value = value
         end
@@ -257,12 +258,12 @@ function Widget:doDrawToBuffer()
     end
 
     if not self.shouldDrawDirectly then
-        if self.shouldRedraw and self.draw then
+        if self.shouldRedraw then
             self:clearBuffer()
             gfx.a = 1.0
             gfx.mode = 0
             gfx.dest = self.drawBuffer
-            self:draw()
+            if self.draw then self:draw() end
             self.shouldRedraw = false
         elseif self.shouldClear then
             self:clearBuffer()
@@ -287,16 +288,14 @@ function Widget:doDrawToParent()
         end
         gfx.a = 1.0
         gfx.mode = 0
-        if self.draw then
-            if self.shouldDrawDirectly then
-                self:draw()
-            else
-                local x = self.x
-                local y = self.y
-                local width = self.width
-                local height = self.height
-                gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
-            end
+        if self.shouldDrawDirectly then
+            if self.draw then self:draw() end
+        else
+            local x = self.x
+            local y = self.y
+            local width = self.width
+            local height = self.height
+            gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
         end
     end
 end

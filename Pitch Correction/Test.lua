@@ -21,7 +21,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 
 local GUI = require("GUI.AlkamistGUI")
 --local Button = require("GUI.Button")
-local KeyEditor = require("Pitch Correction.KeyEditor")
+local PitchEditor = require("Pitch Correction.PitchEditor")
 
 GUI:initialize{
     title = "Alkamist Pitch Correction",
@@ -33,12 +33,11 @@ GUI:initialize{
 }
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
-local editor = KeyEditor:new{
+local editor = PitchEditor:new{
     x = 50,
     y = 50,
     width = 900,
-    height = 600,
-    timeLength = 20
+    height = 600
 }
 
 --local test1 = Button:new{
