@@ -70,8 +70,6 @@ function TimeSeries:encodeAsString(pointMembers)
     local numberOfPoints = #points
     local numberOfMembers = #pointMembers
     local saveTable = {
-        leftBound = self.leftBound,
-        rightBound = self.rightBound,
         numberOfPoints = numberOfPoints,
         points = {}
     }
@@ -89,8 +87,6 @@ function TimeSeries:encodeAsString(pointMembers)
 end
 function TimeSeries:decodeFromString(stringToDecode, pointMembers)
     local decodedTable = Json.decode(stringToDecode)
-    self.leftBound = decodedTable.leftBound
-    self.rightBound = decodedTable.rightBound
     self.points = {}
     local numberOfPoints = decodedTable.numberOfPoints
     for name, defaultValue in pairs(pointMembers) do
