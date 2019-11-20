@@ -181,20 +181,20 @@ function TakeWithPitchPoints:analyzePitch()
         end
     end
 end
-function TakeWithPitchPoints:updatePointRealTimes()
+function TakeWithPitchPoints:updatePitchPointRealTimes()
     local points = self.pitches.points
     for i = 1, #points do
         local point = points[i]
         point.time = self:getRealTime(point.sourceTime)
     end
 end
-function TakeWithPitchPoints:loadPoints(...)
+function TakeWithPitchPoints:loadPitchPoints(...)
     self.pitches:loadPoints(...)
-    self:updatePointRealTimes()
+    self:updatePitchPointRealTimes()
 end
-function TakeWithPitchPoints:loadPointsFromTakeFile()
+function TakeWithPitchPoints:loadPitchPointsFromTakeFile()
     if self.pointer then
-        self.pitches:loadPoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
+        self:loadPitchPoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
     end
 end
 

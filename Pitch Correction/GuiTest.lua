@@ -2,6 +2,7 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
+local Button = require("GUI.Button")
 local PitchEditor = require("Pitch Correction.PitchEditor")
 
 GUI:initialize{
@@ -12,14 +13,31 @@ GUI:initialize{
     height = 700,
     dock = 0
 }
-GUI:setBackgroundColor{ 0.2, 0.2, 0.2 }
+GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
-local pitchEditor = PitchEditor:new{
-    x = 50,
-    y = 50,
-    width = 900,
-    height = 600
+local fixErrorButton = Button:new{
+    x = 79,
+    y = 0,
+    width = 80,
+    height = 25,
+    label = "Fix Errors",
+    toggleOnClick = true
+}
+local analyzeButton = Button:new{
+    x = 0,
+    y = 0,
+    width = 80,
+    height = 25,
+    label = "Analyze Pitch",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
 }
 
-GUI:setWidgets{ pitchEditor }
+local editor = PitchEditor:new{
+    x = 0,
+    y = 25,
+    width = 1000,
+    height = 700 - 25
+}
+
+GUI.widgets = { editor, analyzeButton, fixErrorButton }
 GUI:run()

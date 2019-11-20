@@ -21,7 +21,7 @@ function BoxSelect:new(object)
     return self
 end
 
-function self:startSelection(startingX, startingY)
+function BoxSelect:startSelection(startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
@@ -32,7 +32,7 @@ function self:startSelection(startingX, startingY)
     self.height = 0
     self:queueRedraw()
 end
-function self:editSelection(editX, editY)
+function BoxSelect:editSelection(editX, editY)
     self.isActive = true
     self.x2 = editX
     self.y2 = editY
@@ -42,7 +42,7 @@ function self:editSelection(editX, editY)
     self.height = abs(self.y1 - self.y2)
     self:queueRedraw()
 end
-function self:makeSelection(parameters)
+function BoxSelect:makeSelection(parameters)
     local parameters = parameters or {}
     local thingsToSelect = parameters.thingsToSelect
     local isInsideFunction = parameters.isInsideFunction
@@ -73,7 +73,7 @@ function self:makeSelection(parameters)
     self:queueClear()
 end
 
-function self:draw()
+function BoxSelect:draw()
     local width = self.width
     local height = self.height
 

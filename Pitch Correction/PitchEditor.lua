@@ -4,6 +4,7 @@ local math = math
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Widget = require("GUI.Widget")
 local Button = require("GUI.Button")
+local BoxSelect = require("GUI.BoxSelect")
 local KeyEditor = require("Pitch Correction.KeyEditor")
 local TakeWithPitchPoints = require("Pitch Correction.TakeWithPitchPoints")
 
@@ -137,16 +138,16 @@ end
 
 local PitchEditor = {}
 function PitchEditor:new(object)
-    local self = Widget:new(self)
+    local self = KeyEditor:new(self)
 
-    local timeLength = {
+    self.timeLength = {
         get = function()
             local takeLength = self.take.length
             if takeLength then return takeLength end
             return 0.0
         end
     }
-    local startTime = {
+    self.startTime = {
         get = function()
             local startTime = self.take.leftTime
             if startTime then return startTime end
@@ -156,8 +157,6 @@ function PitchEditor:new(object)
 
     self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
     self.correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
-    self.timeLength = timeLength
-    self.startTime = startTime
     self.take = TakeWithPitchPoints:new{
         pointer = {
             get = function(self)
@@ -167,76 +166,21 @@ function PitchEditor:new(object)
         }
     }
     self.previousTakePointer = self.take.pointer
+    self.mouseOverPitchPointIndex = nil
+    self.mouseIsOverPitchPoint = nil
+    self.editPixelRange = 7
 
-    self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
+    --self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
 
-    self.fixErrorButton = Button:new{
-        x = 79,
-        y = 0,
-        width = 80,
-        height = 25,
-        label = "Fix Errors",
-        toggleOnClick = true
-    }
-    self.analyzeButton = Button:new{
-        x = 0,
-        y = 0,
-        width = 80,
-        height = 25,
-        label = "Analyze Pitch",
-        color = { 0.5, 0.2, 0.1, 1.0, 0 }
-    }
-    self.keyEditor = KeyEditor:new{
-        x = 0,
-        y = 25,
-        width = object.width,
-        height = object.height,
-        timeLength = timeLength,
-        startTime = startTime
-    }
-    self.keyEditor.draw = function()
-        KeyEditor.draw(self.keyEditor)
-        self:drawPitchPoints()
-    end
-    self.childWidgets = { self.keyEditor, self.analyzeButton, self.fixErrorButton }
+    --self.boxSelect = BoxSelect:new()
+
+    if self.take.pointer then self.take:loadPitchPointsFromTakeFile() end
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 
-function PitchEditor:updatePointCoordinates(points)
-    local keyEditor = self.keyEditor
-    local timeToPixels = keyEditor.timeToPixels
-    local pitchToPixels = keyEditor.pitchToPixels
-    local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
-    local envelope = self.take.pitchEnvelope
-    local playRate = self.take.playRate
-    for i = 1, #points do
-        local point = points[i]
-        point.time = self.take:getRealTime(point.sourceTime)
-        local pointTime = point.time
-        local pointPitch = point.pitch
-        if pointTime then
-            point.x = timeToPixels(keyEditor, pointTime)
-            if pointPitch then
-                point.y = pitchToPixels(keyEditor, pointPitch)
-                local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
-                point.correctedY = pitchToPixels(keyEditor, pointPitch + envelopeValue)
-            end
-        end
-    end
-end
---[[function self:moveSelectedPitchPointsPitchesBy(value)
-    local points = self.take.pitchAnalyzer.points
-    for i = 1, #points do
-        local point = points[i]
-        if point.isSelected then
-            point.pitch = point.pitch + value
-        end
-    end
-end]]--
-
---[[self.keyPressFunctions = {
+PitchEditor.keyPressFunctions = {
     ["Delete"] = function(self)
         msg("delete")
     end,
@@ -247,34 +191,73 @@ end]]--
     end,
     ["Down"] = function(self)
         if self.fixErrorMode then
-            if self.GUI.keyboard.shiftKey.isPressed then
-                self:moveSelectedPitchPointsPitchesBy(-12.0)
+            if self.GUI.shiftKey.isPressed then
+                self:moveSelectedPitchPointsPitchesByValue(-12.0)
             else
-                self:moveSelectedPitchPointsPitchesBy(-1.0)
+                self:moveSelectedPitchPointsPitchesByValue(-1.0)
             end
         end
     end,
     ["Up"] = function(self)
         if self.fixErrorMode then
-            if self.GUI.keyboard.shiftKey.isPressed then
-                self:moveSelectedPitchPointsPitchesBy(12.0)
+            if self.GUI.shiftKey.isPressed then
+                self:moveSelectedPitchPointsPitchesByValue(12.0)
             else
-                self:moveSelectedPitchPointsPitchesBy(1.0)
+                self:moveSelectedPitchPointsPitchesByValue(1.0)
             end
         end
     end
-}]]--
+}
 
+function PitchEditor:updatePointCoordinates(points)
+    local timeToPixels = self.timeToPixels
+    local pitchToPixels = self.pitchToPixels
+    local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
+    local envelope = self.take.pitchEnvelope
+    local playRate = self.take.playRate
+    for i = 1, #points do
+        local point = points[i]
+        point.time = self.take:getRealTime(point.sourceTime)
+        local pointTime = point.time
+        local pointPitch = point.pitch
+        if pointTime then
+            point.x = timeToPixels(self, pointTime)
+            if pointPitch then
+                point.y = pitchToPixels(self, pointPitch)
+                local _, envelopeValue = reaperEnvelope_Evaluate(envelope, pointTime * playRate, 44100, 0)
+                point.correctedY = pitchToPixels(self, pointPitch + envelopeValue)
+            end
+        end
+    end
+end
+function PitchEditor:moveSelectedPitchPointsPitchesByValue(value)
+    local points = self.take.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        if point.isSelected then
+            point.pitch = point.pitch + value
+        end
+    end
+end
+
+function PitchEditor:analyzePitch()
+    self.take:prepareToAnalyzePitch()
+end
 function PitchEditor:update()
+    KeyEditor.update(self)
+
     local take = self.take
     local takePointer = take.pointer
 
-    --if self.fixErrorMode then
-    --    self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(pitchAnalyzer.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
-    --end
+    if takePointer ~= self.previousTakePointer then
+        take:loadPitchPointsFromTakeFile()
+    end
+
+    if self.fixErrorMode then
+        self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(take.pitches.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
+    end
 
     if takePointer ~= nil then
-        if self.analyzeButton.justPressed then take:prepareToAnalyzePitch() end
         take:analyzePitch()
         take.pitches:sortPoints()
         self:updatePointCoordinates(take.pitches.points)
@@ -326,6 +309,10 @@ function PitchEditor:drawPitchPoints()
             drawRectangle(self, point.x - halfPointSize, point.correctedY - halfPointSize, pointSize, pointSize, true)
         end
     end
+end
+function PitchEditor:draw()
+    KeyEditor.draw(self)
+    self:drawPitchPoints()
 end
 
 return PitchEditor

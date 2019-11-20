@@ -242,7 +242,7 @@ function Widget:doUpdate()
 
     local keyPressFunctions = self.keyPressFunctions
     if type(keyPressFunctions) == "table" then
-        local char = GUI.keyboard.currentCharacter
+        local char = GUI.currentCharacter
         local keyPressFunction = keyPressFunctions[char]
         if keyPressFunction then keyPressFunction(self) end
     end

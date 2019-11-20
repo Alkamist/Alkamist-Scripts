@@ -55,10 +55,8 @@ function KeyEditor:new(object)
     self.snappedMousePitch = { get = function(self) return round(self.mousePitch) end }
     self.previousSnappedMousePitch = 0
     self.mouseSnappedPitchChange = { get = function(self) return self.snappedMousePitch - self.previousSnappedMousePitch end }
-    self.xView = ViewAxis:new{ scale = object.width }
-    self.yView = ViewAxis:new{ scale = object.height }
-
-    --self.childWidgets = { _boxSelect }
+    self.xView = ViewAxis:new{ scale = { get = function() return self.width end } }
+    self.yView = ViewAxis:new{ scale = { get = function() return self.height end } }
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
@@ -115,8 +113,6 @@ function KeyEditor:update()
         if self.scaleWithWindow then
             self.width = self.width + GUI.widthChange
             self.height = self.height + GUI.heightChange
-            self.xView.scale = self.width
-            self.yView.scale = self.height
         end
     end
     if leftMouseButton:justPressedWidget(self) then
