@@ -16,11 +16,30 @@ function BoxSelect:new(object)
     self.insideColor = { 0, 0, 0, 0.4, 0 }
     self.edgeColor = { 1, 1, 1, 0.7, 0 }
     self.isActive = false
+    self.thingsToSelect = {}
+    self.isInsideFunction = function(self, thing)
+        return self:pointIsInside(thing.x + self.absoluteX, thing.y + self.absoluteY)
+    end
+    self.setSelectedFunction = function(self, thing, shouldSelect)
+        thing.isSelected = shouldSelect
+    end
+    self.setSelectedFunction = function(self, thing, shouldSelect)
+        thing.isSelected = shouldSelect
+    end
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 
+function BoxSelect:thingIsInside(thing)
+    return self:pointIsInside(thing.x + self.absoluteX, thing.y + self.absoluteY)
+end
+function BoxSelect:setThingSelected(thing, shouldSelect)
+    thing.isSelected = shouldSelect
+end
+function BoxSelect:thingIsSelected(thing)
+    return thing.isSelected
+end
 function BoxSelect:startSelection(startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
@@ -44,10 +63,10 @@ function BoxSelect:editSelection(editX, editY)
 end
 function BoxSelect:makeSelection(parameters)
     local parameters = parameters or {}
-    local thingsToSelect = parameters.thingsToSelect
-    local isInsideFunction = parameters.isInsideFunction
-    local setSelectedFunction = parameters.setSelectedFunction
-    local getSelectedFunction = parameters.getSelectedFunction
+    local thingsToSelect = parameters.thingsToSelect or self.thingsToSelect
+    local thingIsInside = parameters.thingIsInside or self.thingIsInside
+    local setThingSelected = parameters.setThingSelected or self.setThingSelected
+    local thingIsSelected = parameters.thingIsSelected or self.thingIsSelected
     local shouldAdd = parameters.shouldAdd
     local shouldInvert = parameters.shouldInvert
 
@@ -55,15 +74,15 @@ function BoxSelect:makeSelection(parameters)
         for i = 1, #thingsToSelect do
             local thing = thingsToSelect[i]
 
-            if isInsideFunction(self, thing) then
+            if thingIsInside(self, thing) then
                 if shouldInvert then
-                    setSelectedFunction(thing, not getSelectedFunction(thing))
+                    setThingSelected(self, thing, not thingIsSelected(self, thing))
                 else
-                    setSelectedFunction(thing, true)
+                    setThingSelected(self, thing, true)
                 end
             else
                 if not shouldAdd and not shouldInvert then
-                    setSelectedFunction(thing, false)
+                    setThingSelected(self, thing, false)
                 end
             end
         end

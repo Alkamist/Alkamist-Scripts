@@ -2,8 +2,6 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Widget = require("GUI.Widget")
-local Button = require("GUI.Button")
 local BoxSelect = require("GUI.BoxSelect")
 local KeyEditor = require("Pitch Correction.KeyEditor")
 local TakeWithPitchPoints = require("Pitch Correction.TakeWithPitchPoints")
@@ -169,13 +167,12 @@ function PitchEditor:new(object)
     self.mouseOverPitchPointIndex = nil
     self.mouseIsOverPitchPoint = nil
     self.editPixelRange = 7
+    self.fixErrorMode = false
 
-    --self.fixErrorMode = { get = function(self) return self.fixErrorButton.isPressed end }
-
-    --self.boxSelect = BoxSelect:new()
+    self.boxSelect = BoxSelect:new()
+    self.childWidgets = { self.boxSelect }
 
     if self.take.pointer then self.take:loadPitchPointsFromTakeFile() end
-
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
@@ -246,6 +243,24 @@ end
 function PitchEditor:update()
     KeyEditor.update(self)
 
+    local GUI = self.GUI
+    local rightMouseButton = GUI.rightMouseButton
+    if rightMouseButton:justPressedWidget(self) then
+        self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    if rightMouseButton:justDraggedWidget(self) then
+        self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    if rightMouseButton:justReleasedWidget(self) then
+        local thingsToSelect = nil
+        if self.fixErrorMode then thingsToSelect = self.pitches.points end
+        self.boxSelect:makeSelection{
+            thingsToSelect = thingsToSelect,
+            shouldAdd = GUI.shiftKey.isPressed,
+            shouldInvert = GUI.controlKey.isPressed
+        }
+    end
+
     local take = self.take
     local takePointer = take.pointer
 
@@ -291,6 +306,13 @@ function PitchEditor:drawPitchPoints()
         local shouldDrawLine = nextPoint and abs(nextPoint.time - point.time) < 0.1
 
         if fixErrorMode then
+            -- Draw the normal line in the corrected color.
+            if shouldDrawLine then
+                setColor(self, correctedLineColor)
+                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+            end
+            setColor(self, correctedPointColor)
+            drawRectangle(self, point.x - halfPointSize, point.y - halfPointSize, pointSize, pointSize, true)
         else
             -- Draw the normal line and point.
             if shouldDrawLine then
