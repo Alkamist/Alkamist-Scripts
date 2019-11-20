@@ -1,6 +1,9 @@
 local reaper = reaper
 local gfx = gfx
 
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Proxy = require("Proxy")
+
 local function invertTable(tbl)
     local invertedTable = {}
     for key, value in pairs(tbl) do
@@ -163,7 +166,7 @@ local characterTableInverted = invertTable(characterTable)
 local GUI = Proxy:new()
 
 local MouseControl = {}
-function MouseControl:new(object)
+function MouseControl:new()
     local self = Proxy:new(MouseControl)
 
     self.wasPressedInsideWidget = {}
@@ -192,16 +195,29 @@ function MouseControl:new(object)
     self.justStartedDragging = { get = function(self) return self.justDragged and not self.isAlreadyDragging end }
     self.justStoppedDragging = { get = function(self) return self.justReleased and self.isAlreadyDragging end }
 
-    if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
-function MouseControl:isPressedInWidget(widget) return self.isPressed and Mouse:isInsideWidget(widget) end
-function MouseControl:justPressedWidget(widget) return self.justPressed and Mouse:isInsideWidget(widget) end
-function MouseControl:justReleasedWidget(widget) return self.justReleased and self.wasPressedInsideWidget[widget] end
-function MouseControl:justDoublePressedWidget(widget) return self.justDoublePressed and Mouse:isInsideWidget(widget) end
-function MouseControl:justDraggedWidget(widget) return self.justDragged and self.wasPressedInsideWidget[widget] end
-function MouseControl:justStartedDraggingWidget(widget) return self.justDragged and not self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end
-function MouseControl:justStoppedDraggingWidget(widget) return self.justReleased and self.isAlreadyDragging and self.wasPressedInsideWidget[widget] end
+function MouseControl:isPressedInWidget(widget)
+    return self.isPressed and GUI:mouseIsInsideWidget(widget)
+end
+function MouseControl:justPressedWidget(widget)
+    return self.justPressed and GUI:mouseIsInsideWidget(widget)
+end
+function MouseControl:justReleasedWidget(widget)
+    return self.justReleased and self.wasPressedInsideWidget[widget]
+end
+function MouseControl:justDoublePressedWidget(widget)
+    return self.justDoublePressed and GUI:mouseIsInsideWidget(widget)
+end
+function MouseControl:justDraggedWidget(widget)
+    return self.justDragged and self.wasPressedInsideWidget[widget]
+end
+function MouseControl:justStartedDraggingWidget(widget)
+    return self.justDragged and not self.isAlreadyDragging and self.wasPressedInsideWidget[widget]
+end
+function MouseControl:justStoppedDraggingWidget(widget)
+    return self.justReleased and self.isAlreadyDragging and self.wasPressedInsideWidget[widget]
+end
 function MouseControl:updateWidgetPressState(widget)
     if self.wasJustReleasedLastFrame then self.wasPressedInsideWidget[widget] = false end
     if self:justPressedWidget(widget) then self.wasPressedInsideWidget[widget] = true end
@@ -215,20 +231,19 @@ end
 function MouseControl:update(state)
     if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
     if self.justReleased then self.isAlreadyDragging = false end
-
     self.wasJustReleasedLastFrame = self.justReleased
+
     self.previousPressState = self.isPressed
     self.isPressed = state
 
-    local widgets = widgets
+    local widgets = GUI.widgets
     if widgets then
         for i = 1, #widgets do self:updateWidgetPressState(widgets[i]) end
     end
 
     if self.justDragged then self.isAlreadyDragging = true end
-    self.justDragged = self.isPressed and Mouse.justMoved
+    self.justDragged = self.isPressed and GUI.mouseJustMoved
 end
-
 local function MouseButton(bitValue)
     local self = MouseControl:new()
 
@@ -236,7 +251,7 @@ local function MouseButton(bitValue)
 
     local _originalUpdate = self.update
     function self:update()
-        _originalUpdate(self, Mouse.cap & _bitValue == _bitValue)
+        _originalUpdate(self, GUI.mouseCap & _bitValue == _bitValue)
     end
 
     return self
@@ -252,39 +267,6 @@ local function KeyboardKey(character)
     end
 
     return self
-end
-
-function Mouse:isInsideWidget(widget) return widget:pointIsInside(self.x, self.y) end
-function Mouse:wasPreviouslyInsideWidget(widget) return widget:pointIsInside(self.previousX, self.previousY) end
-function Mouse:justEnteredWidget(widget) return self:isInsideWidget(widget) and not self:wasPreviouslyInsideWidget(widget) end
-function Mouse:justLeftWidget(widget) return not self:isInsideWidget(widget) and self:wasPreviouslyInsideWidget(widget) end
-function Mouse:update()
-    self.previousX = self.x
-    self.previousY = self.y
-    self.x = gfx.mouse_x
-    self.y = gfx.mouse_y
-    self.cap = gfx.mouse_cap
-    self.wheel = gfx.mouse_wheel / 120
-    gfx.mouse_wheel = 0
-    self.hWheel = gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel = 0
-end
-
-local Keyboard = Proxy:new()
-
-
-function Keyboard:getCurrentCharacter() return currentCharacter end
-function Keyboard:getShiftKey() return shiftKey end
-function Keyboard:getControlKey() return controlKey end
-function Keyboard:getWindowsKey() return windowsKey end
-function Keyboard:getAltKey() return altKey end
-function Keyboard:getKey(character) return keyboardKeys[character] end
-function Keyboard:createKey(character)
-    keyboardKeys[character] = KeyboardKey(character)
-end
-function Keyboard:update()
-    for name, key in pairs(keyboardKeys) do key:update() end
-    currentCharacter = characterTableInverted[gfx.getchar()]
 end
 
 GUI.mouseX = 0
@@ -331,7 +313,23 @@ GUI.backgroundColor = {
     end
 }
 GUI.bufferIsUsed = {}
+GUI.widgets = {}
 
+function GUI:mouseIsInsideWidget(widget)
+    return widget:pointIsInside(self.mouseX, self.mouseY)
+end
+function GUI:mouseWasPreviouslyInsideWidget(widget)
+    return widget:pointIsInside(self.previousMouseX, self.previousMouseY)
+end
+function GUI:mouseJustEnteredWidget(widget)
+    return self:mouseIsInsideWidget(widget) and not self:mouseWasPreviouslyInsideWidget(widget)
+end
+function GUI:mouseJustLeftWidget(widget)
+    return not self:mouseIsInsideWidget(widget) and self:mouseWasPreviouslyInsideWidget(widget)
+end
+function GUI:createKey(character)
+    self.keys[character] = KeyboardKey(character)
+end
 function GUI:getNewDrawBuffer()
     for i = 0, 1023 do
         if not bufferIsUsed[i] then
@@ -365,9 +363,9 @@ function GUI:run()
     gfx.mouse_wheel = 0
     self.mouseHWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
-    self.mouseLeftButton:update()
-    self.mouseMiddleButton:update()
-    self.mouseRightButton:update()
+    self.leftMouseButton:update()
+    self.middleMouseButton:update()
+    self.rightMouseButton:update()
     self.shiftKey:update()
     self.controlKey:update()
     self.windowsKey:update()

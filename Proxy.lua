@@ -4,8 +4,9 @@ local pairs = pairs
 local type = type
 local next = next
 
-local function createProxy(fields)
-    local fields = fields or {}
+local function createProxy(object)
+    local fields = {}
+    if object then for k, v in pairs(object) do fields[k] = v end end
     return setmetatable({}, {
         __index = function(t, k)
             local field = fields[k]
@@ -32,7 +33,7 @@ local function createProxy(fields)
 end
 
 return {
-    new = function(self, fields)
-        return createProxy(fields)
+    new = function(self, object)
+        return createProxy(object)
     end
 }
