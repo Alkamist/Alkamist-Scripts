@@ -1,8 +1,8 @@
 local ViewAxis = {}
 
 function ViewAxis:new(parameters)
-    local self = setmetatable({}, { __index = self })
     local parameters = parameters or {}
+    local self = setmetatable({}, { __index = self })
 
     self:setScale(parameters.scale or 1.0)
     self:setZoom(parameters.zoom or 1.0)

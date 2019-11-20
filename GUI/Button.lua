@@ -9,33 +9,38 @@ function Button:new(parameters)
     local parameters = parameters or {}
     local self = Widget:new(parameters)
 
-    local _label = parameters.label or ""
-    local _labelFont = parameters.labelFont or "Arial"
-    local _labelFontSize = parameters.labelFontSize or 14
-    local _labelColor = parameters.labelColor or { 1.0, 1.0, 1.0, 0.4, 1 }
-    local _color = parameters.color or { 0.3, 0.3, 0.3, 1.0, 0 }
-    local _outlineColor = parameters.outlineColor or { 0.15, 0.15, 0.15, 1.0, 0 }
-    local _edgeColor = parameters.edgeColor or { 1.0, 1.0, 1.0, 0.1, 1 }
-    local _glowColor = parameters.glowColor or { 1.0, 1.0, 1.0, 0.15, 1 }
-    local _pressedColor = parameters.pressedColor or { 1.0, 1.0, 1.0, -0.15, 1 }
-    local _glowOnMouseOver = true
-    local _toggleOnClick = false
-    local _pressOnClick = true
-    local _pressState = Toggle:new()
-    local _glowState = false
+    if parameters.pressOnClick == nil then parameters.pressOnClick = true end
+    if parameters.glowOnMouseOver == nil then parameters.glowOnMouseOver = true end
 
-    if parameters.glowOnMouseOver then _glowOnMouseOver = true end
-    if parameters.toggleOnClick then self:setToggleOnClick(true) end
-    if parameters.pressOnClick then self:setPressOnClick(true) end
+    self:setLabel(parameters.label or "")
+    self:setLabelFont(parameters.labelFont or "Arial")
+    self:setLabelFontSize(parameters.labelFontSize or 14)
+    self:setLabelColor(parameters.labelColor or { 1.0, 1.0, 1.0, 0.4, 1 })
+    self:setColor(parameters.color or { 0.3, 0.3, 0.3, 1.0, 0 })
+    self:setOutlineColor(parameters.outlineColor or { 0.15, 0.15, 0.15, 1.0, 0 })
+    self:setEdgeColor(parameters.edgeColor or { 1.0, 1.0, 1.0, 0.1, 1 })
+    self:setPressedColor(parameters.pressedColor or { 1.0, 1.0, 1.0, -0.15, 1 })
+    self:setGlowColor(parameters.glowColor or { 1.0, 1.0, 1.0, 0.15, 1 })
+    self:setGlowsOnMouseOver(parameters.glowOnMouseOver)
+    self:setToggleOnClick(parameters.toggleOnClick)
+    self:setPressOnClick(parameters.pressOnClick)
+
+    self._pressState = parameters.isPressed
+    self._previousPressState = parameters.isPressed
+
     return self
 end
 
+function Button:glowsOnMouseOver() return self._glowsOnMouseOver end
+function Button:setGlowsOnMouseOver(value) self._glowsOnMouseOver = value end
 function Button:getColor() return self._color end
 function Button:setColor(value) self._color = value end
 function Button:getOutlineColor() return self._outlineColor end
 function Button:setOutlineColor(value) self._outlineColor = value end
 function Button:getEdgeColor() return self._edgeColor end
 function Button:setEdgeColor(value) self._edgeColor = value end
+function Button:getLabel() return self._label end
+function Button:setLabel(value) self._label = value end
 function Button:getLabelColor() return self._labelColor end
 function Button:setLabelColor(value) self._labelColor = value end
 function Button:getLabelFont() return self._labelFont end
@@ -69,9 +74,15 @@ function Button:toggle()
     self._pressState = not self._pressState
     self:queueRedraw()
 end
-function Button:isPressed() return self._pressState end
-function Button:justPressed() return self._pressState and not self._previousPressState end
-function Button:justReleased() return not self._pressState and self._previousPressState end
+function Button:isPressed()
+    return self._pressState
+end
+function Button:justPressed()
+    return self._pressState and not self._previousPressState
+end
+function Button:justReleased()
+    return not self._pressState and self._previousPressState
+end
 function Button:glow()
     self._glowState = true
     self:queueRedraw()
@@ -84,7 +95,9 @@ function Button:toggleGlow()
     self._glowState = not self._glowState
     self:queueRedraw()
 end
-function Button:isGlowing() return self._glowState end
+function Button:isGlowing()
+    return self._glowState
+end
 
 function Button:beginUpdate()
     self._previousPressState = self._pressState
@@ -93,15 +106,15 @@ function Button:update()
     local mouse = self:getMouse()
     local mouseLeftButton = mouse:getLeftButton()
 
-    if _glowOnMouseOver then
+    if self:glowsOnMouseOver() then
         if mouse:justEnteredWidget(self) then self:glow() end
         if mouse:justLeftWidget(self) then self:unGlow() end
     end
-    if _pressOnClick then
+    if self:getPressOnClick() then
         if mouseLeftButton:justPressedWidget(self) then self:press() end
         if mouseLeftButton:justReleasedWidget(self) then self:release() end
     end
-    if _toggleOnClick then
+    if self:getToggleOnClick() then
         if mouseLeftButton:justPressedWidget(self) then self:toggle() end
     end
 end

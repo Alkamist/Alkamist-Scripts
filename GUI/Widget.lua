@@ -14,17 +14,18 @@ local gfxDrawStr = gfx.drawstr
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
-local Toggle = require("GUI.Toggle")
 
 local Widget = {}
 function Widget:new(parameters)
-    local self = setmetatable({}, { __index = self })
     local parameters = parameters or {}
+    local self = setmetatable({}, { __index = self })
 
     if parameters.isVisible == nil then parameters.isVisible = true end
     if parameters.shouldRedraw == nil then parameters.shouldRedraw = true end
 
-    self._visibilityState = Toggle:new(parameters.isVisible)
+    self._visibilityState = parameters.isVisible
+    self._previousVisibilityState = parameters.isVisible
+
     self:setX(parameters.x or 0)
     self:setY(parameters.y or 0)
     self:setWidth(parameters.width or 0)
@@ -67,9 +68,9 @@ function Widget:getPreviousRelativeMouseX() return self._previousRelativeMouseX 
 function Widget:setPreviousRelativeMouseX(value) self._previousRelativeMouseX = value end
 function Widget:getPreviousRelativeMouseY() return self._previousRelativeMouseY end
 function Widget:setPreviousRelativeMouseY(value) self._previousRelativeMouseY = value end
-function Widget:isVisible() return self._visibilityState:getState() end
-function Widget:setVisibility(value) self._visibilityState:setState(value) end
-function Widget:toggleVisibility() self._visibilityState:toggle() end
+function Widget:isVisible() return self._visibilityState end
+function Widget:setVisibility(value) self._visibilityState = value end
+function Widget:toggleVisibility() self._visibilityState = not self._visibilityState end
 function Widget:queueRedraw() self._shouldRedraw = true end
 function Widget:queueClear() self._shouldClear = true end
 function Widget:shouldDrawDirectly() return self._shouldDrawDirectly end
@@ -80,6 +81,7 @@ function Widget:shouldClear() return self._shouldClear end
 function Widget:setShouldClear(value) self._shouldClear = value end
 function Widget:getChildWidgets() return self._childWidgets end
 function Widget:setChildWidgets(value)
+    local value = value or {}
     self._childWidgets = value
     for i = 1, #self._childWidgets do
         self._childWidgets[i]:setParentWidget(self)
@@ -124,7 +126,7 @@ function Widget:getAbsoluteY()
     end
     return absolute
 end
-function self:setAbsoluteY(value)
+function Widget:setAbsoluteY(value)
     local parentWidget = self:getParentWidget()
     local relative = value
     while true do
@@ -271,7 +273,7 @@ function Widget:doBeginUpdate()
 
     self:setPreviousRelativeMouseX(self:getRelativeMouseX())
     self:setPreviousRelativeMouseY(self:getRelativeMouseY())
-    self._visibilityState:update()
+    self._previousVisibilityState = self._visibilityState
     if self.beginUpdate then self:beginUpdate() end
 end
 function Widget:doUpdate()
