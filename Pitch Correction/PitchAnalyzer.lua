@@ -54,18 +54,23 @@ local function getValuesFromStringLine(str)
     return values
 end
 
-local PitchAnalyzer = {}
-function PitchAnalyzer:new(parameters)
-    local parameters = parameters or {}
-    local self = TimeSeries:new(parameters)
+local TakeWithPitchPoints = {}
+function TakeWithPitchPoints:new(object)
+    local self = Take:new(self)
 
-    local _take = Take:new{ pointer = parameters.pointer }
-    local _pathName = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
-    local _pointMembers = {
+    self.pitches = TimeSeries:new()
+    self.pitchSavingPath = reaper.GetProjectPath("") .. "\\AlkamistPitchCorrection"
+    self.pitchSavingFileName = {
+            get = function(self)
+            local fileName = self.fileName
+            if fileName then return fileName .. ".pitch" end
+        end
+    }
+    self.pitchPointMembers = {
         sourceTime = 0,
         pitch = 0
     }
-    local _settings = {
+    self.pitchAnalysisSettings = {
         windowStep = 0.04,
         windowOverlap = 2.0,
         minimumFrequency = 80,
@@ -73,124 +78,124 @@ function PitchAnalyzer:new(parameters)
         threshold = 0.2,
         minimumRMSdB = -60.0
     }
-    local _analysisStartTime = 0.0
-    local _analyzeFullSource = false
-    local _numberOfPointsToAnalyzePerLoop = 10
-    local _isAnalyzingPitch = false
-    local _newPointsHaveBeenInitialized = true
-    local function _getAnalyzerID()
-        local analyzerID = getEELCommandID("WritePitchPointsToExtState")
-        if not analyzerID then
-            reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
-            return
-        end
-        return analyzerID
-    end
-    local function _getAnalysisEndTime()
-        if _analyzeFullSource then
-            return _take:getSourceLength()
-        end
-        return _take:getSourceTime(_take:getLength())
-    end
-    local function _getAnalysisTimeWindow()
-        local timeWindow = _numberOfPointsToAnalyzePerLoop * _settings.windowStep / _settings.windowOverlap
-        return math.min(timeWindow, _getAnalysisEndTime() - _analysisStartTime)
-    end
-    local function _getAnalysisLength()
-        return _getAnalysisEndTime() - _analysisStartTime
-    end
-    local function _getNumberOfAnalysisLoopsRemaining()
-        local timeWindow = _getAnalysisTimeWindow()
-        if timeWindow == 0 then return 0 end
-        if _analyzeFullSource then
-            return math.ceil(_take:getSourceLength() / timeWindow)
-        end
-        return math.ceil(_getAnalysisLength() / timeWindow)
-    end
-    local function _getPointsFromExtState()
-        local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
-        for line in pointString:gmatch("([^\r\n]+)") do
-            local values = getValuesFromStringLine(line)
-            local pointTime = values[1]
-            self:insertPoint{
-                time = _take:getRealTime(pointTime),
-                sourceTime = pointTime,
-                pitch = values[2],
-                --rms = values[3]
-            }
-        end
-    end
-    local function _getFileName()
-        local takeFileName = _take:getFileName()
-        if takeFileName then return takeFileName .. ".pitch" end
-    end
-
-    function self:setTakePointer(pointer)
-        _take:setPointer(pointer)
-    end
-    function self:prepareToAnalyzePitch(analyzeFullSource)
-        if _take == nil then return end
-        if _take:isMIDI() then return end
-
-        local settings = _settings
-        reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID", _take:getGUID(), false)
-        reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP", settings.windowStep, false)
-        reaper.SetExtState("AlkamistPitchCorrection", "WINDOWOVERLAP", settings.windowOverlap, false)
-        reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMFREQUENCY", settings.minimumFrequency, false)
-        reaper.SetExtState("AlkamistPitchCorrection", "MAXIMUMFREQUENCY", settings.maximumFrequency, false)
-        reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD", settings.threshold, false)
-        reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB", settings.minimumRMSdB, false)
-
-        _analyzeFullSource = analyzeFullSource
-        _isAnalyzingPitch = true
-        _newPointsHaveBeenInitialized = false
-        if _analyzeFullSource then
-            _analysisStartTime = 0.0
-            self:clearAllPoints()
-        else
-            _analysisStartTime = _take:getStartOffset()
-            self:clearPointsWithinTimeRange(0.0, _take:getLength())
-        end
-    end
-    function self:analyzePitch()
-        if _isAnalyzingPitch then
-            local analysisTimeWindow = _getAnalysisTimeWindow()
-
-            reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  _analysisStartTime,  false)
-            reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", analysisTimeWindow, false)
-
-            mainCommand(_getAnalyzerID())
-            _getPointsFromExtState()
-
-            _analysisStartTime = _analysisStartTime + analysisTimeWindow
-            _isAnalyzingPitch = _getNumberOfAnalysisLoopsRemaining() > 0
-        else
-            if not _newPointsHaveBeenInitialized then
-                self:removeDuplicatePoints()
-                self:savePoints(_pathName, _getFileName(), _pointMembers)
-                _newPointsHaveBeenInitialized = true
+    self.pitchAnalyzerID = {
+        get = function(self)
+            local pitchAnalyzerID = getEELCommandID("WritePitchPointsToExtState")
+            if not pitchAnalyzerID then
+                reaper.MB("WritePitchPointsToExtState.eel not found!", "Error!", 0)
+                return
             end
+            return pitchAnalyzerID
         end
-    end
-    function self:updatePointRealTimes()
-        local points = self:getPoints()
-        for i = 1, #points do
-            local point = points[i]
-            point.time = _take:getRealTime(point.sourceTime)
+    }
+    self.pitchAnalysisStartTime = 0.0
+    self.shouldAnalyzeFullTakeSource = false
+    self.numberOfPointsToAnalyzePerLoop = 10
+    self.pitchAnalysisTimeWindow = {
+        get = function(self)
+            local settings = self.pitchAnalysisSettings
+            local timeWindow = self.numberOfPointsToAnalyzePerLoop * settings.windowStep / settings.windowOverlap
+            return math.min(timeWindow, self.pitchAnalysisEndtime - self.pitchAnalysisStartTime)
         end
-    end
-    local _timeSeriesLoadPoints = self.loadPoints
-    function self:loadPoints(...)
-        _timeSeriesLoadPoints(self, ...)
-        self:updatePointRealTimes()
-    end
-    function self:loadPointsFromTakeFile()
-        if _take:getPointer() then
-            self:loadPoints(_pathName, _getFileName(), _pointMembers)
+    }
+    self.pitchAnalysisEndtime = {
+        get = function(self)
+            if self.shouldAnalyzeFullTakeSource then
+                return self.sourceLength
+            end
+            return self:getSourceTime(self.length)
         end
-    end
+    }
+    self.pitchAnalysisLength = { get = function(self) return self.pitchAnalysisEndtime - self.pitchAnalysisStartTime end }
+    self.numberOfAnalysisLoopsRemaining = {
+        get = function(self)
+            local timeWindow = self.pitchAnalysisTimeWindow
+            if timeWindow == 0 then return 0 end
+            if self.shouldAnalyzeFullTakeSource then
+                return math.ceil(self.sourceLength / timeWindow)
+            end
+            return math.ceil(self.pitchAnalysisLength / timeWindow)
+        end
+    }
+    self.isAnalyzingPitch = false
+    self.newPitchPointsHaveBeenInitialized = true
 
+    if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 
-return PitchAnalyzer
+function TakeWithPitchPoints:getPitchPointsFromExtState()
+    local pointString = reaper.GetExtState("AlkamistPitchCorrection", "PITCHPOINTS")
+    for line in pointString:gmatch("([^\r\n]+)") do
+        local values = getValuesFromStringLine(line)
+        local pointTime = values[1]
+        self.pitches.points[#self.pitches.points + 1] = {
+            time = self:getRealTime(pointTime),
+            sourceTime = pointTime,
+            pitch = values[2],
+            --rms = values[3]
+        }
+    end
+end
+function TakeWithPitchPoints:prepareToAnalyzePitch(shouldAnalyzeFullTakeSource)
+    if self.pointer == nil then return end
+    if self.isMIDI then return end
+
+    local settings = self.pitchAnalysisSettings
+    reaper.SetExtState("AlkamistPitchCorrection", "TAKEGUID", self.GUID, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWSTEP", settings.windowStep, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "WINDOWOVERLAP", settings.windowOverlap, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMFREQUENCY", settings.minimumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MAXIMUMFREQUENCY", settings.maximumFrequency, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "THRESHOLD", settings.threshold, false)
+    reaper.SetExtState("AlkamistPitchCorrection", "MINIMUMRMSDB", settings.minimumRMSdB, false)
+
+    self.shouldAnalyzeFullTakeSource = shouldAnalyzeFullTakeSource
+    self.isAnalyzingPitch = true
+    self.newPitchPointsHaveBeenInitialized = false
+    if self.shouldAnalyzeFullTakeSource then
+        self.pitchAnalysisStartTime = 0.0
+        self.pitches.points = {}
+    else
+        self.pitchAnalysisStartTime = self.startOffset
+        self.pitches:clearPointsWithinTimeRange(0.0, self.length)
+    end
+end
+function TakeWithPitchPoints:analyzePitch()
+    if self.isAnalyzingPitch then
+        local pitchAnalysisTimeWindow = self.pitchAnalysisTimeWindow
+
+        reaper.SetExtState("AlkamistPitchCorrection", "STARTTIME",  self.pitchAnalysisStartTime,  false)
+        reaper.SetExtState("AlkamistPitchCorrection", "TIMEWINDOW", pitchAnalysisTimeWindow, false)
+
+        mainCommand(self.pitchAnalyzerID)
+        self:getPitchPointsFromExtState()
+
+        self.pitchAnalysisStartTime = self.pitchAnalysisStartTime + pitchAnalysisTimeWindow
+        self.isAnalyzingPitch = self.numberOfAnalysisLoopsRemaining > 0
+    else
+        if not self.newPitchPointsHaveBeenInitialized then
+            self.pitches:removeDuplicatePoints()
+            self.pitches:savePoints(self.pitchSavingPath, self.pitchSavingFileName, self.pitchPointMembers)
+            self.newPitchPointsHaveBeenInitialized = true
+        end
+    end
+end
+function TakeWithPitchPoints:updatePointRealTimes()
+    local points = self.pitches.points
+    for i = 1, #points do
+        local point = points[i]
+        point.time = self:getRealTime(point.sourceTime)
+    end
+end
+function TakeWithPitchPoints:loadPoints(...)
+    self.pitches:loadPoints(...)
+    self:updatePointRealTimes()
+end
+function TakeWithPitchPoints:loadPointsFromTakeFile()
+    if self.pointer then
+        self.pitches:loadPoints(self.pathName, self.fileName, self.pointMembers)
+    end
+end
+
+return TakeWithPitchPoints
