@@ -1,47 +1,38 @@
+package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Proxy = require("Proxy")
+
 local ViewAxis = {}
+function ViewAxis:new(object)
+    local self = Proxy:new(self)
 
-function ViewAxis:new(parameters)
-    local parameters = parameters or {}
-    local self = setmetatable({}, { __index = self })
+    self.scale = 1.0
+    self.zoom = 1.0
+    self.scroll = 0.0
+    self.target = 0.0
 
-    self:setScale(parameters.scale or 1.0)
-    self:setZoom(parameters.zoom or 1.0)
-    self:setScroll(parameters.scroll or 0.0)
-    self:setTarget(parameters.target or 0.0)
-
+    if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 
-function ViewAxis:getScale() return self._scale end
-function ViewAxis:setScale(value) self._scale = value end
-function ViewAxis:getZoom() return self._zoom end
-function ViewAxis:setZoom(value) self._zoom = value end
-function ViewAxis:getScroll() return self._scroll end
-function ViewAxis:setScroll(value) self._scroll = value end
-function ViewAxis:getTarget() return self._target end
-function ViewAxis:setTarget(value) self._target = value end
-
 function ViewAxis:changeScroll(change)
-    local scale = self:getScale()
-    local scroll = self:getScroll()
-    local zoom = self:getZoom()
-
+    local scale = self.scale
+    local scroll = self.scroll
+    local zoom = self.zoom
     local change = change / scale
 
-    self:setScroll(scroll - change / zoom)
+    self.scroll = scroll - change / zoom
 end
 function ViewAxis:changeZoom(change)
-    local target = self:getTarget()
-    local scale = self:getScale()
-    local scroll = self:getScroll()
-    local zoom = self:getZoom()
-
+    local target = self.target
+    local scale = self.scale
+    local scroll = self.scroll
+    local zoom = self.zoom
     local sensitivity = 0.01
     local scaledTarget = target / scale
     local change = 2 ^ (sensitivity * change)
 
-    self:setZoom(zoom * change)
-    self:setScroll(scroll + (change - 1.0) * target / zoom)
+    self.zoom = zoom * change
+    self.scroll = scroll + (change - 1.0) * target / zoom
 end
 
 return ViewAxis
