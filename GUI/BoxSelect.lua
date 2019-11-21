@@ -13,8 +13,8 @@ function BoxSelect:new(object)
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
-    self.insideColor = { 0, 0, 0, 0.4, 0 }
-    self.edgeColor = { 1, 1, 1, 0.7, 0 }
+    self.insideColor = { 0, 0, 0, 0.4, 1 }
+    self.edgeColor = { 1, 1, 1, 0.7, 1 }
     self.isActive = false
     self.thingsToSelect = {}
 
