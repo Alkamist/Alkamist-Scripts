@@ -172,7 +172,7 @@ function Take:getRealTime(sourceTime)
 end
 function Take:clearPitchEnvelope()
     local envelope = self.pitchEnvelope
-    reaper.DeleteEnvelopePointRange(envelope, -self.startOffset, self.sourceLength * self.playRate)
+    reaper.DeleteEnvelopePointRange(envelope, -self.startOffset, self.sourceLength / self.playRate)
     reaper.Envelope_SortPoints(envelope)
     reaper.UpdateArrange()
 end

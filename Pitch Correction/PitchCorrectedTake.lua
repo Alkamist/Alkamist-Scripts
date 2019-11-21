@@ -146,10 +146,10 @@ function PitchCorrectedTake:new(object)
 
     self.corrections = TimeSeries:new()
 
-    --[[function self:correctAllPitchPoints()
+    function self:correctAllPitchPoints()
         self:clearPitchEnvelope()
-        local corrections = self.pitchCorrections.points
-        local pitchPoints = self.pitchAnalyzer.points
+        local corrections = self.corrections.points
+        local pitchPoints = self.pitches.points
         local envelope = self.pitchEnvelope
         local playRate = self.playRate
         for i = 1, #corrections do
@@ -168,8 +168,8 @@ function PitchCorrectedTake:new(object)
         point.driftTime = point.driftTime or defaultDriftTime
         point.driftCorrection = point.driftCorrection or defaultDriftCorrection
         point.modCorrection = point.modCorrection or defaultModCorrection
-        self.pitchCorrections.points[#self.pitchCorrections.points + 1] = point
-    end]]--
+        self.corrections.points[#self.corrections.points + 1] = point
+    end
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self

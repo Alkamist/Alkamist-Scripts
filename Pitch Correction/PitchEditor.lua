@@ -181,8 +181,8 @@ function PitchEditor:new(object)
     local time = 0
     local timeIncrement = self.take.sourceLength / 1000
     for i = 1, 1000 do
-        points[#points + 1] = {
-            sourceTime = time,
+        self:insertPitchCorrectionPoint{
+            time = time,
             pitch = 20.0 * math.random() + 50,
             isActive = math.random() > 0.5
         }
@@ -220,6 +220,7 @@ PitchEditor.keyPressFunctions = {
                 self:moveSelectedPitchCorrectionsByValues(0, -1.0)
             end
         end
+        self.take:correctAllPitchPoints()
     end,
     ["Up"] = function(self)
         if self.fixErrorMode then
@@ -235,22 +236,24 @@ PitchEditor.keyPressFunctions = {
                 self:moveSelectedPitchCorrectionsByValues(0, 1.0)
             end
         end
+        self.take:correctAllPitchPoints()
     end,
     ["s"] = function(self)
         if self.fixErrorMode then
         else
-            self:insertPitchCorrection{
+            self:insertPitchCorrectionPoint{
                 time = self.mouseTime,
                 pitch = self.snappedMousePitch,
                 isSelected = false,
                 isActive = false
             }
+            self.take:correctAllPitchPoints()
         end
     end,
     ["d"] = function(self)
         if self.fixErrorMode then
         else
-            local insertedIndex = self:insertPitchCorrection{
+            local insertedIndex = self:insertPitchCorrectionPoint{
                 time = self.mouseTime,
                 pitch = self.snappedMousePitch,
                 isSelected = false,
@@ -258,6 +261,33 @@ PitchEditor.keyPressFunctions = {
             }
             local previousPoint = self.take.corrections.points[insertedIndex - 1]
             if previousPoint then previousPoint.isActive = true end
+            self.take:correctAllPitchPoints()
+        end
+    end,
+    ["S"] = function(self)
+        if self.fixErrorMode then
+        else
+            self:insertPitchCorrectionPoint{
+                time = self.mouseTime,
+                pitch = self.mousePitch,
+                isSelected = false,
+                isActive = false
+            }
+            self.take:correctAllPitchPoints()
+        end
+    end,
+    ["D"] = function(self)
+        if self.fixErrorMode then
+        else
+            local insertedIndex = self:insertPitchCorrectionPoint{
+                time = self.mouseTime,
+                pitch = self.mousePitch,
+                isSelected = false,
+                isActive = false
+            }
+            local previousPoint = self.take.corrections.points[insertedIndex - 1]
+            if previousPoint then previousPoint.isActive = true end
+            self.take:correctAllPitchPoints()
         end
     end
 }
@@ -349,6 +379,7 @@ function PitchEditor:deleteSelectedPitchCorrections()
     arrayRemove(points, function(i, j)
         return points[i].isSelected
     end)
+    take:correctAllPitchPoints()
 end
 function PitchEditor:setPitchCorrectionSelected(index, shouldSelect)
     local take = self.take
@@ -372,21 +403,20 @@ function PitchEditor:toggleSelectedPitchCorrectionActivity()
         end
     end
 end
-function PitchEditor:insertPitchCorrection(point)
+function PitchEditor:insertPitchCorrectionPoint(point)
     local take = self.take
     local corrections = take.corrections.points
     local pointTime = point.time
     local pointPitch = point.pitch
     local newPoint = {
         time = pointTime,
-        sourceTime = take:getSourceTime(pointTime),
         pitch = pointPitch,
         x = self:timeToPixels(pointTime),
         y = self:pitchToPixels(pointPitch),
         isSelected = point.isSelected,
         isActive = point.isActive
     }
-    corrections[#corrections + 1] = newPoint
+    self.take:insertPitchCorrectionPoint(newPoint)
     take.corrections:sortPoints()
     for i = 1, #corrections do
         if corrections[i] == newPoint then return i end
@@ -460,6 +490,7 @@ function PitchEditor:update()
                 self.altKeyWasPressedWhenEditingPitchCorrection = true
                 if mouseIsOverPoint or mouseIsOverActiveLine then
                     self:toggleSelectedPitchCorrectionActivity()
+                    self.take:correctAllPitchPoints()
                 end
             end
         end
@@ -471,6 +502,8 @@ function PitchEditor:update()
         if self.mousePitchCorrectionEditIndex then
             if not self.altKeyWasPressedWhenEditingPitchCorrection then
                 self:moveSelectedPitchCorrectionsWithMouse()
+                take.corrections:sortPoints()
+                self.take:correctAllPitchPoints()
             end
         end
         if self.mousePitchPointEditIndex then
@@ -485,7 +518,9 @@ function PitchEditor:update()
 
     if takePointer ~= nil then
         take:analyzePitch()
-        take.pitches:sortPoints()
+        if take.isAnalyzingPitch then
+            take.pitches:sortPoints()
+        end
         self:updatePitchPointCoordinates()
     end
     take.corrections:sortPoints()
