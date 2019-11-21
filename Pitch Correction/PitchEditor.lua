@@ -172,6 +172,11 @@ function PitchEditor:new(object)
     self.boxSelect = BoxSelect:new()
     self.childWidgets = { self.boxSelect }
 
+    function self.pointIsInsideBoxSelect(box, point)
+        return point.x >= box.x and point.x <= box.x + box.width
+           and point.y >= box.y and point.y <= box.y + box.height
+    end
+
     if self.take.pointer then self.take:loadPitchPointsFromTakeFile() end
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
@@ -256,6 +261,7 @@ function PitchEditor:update()
         if self.fixErrorMode then thingsToSelect = self.take.pitches.points end
         self.boxSelect:makeSelection{
             thingsToSelect = thingsToSelect,
+            thingIsInside = self.pointIsInsideBoxSelect,
             shouldAdd = GUI.shiftKey.isPressed,
             shouldInvert = GUI.controlKey.isPressed
         }

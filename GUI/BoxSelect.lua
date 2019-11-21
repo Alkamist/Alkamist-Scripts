@@ -17,15 +17,6 @@ function BoxSelect:new(object)
     self.edgeColor = { 1, 1, 1, 0.7, 0 }
     self.isActive = false
     self.thingsToSelect = {}
-    self.isInsideFunction = function(self, thing)
-        return self:pointIsInside(thing.x + self.absoluteX, thing.y + self.absoluteY)
-    end
-    self.setSelectedFunction = function(self, thing, shouldSelect)
-        thing.isSelected = shouldSelect
-    end
-    self.setSelectedFunction = function(self, thing, shouldSelect)
-        thing.isSelected = shouldSelect
-    end
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
