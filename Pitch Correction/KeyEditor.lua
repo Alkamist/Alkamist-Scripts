@@ -54,7 +54,7 @@ function KeyEditor:new(object)
     self.mousePitchChange = { get = function(self) return self.mousePitch - self.previousMousePitch end }
     self.snappedMousePitch = { get = function(self) return round(self.mousePitch) end }
     self.previousSnappedMousePitch = 0
-    self.mouseSnappedPitchChange = { get = function(self) return self.snappedMousePitch - self.previousSnappedMousePitch end }
+    self.snappedMousePitchChange = { get = function(self) return self.snappedMousePitch - self.previousSnappedMousePitch end }
     self.xView = ViewAxis:new{ scale = { get = function() return self.width end } }
     self.yView = ViewAxis:new{ scale = { get = function() return self.height end } }
 
@@ -96,11 +96,6 @@ function KeyEditor:pitchToPixels(pitch)
     return zoom * height * ((1.0 - (0.5 + pitch) / pitchHeight) - scroll)
 end
 
-function KeyEditor:beginUpdate()
-    self.previousMouseTime = self.mouseTime
-    self.previousMousePitch = self.mousePitch
-    self.previousSnappedMousePitch = self.snappedMousePitch
-end
 function KeyEditor:update()
     local GUI = self.GUI
     local controlKey = GUI.controlKey
@@ -234,6 +229,11 @@ function KeyEditor:draw()
 
     self:setColor(self.backgroundColor)
     self:drawRectangle(0, 0, width, _editorVerticalOffset, true)
+end
+function KeyEditor:endUpdate()
+    self.previousMouseTime = self.mouseTime
+    self.previousMousePitch = self.mousePitch
+    self.previousSnappedMousePitch = self.snappedMousePitch
 end
 
 return KeyEditor

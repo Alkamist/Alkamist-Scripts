@@ -2,9 +2,8 @@ local reaper = reaper
 local math = math
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Take = require("Pitch Correction.Take")
 local TimeSeries = require("Pitch Correction.TimeSeries")
-local PitchAnalyzer = require("Pitch Correction.PitchAnalyzer")
+local TakeWithPitchPoints = require("Pitch Correction.TakeWithPitchPoints")
 
 local defaultModCorrection = 0.0
 local defaultDriftCorrection = 1.0
@@ -142,23 +141,10 @@ local function correctPitchPoints(correction, nextCorrection, pitchPoints, envel
 end
 
 local PitchCorrectedTake = {}
-function PitchCorrectedTake:new(parameters)
-    local parameters = parameters or {}
-    local self = Take:new(parameters)
+function PitchCorrectedTake:new(object)
+    local self = TakeWithPitchPoints:new(self)
 
-    local _pitchAnalyzer = PitchAnalyzer:new{ pointer = parameters.pointer }
-    --local _pitchCorrections = TimeSeries:new()
-
-    local _takeSetPointer = self.setPointer
-    function self:setPointer(pointer)
-        _takeSetPointer(self, pointer)
-        _pitchAnalyzer:setTakePointer(pointer)
-    end
-    self.prepareToAnalyzePitch = _pitchAnalyzer.prepareToAnalyzePitch
-    self.analyzePitch = _pitchAnalyzer.analyzePitch
-    self.updatePointRealTimes = _pitchAnalyzer.updatePointRealTimes
-    self.loadPitchPoints = _pitchAnalyzer.loadPoints
-    self.loadPitchPointsFromTakeFile = _pitchAnalyzer.loadPointsFromTakeFile
+    self.corrections = TimeSeries:new()
 
     --[[function self:correctAllPitchPoints()
         self:clearPitchEnvelope()
@@ -185,6 +171,7 @@ function PitchCorrectedTake:new(parameters)
         self.pitchCorrections.points[#self.pitchCorrections.points + 1] = point
     end]]--
 
+    if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
 

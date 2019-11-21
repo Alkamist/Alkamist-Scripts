@@ -4,7 +4,7 @@ local math = math
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local BoxSelect = require("GUI.BoxSelect")
 local KeyEditor = require("Pitch Correction.KeyEditor")
-local TakeWithPitchPoints = require("Pitch Correction.TakeWithPitchPoints")
+local PitchCorrectedTake = require("Pitch Correction.PitchCorrectedTake")
 
 local function arrayRemove(t, fn)
     local n = #t
@@ -155,7 +155,9 @@ function PitchEditor:new(object)
 
     self.pitchLineColor = { 0.07, 0.27, 0.07, 1.0, 0 }
     self.correctedPitchLineColor = { 0.24, 0.64, 0.24, 1.0, 0 }
-    self.take = TakeWithPitchPoints:new{
+    self.pitchCorrectionActiveColor = { 0.3, 0.6, 0.9, 1.0, 0 }
+    self.pitchCorrectionInactiveColor = { 0.9, 0.3, 0.3, 1.0, 0 }
+    self.take = PitchCorrectedTake:new{
         pointer = {
             get = function(self)
                 local selectedItem = reaper.GetSelectedMediaItem(0, 0)
@@ -166,6 +168,10 @@ function PitchEditor:new(object)
     self.previousTakePointer = self.take.pointer
     self.mouseOverPitchPointIndex = nil
     self.mouseIsOverPitchPoint = nil
+    self.mouseOverPitchCorrectionIndex = nil
+    self.mouseIsOverPitchCorrectionPoint = nil
+    self.mousePitchCorrectionEditIndex = nil
+    self.mousePitchPointEditIndex = nil
     self.editPixelRange = 7
     self.fixErrorMode = false
 
@@ -175,6 +181,18 @@ function PitchEditor:new(object)
     function self.pointIsInsideBoxSelect(box, point)
         return point.x >= box.x and point.x <= box.x + box.width
            and point.y >= box.y and point.y <= box.y + box.height
+    end
+
+    local points = self.take.corrections.points
+    local time = 0
+    local timeIncrement = self.take.sourceLength / 1000
+    for i = 1, 1000 do
+        points[#points + 1] = {
+            sourceTime = time,
+            pitch = 20.0 * math.random() + 50,
+            isActive = math.random() > 0.5
+        }
+        time = time + timeIncrement
     end
 
     if self.take.pointer then self.take:loadPitchPointsFromTakeFile() end
@@ -198,6 +216,12 @@ PitchEditor.keyPressFunctions = {
             else
                 self:moveSelectedPitchPointsPitchesByValue(-1.0)
             end
+        else
+            if self.GUI.shiftKey.isPressed then
+                self:moveSelectedPitchCorrectionsByValues(0, -12.0)
+            else
+                self:moveSelectedPitchCorrectionsByValues(0, -1.0)
+            end
         end
     end,
     ["Up"] = function(self)
@@ -207,11 +231,18 @@ PitchEditor.keyPressFunctions = {
             else
                 self:moveSelectedPitchPointsPitchesByValue(1.0)
             end
+        else
+            if self.GUI.shiftKey.isPressed then
+                self:moveSelectedPitchCorrectionsByValues(0, 12.0)
+            else
+                self:moveSelectedPitchCorrectionsByValues(0, 1.0)
+            end
         end
     end
 }
 
-function PitchEditor:updatePointCoordinates(points)
+function PitchEditor:updatePitchPointCoordinates()
+    local points = self.take.pitches.points
     local timeToPixels = self.timeToPixels
     local pitchToPixels = self.pitchToPixels
     local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
@@ -232,6 +263,22 @@ function PitchEditor:updatePointCoordinates(points)
         end
     end
 end
+function PitchEditor:updatePitchCorrectionCoordinates()
+    local points = self.take.corrections.points
+    local timeToPixels = self.timeToPixels
+    local pitchToPixels = self.pitchToPixels
+    local reaperEnvelope_Evaluate = reaper.Envelope_Evaluate
+    local envelope = self.take.pitchEnvelope
+    local playRate = self.take.playRate
+    for i = 1, #points do
+        local point = points[i]
+        point.time = self.take:getRealTime(point.sourceTime)
+        local pointTime = point.time
+        local pointPitch = point.pitch
+        if pointTime then point.x = timeToPixels(self, pointTime) end
+        if pointPitch then point.y = pitchToPixels(self, pointPitch) end
+    end
+end
 function PitchEditor:moveSelectedPitchPointsPitchesByValue(value)
     local points = self.take.pitches.points
     for i = 1, #points do
@@ -241,32 +288,47 @@ function PitchEditor:moveSelectedPitchPointsPitchesByValue(value)
         end
     end
 end
+function PitchEditor:moveSelectedPitchPointsWithMouse()
+    local timeChange = self.mouseTimeChange
+    local pitchChange = 0
+    if self.GUI.shiftKey.isPressed then
+        pitchChange = self.mousePitchChange
+    else
+        pitchChange = self.snappedMousePitchChange
+    end
+    self:moveSelectedPitchPointsPitchesByValue(pitchChange)
+end
+function PitchEditor:moveSelectedPitchCorrectionsByValues(timeChange, pitchChange)
+    local take = self.take
+    local points = take.corrections.points
+    for i = 1, #points do
+        local point = points[i]
+        if point.isSelected then
+            point.pitch = point.pitch + pitchChange
+            point.time = point.time + timeChange
+            point.sourceTime = take:getSourceTime(point.time)
+        end
+    end
+end
+function PitchEditor:moveSelectedPitchCorrectionsWithMouse()
+    local timeChange = self.mouseTimeChange
+    local pitchChange = 0
+    if self.GUI.shiftKey.isPressed then
+        pitchChange = self.mousePitchChange
+    else
+        pitchChange = self.snappedMousePitchChange
+    end
+    self:moveSelectedPitchCorrectionsByValues(timeChange, pitchChange)
+end
 
 function PitchEditor:analyzePitch()
     self.take:prepareToAnalyzePitch()
 end
 function PitchEditor:update()
     KeyEditor.update(self)
-
     local GUI = self.GUI
     local rightMouseButton = GUI.rightMouseButton
-    if rightMouseButton:justPressedWidget(self) then
-        self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
-    end
-    if rightMouseButton:justDraggedWidget(self) then
-        self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
-    end
-    if rightMouseButton:justReleasedWidget(self) then
-        local thingsToSelect = nil
-        if self.fixErrorMode then thingsToSelect = self.take.pitches.points end
-        self.boxSelect:makeSelection{
-            thingsToSelect = thingsToSelect,
-            thingIsInside = self.pointIsInsideBoxSelect,
-            shouldAdd = GUI.shiftKey.isPressed,
-            shouldInvert = GUI.controlKey.isPressed
-        }
-    end
-
+    local leftMouseButton = GUI.leftMouseButton
     local take = self.take
     local takePointer = take.pointer
 
@@ -276,19 +338,65 @@ function PitchEditor:update()
 
     if self.fixErrorMode then
         self.mouseOverPitchPointIndex, self.mouseIsOverPitchPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(take.pitches.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
+    else
+        self.mouseOverPitchCorrectionIndex, self.mouseIsOverPitchCorrectionPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(take.corrections.points, self.relativeMouseX, self.relativeMouseY, self.editPixelRange)
+    end
+
+    if rightMouseButton:justPressedWidget(self) then
+        self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    if rightMouseButton:justDraggedWidget(self) then
+        self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
+    end
+    if rightMouseButton:justReleasedWidget(self) then
+        local thingsToSelect = nil
+        if self.fixErrorMode then
+            thingsToSelect = self.take.pitches.points
+        else
+            thingsToSelect = self.take.corrections.points
+        end
+        self.boxSelect:makeSelection{
+            thingsToSelect = thingsToSelect,
+            thingIsInside = self.pointIsInsideBoxSelect,
+            shouldAdd = GUI.shiftKey.isPressed,
+            shouldInvert = GUI.controlKey.isPressed
+        }
+    end
+    if leftMouseButton:justPressedWidget(self) then
+        if self.mouseOverPitchCorrectionIndex then
+            self.mousePitchCorrectionEditIndex = self.mouseOverPitchCorrectionIndex
+        end
+        if self.mouseOverPitchPointIndex then
+            self.mousePitchPointEditIndex = self.mouseOverPitchPointIndex
+        end
+    end
+    if leftMouseButton:justDraggedWidget(self) then
+        if self.mousePitchCorrectionEditIndex then
+            self:moveSelectedPitchCorrectionsWithMouse()
+        end
+        if self.mousePitchPointEditIndex then
+            self:moveSelectedPitchPointsWithMouse()
+        end
+    end
+    if leftMouseButton:justReleasedWidget(self) then
+        self.mousePitchCorrectionEditIndex = nil
+        self.mousePitchPointEditIndex = nil
     end
 
     if takePointer ~= nil then
         take:analyzePitch()
         take.pitches:sortPoints()
-        self:updatePointCoordinates(take.pitches.points)
+        self:updatePitchPointCoordinates()
     end
+    take.corrections:sortPoints()
+    self:updatePitchCorrectionCoordinates()
 
     self:queueRedraw()
     self.previousTakePointer = takePointer
 end
 function PitchEditor:drawPitchPoints()
     if self.take.pointer == nil then return end
+    local abs = math.abs
     local pointBrightness = 0.03
     local pointSize = 3
     local halfPointSize = math.floor(pointSize * 0.5)
@@ -301,7 +409,6 @@ function PitchEditor:drawPitchPoints()
     local correctedLineColor = self.correctedPitchLineColor
     local correctedPointColor = { correctedLineColor[1] + pointBrightness, correctedLineColor[2] + pointBrightness, correctedLineColor[3] + pointBrightness, correctedLineColor[4], correctedLineColor[5] }
     local pitchToPixels = self.pitchToPixels
-    local abs = math.abs
     local fixErrorMode = self.fixErrorMode
     local mouseOverIndex = self.mouseOverPitchPointIndex
     local mouseIsOverPoint = self.mouseIsOverPitchPoint
@@ -349,9 +456,58 @@ function PitchEditor:drawPitchPoints()
         end
     end
 end
+function PitchEditor:drawPitchCorrections()
+    if self.take.pointer == nil then return end
+    local abs = math.abs
+    local pointBrightness = 0.03
+    local pointSize = 2
+    local points = self.take.corrections.points
+    local drawCircle = self.drawCircle
+    local drawLine = self.drawLine
+    local setColor = self.setColor
+    local activeLineColor = self.pitchCorrectionActiveColor
+    local activePointColor = { activeLineColor[1] + pointBrightness, activeLineColor[2] + pointBrightness, activeLineColor[3] + pointBrightness, activeLineColor[4], activeLineColor[5] }
+    local inactivePointColor = self.pitchCorrectionInactiveColor
+    local pitchToPixels = self.pitchToPixels
+    local fixErrorMode = self.fixErrorMode
+    local mouseOverIndex = self.mouseOverPitchCorrectionIndex
+    local mouseIsOverPoint = self.mouseIsOverPitchCorrectionPoint
+    local glowColor = { 1.0, 1.0, 1.0, 0.3, 1 }
+    if not fixErrorMode then
+        for i = 1, #points do
+            local point = points[i]
+            local nextPoint = points[i + 1]
+            local shouldDrawLine = nextPoint and point.isActive
+            local shouldGlowLine = point.isSelected or (mouseOverIndex == i and not mouseIsOverPoint)
+            local shouldGlowPoint = point.isSelected or (mouseOverIndex == i and mouseIsOverPoint)
+
+            -- Draw active lines.
+            if shouldDrawLine then
+                setColor(self, activeLineColor)
+                drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                if shouldGlowLine then
+                    setColor(self, glowColor)
+                    drawLine(self, point.x, point.y, nextPoint.x, nextPoint.y, true)
+                end
+            end
+            -- Draw the point colored based on whether or not it is active.
+            if point.isActive then
+                setColor(self, activePointColor)
+            else
+                setColor(self, inactivePointColor)
+            end
+            drawCircle(self, point.x, point.y, pointSize, true, true)
+            if shouldGlowPoint then
+                setColor(self, glowColor)
+                drawCircle(self, point.x, point.y, pointSize, true, true)
+            end
+        end
+    end
+end
 function PitchEditor:draw()
     KeyEditor.draw(self)
     self:drawPitchPoints()
+    self:drawPitchCorrections()
 end
 
 return PitchEditor

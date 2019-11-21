@@ -38,7 +38,11 @@ end
 function TimeSeries:sortPoints()
     local points = self.points
     table.sort(points, function(left, right)
-        return left.time < right.time
+        local leftTime = left.time
+        local rightTime = right.time
+        if leftTime and rightTime then
+            return left.time < right.time
+        end
     end)
 end
 function TimeSeries:clearPointsWithinTimeRange(leftTime, rightTime)
