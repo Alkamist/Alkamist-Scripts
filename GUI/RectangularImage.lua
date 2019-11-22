@@ -9,6 +9,7 @@ local RectangularImage = {}
 function RectangularImage:new(object)
     local self = Widget:new(self)
 
+    self.backgroundColor = { 0.2, 0.2, 0.2, 1, 0 }
     self.imageBuffer = self.GUI:getNewImageBuffer()
 
     if object then for k, v in pairs(object) do self[k] = v end end
@@ -20,6 +21,25 @@ function RectangularImage:clear()
     local imageBuffer = self.imageBuffer
     gfx.setimgdim(imageBuffer, -1, -1)
     gfx.setimgdim(imageBuffer, self.width, self.height)
+end
+function RectangularImage:doDraw()
+    gfx.dest = self.imageBuffer
+    self:setColor(self.backgroundColor)
+    self:drawRectangle(0, 0, self.width, self.height, true)
+
+    local childWidgets = self.childWidgets
+    if childWidgets then
+        for i = 1, #childWidgets do
+            childWidgets[i]:doDraw()
+        end
+    end
+
+    if self.isVisible then
+        gfx.a = 1.0
+        gfx.mode = 0
+        gfx.dest = self.drawBuffer
+        if self.draw then self:draw() end
+    end
 end
 function RectangularImage:draw()
     local x = self.x

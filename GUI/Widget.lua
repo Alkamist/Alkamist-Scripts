@@ -19,32 +19,6 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Proxy = require("Proxy")
 local GUI = require("GUI.AlkamistGUI")
 
-local function absoluteCoordinateGetter(self, coordinateName)
-    return function(self)
-        local parentWidget = self.parentWidget
-        local absolute = self[coordinateName]
-        while true do
-            if parentWidget then
-                absolute = absolute + parentWidget[coordinateName]
-                parentWidget = parentWidget.parentWidget
-            else break end
-        end
-        return absolute
-    end
-end
-local function absoluteCoordinateSetter(self, coordinateName)
-    return function(self)
-        local parentWidget = self.parentWidget
-        local relative = value
-        while true do
-            if parentWidget then
-                relative = relative - parentWidget[coordinateName]
-                parentWidget = parentWidget.parentWidget
-            else break end
-        end
-        self[coordinateName] = relative
-    end
-end
 local function getAbsoluteX(self)
     local parentWidget = self.parentWidget
     if parentWidget then
@@ -55,7 +29,21 @@ end
 local function getAbsoluteY(self)
     local parentWidget = self.parentWidget
     if parentWidget then
-        return self.y + getAbsoluteX(parentWidget)
+        return self.y + getAbsoluteY(parentWidget)
+    end
+    return self.y
+end
+local function getDrawX(self)
+    local parentWidget = self.parentWidget
+    if parentWidget and not parentWidget.imageBuffer then
+        return self.x + getDrawX(parentWidget)
+    end
+    return self.x
+end
+local function getDrawY(self)
+    local parentWidget = self.parentWidget
+    if parentWidget and not parentWidget.imageBuffer then
+        return self.y + getDrawY(parentWidget)
     end
     return self.y
 end
@@ -79,8 +67,8 @@ function Widget:new(object)
     self.y = 0
     self.absoluteX = { get = getAbsoluteX }
     self.absoluteY = { get = getAbsoluteY }
-    self.drawX = { get = getAbsoluteX }
-    self.drawY = { get = getAbsoluteY }
+    self.drawX = { get = getDrawX }
+    self.drawY = { get = getDrawY }
     self.width = 0
     self.height = 0
     self.drawBuffer = -1
@@ -119,29 +107,17 @@ function Widget:queueRedraw() self.shouldRedraw = true end
 function Widget:hide() self.isVisible = false end
 function Widget:show() self.isVisible = true end
 function Widget:absolutePointIsInside(pointX, pointY)
-    local parentWidget = self.parentWidget
-    local isInsideParent = true
-    if parentWidget and not parentWidget:absolutePointIsInside(pointX, pointY) then
-        isInsideParent = false
-    end
     if pointX and pointY then
         local absoluteX = self.absoluteX
         local absoluteY = self.absoluteY
-        return isInsideParent
-            and pointX >= absoluteX and pointX <= absoluteX + self.width
-            and pointY >= absoluteY and pointY <= absoluteY + self.height
+        return pointX >= absoluteX and pointX <= absoluteX + self.width
+           and pointY >= absoluteY and pointY <= absoluteY + self.height
     end
 end
 function Widget:relativePointIsInside(pointX, pointY)
-    local parentWidget = self.parentWidget
-    local isInsideParent = true
-    if parentWidget and not parentWidget:relativePointIsInside(pointX + self.x, pointY + self.y) then
-        isInsideParent = false
-    end
     if pointX and pointY then
-        return isInsideParent
-            and pointX >= 0 and pointX <= self.width
-            and pointY >= 0 and pointY <= self.height
+        return pointX >= 0 and pointX <= self.width
+           and pointY >= 0 and pointY <= self.height
     end
 end
 function Widget:setColor(color)

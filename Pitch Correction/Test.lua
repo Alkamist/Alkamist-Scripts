@@ -60,13 +60,22 @@ local childOfChildButton = Button:new{
 parentButton.childWidgets = { childButton }
 childButton.childWidgets = { childOfChildButton }
 
---local image = RectangularImage:new{
---    x = 200,
---    y = 200,
---    width = 200,
---    height = 200
---}
---image.childWidgets = { parentButton }
+local image = RectangularImage:new{
+    x = 0,
+    y = 0,
+    width = 1000,
+    height = 700
+}
+image.childWidgets = { parentButton }
 
-GUI.widgets = { parentButton }
+function childOfChildButton:update()
+    Button.update(self)
+    local GUI = self.GUI
+    if GUI.leftMouseButton:justDraggedWidget(self) then
+        self.x = self.x + GUI.mouseXChange
+        self.y = self.y + GUI.mouseYChange
+    end
+end
+
+GUI.widgets = { image }
 GUI:run()

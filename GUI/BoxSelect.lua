@@ -80,7 +80,7 @@ function BoxSelect:makeSelection(parameters)
     end
 
     self.isActive = false
-    self:queueClear()
+    self:queueRedraw()
 end
 
 function BoxSelect:draw()
