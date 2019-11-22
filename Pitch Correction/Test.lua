@@ -2,8 +2,9 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
-local EditablePolyLine = require("GUI.EditablePolyLine")
+--local EditablePolyLine = require("GUI.EditablePolyLine")
 local Button = require("GUI.Button")
+local RectangularImage = require("GUI.RectangularImage")
 
 GUI:initialize{
     title = "Alkamist Pitch Correction",
@@ -15,41 +16,57 @@ GUI:initialize{
 }
 GUI.backgroundColor = { 0.2, 0.2, 0.2 }
 
-local line = EditablePolyLine:new{
-    x = 50,
-    y = 50,
-    width = 1000 - 100,
-    height = 700 - 100
-}
-
-local x = 0
-local inc = line.width / 100
-for i = 1, 100 do
-    line:insertPoint{
-        x = x,
-        y = 200 * math.random() + 200
-    }
-    x = x + inc
-end
-
-local analyzeButton = Button:new{
-    x = 100,
-    y = 100,
-    width = 200,
-    height = 200,
-    label = "Analyze Pitch",
-    color = { 0.5, 0.2, 0.1, 1.0, 0 }
-}
---local analyzeButton2 = Button:new{
+--local line = EditablePolyLine:new{
 --    x = 50,
 --    y = 50,
---    width = 150,
---    height = 150,
---    label = "Analyze Pitch 2",
---    color = { 0.3, 0.6, 0.2, 1.0, 0 }
+--    width = 1000 - 100,
+--    height = 700 - 100
 --}
---analyzeButton.childWidgets = { analyzeButton2 }
+--
+--local x = 0
+--local inc = line.width / 100
+--for i = 1, 100 do
+--    line:insertPoint{
+--        x = x,
+--        y = 200 * math.random() + 200
+--    }
+--    x = x + inc
+--end
 
-GUI.widgets = { line, analyzeButton }
---GUI.widgets = { analyzeButton }
+local parentButton = Button:new{
+    x = 50,
+    y = 50,
+    width = 500,
+    height = 500,
+    label = "Asdf",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+}
+local childButton = Button:new{
+    x = 50,
+    y = 50,
+    width = 500,
+    height = 500,
+    label = "Asdf",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+}
+local childOfChildButton = Button:new{
+    x = 50,
+    y = 50,
+    width = 500,
+    height = 500,
+    label = "Asdf",
+    color = { 0.5, 0.2, 0.1, 1.0, 0 }
+}
+parentButton.childWidgets = { childButton }
+childButton.childWidgets = { childOfChildButton }
+
+--local image = RectangularImage:new{
+--    x = 200,
+--    y = 200,
+--    width = 200,
+--    height = 200
+--}
+--image.childWidgets = { parentButton }
+
+GUI.widgets = { parentButton }
 GUI:run()

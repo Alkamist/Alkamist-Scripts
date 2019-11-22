@@ -19,31 +19,54 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Proxy = require("Proxy")
 local GUI = require("GUI.AlkamistGUI")
 
-local function generateAbsoluteCoordinateGetterAndSetter(coordinateName)
-    return {
-        get = function(self)
-            local parentWidget = self.parentWidget
-            local absolute = self[coordinateName]
-            while true do
-                if parentWidget then
-                    absolute = absolute + parentWidget[coordinateName]
-                    parentWidget = parentWidget.parentWidget
-                else break end
-            end
-            return absolute
-        end,
-        set = function(self, value)
-            local parentWidget = self.parentWidget
-            local relative = value
-            while true do
-                if parentWidget then
-                    relative = relative - parentWidget[coordinateName]
-                    parentWidget = parentWidget.parentWidget
-                else break end
-            end
-            self[coordinateName] = relative
+local function absoluteCoordinateGetter(self, coordinateName)
+    return function(self)
+        local parentWidget = self.parentWidget
+        local absolute = self[coordinateName]
+        while true do
+            if parentWidget then
+                absolute = absolute + parentWidget[coordinateName]
+                parentWidget = parentWidget.parentWidget
+            else break end
         end
-    }
+        return absolute
+    end
+end
+local function absoluteCoordinateSetter(self, coordinateName)
+    return function(self)
+        local parentWidget = self.parentWidget
+        local relative = value
+        while true do
+            if parentWidget then
+                relative = relative - parentWidget[coordinateName]
+                parentWidget = parentWidget.parentWidget
+            else break end
+        end
+        self[coordinateName] = relative
+    end
+end
+local function getAbsoluteX(self)
+    local parentWidget = self.parentWidget
+    if parentWidget then
+        return self.x + getAbsoluteX(parentWidget)
+    end
+    return self.x
+end
+local function getAbsoluteY(self)
+    local parentWidget = self.parentWidget
+    if parentWidget then
+        return self.y + getAbsoluteX(parentWidget)
+    end
+    return self.y
+end
+local function setChildWidgets(self, childWidgets)
+    if childWidgets then
+        for i = 1, #childWidgets do
+            local childWidget = childWidgets[i]
+            childWidget.parentWidget = self
+            setChildWidgets(childWidget, childWidget.childWidgets)
+        end
+    end
 end
 
 local Widget = {}
@@ -51,32 +74,40 @@ function Widget:new(object)
     local self = Proxy:new(self)
 
     self.GUI = GUI
+
     self.x = 0
     self.y = 0
-    self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
-    self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
-    self.drawX = { get = function(self) return self.absoluteX end }
-    self.drawY = { get = function(self) return self.absoluteY end }
+    self.absoluteX = { get = getAbsoluteX }
+    self.absoluteY = { get = getAbsoluteY }
+    self.drawX = { get = getAbsoluteX }
+    self.drawY = { get = getAbsoluteY }
     self.width = 0
     self.height = 0
     self.drawBuffer = -1
     self.isVisible = true
     self.shouldRedraw = true
-    self.shouldClear = false
     self.previousRelativeMouseX = 0
     self.previousRelativeMouseY = 0
     self.relativeMouseX = { get = function(self) return self.GUI.mouseX - self.absoluteX end }
     self.relativeMouseY = { get = function(self) return self.GUI.mouseY - self.absoluteY end }
-    self.parentWidget = nil
+    self.parentWidget = {
+        value = nil,
+        get = function(self, field) return field.value end,
+        set = function(self, value, field)
+            field.value = value
+            if value.imageBuffer then
+                self.drawBuffer = value.imageBuffer
+            else
+                self.drawBuffer = value.drawBuffer
+            end
+        end
+    }
     self.childWidgets = {
         value = {},
         get = function(self, field) return field.value end,
         set = function(self, value, field)
-            if type(value) ~= "table" then return end
-            for _, widget in ipairs(value) do
-                widget.parentWidget = self
-            end
             field.value = value
+            setChildWidgets(self, value)
         end
     }
 
@@ -85,7 +116,6 @@ function Widget:new(object)
 end
 
 function Widget:queueRedraw() self.shouldRedraw = true end
-function Widget:queueClear() self.shouldClear = true end
 function Widget:hide() self.isVisible = false end
 function Widget:show() self.isVisible = true end
 function Widget:absolutePointIsInside(pointX, pointY)
@@ -113,13 +143,6 @@ function Widget:relativePointIsInside(pointX, pointY)
             and pointX >= 0 and pointX <= self.width
             and pointY >= 0 and pointY <= self.height
     end
-end
-function Widget:clearBuffer()
-    local drawBuffer = self.drawBuffer
-    local width = self.width
-    local height = self.height
-    gfx.setimgdim(drawBuffer, -1, -1)
-    gfx.setimgdim(drawBuffer, width, height)
 end
 function Widget:setColor(color)
     local mode = color[5] or 0
@@ -239,13 +262,12 @@ function Widget:doUpdate()
     if self.update then self:update() end
 end
 function Widget:doDraw()
-    --if self.shouldRedraw then
+    if self.isVisible then
         gfx.a = 1.0
         gfx.mode = 0
         gfx.dest = self.drawBuffer
         if self.draw then self:draw() end
-        self.shouldRedraw = false
-    --end
+    end
 
     local childWidgets = self.childWidgets
     if childWidgets then

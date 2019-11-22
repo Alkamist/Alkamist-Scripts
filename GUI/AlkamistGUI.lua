@@ -334,7 +334,7 @@ end
 function GUI:createKey(character)
     self.keys[character] = KeyboardKey(character)
 end
-function GUI:getNewDrawBuffer()
+function GUI:getNewImageBuffer()
     for i = 0, 1023 do
         if not self.bufferIsUsed[i] then
             self.bufferIsUsed[i] = true
