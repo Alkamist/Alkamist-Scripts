@@ -320,10 +320,10 @@ GUI.widgets = {}
 GUI.bufferIsUsed = {}
 
 function GUI:mouseIsInsideWidget(widget)
-    return widget:pointIsInside(self.mouseX, self.mouseY)
+    return widget:absolutePointIsInside(self.mouseX, self.mouseY)
 end
 function GUI:mouseWasPreviouslyInsideWidget(widget)
-    return widget:pointIsInside(self.previousMouseX, self.previousMouseY)
+    return widget:absolutePointIsInside(self.previousMouseX, self.previousMouseY)
 end
 function GUI:mouseJustEnteredWidget(widget)
     return self:mouseIsInsideWidget(widget) and not self:mouseWasPreviouslyInsideWidget(widget)
@@ -384,8 +384,7 @@ function GUI:run()
     local numberOfWidgets = #widgets
     for i = 1, numberOfWidgets do widgets[i]:doBeginUpdate() end
     for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
-    for i = 1, numberOfWidgets do widgets[i]:doDrawToBuffer() end
-    for i = 1, numberOfWidgets do widgets[i]:doDrawToParent() end
+    for i = 1, numberOfWidgets do widgets[i]:doDraw() end
     for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(self.run) end

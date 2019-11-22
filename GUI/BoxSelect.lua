@@ -13,8 +13,8 @@ function BoxSelect:new(object)
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
-    self.insideColor = { 0, 0, 0, 0.4, 1 }
-    self.edgeColor = { 1, 1, 1, 0.7, 1 }
+    self.insideColor = { 1, 1, 1, -0.04, 1 }
+    self.edgeColor = { 1, 1, 1, 0.4, 1 }
     self.isActive = false
     self.thingsToSelect = {}
 
@@ -23,7 +23,7 @@ function BoxSelect:new(object)
 end
 
 function BoxSelect:thingIsInside(thing)
-    return self:pointIsInside(thing.x, thing.y)
+    return self:relativePointIsInside(thing.x - self.x, thing.y - self.y)
 end
 function BoxSelect:setThingSelected(thing, shouldSelect)
     thing.isSelected = shouldSelect

@@ -169,6 +169,7 @@ function EditablePolyLine:new(object)
     self.boxSelect = BoxSelect:new{
         thingsToSelect = self.points
     }
+    self.childWidgets = { self.boxSelect }
 
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
@@ -332,19 +333,6 @@ function EditablePolyLine:draw()
             setColor(self, glowColor)
             handleDrawPoint(self, point)
         end
-    end
-
-    local boxSelect = self.boxSelect
-    local boxSelectX = boxSelect.x
-    local boxSelectY = boxSelect.y
-    local boxSelectWidth = boxSelect.width
-    local boxSelectHeight = boxSelect.height
-    if boxSelect.isActive then
-        self:setColor(boxSelect.edgeColor)
-        self:drawRectangle(boxSelectX, boxSelectY, boxSelectWidth, boxSelectHeight, false)
-
-        self:setColor(boxSelect.insideColor)
-        self:drawRectangle(boxSelectX + 1, boxSelectY + 1, boxSelectWidth - 2, boxSelectHeight - 2, true)
     end
 end
 

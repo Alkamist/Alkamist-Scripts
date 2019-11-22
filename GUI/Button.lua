@@ -69,9 +69,6 @@ function Button:toggleGlow()
     self:queueRedraw()
 end
 
-function Button:beginUpdate()
-    self.previousPressState = self.isPressed
-end
 function Button:update()
     local GUI = self.GUI
     local leftMouseButton = GUI.leftMouseButton
@@ -117,6 +114,9 @@ function Button:draw()
         self:setColor(self.glowColor)
         self:drawRectangle(1, 1, width - 2, height - 2, true)
     end
+end
+function Button:endUpdate()
+    self.previousPressState = self.isPressed
 end
 
 return Button

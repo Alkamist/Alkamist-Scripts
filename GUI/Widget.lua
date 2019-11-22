@@ -53,20 +53,21 @@ function Widget:new(object)
     self.GUI = GUI
     self.x = 0
     self.y = 0
+    self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
+    self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
+    self.drawX = { get = function(self) return self.absoluteX end }
+    self.drawY = { get = function(self) return self.absoluteY end }
     self.width = 0
     self.height = 0
     self.drawBuffer = -1
-    self.parentWidget = nil
     self.isVisible = true
     self.shouldRedraw = true
     self.shouldClear = false
-    self.shouldDrawDirectly = false
     self.previousRelativeMouseX = 0
     self.previousRelativeMouseY = 0
-    self.absoluteX = generateAbsoluteCoordinateGetterAndSetter("x")
-    self.absoluteY = generateAbsoluteCoordinateGetterAndSetter("y")
     self.relativeMouseX = { get = function(self) return self.GUI.mouseX - self.absoluteX end }
     self.relativeMouseY = { get = function(self) return self.GUI.mouseY - self.absoluteY end }
+    self.parentWidget = nil
     self.childWidgets = {
         value = {},
         get = function(self, field) return field.value end,
@@ -79,15 +80,6 @@ function Widget:new(object)
         end
     }
 
-    if self.shouldDrawDirectly then
-        local parentWidget = self.parentWidget
-        if parentWidget then
-            self.drawBuffer = parentWidget.drawBuffer
-        end
-    else
-        self.drawBuffer = GUI:getNewDrawBuffer()
-    end
-
     if object then for k, v in pairs(object) do self[k] = v end end
     return self
 end
@@ -96,20 +88,30 @@ function Widget:queueRedraw() self.shouldRedraw = true end
 function Widget:queueClear() self.shouldClear = true end
 function Widget:hide() self.isVisible = false end
 function Widget:show() self.isVisible = true end
-function Widget:pointIsInside(pointX, pointY)
-    local x = self.absoluteX
-    local y = self.absoluteY
-    local width = self.width
-    local height = self.height
+function Widget:absolutePointIsInside(pointX, pointY)
     local parentWidget = self.parentWidget
     local isInsideParent = true
-    if parentWidget and not parentWidget:pointIsInside(pointX, pointY) then
+    if parentWidget and not parentWidget:absolutePointIsInside(pointX, pointY) then
+        isInsideParent = false
+    end
+    if pointX and pointY then
+        local absoluteX = self.absoluteX
+        local absoluteY = self.absoluteY
+        return isInsideParent
+            and pointX >= absoluteX and pointX <= absoluteX + self.width
+            and pointY >= absoluteY and pointY <= absoluteY + self.height
+    end
+end
+function Widget:relativePointIsInside(pointX, pointY)
+    local parentWidget = self.parentWidget
+    local isInsideParent = true
+    if parentWidget and not parentWidget:relativePointIsInside(pointX + self.x, pointY + self.y) then
         isInsideParent = false
     end
     if pointX and pointY then
         return isInsideParent
-            and pointX >= x and pointX <= x + width
-            and pointY >= y and pointY <= y + height
+            and pointX >= 0 and pointX <= self.width
+            and pointY >= 0 and pointY <= self.height
     end
 end
 function Widget:clearBuffer()
@@ -125,26 +127,20 @@ function Widget:setColor(color)
 end
 function Widget:setBlendMode(mode) gfx.mode = mode end
 function Widget:drawRectangle(x, y, w, h, filled)
-    if self.shouldDrawDirectly then
-        x = x + self.x
-        y = y + self.y
-    end
+    x = x + self.drawX
+    y = y + self.drawY
     gfxRect(x, y, w, h, filled)
 end
 function Widget:drawLine(x, y, x2, y2, antiAliased)
-    if self.shouldDrawDirectly then
-        x = x + self.x
-        y = y + self.y
-        x2 = x2 + self.x
-        y2 = y2 + self.y
-    end
+    x = x + self.drawX
+    y = y + self.drawY
+    x2 = x2 + self.drawX
+    y2 = y2 + self.drawY
     gfxLine(x, y, x2, y2, antiAliased)
 end
 function Widget:drawCircle(x, y, r, filled, antiAliased)
-    if self.shouldDrawDirectly then
-        x = x + self.x
-        y = y + self.y
-    end
+    x = x + self.drawX
+    y = y + self.drawY
     gfxCircle(x, y, r, filled, antiAliased)
 end
 --[[function Widget:drawPolygon(filled, ...)
@@ -165,10 +161,8 @@ end
     end
 end]]--
 function Widget:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-    if self.shouldDrawDirectly then
-        x = x + self.x
-        y = y + self.y
-    end
+    x = x + self.drawX
+    y = y + self.drawY
     local aa = antiAliased or 1
     filled = filled or 0
     w = math.max(0, w - 1)
@@ -205,12 +199,10 @@ end
 function Widget:setFont(font, size, flags) gfxSetFont(1, font, size) end
 function Widget:measureString(str) return gfxMeasureStr(str) end
 function Widget:drawString(str, x, y, flags, right, bottom)
-    if self.shouldDrawDirectly then
-        x = x + self.x
-        y = y + self.y
-        right = right + self.x
-        bottom = bottom + self.y
-    end
+    x = x + self.drawX
+    y = y + self.drawY
+    right = right + self.drawX
+    bottom = bottom + self.drawY
     gfx.x = x
     gfx.y = y
     if flags then
@@ -227,9 +219,6 @@ function Widget:doBeginUpdate()
         end
     end
 
-    self.previousRelativeMouseX = self.relativeMouseX
-    self.previousRelativeMouseY = self.relativeMouseY
-    self.previousVisibilityState = self.isVisible
     if self.beginUpdate then self:beginUpdate() end
 end
 function Widget:doUpdate()
@@ -249,53 +238,19 @@ function Widget:doUpdate()
 
     if self.update then self:update() end
 end
-function Widget:doDrawToBuffer()
+function Widget:doDraw()
+    --if self.shouldRedraw then
+        gfx.a = 1.0
+        gfx.mode = 0
+        gfx.dest = self.drawBuffer
+        if self.draw then self:draw() end
+        self.shouldRedraw = false
+    --end
+
     local childWidgets = self.childWidgets
     if childWidgets then
         for i = 1, #childWidgets do
-            childWidgets[i]:doDrawToBuffer()
-        end
-    end
-
-    if not self.shouldDrawDirectly then
-        if self.shouldRedraw then
-            self:clearBuffer()
-            gfx.a = 1.0
-            gfx.mode = 0
-            gfx.dest = self.drawBuffer
-            if self.draw then self:draw() end
-            self.shouldRedraw = false
-        elseif self.shouldClear then
-            self:clearBuffer()
-            self.shouldClear  = false
-        end
-    end
-end
-function Widget:doDrawToParent()
-    if self.isVisible then
-        local childWidgets = self.childWidgets
-        if childWidgets then
-            for i = 1, #childWidgets do
-                childWidgets[i]:doDrawToParent()
-            end
-        end
-
-        local parentWidget = self.parentWidget
-        if parentWidget then
-            gfx.dest = parentWidget.drawBuffer
-        else
-            gfx.dest = -1
-        end
-        gfx.a = 1.0
-        gfx.mode = 0
-        if self.shouldDrawDirectly then
-            if self.draw then self:draw() end
-        else
-            local x = self.x
-            local y = self.y
-            local width = self.width
-            local height = self.height
-            gfx.blit(self.drawBuffer, 1.0, 0, 0, 0, width, height, x, y, width, height, 0, 0)
+            childWidgets[i]:doDraw()
         end
     end
 end
@@ -307,6 +262,8 @@ function Widget:doEndUpdate()
         end
     end
 
+    self.previousRelativeMouseX = self.relativeMouseX
+    self.previousRelativeMouseY = self.relativeMouseY
     if self.endUpdate then self:endUpdate() end
 end
 
