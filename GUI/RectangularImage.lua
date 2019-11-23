@@ -1,6 +1,7 @@
 local reaper = reaper
 local math = math
 local pairs = pairs
+local gfx = gfx
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Widget = require("GUI.Widget")
@@ -23,9 +24,12 @@ function RectangularImage:clear()
     gfx.setimgdim(imageBuffer, self.width, self.height)
 end
 function RectangularImage:doDraw()
-    gfx.dest = self.imageBuffer
-    self:setColor(self.backgroundColor)
-    self:drawRectangle(0, 0, self.width, self.height, true)
+    local backgroundColor = self.backgroundColor
+    if backgroundColor then
+        gfx.dest = self.imageBuffer
+        self:setColor(self.backgroundColor)
+        self:drawRectangle(0, 0, self.width, self.height, true)
+    end
 
     local childWidgets = self.childWidgets
     if childWidgets then
