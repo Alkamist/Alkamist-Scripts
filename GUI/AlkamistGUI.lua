@@ -10,7 +10,6 @@ local gfxSetFont = gfx.setfont
 local gfxMeasureStr = gfx.measurestr
 local gfxDrawStr = gfx.drawstr
 local pairs = pairs
-local ipairs = ipairs
 
 local function invertTable(tbl)
     local invertedTable = {}
@@ -171,91 +170,107 @@ local characterTable = {
 }
 local characterTableInverted = invertTable(characterTable)
 
-local mouseX = 0
-local previousMouseX = 0
-local mouseY = 0
-local previousMouseY = 0
-local mouseCap = 0
-local previousMouseCap = 0
-local mouseWheel = 0
-local mouseHWheel = 0
-local char = 0
-local title = ""
-local x = 0
-local y = 0
-local width = 0
-local previousWidth = 0
-local height = 0
-local previousHeight = 0
-local dock = 0
+local GUI = {
+    mouse = {
+        cap = 0,
+        x = 0,
+        previousX = 0,
+        xChange = 0,
+        xJustChanged = false,
+        y = 0,
+        previousY = 0,
+        yChange = 0,
+        yJustChanged = false,
+        wheel = 0,
+        wheelJustMoved = false,
+        hWheel = 0,
+        hWheelJustMoved = false,
+        justMoved = false,
+        buttons = {}
+    },
+    keyboard = {
+        keys = {},
+        modifiers = {},
+        char = nil
+    },
+    graphics = {},
+    window = {
+        title = "",
+        x = 0,
+        y = 0,
+        width = 0,
+        previousWidth = 0,
+        widthChange = 0,
+        widthJustChanged = false,
+        height = 0,
+        previousHeight = 0,
+        heightChange = 0,
+        heightJustChanged = false,
+        dock = 0,
+        wasJustResized = false
+    }
+}
 
 local MouseControl = {}
-function MouseControl.new()
+function MouseControl:new()
     local self = {}
 
-    self.pressState = false
-    self.previousPressState = false
-    self.wasJustReleasedLastFrame = false
+    self.isPressed = false
+    self.wasPreviouslyPressed = false
+    self.justPressed = false
+    self.justReleased = false
+    self.justDoublePressed = false
+    self.justDragged = false
+    self.justStartedDragging = false
+    self.justStoppedDragging = false
+    self.hasDraggedSincePress = false
     self.timeOfPreviousPress = nil
+    self.timeSincePreviousPress = nil
 
+    for k, v in pairs(MouseControl) do self[k] = v end
     return self
 end
 function MouseControl:update(state)
-    if MouseControl.justPressed(self) then self.timeOfPreviousPress = reaper.time_precise() end
-    self.wasJustReleasedLastFrame = MouseControl.justReleased(self)
-    self.previousPressState = self.pressState
-    self.pressState = state
+    if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
+    self.wasPreviouslyPressed = self.isPressed
+    self.isPressed = state
+    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
+    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
+    self.justDragged = self.isPressed and GUI.mouse.justMoved
+    self.justStartedDragging = self.justDragged and not self.hasDraggedSincePress
+    if self.justDragged then self.hasDraggedSincePress = true end
+    self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
+    if self.justReleased then self.hasDraggedSincePress = false end
+    if self.timeOfPreviousPress then
+        self.timeSincePreviousPress = reaper.time_precise() - self.timeOfPreviousPress
+        self.justDoublePressed = self.justPressed and self.timeSincePreviousPress <= 0.5
+    end
 end
-function MouseControl:isPressed()
-    return self.pressState
-end
-function MouseControl:justPressed()
-    return self.pressState and not self.previousPressState
-end
-function MouseControl:justReleased()
-    return not self.pressState and self.previousPressState
-end
-function MouseControl:justDoublePressed()
-    local timeSince = MouseControl.getTimeSincePreviousPress(self)
-    if timeSince == nil then return false end
-    return MouseControl.justPressed(self) and timeSince <= 0.5
-end
-function MouseControl:getTimeSincePreviousPress()
-    local timeOfPreviousPress = self.timeOfPreviousPress
-    if not timeOfPreviousPress then return nil end
-    return reaper.time_precise() - timeOfPreviousPress
-end
-
 local MouseButton = {}
 function MouseButton:new(bitValue)
-    local self = MouseControl.new()
-    self.bitValue = bitValue or 0
+    local self = MouseControl:new()
+    function self:update()
+        MouseControl.update(self, GUI.mouse.cap & bitValue == bitValue)
+    end
     return self
-end
-function MouseButton:update()
-    local bitValue = self.bitValue
-    MouseControl.update(self, mouseCap & bitValue == bitValue)
 end
 local KeyboardKey = {}
 function KeyboardKey:new(character)
-    local self = MouseControl.new()
-    self.character = character or ""
+    local self = MouseControl:new()
+    function self:update()
+        MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
+    end
     return self
 end
-function KeyboardKey:update()
-    MouseControl.update(self, gfx.getchar(characterTable[self.character]) > 0)
-end
 
-local GUI = {
-    leftMouseButton = MouseButton:new(1),
-    middleMouseButton = MouseButton:new(64),
-    rightMouseButton = MouseButton:new(2),
-    shiftKey = MouseButton:new(8),
-    controlKey = MouseButton:new(4),
-    windowsKey = MouseButton:new(32),
-    altKey = MouseButton:new(16),
-    keys = {}
-}
+GUI.mouse.buttons.left = MouseButton:new(1)
+GUI.mouse.buttons.middle = MouseButton:new(64)
+GUI.mouse.buttons.right = MouseButton:new(2)
+GUI.keyboard.modifiers.shift= MouseButton:new(8)
+GUI.keyboard.modifiers.control = MouseButton:new(4)
+GUI.keyboard.modifiers.windows = MouseButton:new(32)
+GUI.keyboard.modifiers.alt = MouseButton:new(16)
+GUI.keyboard.keys = {}
 
 --[[function GUI.getNewImageBuffer()
     for i = 0, 1023 do
@@ -266,64 +281,31 @@ local GUI = {
     end
 end]]--
 
-function GUI.onUpdate() end
-function GUI.onDraw() end
-function GUI.onEndUpdate() end
+function GUI:onUpdate() end
+function GUI:onDraw() end
+function GUI:onEndUpdate() end
 
-function GUI.createKey(character) GUI.keys[character] = KeyboardKey:new(character) end
-function GUI.getCurrentCharacter() return char end
+function GUI.keyboard:createKey(character) GUI.keys[character] = KeyboardKey:new(character) end
 
-function GUI.getMouseX() return mouseX end
-function GUI.getPreviousMouseX() return previousMouseX end
-function GUI.getMouseXChange() return mouseX - previousMouseX end
-function GUI.mouseXJustChanged() return mouseX ~= previousMouseX end
-
-function GUI.getMouseY() return mouseY end
-function GUI.getPreviousMouseY() return previousMouseY end
-function GUI.getMouseYChange() return mouseY - previousMouseY end
-function GUI.mouseYJustChanged() return mouseY ~= previousMouseY end
-
-function GUI.mouseJustMoved() return (mouseX ~= previousMouseX) or (mouseY ~= previousMouseY) end
-
-function GUI.getMouseWheel() return mouseWheel end
-function GUI.mouseWheelJustMoved() return mouseWheel ~= 0 end
-function GUI.getMouseHWheel() return mouseHWheel end
-function GUI.mouseHWheelJustMoved() return mouseHWheel ~= 0 end
-
-function GUI.getWindowX() return x end
-function GUI.getWindowY() return y end
-
-function GUI.getWindowWidth() return width end
-function GUI.getPreviousWindowWidth() return previousWidth end
-function GUI.getWindowWidthChange() return width - previousWidth end
-function GUI.windowWidthJustChanged() return width ~= previousWidth end
-
-function GUI.getWindowHeight() return height end
-function GUI.getPreviousWindowHeight() return previousHeight end
-function GUI.getWindowHeightChange() return height - previousHeight end
-function GUI.windowHeightJustChanged() return height ~= previousHeight end
-
-function GUI.windowWasResized() return (width ~= previousWidth) or (height ~= previousHeight) end
-
-function GUI.setDestination(value) gfx.dest = value end
-function GUI.setAlpha(value) gfx.a = value end
-function GUI.setColor(color)
+function GUI.graphics:setDestination(value) gfx.dest = value end
+function GUI.graphics:setAlpha(value) gfx.a = value end
+function GUI.graphics:setColor(color)
     local mode = color[5] or 0
     gfxSet(color[1], color[2], color[3], color[4], mode)
 end
-function GUI.setBlendMode(mode)
+function GUI.graphics:setBlendMode(mode)
     gfx.mode = mode
 end
-function GUI.drawRectangle(x, y, w, h, filled)
+function GUI.graphics:drawRectangle(x, y, w, h, filled)
     gfxRect(x, y, w, h, filled)
 end
-function GUI.drawLine(x, y, x2, y2, antiAliased)
+function GUI.graphics:drawLine(x, y, x2, y2, antiAliased)
     gfxLine(x, y, x2, y2, antiAliased)
 end
-function GUI.drawCircle(x, y, r, filled, antiAliased)
+function GUI.graphics:drawCircle(x, y, r, filled, antiAliased)
     gfxCircle(x, y, r, filled, antiAliased)
 end
-function GUI.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+function GUI.graphics:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
     local aa = antiAliased or 1
     filled = filled or 0
     w = math.max(0, w - 1)
@@ -357,7 +339,7 @@ function GUI.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
         end
     end
 end
-function GUI.drawString(str, x, y, flags, right, bottom)
+function GUI.graphics:drawString(str, x, y, flags, right, bottom)
     gfx.x = x
     gfx.y = y
     if flags then
@@ -366,47 +348,70 @@ function GUI.drawString(str, x, y, flags, right, bottom)
         gfxDrawStr(str)
     end
 end
-function GUI.setFont(font, size, flags)
+function GUI.graphics:setFont(font, size, flags)
     gfxSetFont(1, font, size)
 end
-function GUI.measureString(str)
+function GUI.graphics:measureString(str)
     return gfxMeasureStr(str)
 end
-function GUI.initialize(parameters)
+function GUI:initialize(parameters)
     local parameters = parameters or {}
-    title = parameters.title or title or ""
-    x = parameters.x or x or 0
-    y = parameters.y or y or 0
-    width = parameters.width or width  or 0
-    height = parameters.height or height or 0
-    dock = parameters.dock or dock or 0
-    gfx.init(title, width, height, dock, x, y)
+    GUI.window.title = parameters.title or GUI.window.title or ""
+    GUI.window.x = parameters.x or GUI.window.x or 0
+    GUI.window.y = parameters.y or GUI.window.y or 0
+    GUI.window.width = parameters.width or GUI.window.width  or 0
+    GUI.window.height = parameters.height or GUI.window.height or 0
+    GUI.window.dock = parameters.dock or GUI.window.dock or 0
+    gfx.init(GUI.window.title, GUI.window.width, GUI.window.height, GUI.window.dock, GUI.window.x, GUI.window.y)
 end
+
+local mouse = GUI.mouse
+local keyboard = GUI.keyboard
+local window = GUI.window
 function GUI.run()
-    width = gfx.w
-    height = gfx.h
-    mouseX = gfx.mouse_x
-    mouseY = gfx.mouse_y
-    mouseCap = gfx.mouse_cap
-    mouseWheel = gfx.mouse_wheel / 120
+    window.width = gfx.w
+    window.height = gfx.h
+    mouse.x = gfx.mouse_x
+    mouse.y = gfx.mouse_y
+    mouse.cap = gfx.mouse_cap
+    mouse.wheel = gfx.mouse_wheel / 120
     gfx.mouse_wheel = 0
-    mouseHWheel = gfx.mouse_hwheel / 120
+    mouse.hWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
 
-    char = characterTableInverted[gfx.getchar()]
+    window.widthChange = window.width - window.previousWidth
+    window.widthJustChanged = window.width ~= window.previousWidth
+    window.heightChange = window.height - window.previousHeight
+    window.heightJustChanged = window.height ~= window.previousHeight
+    window.wasJustResized = window.widthJustChanged or window.heightJustChanged
+
+    mouse.xChange = mouse.x - mouse.previousX
+    mouse.xJustChanged = mouse.x ~= mouse.previousX
+    mouse.yChange = mouse.y - mouse.previousY
+    mouse.yJustChanged = mouse.y ~= mouse.previousY
+    mouse.justMoved = mouse.xJustChanged or mouse.yJustChanged
+    mouse.wheelJustMoved = mouse.wheel ~= 0
+    mouse.hWheelJustMoved = mouse.hWheel ~= 0
+
+    for k, v in pairs(mouse.buttons) do v:update() end
+    for k, v in pairs(keyboard.modifiers) do v:update() end
+    for k, v in pairs(keyboard.keys) do v:update() end
+
+    local char = characterTableInverted[gfx.getchar()]
+    keyboard.char = char
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    GUI.onUpdate()
-    GUI.onDraw()
-    GUI.onEndUpdate()
+    GUI:onUpdate()
+    GUI:onDraw()
+    GUI:onEndUpdate()
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
     gfx.update()
 
-    previousWidth = width
-    previousHeight = height
-    previousMouseX = mouseX
-    previousMouseY = mouseY
+    window.previousWidth = window.width
+    window.previousHeight = window.height
+    mouse.previousX = mouse.x
+    mouse.previousY = mouse.y
 end
 
 return GUI
