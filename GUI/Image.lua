@@ -1,7 +1,6 @@
 local reaper = reaper
-local math = math
-local pairs = pairs
 local gfx = gfx
+local pairs = pairs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local Boundary = require("GUI.Boundary")
@@ -17,7 +16,7 @@ function Image.new(object)
     self.backgroundColor = { 0, 0, 0, 1, 0 }
 
     local object = Boundary.new(object)
-    for k, v in pairs(self) do if not object[k] then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     Image.clear(object)
     return object
 end

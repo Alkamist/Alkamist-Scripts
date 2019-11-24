@@ -1,4 +1,5 @@
 local reaper = reaper
+local gfx = gfx
 local pairs = pairs
 local math = math
 local min = math.min
@@ -27,7 +28,7 @@ function BoxSelect.new(object)
     self.inversionControl = nil
 
     local object = Boundary.new(object)
-    for k, v in pairs(self) do if not object[k] then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     return object
 end
 
@@ -62,9 +63,9 @@ end
 function BoxSelect.makeSelection(self, parameters)
     local parameters = parameters or {}
     local thingsToSelect = parameters.thingsToSelect or self.thingsToSelect
-    local thingIsInside = parameters.thingIsInside or self.thingIsInside
-    local setThingSelected = parameters.setThingSelected or self.setThingSelected
-    local thingIsSelected = parameters.thingIsSelected or self.thingIsSelected
+    local thingIsInside = parameters.thingIsInside or BoxSelect.thingIsInside
+    local setThingSelected = parameters.setThingSelected or BoxSelect.setThingSelected
+    local thingIsSelected = parameters.thingIsSelected or BoxSelect.thingIsSelected
     local shouldAdd = parameters.shouldAdd or self.additiveControl.isPressed
     local shouldInvert = parameters.shouldInvert or self.inversionControl.isPressed
     if thingsToSelect then

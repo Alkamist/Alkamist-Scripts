@@ -19,7 +19,7 @@ function Boundary.new(object)
     self.mouseJustLeft = false
 
     local object = object or {}
-    for k, v in pairs(self) do if not object[k] then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     return object
 end
 

@@ -1,10 +1,19 @@
 local reaper = reaper
+local gfx = gfx
+local pairs = pairs
 local math = math
 local table = table
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Widget = require("GUI.Widget")
 local BoxSelect = require("GUI.BoxSelect")
+local GUI = require("GUI.AlkamistGUI")
+local mouse = GUI.mouse
+local keyboard = GUI.keyboard
+local leftMouseButton = mouse.buttons.left
+local rightMouseButton = mouse.buttons.right
+local shiftKey = keyboard.modifiers.shift
+local controlKey = keyboard.modifiers.control
+local graphics = GUI.graphics
 
 local function arrayRemove(t, fn)
     local n = #t
@@ -133,7 +142,7 @@ local function getIndexOfPointOrSegmentClosestToPointWithinDistance(points, x, y
     end
     return index, indexIsPoint
 end
-local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
+local function insertThingIntoGroup(group, newThing, sortFunction)
     local numberInGroup = #group
     if numberInGroup == 0 then
         group[1] = newThing
@@ -142,7 +151,7 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
 
     for i = 1, numberInGroup do
         local thing = group[i]
-        if stoppingConditionFn(thing, newThing) then
+        if not sortFunction(thing, newThing) then
             table.insert(group, i, newThing)
             return i
         end
@@ -152,44 +161,52 @@ local function insertThingIntoGroup(group, newThing, stoppingConditionFn)
     return numberInGroup + 1
 end
 
-local EditablePolyLine = {}
-function EditablePolyLine:new(object)
-    local self = Widget:new(self)
+local PolyLine = {}
+function PolyLine.new(object)
+    local self = {}
 
+    self.x = 0
+    self.y = 0
     self.points = {}
+    self.editPointIndex = nil
 
     local lineColor = { 0.5, 0.5, 0.5, 1.0, 0 }
     self.lineColor = lineColor
     self.pointColor = { lineColor[1] + 0.03, lineColor[2] + 0.03, lineColor[3] + 0.03, lineColor[4], lineColor[5] }
     self.glowColor = { 1.0, 1.0, 1.0, 0.3, 1 }
 
-    self.mouseEditPixelRange = 7
-    self.glowWhenMouseOver = true
+    self.mouseEditPixelRange = 6
+    self.glowWhenMouseIsOver = true
 
-    self.boxSelect = BoxSelect:new{
-        thingsToSelect = self.points
+    self.drawLine = function(self, point, nextPoint) graphics.drawLine(point.x + self.x, point.y + self.y, nextPoint.x + self.x, nextPoint.y + self.y, true) end
+    self.drawPoint = function(self, point) graphics.drawRectangle(point.x + self.x - 1, point.y + self.y - 1, 3, 3, true) end
+    self.sortFunction = function(before, after) return before.x < after.x end
+
+    self.boxSelect = BoxSelect.new{
+        thingsToSelect = self.points,
+        selectionControl = rightMouseButton,
+        additiveControl = shiftKey,
+        inversionControl = controlKey
     }
-    self.childWidgets = { self.boxSelect }
 
-    if object then for k, v in pairs(object) do self[k] = v end end
-    return self
+    local object = object or {}
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return object
 end
 
-function EditablePolyLine:insertPoint(point)
-    local newPointIndex = insertThingIntoGroup(self.points, point, function(pointInLoop, pointToInsert)
-        return pointInLoop.x >= pointToInsert.x
-    end)
+function PolyLine.insertPoint(self, point, sortFunction)
+    if not point then return end
+    local sortFunction = sortFunction or self.sortFunction
+    local newPointIndex = insertThingIntoGroup(self.points, point, sortFunction)
     return newPointIndex
 end
-function EditablePolyLine:sortPoints()
-    table.sort(self.points, function(left, right)
-        return left.x < right.x
-    end)
+function PolyLine.sortPoints(self, sortFunction)
+    local sortFunction = sortFunction or self.sortFunction
+    table.sort(self.points, sortFunction)
 end
-function EditablePolyLine:moveSelectedPointsWithMouse()
-    local GUI = self.GUI
-    local mouseXChange = GUI.mouseXChange
-    local mouseYChange = GUI.mouseYChange
+function PolyLine.moveSelectedPointsWithMouse(self)
+    local mouseXChange = mouse.xChange
+    local mouseYChange = mouse.yChange
     local points = self.points
     for i = 1, #points do
         local point = points[i]
@@ -198,142 +215,79 @@ function EditablePolyLine:moveSelectedPointsWithMouse()
             point.y = point.y + mouseYChange
         end
     end
-    self:queueRedraw()
+    PolyLine.sortPoints(self)
 end
-function EditablePolyLine:setPointSelected(point, shouldSelect)
-    point.isSelected = shouldSelect
-    self:queueRedraw()
-end
-function EditablePolyLine:unselectAllPoints()
+function PolyLine.unselectAllPoints(self)
     local points = self.points
     for i = 1, #points do
         local point = points[i]
         point.isSelected = false
     end
-    self:queueRedraw()
 end
-function EditablePolyLine:handleRightMouseButtonJustPressed()
-    self.boxSelect:startSelection(self.relativeMouseX, self.relativeMouseY)
-end
-function EditablePolyLine:handleRightMouseButtonJustDragged()
-    self.boxSelect:editSelection(self.relativeMouseX, self.relativeMouseY)
-    self:queueRedraw()
-end
-function EditablePolyLine:handleRightMouseButtonJustReleased(shouldAddToSelection, shouldInvertSelection)
-    self.boxSelect:makeSelection{
-        shouldAdd = shouldAddToSelection,
-        shouldInvert = shouldInvertSelection
-    }
-    self:queueRedraw()
-end
-function EditablePolyLine:handleLeftMouseButtonJustPressed(shouldAddToSelection)
-    local mouseOverIndex = self.mouseOverIndex
 
-    if mouseOverIndex then
-        local point = self.points[mouseOverIndex]
-        local nextPoint = self.points[mouseOverIndex + 1]
-        local mouseIsOverPoint = self.mouseIsOverPoint
+function PolyLine.update(self)
+    BoxSelect.update(self.boxSelect)
+    self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, mouse.x - self.x, mouse.y - self.y, self.mouseEditPixelRange)
 
-        if not point.isSelected and not shouldAddToSelection then
-            self:unselectAllPoints()
+    local editPoint = nil
+    if leftMouseButton.justPressed and self.mouseOverIndex then
+        self.editPointIndex = self.mouseOverIndex
+        editPoint = self.points[self.editPointIndex]
+
+        if not editPoint.isSelected and not self.boxSelect.additiveControl.isPressed then
+            PolyLine.unselectAllPoints(self)
         end
 
-        point.isSelected = true
-        self.editPointIndex = mouseOverIndex
-
-        if nextPoint and not mouseIsOverPoint then
-            nextPoint.isSelected = true
+        editPoint.isSelected = true
+        if not self.mouseIsOverPoint then
+            self.points[self.editPointIndex + 1].isSelected = true
         end
-
-        self:queueRedraw()
-    end
-end
-function EditablePolyLine:handleLeftMouseButtonJustDragged()
-    local editPointIndex = self.editPointIndex
-
-    if editPointIndex then
-        self:moveSelectedPointsWithMouse()
-        self:sortPoints()
-        self:queueRedraw()
-    end
-end
-function EditablePolyLine:handleLeftMouseButtonJustReleased()
-    self.editPointIndex = nil
-end
-function EditablePolyLine:handleDrawLine(point, nextPoint)
-    self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-end
-function EditablePolyLine:handleDrawPoint(point)
-    self:drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
-end
-
-function EditablePolyLine:update()
-    local GUI = self.GUI
-    local leftMouseButton = GUI.leftMouseButton
-    local rightMouseButton = GUI.rightMouseButton
-    local shiftKey = GUI.shiftKey
-    local controlKey = GUI.controlKey
-
-    self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, self.relativeMouseX, self.relativeMouseY, self.mouseEditPixelRange)
-
-    if rightMouseButton:justPressedWidget(self) then
-        self:handleRightMouseButtonJustPressed()
-    end
-    if rightMouseButton:justDraggedWidget(self) then
-        self:handleRightMouseButtonJustDragged()
-    end
-    if rightMouseButton:justReleasedWidget(self) then
-        self:handleRightMouseButtonJustReleased(shiftKey.isPressed, controlKey.isPressed)
-    end
-    if leftMouseButton:justPressedWidget(self) then
-        self:handleLeftMouseButtonJustPressed(shiftKey.isPressed)
-    end
-    if leftMouseButton:justDraggedWidget(self) then
-        self:handleLeftMouseButtonJustDragged()
-    end
-    if leftMouseButton:justReleasedWidget(self) then
-        self:handleLeftMouseButtonJustReleased()
     end
 
-    if self.mouseOverIndex and self.glowWhenMouseOver then
-        self:queueRedraw()
+    if self.editPointIndex and mouse.justMoved then
+        PolyLine.moveSelectedPointsWithMouse(self)
+    end
+
+    if leftMouseButton.justReleased then
+        self.editPointIndex = nil
     end
 end
-function EditablePolyLine:draw()
-    local setColor = self.setColor
-    local handleDrawLine = self.handleDrawLine
-    local handleDrawPoint = self.handleDrawPoint
+function PolyLine.draw(self)
+    local setColor = graphics.setColor
+    local drawLine = self.drawLine
+    local drawPoint = self.drawPoint
     local lineColor = self.lineColor
     local pointColor = self.pointColor
     local glowColor = self.glowColor
     local mouseOverIndex = self.mouseOverIndex
     local mouseIsOverPoint = self.mouseIsOverPoint
-    local glowWhenMouseOver = self.glowWhenMouseOver
+    local glowWhenMouseIsOver = self.glowWhenMouseIsOver
     local points = self.points
     for i = 1, #points do
         local point = points[i]
         local nextPoint = points[i + 1]
-        local shouldGlowLine = point.isSelected or (glowWhenMouseOver and mouseOverIndex == i and not mouseIsOverPoint)
-        local shouldGlowPoint = point.isSelected or (glowWhenMouseOver and mouseOverIndex == i and mouseIsOverPoint)
+        local shouldGlowLine = point.isSelected or (glowWhenMouseIsOver and mouseOverIndex == i and not mouseIsOverPoint)
+        local shouldGlowPoint = point.isSelected or (glowWhenMouseIsOver and mouseOverIndex == i and mouseIsOverPoint)
 
         if nextPoint then
-            setColor(self, lineColor)
-            handleDrawLine(self, point, nextPoint)
+            setColor(lineColor)
+            drawLine(self, point, nextPoint)
 
             if shouldGlowLine then
-                setColor(self, glowColor)
-                handleDrawLine(self, point, nextPoint)
+                setColor(glowColor)
+                drawLine(self, point, nextPoint)
             end
         end
 
-        setColor(self, pointColor)
-        handleDrawPoint(self, point)
+        setColor(pointColor)
+        drawPoint(self, point)
 
         if shouldGlowPoint then
-            setColor(self, glowColor)
-            handleDrawPoint(self, point)
+            setColor(glowColor)
+            drawPoint(self, point)
         end
     end
+    BoxSelect.draw(self.boxSelect)
 end
 
-return EditablePolyLine
+return PolyLine
