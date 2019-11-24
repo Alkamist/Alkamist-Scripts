@@ -1,17 +1,16 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Proxy = require("Proxy")
-
 local ViewAxis = {}
 function ViewAxis:new(object)
-    local self = Proxy:new(self)
+    local self = {}
 
     self.scale = 1.0
     self.zoom = 1.0
     self.scroll = 0.0
     self.target = 0.0
 
-    if object then for k, v in pairs(object) do self[k] = v end end
-    return self
+    local object = object or {}
+    for k, v in pairs(self) do if not object[k] then object[k] = v end end
+    for k, v in pairs(ViewAxis) do if not object[k] then object[k] = v end end
+    return object
 end
 
 function ViewAxis:changeScroll(change)

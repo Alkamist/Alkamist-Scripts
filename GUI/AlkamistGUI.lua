@@ -207,7 +207,8 @@ local GUI = {
         heightChange = 0,
         heightJustChanged = false,
         dock = 0,
-        wasJustResized = false
+        wasJustResized = false,
+        backgroundColor = { 0, 0, 0, 1, 0 }
     }
 }
 
@@ -285,6 +286,11 @@ function GUI:onUpdate() end
 function GUI:onDraw() end
 function GUI:onEndUpdate() end
 
+function GUI.window:setBackgroundColor(color)
+    GUI.window.backgroundColor = color
+    gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
+end
+
 function GUI.keyboard:createKey(character) GUI.keys[character] = KeyboardKey:new(character) end
 
 function GUI.graphics:setDestination(value) gfx.dest = value end
@@ -354,6 +360,7 @@ end
 function GUI.graphics:measureString(str)
     return gfxMeasureStr(str)
 end
+
 function GUI:initialize(parameters)
     local parameters = parameters or {}
     GUI.window.title = parameters.title or GUI.window.title or ""

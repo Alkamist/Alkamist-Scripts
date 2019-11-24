@@ -2,22 +2,14 @@ local reaper = reaper
 local pairs = pairs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
+local Rectangle = require("GUI.Rectangle")
 local GUI = require("GUI.AlkamistGUI")
 local mouse = GUI.mouse
 local graphics = GUI.graphics
 
 local Button = {}
 function Button:new(object)
-    local self = self
-
-    self.x = 0
-    self.y = 0
-    self.width = 0
-    self.height = 0
-    self.mouseIsInside = false
-    self.mouseWasPreviouslyInside = false
-    self.mouseJustEntered = false
-    self.mouseJustLeft = false
+    local self = {}
 
     self.isPressed = false
     self.wasPreviouslyPressed = false
@@ -40,20 +32,14 @@ function Button:new(object)
 
     local object = object or {}
     for k, v in pairs(self) do if not object[k] then object[k] = v end end
-    return object
+    for k, v in pairs(Button) do if not object[k] then object[k] = v end end
+    return Rectangle:new(object)
 end
 
-function Button:pointIsInside(pointX, pointY)
-    local x, y, w, h = self.x, self.y, self.width, self.height
-    return pointX >= x and pointX <= x + w
-       and pointY >= y and pointY <= y + h
-end
 function Button:update()
+    Rectangle.update(self)
     self.justPressed = self.isPressed and not self.wasPreviouslyPressed
     self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-    self.mouseIsInside = self:pointIsInside(mouse.x, mouse.y)
-    self.mouseJustEntered = self.mouseIsInside and not self.mouseWasPreviouslyInside
-    self.mouseJustLeft = not self.mouseIsInside and self.mouseWasPreviouslyInside
 
     if self.glowWhenMouseIsOver then
         if self.mouseJustEntered then self.isGlowing = true end
@@ -97,8 +83,8 @@ function Button:draw()
     end
 end
 function Button:endUpdate()
+    Rectangle.endUpdate(self)
     self.wasPreviouslyPressed = self.isPressed
-    self.mouseWasPreviouslyInside = self.mouseIsInside
 end
 
 return Button
