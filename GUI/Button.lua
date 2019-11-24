@@ -3,6 +3,8 @@ local pairs = pairs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
 local GUI = require("GUI.AlkamistGUI")
+local mouse = GUI.mouse
+local graphics = GUI.graphics
 
 local Button = {}
 function Button:new(object)
@@ -12,6 +14,12 @@ function Button:new(object)
     self.y = 0
     self.width = 0
     self.height = 0
+    self.isPressed = false
+    self.wasPreviouslyPressed = false
+    self.justPressed = false
+    self.justReleased = false
+    self.isGlowing = false
+
     self.label = ""
     self.labelFont = "Arial"
     self.labelFontSize = 14
@@ -21,9 +29,6 @@ function Button:new(object)
     self.outlineColor = { 0.15, 0.15, 0.15, 1.0, 0 }
     self.edgeColor = { 1.0, 1.0, 1.0, 0.1, 1 }
     self.glowColor = { 1.0, 1.0, 1.0, 0.15, 1 }
-    self.downState = false
-    self.previousDownState = false
-    self.glowState = false
 
     local object = object or {}
     for k, v in pairs(self) do if not object[k] then object[k] = v end end
@@ -36,51 +41,39 @@ function Button:pointIsInside(pointX, pointY)
        and pointY >= y and pointY <= y + h
 end
 function Button:mouseIsInside()
-    return pointIsInsideBox(GUI:getMouseX(), GUI:getMouseY())
-end
-function Button:isPressed() return self.downState end
-function Button:justPressed() return self.downState and not self.previousDownState end
-function Button:justReleased() return not self.downState and self.previousDownState end
-function Button:press() self.downState = true end
-function Button:release() self.downState = false end
-function Button:toggle() self.downState = not self.downState end
-function Button:glow() self.glowState = true end
-function Button:unGlow() self.glowState = false end
-function Button:toggleGlow() self.glowState = not self.glowState end
-function Button:updateStates() self.previousDownState = self.downState end
-function Button:handleGlowOnMouseOver()
-    if self:mouseIsInside() then
-        self.glowState = true
-    end
+    return self:pointIsInside(mouse.x, mouse.y)
 end
 function Button:draw()
     local x, y, w, h = self.x, self.y, self.width, self.height
 
     -- Draw the body.
-    GUI:setColor(self.color)
-    GUI:drawRectangle(x, y, w, h, true)
+    graphics:setColor(self.color)
+    graphics:drawRectangle(x, y, w, h, true)
 
     -- Draw a dark outline around.
-    GUI:setColor(self.outlineColor)
-    GUI:drawRectangle(x, y, w, h, false)
+    graphics:setColor(self.outlineColor)
+    graphics:drawRectangle(x, y, w, h, false)
 
     -- Draw a light outline around.
-    GUI:setColor(self.edgeColor)
-    GUI:drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
+    graphics:setColor(self.edgeColor)
+    graphics:drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
 
     -- Draw the label.
-    GUI:setColor(self.labelColor)
-    GUI:setFont(self.labelFont, self.labelFontSize)
-    GUI:drawString(self.label, x, y, 5, x + w, y + h)
+    graphics:setColor(self.labelColor)
+    graphics:setFont(self.labelFont, self.labelFontSize)
+    graphics:drawString(self.label, x, y, 5, x + w, y + h)
 
-    if self.downState then
-        GUI:setColor(self.downColor)
-        GUI:drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+    if self.isPressed then
+        graphics:setColor(self.downColor)
+        graphics:drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
 
-    elseif self.glowState then
-        GUI:setColor(self.glowColor)
-        GUI:drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+    elseif self.isGlowing then
+        graphics:setColor(self.glowColor)
+        graphics:drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
     end
+end
+function Button:endUpdate()
+    self.wasPreviouslyPressed = self.isPressed
 end
 
 return Button
