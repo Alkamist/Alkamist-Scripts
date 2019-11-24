@@ -8,17 +8,25 @@ local graphics = GUI.graphics
 
 local Button = {}
 function Button:new(object)
-    local self = {}
+    local self = self
 
     self.x = 0
     self.y = 0
     self.width = 0
     self.height = 0
+    self.mouseIsInside = false
+    self.mouseWasPreviouslyInside = false
+    self.mouseJustEntered = false
+    self.mouseJustLeft = false
+
     self.isPressed = false
     self.wasPreviouslyPressed = false
     self.justPressed = false
     self.justReleased = false
     self.isGlowing = false
+    self.glowWhenMouseIsOver = true
+    self.pressControl = nil
+    self.toggleControl = nil
 
     self.label = ""
     self.labelFont = "Arial"
@@ -40,8 +48,24 @@ function Button:pointIsInside(pointX, pointY)
     return pointX >= x and pointX <= x + w
        and pointY >= y and pointY <= y + h
 end
-function Button:mouseIsInside()
-    return self:pointIsInside(mouse.x, mouse.y)
+function Button:update()
+    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
+    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
+    self.mouseIsInside = self:pointIsInside(mouse.x, mouse.y)
+    self.mouseJustEntered = self.mouseIsInside and not self.mouseWasPreviouslyInside
+    self.mouseJustLeft = not self.mouseIsInside and self.mouseWasPreviouslyInside
+
+    if self.glowWhenMouseIsOver then
+        if self.mouseJustEntered then self.isGlowing = true end
+        if self.mouseJustLeft then self.isGlowing = false end
+    end
+    if self.pressControl then
+        if self.pressControl.justPressed and self.mouseIsInside then self.isPressed = true end
+        if self.pressControl.justReleased then self.isPressed = false end
+    end
+    if self.toggleControl then
+        if self.toggleControl.justPressed and self.mouseIsInside then self.isPressed = not self.isPressed end
+    end
 end
 function Button:draw()
     local x, y, w, h = self.x, self.y, self.width, self.height
@@ -74,6 +98,7 @@ function Button:draw()
 end
 function Button:endUpdate()
     self.wasPreviouslyPressed = self.isPressed
+    self.mouseWasPreviouslyInside = self.mouseIsInside
 end
 
 return Button
