@@ -5,8 +5,8 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local GUI = require("GUI.AlkamistGUI")
 local mouse = GUI.mouse
 
-local Rectangle = {}
-function Rectangle:new(object)
+local Boundary = {}
+function Boundary.new(object)
     local self = {}
 
     self.x = 0
@@ -20,22 +20,21 @@ function Rectangle:new(object)
 
     local object = object or {}
     for k, v in pairs(self) do if not object[k] then object[k] = v end end
-    for k, v in pairs(Rectangle) do if not object[k] then object[k] = v end end
     return object
 end
 
-function Rectangle:pointIsInside(pointX, pointY)
+function Boundary.pointIsInside(self, pointX, pointY)
     local x, y, w, h = self.x, self.y, self.width, self.height
     return pointX >= x and pointX <= x + w
        and pointY >= y and pointY <= y + h
 end
-function Rectangle:update()
-    self.mouseIsInside = self:pointIsInside(mouse.x, mouse.y)
+function Boundary.update(self)
+    self.mouseIsInside = Boundary.pointIsInside(self, mouse.x, mouse.y)
     self.mouseJustEntered = self.mouseIsInside and not self.mouseWasPreviouslyInside
     self.mouseJustLeft = not self.mouseIsInside and self.mouseWasPreviouslyInside
 end
-function Rectangle:endUpdate()
+function Boundary.endUpdate(self)
     self.mouseWasPreviouslyInside = self.mouseIsInside
 end
 
-return Rectangle
+return Boundary

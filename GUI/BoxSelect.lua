@@ -5,13 +5,13 @@ local min = math.min
 local abs = math.abs
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Rectangle = require("GUI.Rectangle")
+local Boundary = require("GUI.Boundary")
 local GUI = require("GUI.AlkamistGUI")
 local mouse = GUI.mouse
 local graphics = GUI.graphics
 
 local BoxSelect = {}
-function BoxSelect:new(object)
+function BoxSelect.new(object)
     local self = {}
 
     self.x1 = 0
@@ -26,22 +26,21 @@ function BoxSelect:new(object)
     self.additiveControl = nil
     self.inversionControl = nil
 
-    local object = object or {}
+    local object = Boundary.new(object)
     for k, v in pairs(self) do if not object[k] then object[k] = v end end
-    for k, v in pairs(BoxSelect) do if not object[k] then object[k] = v end end
     return object
 end
 
-function BoxSelect:thingIsInside(thing)
-    return self:pointIsInside(thing.x, thing.y)
+function BoxSelect.thingIsInside(self, thing)
+    return Boundary.pointIsInside(self, thing.x, thing.y)
 end
-function BoxSelect:setThingSelected(thing, shouldSelect)
+function BoxSelect.setThingSelected(self, thing, shouldSelect)
     thing.isSelected = shouldSelect
 end
-function BoxSelect:thingIsSelected(thing)
+function BoxSelect.thingIsSelected(self, thing)
     return thing.isSelected
 end
-function BoxSelect:startSelection(startingX, startingY)
+function BoxSelect.startSelection(self, startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
@@ -51,7 +50,7 @@ function BoxSelect:startSelection(startingX, startingY)
     self.width = 0
     self.height = 0
 end
-function BoxSelect:editSelection(editX, editY)
+function BoxSelect.editSelection(self, editX, editY)
     self.isActive = true
     self.x2 = editX
     self.y2 = editY
@@ -60,7 +59,7 @@ function BoxSelect:editSelection(editX, editY)
     self.width = abs(self.x1 - self.x2)
     self.height = abs(self.y1 - self.y2)
 end
-function BoxSelect:makeSelection(parameters)
+function BoxSelect.makeSelection(self, parameters)
     local parameters = parameters or {}
     local thingsToSelect = parameters.thingsToSelect or self.thingsToSelect
     local thingIsInside = parameters.thingIsInside or self.thingIsInside
@@ -87,21 +86,26 @@ function BoxSelect:makeSelection(parameters)
     end
     self.isActive = false
 end
-function BoxSelect:update()
-    if self.selectionControl.justPressed then self:startSelection(mouse.x, mouse.y) end
-    if self.selectionControl.isPressed then self:editSelection(mouse.x, mouse.y) end
-    if self.selectionControl.justReleased then self:makeSelection() end
+function BoxSelect.update(self)
+    if self.selectionControl.justPressed then BoxSelect.startSelection(self, mouse.x, mouse.y) end
+    if self.selectionControl.isPressed then BoxSelect.editSelection(self, mouse.x, mouse.y) end
+    if self.selectionControl.justReleased then BoxSelect.makeSelection(self) end
 end
-function BoxSelect:draw()
+function BoxSelect.draw(self)
     local x, y, w, h = self.x, self.y, self.width, self.height
+    local a, mode, dest = gfx.a, gfx.mode, gfx.dest
+    gfx.a = 1
+    gfx.mode = 0
 
     if self.isActive then
-        graphics:setColor(self.edgeColor)
-        graphics:drawRectangle(x, y, w, h, false)
+        graphics.setColor(self.edgeColor)
+        graphics.drawRectangle(x, y, w, h, false)
 
-        graphics:setColor(self.insideColor)
-        graphics:drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+        graphics.setColor(self.insideColor)
+        graphics.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
     end
+
+    gfx.a, gfx.mode, gfx.dest = a, mode, dest
 end
 
 return BoxSelect

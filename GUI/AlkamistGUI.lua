@@ -193,7 +193,9 @@ local GUI = {
         modifiers = {},
         char = nil
     },
-    graphics = {},
+    graphics = {
+        bufferIsUsed = {}
+    },
     window = {
         title = "",
         x = 0,
@@ -213,7 +215,7 @@ local GUI = {
 }
 
 local MouseControl = {}
-function MouseControl:new()
+function MouseControl.new()
     local self = {}
 
     self.isPressed = false
@@ -228,10 +230,10 @@ function MouseControl:new()
     self.timeOfPreviousPress = nil
     self.timeSincePreviousPress = nil
 
-    for k, v in pairs(MouseControl) do self[k] = v end
     return self
 end
-function MouseControl:update(state)
+
+function MouseControl.update(self, state)
     if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
     self.wasPreviouslyPressed = self.isPressed
     self.isPressed = state
@@ -248,70 +250,71 @@ function MouseControl:update(state)
     end
 end
 local MouseButton = {}
-function MouseButton:new(bitValue)
-    local self = MouseControl:new()
-    function self:update()
-        MouseControl.update(self, GUI.mouse.cap & bitValue == bitValue)
-    end
+function MouseButton.new(bitValue)
+    local self = MouseControl.new()
+    self.bitValue = bitValue or 0
     return self
+end
+function MouseButton.update(self)
+    local bitValue = self.bitValue
+    MouseControl.update(self, GUI.mouse.cap & bitValue == bitValue)
 end
 local KeyboardKey = {}
-function KeyboardKey:new(character)
-    local self = MouseControl:new()
-    function self:update()
-        MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
-    end
+function KeyboardKey.new(character)
+    local self = MouseControl.new()
+    self.character = character or ""
     return self
 end
+function KeyboardKey.update(self)
+    local character = self.character
+    MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
+end
 
-GUI.mouse.buttons.left = MouseButton:new(1)
-GUI.mouse.buttons.middle = MouseButton:new(64)
-GUI.mouse.buttons.right = MouseButton:new(2)
-GUI.keyboard.modifiers.shift= MouseButton:new(8)
-GUI.keyboard.modifiers.control = MouseButton:new(4)
-GUI.keyboard.modifiers.windows = MouseButton:new(32)
-GUI.keyboard.modifiers.alt = MouseButton:new(16)
+GUI.mouse.buttons.left = MouseButton.new(1)
+GUI.mouse.buttons.middle = MouseButton.new(64)
+GUI.mouse.buttons.right = MouseButton.new(2)
+GUI.keyboard.modifiers.shift= MouseButton.new(8)
+GUI.keyboard.modifiers.control = MouseButton.new(4)
+GUI.keyboard.modifiers.windows = MouseButton.new(32)
+GUI.keyboard.modifiers.alt = MouseButton.new(16)
 GUI.keyboard.keys = {}
 
---[[function GUI.getNewImageBuffer()
-    for i = 0, 1023 do
-        if not self.bufferIsUsed[i] then
-            self.bufferIsUsed[i] = true
-            return i
-        end
-    end
-end]]--
+function GUI.onUpdate() end
+function GUI.onDraw() end
+function GUI.onEndUpdate() end
 
-function GUI:onUpdate() end
-function GUI:onDraw() end
-function GUI:onEndUpdate() end
-
-function GUI.window:setBackgroundColor(color)
+function GUI.window.setBackgroundColor(color)
     GUI.window.backgroundColor = color
     gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
 end
 
-function GUI.keyboard:createKey(character) GUI.keys[character] = KeyboardKey:new(character) end
+function GUI.keyboard.createKey(character)
+    GUI.keys[character] = KeyboardKey.new(character)
+end
 
-function GUI.graphics:setDestination(value) gfx.dest = value end
-function GUI.graphics:setAlpha(value) gfx.a = value end
-function GUI.graphics:setColor(color)
-    local mode = color[5] or 0
-    gfxSet(color[1], color[2], color[3], color[4], mode)
+function GUI.graphics.getNewImageBuffer()
+    for i = 0, 1023 do
+        if not GUI.graphics.bufferIsUsed[i] then
+            GUI.graphics.bufferIsUsed[i] = true
+            return i
+        end
+    end
 end
-function GUI.graphics:setBlendMode(mode)
-    gfx.mode = mode
+function GUI.graphics.setColor(color)
+    local alpha = color[4] or gfx.a or 1
+    local mode = color[5] or gfx.mode or 0
+    gfxSet(color[1], color[2], color[3], alpha, mode)
 end
-function GUI.graphics:drawRectangle(x, y, w, h, filled)
+function GUI.graphics.drawRectangle(x, y, w, h, filled)
     gfxRect(x, y, w, h, filled)
 end
-function GUI.graphics:drawLine(x, y, x2, y2, antiAliased)
+function GUI.graphics.drawLine(x, y, x2, y2, antiAliased)
     gfxLine(x, y, x2, y2, antiAliased)
 end
-function GUI.graphics:drawCircle(x, y, r, filled, antiAliased)
+function GUI.graphics.drawCircle(x, y, r, filled, antiAliased)
     gfxCircle(x, y, r, filled, antiAliased)
 end
-function GUI.graphics:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
+function GUI.graphics.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
     local aa = antiAliased or 1
     filled = filled or 0
     w = math.max(0, w - 1)
@@ -345,7 +348,7 @@ function GUI.graphics:drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
         end
     end
 end
-function GUI.graphics:drawString(str, x, y, flags, right, bottom)
+function GUI.graphics.drawString(str, x, y, flags, right, bottom)
     gfx.x = x
     gfx.y = y
     if flags then
@@ -354,14 +357,14 @@ function GUI.graphics:drawString(str, x, y, flags, right, bottom)
         gfxDrawStr(str)
     end
 end
-function GUI.graphics:setFont(font, size, flags)
+function GUI.graphics.setFont(font, size, flags)
     gfxSetFont(1, font, size)
 end
-function GUI.graphics:measureString(str)
+function GUI.graphics.measureString(str)
     return gfxMeasureStr(str)
 end
 
-function GUI:initialize(parameters)
+function GUI.initialize(parameters)
     local parameters = parameters or {}
     GUI.window.title = parameters.title or GUI.window.title or ""
     GUI.window.x = parameters.x or GUI.window.x or 0
@@ -400,17 +403,17 @@ function GUI.run()
     mouse.wheelJustMoved = mouse.wheel ~= 0
     mouse.hWheelJustMoved = mouse.hWheel ~= 0
 
-    for k, v in pairs(mouse.buttons) do v:update() end
-    for k, v in pairs(keyboard.modifiers) do v:update() end
-    for k, v in pairs(keyboard.keys) do v:update() end
+    for k, v in pairs(mouse.buttons) do MouseButton.update(v) end
+    for k, v in pairs(keyboard.modifiers) do MouseButton.update(v) end
+    for k, v in pairs(keyboard.keys) do KeyboardKey.update(v) end
 
     local char = characterTableInverted[gfx.getchar()]
     keyboard.char = char
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    GUI:onUpdate()
-    GUI:onDraw()
-    GUI:onEndUpdate()
+    GUI.onUpdate()
+    GUI.onDraw()
+    GUI.onEndUpdate()
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
     gfx.update()
