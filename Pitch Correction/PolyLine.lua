@@ -4,9 +4,8 @@ local pairs = pairs
 local math = math
 local table = table
 
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local BoxSelect = require("GUI.BoxSelect")
-local GUI = require("GUI.AlkamistGUI")
+local BoxSelect = require("BoxSelect")
+local GUI = require("GUI")
 local mouse = GUI.mouse
 local keyboard = GUI.keyboard
 local leftMouseButton = mouse.buttons.left
@@ -142,7 +141,7 @@ local function getIndexOfPointOrSegmentClosestToPointWithinDistance(points, x, y
     end
     return index, indexIsPoint
 end
-local function insertThingIntoGroup(group, newThing, sortFunction)
+local function insertThingIntoGroup(group, newThing, sortFn)
     local numberInGroup = #group
     if numberInGroup == 0 then
         group[1] = newThing
@@ -151,7 +150,7 @@ local function insertThingIntoGroup(group, newThing, sortFunction)
 
     for i = 1, numberInGroup do
         local thing = group[i]
-        if not sortFunction(thing, newThing) then
+        if not sortFn(thing, newThing) then
             table.insert(group, i, newThing)
             return i
         end
@@ -159,6 +158,77 @@ local function insertThingIntoGroup(group, newThing, sortFunction)
 
     group[numberInGroup + 1] = newThing
     return numberInGroup + 1
+end
+local function moveSelectedPointsWithMouse(points)
+    local mouseXChange = mouse.xChange
+    local mouseYChange = mouse.yChange
+    for i = 1, #points do
+        local point = points[i]
+        if point.isSelected then
+            point.x = point.x + mouseXChange
+            point.y = point.y + mouseYChange
+        end
+    end
+end
+local function unselectAllPoints(points)
+    for i = 1, #points do
+        local point = points[i]
+        point.isSelected = false
+    end
+end
+local function getPolyLineMouseOverStates(points, mousePixelEditRange, xOffset, yOffset)
+    local mouseOverIndex, mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(points, mouse.x + xOffset, mouse.y + yOffset, mousePixelEditRange)
+    return mouseOverIndex, mouseIsOverPoint
+end
+local function updatePolyLine(points, mouseOverIndex, mouseIsOverPoint)
+    local editPointIndex = nil
+    local editPoint = nil
+    if leftMouseButton.justPressed and mouseOverIndex then
+        editPointIndex = mouseOverIndex
+        editPoint = points[editPointIndex]
+
+        if not editPoint.isSelected and not shiftKey.isPressed then
+            unselectAllPoints(points)
+        end
+
+        editPoint.isSelected = true
+        if not mouseIsOverPoint then
+            points[editPointIndex + 1].isSelected = true
+        end
+    end
+
+    if editPointIndex and mouse.justMoved then
+        moveSelectedPointsWithMouse(points)
+    end
+end
+local function drawPolyLine(points, drawLine, drawPoint, lineColor, pointColor, glowColor, mouseOverIndex, mouseIsOverPoint)
+    local setColor = graphics.setColor
+
+    for i = 1, #points do
+        local point = points[i]
+        local nextPoint = points[i + 1]
+        local pointIsSelected = point.isSelected
+        local shouldGlowLine = pointIsSelected or (mouseOverIndex == i and not mouseIsOverPoint)
+        local shouldGlowPoint = pointIsSelected or (mouseOverIndex == i and mouseIsOverPoint)
+
+        if nextPoint then
+            setColor(lineColor)
+            drawLine(point, nextPoint)
+
+            if shouldGlowLine then
+                setColor(glowColor)
+                drawLine(point, nextPoint)
+            end
+        end
+
+        setColor(pointColor)
+        drawPoint(point)
+
+        if shouldGlowPoint then
+            setColor(glowColor)
+            drawPoint(point)
+        end
+    end
 end
 
 local PolyLine = {}
@@ -178,8 +248,8 @@ function PolyLine.new(object)
     self.mouseEditPixelRange = 6
     self.glowWhenMouseIsOver = true
 
-    self.drawLine = function(self, point, nextPoint) graphics.drawLine(point.x + self.x, point.y + self.y, nextPoint.x + self.x, nextPoint.y + self.y, true) end
-    self.drawPoint = function(self, point) graphics.drawRectangle(point.x + self.x - 1, point.y + self.y - 1, 3, 3, true) end
+    self.drawLine = function(point, nextPoint) graphics.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true) end
+    self.drawPoint = function(point) graphics.drawRectangle(point.x - 1, point.y - 1, 3, 3, true) end
     self.sortFunction = function(before, after) return before.x < after.x end
 
     self.boxSelect = BoxSelect.new{
@@ -193,40 +263,9 @@ function PolyLine.new(object)
     for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     return object
 end
-
-function PolyLine.insertPoint(self, point, sortFunction)
-    if not point then return end
-    local sortFunction = sortFunction or self.sortFunction
-    local newPointIndex = insertThingIntoGroup(self.points, point, sortFunction)
-    return newPointIndex
-end
-function PolyLine.sortPoints(self, sortFunction)
-    local sortFunction = sortFunction or self.sortFunction
-    table.sort(self.points, sortFunction)
-end
-function PolyLine.moveSelectedPointsWithMouse(self)
-    local mouseXChange = mouse.xChange
-    local mouseYChange = mouse.yChange
-    local points = self.points
-    for i = 1, #points do
-        local point = points[i]
-        if point.isSelected then
-            point.x = point.x + mouseXChange
-            point.y = point.y + mouseYChange
-        end
-    end
-    PolyLine.sortPoints(self)
-end
-function PolyLine.unselectAllPoints(self)
-    local points = self.points
-    for i = 1, #points do
-        local point = points[i]
-        point.isSelected = false
-    end
-end
-
 function PolyLine.update(self)
     BoxSelect.update(self.boxSelect)
+
     self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, mouse.x - self.x, mouse.y - self.y, self.mouseEditPixelRange)
 
     local editPoint = nil
@@ -235,7 +274,7 @@ function PolyLine.update(self)
         editPoint = self.points[self.editPointIndex]
 
         if not editPoint.isSelected and not self.boxSelect.additiveControl.isPressed then
-            PolyLine.unselectAllPoints(self)
+            unselectAllPoints(self.points)
         end
 
         editPoint.isSelected = true
@@ -245,7 +284,7 @@ function PolyLine.update(self)
     end
 
     if self.editPointIndex and mouse.justMoved then
-        PolyLine.moveSelectedPointsWithMouse(self)
+        movePointsWithMouse(points, function(point) return point.isSelected end)
     end
 
     if leftMouseButton.justReleased then
@@ -263,30 +302,33 @@ function PolyLine.draw(self)
     local mouseIsOverPoint = self.mouseIsOverPoint
     local glowWhenMouseIsOver = self.glowWhenMouseIsOver
     local points = self.points
+
     for i = 1, #points do
         local point = points[i]
         local nextPoint = points[i + 1]
-        local shouldGlowLine = point.isSelected or (glowWhenMouseIsOver and mouseOverIndex == i and not mouseIsOverPoint)
-        local shouldGlowPoint = point.isSelected or (glowWhenMouseIsOver and mouseOverIndex == i and mouseIsOverPoint)
+        local pointIsSelected = point.isSelected
+        local shouldGlowLine = pointIsSelected or (glowWhenMouseIsOver and mouseOverIndex == i and not mouseIsOverPoint)
+        local shouldGlowPoint = pointIsSelected or (glowWhenMouseIsOver and mouseOverIndex == i and mouseIsOverPoint)
 
         if nextPoint then
             setColor(lineColor)
-            drawLine(self, point, nextPoint)
+            drawLine(point, nextPoint)
 
             if shouldGlowLine then
                 setColor(glowColor)
-                drawLine(self, point, nextPoint)
+                drawLine(point, nextPoint)
             end
         end
 
         setColor(pointColor)
-        drawPoint(self, point)
+        drawPoint(point)
 
         if shouldGlowPoint then
             setColor(glowColor)
-            drawPoint(self, point)
+            drawPoint(point)
         end
     end
+
     BoxSelect.draw(self.boxSelect)
 end
 

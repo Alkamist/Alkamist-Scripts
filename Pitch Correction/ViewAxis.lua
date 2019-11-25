@@ -7,16 +7,14 @@ function ViewAxis.new(object)
     self.scroll = 0.0
     self.target = 0.0
 
-    local object = object or {}
-    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
-    return object
+    return Fn.makeNew(self, ViewAxis, object)
 end
 
-function ViewAxis.changeScroll(self, change)
+function ViewAxis:changeScroll(change)
     local change = change / self.scale
     self.scroll = self.scroll - change / self.zoom
 end
-function ViewAxis.changeZoom(self, change)
+function ViewAxis:changeZoom(change)
     local target = self.target / self.scale
     local sensitivity = 0.01
     local change = 2 ^ (sensitivity * change)

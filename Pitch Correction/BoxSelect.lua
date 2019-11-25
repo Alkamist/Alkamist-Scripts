@@ -5,11 +5,10 @@ local math = math
 local min = math.min
 local abs = math.abs
 
-package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\?.lua;" .. package.path
-local Boundary = require("GUI.Boundary")
-local GUI = require("GUI.AlkamistGUI")
+local Bounds = require("Bounds")
+local GUI = require("GUI")
 local mouse = GUI.mouse
-local graphics = GUI.graphics
+local keyboard = GUI.keyboard
 
 local BoxSelect = {}
 function BoxSelect.new(object)
@@ -23,25 +22,23 @@ function BoxSelect.new(object)
     self.edgeColor = { 1, 1, 1, 0.4, 1 }
     self.isActive = false
     self.thingsToSelect = {}
-    self.selectionControl = nil
-    self.additiveControl = nil
-    self.inversionControl = nil
+    self.selectionControl = mouse.buttons.right
+    self.additiveControl = keyboard.modifiers.shift
+    self.inversionControl = keyboard.modifiers.control
 
-    local object = Boundary.new(object)
-    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
-    return object
+    return Bounds.new(Fn.makeNew(self, BoxSelect, object))
 end
 
-function BoxSelect.thingIsInside(self, thing)
-    return Boundary.pointIsInside(self, thing.x, thing.y)
+function BoxSelect:thingIsInside(thing)
+    return self:pointIsInside(thing.x, thing.y)
 end
-function BoxSelect.setThingSelected(self, thing, shouldSelect)
+function BoxSelect:setThingSelected(thing, shouldSelect)
     thing.isSelected = shouldSelect
 end
-function BoxSelect.thingIsSelected(self, thing)
+function BoxSelect:thingIsSelected(thing)
     return thing.isSelected
 end
-function BoxSelect.startSelection(self, startingX, startingY)
+function BoxSelect:startSelection(startingX, startingY)
     self.x1 = startingX
     self.x2 = startingX
     self.y1 = startingY
@@ -51,7 +48,7 @@ function BoxSelect.startSelection(self, startingX, startingY)
     self.width = 0
     self.height = 0
 end
-function BoxSelect.editSelection(self, editX, editY)
+function BoxSelect:editSelection(editX, editY)
     self.isActive = true
     self.x2 = editX
     self.y2 = editY
@@ -60,14 +57,13 @@ function BoxSelect.editSelection(self, editX, editY)
     self.width = abs(self.x1 - self.x2)
     self.height = abs(self.y1 - self.y2)
 end
-function BoxSelect.makeSelection(self, parameters)
-    local parameters = parameters or {}
-    local thingsToSelect = parameters.thingsToSelect or self.thingsToSelect
-    local thingIsInside = parameters.thingIsInside or BoxSelect.thingIsInside
-    local setThingSelected = parameters.setThingSelected or BoxSelect.setThingSelected
-    local thingIsSelected = parameters.thingIsSelected or BoxSelect.thingIsSelected
-    local shouldAdd = parameters.shouldAdd or self.additiveControl.isPressed
-    local shouldInvert = parameters.shouldInvert or self.inversionControl.isPressed
+function BoxSelect:makeSelection()
+    local thingsToSelect = self.thingsToSelect
+    local thingIsInside = self.thingIsInside
+    local setThingSelected = self.setThingSelected
+    local thingIsSelected = self.thingIsSelected
+    local shouldAdd = self.additiveControl.isPressed
+    local shouldInvert = self.inversionControl.isPressed
     if thingsToSelect then
         for i = 1, #thingsToSelect do
             local thing = thingsToSelect[i]
@@ -87,12 +83,12 @@ function BoxSelect.makeSelection(self, parameters)
     end
     self.isActive = false
 end
-function BoxSelect.update(self)
-    if self.selectionControl.justPressed then BoxSelect.startSelection(self, mouse.x, mouse.y) end
-    if self.selectionControl.isPressed then BoxSelect.editSelection(self, mouse.x, mouse.y) end
-    if self.selectionControl.justReleased then BoxSelect.makeSelection(self) end
+function BoxSelect:update()
+    if self.selectionControl.justPressed then self:startSelection(mouse.x, mouse.y) end
+    if self.selectionControl.isPressed then self:editSelection(mouse.x, mouse.y) end
+    if self.selectionControl.justReleased then self:makeSelection() end
 end
-function BoxSelect.draw(self)
+function BoxSelect:draw()
     local x, y, w, h = self.x, self.y, self.width, self.height
     local a, mode, dest = gfx.a, gfx.mode, gfx.dest
     gfx.a = 1
@@ -107,6 +103,9 @@ function BoxSelect.draw(self)
     end
 
     gfx.a, gfx.mode, gfx.dest = a, mode, dest
+end
+function BoxSelect:endUpdate()
+    Bounds.endUpdate(self)
 end
 
 return BoxSelect

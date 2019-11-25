@@ -1,20 +1,11 @@
 local reaper = reaper
 local gfx = gfx
-local gfxSet = gfx.set
-local gfxRect = gfx.rect
-local gfxLine = gfx.line
-local gfxCircle = gfx.circle
-local gfxTriangle = gfx.triangle
-local gfxRoundRect = gfx.roundrect
-local gfxSetFont = gfx.setfont
-local gfxMeasureStr = gfx.measurestr
-local gfxDrawStr = gfx.drawstr
 local pairs = pairs
 
-local function invertTable(tbl)
+local function invertTable(t)
     local invertedTable = {}
-    for key, value in pairs(tbl) do
-        invertedTable[value] = key
+    for k, v in pairs(t) do
+        invertedTable[v] = k
     end
     return invertedTable
 end
@@ -193,9 +184,6 @@ local GUI = {
         modifiers = {},
         char = nil
     },
-    graphics = {
-        bufferIsUsed = {}
-    },
     window = {
         title = "",
         x = 0,
@@ -209,8 +197,7 @@ local GUI = {
         heightChange = 0,
         heightJustChanged = false,
         dock = 0,
-        wasJustResized = false,
-        backgroundColor = { 0, 0, 0, 1, 0 }
+        wasJustResized = false
     }
 }
 
@@ -273,96 +260,20 @@ end
 GUI.mouse.buttons.left = MouseButton.new(1)
 GUI.mouse.buttons.middle = MouseButton.new(64)
 GUI.mouse.buttons.right = MouseButton.new(2)
-GUI.keyboard.modifiers.shift= MouseButton.new(8)
+GUI.keyboard.modifiers.shift = MouseButton.new(8)
 GUI.keyboard.modifiers.control = MouseButton.new(4)
 GUI.keyboard.modifiers.windows = MouseButton.new(32)
 GUI.keyboard.modifiers.alt = MouseButton.new(16)
 GUI.keyboard.keys = {}
 
-function GUI.onUpdate() end
-function GUI.onDraw() end
-function GUI.onEndUpdate() end
-
-function GUI.window.setBackgroundColor(color)
-    GUI.window.backgroundColor = color
-    gfx.clear = color[1] * 255 + color[2] * 255 * 256 + color[3] * 255 * 65536
+function GUI.window.setBackgroundColor(r, g, b)
+    gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
-
 function GUI.keyboard.createKey(character)
     GUI.keys[character] = KeyboardKey.new(character)
 end
 
-function GUI.graphics.getNewImageBuffer()
-    for i = 0, 1023 do
-        if not GUI.graphics.bufferIsUsed[i] then
-            GUI.graphics.bufferIsUsed[i] = true
-            return i
-        end
-    end
-end
-function GUI.graphics.setColor(color)
-    local alpha = color[4] or gfx.a or 1
-    local mode = color[5] or gfx.mode or 0
-    gfxSet(color[1], color[2], color[3], alpha, mode)
-end
-function GUI.graphics.drawRectangle(x, y, w, h, filled)
-    gfxRect(x, y, w, h, filled)
-end
-function GUI.graphics.drawLine(x, y, x2, y2, antiAliased)
-    gfxLine(x, y, x2, y2, antiAliased)
-end
-function GUI.graphics.drawCircle(x, y, r, filled, antiAliased)
-    gfxCircle(x, y, r, filled, antiAliased)
-end
-function GUI.graphics.drawRoundRectangle(x, y, w, h, r, filled, antiAliased)
-    local aa = antiAliased or 1
-    filled = filled or 0
-    w = math.max(0, w - 1)
-    h = math.max(0, h - 1)
-
-    if filled == 0 or false then
-        gfxRoundRect(x, y, w, h, r, aa)
-    else
-        if h >= 2 * r then
-            -- Corners
-            gfxCircle(x + r, y + r, r, 1, aa)		   -- top-left
-            gfxCircle(x + w - r, y + r, r, 1, aa)	   -- top-right
-            gfxCircle(x + w - r, y + h - r, r , 1, aa) -- bottom-right
-            gfxCircle(x + r, y + h - r, r, 1, aa)	   -- bottom-left
-
-            -- Ends
-            gfxRect(x, y + r, r, h - r * 2)
-            gfxRect(x + w - r, y + r, r + 1, h - r * 2)
-
-            -- Body + sides
-            gfxRect(x + r, y, w - r * 2, h + 1)
-        else
-            r = (h / 2 - 1)
-
-            -- Ends
-            gfxCircle(x + r, y + r, r, 1, aa)
-            gfxCircle(x + w - r, y + r, r, 1, aa)
-
-            -- Body
-            gfxRect(x + r, y, w - (r * 2), h)
-        end
-    end
-end
-function GUI.graphics.drawString(str, x, y, flags, right, bottom)
-    gfx.x = x
-    gfx.y = y
-    if flags then
-        gfxDrawStr(str, flags, right, bottom)
-    else
-        gfxDrawStr(str)
-    end
-end
-function GUI.graphics.setFont(font, size, flags)
-    gfxSetFont(1, font, size)
-end
-function GUI.graphics.measureString(str)
-    return gfxMeasureStr(str)
-end
+function GUI.update() end
 
 function GUI.initialize(parameters)
     local parameters = parameters or {}
@@ -411,9 +322,7 @@ function GUI.run()
     keyboard.char = char
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    GUI.onUpdate()
-    GUI.onDraw()
-    GUI.onEndUpdate()
+    GUI.update()
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
     gfx.update()
