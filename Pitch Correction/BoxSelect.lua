@@ -5,7 +5,8 @@ local math = math
 local min = math.min
 local abs = math.abs
 
-local Bounds = require("Bounds")
+local Fn = require("Fn")
+local Widget = require("Widget")
 local GUI = require("GUI")
 local mouse = GUI.mouse
 local keyboard = GUI.keyboard
@@ -18,15 +19,13 @@ function BoxSelect.new(object)
     self.x2 = 0
     self.y1 = 0
     self.y2 = 0
-    self.insideColor = { 1, 1, 1, -0.04, 1 }
-    self.edgeColor = { 1, 1, 1, 0.4, 1 }
     self.isActive = false
     self.thingsToSelect = {}
     self.selectionControl = mouse.buttons.right
     self.additiveControl = keyboard.modifiers.shift
     self.inversionControl = keyboard.modifiers.control
 
-    return Bounds.new(Fn.makeNew(self, BoxSelect, object))
+    return Widget.new(Fn.makeNew(self, BoxSelect, object))
 end
 
 function BoxSelect:thingIsInside(thing)
@@ -84,28 +83,28 @@ function BoxSelect:makeSelection()
     self.isActive = false
 end
 function BoxSelect:update()
+    Widget.update(self)
+
     if self.selectionControl.justPressed then self:startSelection(mouse.x, mouse.y) end
     if self.selectionControl.isPressed then self:editSelection(mouse.x, mouse.y) end
     if self.selectionControl.justReleased then self:makeSelection() end
 end
 function BoxSelect:draw()
+    local alpha, blendMode = gfx.a, gfx.mode
     local x, y, w, h = self.x, self.y, self.width, self.height
-    local a, mode, dest = gfx.a, gfx.mode, gfx.dest
-    gfx.a = 1
-    gfx.mode = 0
 
     if self.isActive then
-        graphics.setColor(self.edgeColor)
-        graphics.drawRectangle(x, y, w, h, false)
+        gfx.set(1, 1, 1, 0.3, 1)
+        gfx.rect(x, y, w, h, false)
 
-        graphics.setColor(self.insideColor)
-        graphics.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+        gfx.set(1, 1, 1, -0.04, 1)
+        gfx.rect(x + 1, y + 1, w - 2, h - 2, true)
     end
 
-    gfx.a, gfx.mode, gfx.dest = a, mode, dest
+    gfx.a, gfx.mode = alpha, blendMode
 end
 function BoxSelect:endUpdate()
-    Bounds.endUpdate(self)
+    Widget.endUpdate(self)
 end
 
 return BoxSelect

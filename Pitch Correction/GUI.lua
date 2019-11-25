@@ -290,6 +290,8 @@ local mouse = GUI.mouse
 local keyboard = GUI.keyboard
 local window = GUI.window
 function GUI.run()
+    local timer = reaper.time_precise()
+
     window.width = gfx.w
     window.height = gfx.h
     mouse.x = gfx.mouse_x
@@ -331,6 +333,11 @@ function GUI.run()
     window.previousHeight = window.height
     mouse.previousX = mouse.x
     mouse.previousY = mouse.y
+
+    gfx.x = 1
+    gfx.y = 1
+    local fps = 1 / (reaper.time_precise() - timer)
+    gfx.drawnumber(fps, 1)
 end
 
 return GUI

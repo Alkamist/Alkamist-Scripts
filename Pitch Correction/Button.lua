@@ -50,7 +50,8 @@ function Button:update()
     self.justReleased = not self.isPressed and self.wasPreviouslyPressed
 end
 function Button:draw()
-    local alpha, blendMode = gfx.a, gfx.mode
+    local a, mode = gfx.a, gfx.mode
+    local alpha, blendMode = self.alpha, self.blendMode
     local x, y, w, h = self.x, self.y, self.width, self.height
     local color = self.color
     local r, g, b = color[1], color[2], color[3]
@@ -89,7 +90,7 @@ function Button:draw()
         gfx.rect(x + 1, y + 1, w - 2, h - 2, true)
     end
 
-    gfx.a, gfx.mode = alpha, blendMode
+    gfx.a, gfx.mode = a, mode
 end
 function Button:endUpdate()
     Widget.endUpdate(self)

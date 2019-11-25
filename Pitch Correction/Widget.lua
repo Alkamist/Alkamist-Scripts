@@ -35,13 +35,13 @@ function Widget.new(object)
     return Fn.makeNew(self, Widget, object)
 end
 
-function Widget:justDragged(control)
+function Widget:justDraggedBy(control)
     return control.justDragged and self.controlWasPressedInside[control]
 end
-function Widget:justStartedDragging(control)
+function Widget:justStartedDraggingBy(control)
     return control.justStartedDragging and self.controlWasPressedInside[control]
 end
-function Widget:justStoppedDragging(control)
+function Widget:justStoppedDraggingBy(control)
     return control.justStoppedDragging and self.controlWasPressedInside[control]
 end
 function Widget:pointIsInside(pointX, pointY)

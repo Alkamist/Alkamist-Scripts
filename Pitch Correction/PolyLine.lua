@@ -4,6 +4,7 @@ local pairs = pairs
 local math = math
 local table = table
 
+local Widget = require("Widget")
 local BoxSelect = require("BoxSelect")
 local GUI = require("GUI")
 local mouse = GUI.mouse
@@ -12,7 +13,6 @@ local leftMouseButton = mouse.buttons.left
 local rightMouseButton = mouse.buttons.right
 local shiftKey = keyboard.modifiers.shift
 local controlKey = keyboard.modifiers.control
-local graphics = GUI.graphics
 
 local function arrayRemove(t, fn)
     local n = #t
@@ -176,60 +176,6 @@ local function unselectAllPoints(points)
         point.isSelected = false
     end
 end
-local function getPolyLineMouseOverStates(points, mousePixelEditRange, xOffset, yOffset)
-    local mouseOverIndex, mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(points, mouse.x + xOffset, mouse.y + yOffset, mousePixelEditRange)
-    return mouseOverIndex, mouseIsOverPoint
-end
-local function updatePolyLine(points, mouseOverIndex, mouseIsOverPoint)
-    local editPointIndex = nil
-    local editPoint = nil
-    if leftMouseButton.justPressed and mouseOverIndex then
-        editPointIndex = mouseOverIndex
-        editPoint = points[editPointIndex]
-
-        if not editPoint.isSelected and not shiftKey.isPressed then
-            unselectAllPoints(points)
-        end
-
-        editPoint.isSelected = true
-        if not mouseIsOverPoint then
-            points[editPointIndex + 1].isSelected = true
-        end
-    end
-
-    if editPointIndex and mouse.justMoved then
-        moveSelectedPointsWithMouse(points)
-    end
-end
-local function drawPolyLine(points, drawLine, drawPoint, lineColor, pointColor, glowColor, mouseOverIndex, mouseIsOverPoint)
-    local setColor = graphics.setColor
-
-    for i = 1, #points do
-        local point = points[i]
-        local nextPoint = points[i + 1]
-        local pointIsSelected = point.isSelected
-        local shouldGlowLine = pointIsSelected or (mouseOverIndex == i and not mouseIsOverPoint)
-        local shouldGlowPoint = pointIsSelected or (mouseOverIndex == i and mouseIsOverPoint)
-
-        if nextPoint then
-            setColor(lineColor)
-            drawLine(point, nextPoint)
-
-            if shouldGlowLine then
-                setColor(glowColor)
-                drawLine(point, nextPoint)
-            end
-        end
-
-        setColor(pointColor)
-        drawPoint(point)
-
-        if shouldGlowPoint then
-            setColor(glowColor)
-            drawPoint(point)
-        end
-    end
-end
 
 local PolyLine = {}
 function PolyLine.new(object)
@@ -259,12 +205,10 @@ function PolyLine.new(object)
         inversionControl = controlKey
     }
 
-    local object = object or {}
-    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
-    return object
+    return Widget.new(Fn.makeNew(self, PolyLine, object))
 end
-function PolyLine.update(self)
-    BoxSelect.update(self.boxSelect)
+function PolyLine:update()
+    self.boxSelect:update()
 
     self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, mouse.x - self.x, mouse.y - self.y, self.mouseEditPixelRange)
 
@@ -291,7 +235,7 @@ function PolyLine.update(self)
         self.editPointIndex = nil
     end
 end
-function PolyLine.draw(self)
+function PolyLine:draw()
     local setColor = graphics.setColor
     local drawLine = self.drawLine
     local drawPoint = self.drawPoint
@@ -329,7 +273,10 @@ function PolyLine.draw(self)
         end
     end
 
-    BoxSelect.draw(self.boxSelect)
+    self.boxSelect:draw()
+end
+function PolyLine:endUpdate()
+    self.boxSelect:endUpdate()
 end
 
 return PolyLine
