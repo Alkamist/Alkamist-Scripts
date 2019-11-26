@@ -6,6 +6,7 @@ local GUI = require("GUI")
 --local PolyLine = require("PolyLine")
 --local Image = require("Image")
 local Button = require("Button")
+local Widget = require("Widget")
 
 GUI.initialize{
     title = "Alkamist Pitch Correction",
@@ -57,31 +58,16 @@ local leftMouseButton = mouse.buttons.left
 local x = 0
 local y = 0
 local buttons = {}
-for i = 1, 3000 do
+for i = 1, 4500 do
     buttons[i] = Button.new{
         x = x,
         y = y,
         width = 10,
-        height = 10
+        height = 10,
+        alpha = 0.5
     }
-    local oldX = buttons[i]:x()
-    buttons[i].x = function(self, v)
-        if v ~= nil then oldX = v end
-        return oldX + 3 * math.random()
-    end
-    local oldY = buttons[i]:y()
-    buttons[i].y = function(self, v)
-        if v ~= nil then oldY = v end
-        return oldY + 3 * math.random()
-    end
-    local oldUpdate = buttons[i].update
-    buttons[i].update = function(self)
-        oldUpdate(self)
-        if self:justDraggedBy(leftMouseButton) then
-            self:x(oldX + mouse.xChange)
-            self:y(oldY + mouse.yChange)
-        end
-    end
+    buttons[i].oldX = buttons[i].x
+    buttons[i].oldY = buttons[i].y
     x = x + 10
     if x > 990 then
         x = 0
@@ -89,11 +75,23 @@ for i = 1, 3000 do
     end
 end
 
+local function newUpdate(self)
+    Button.update(self)
+    if Widget.justDraggedBy(self, leftMouseButton) then
+        local movedX = self.oldX + mouse.xChange
+        local movedY = self.oldY + mouse.yChange
+        self.oldX = movedX
+        self.oldY = movedY
+    end
+    self.x = self.oldX + 3 * math.random()
+    self.y = self.oldY + 3 * math.random()
+end
+
 function GUI.update()
     local numberOfButtons = #buttons
-    for i = 1, numberOfButtons do buttons[i]:update() end
-    for i = 1, numberOfButtons do buttons[i]:draw() end
-    for i = 1, numberOfButtons do buttons[i]:endUpdate() end
+    for i = 1, numberOfButtons do newUpdate(buttons[i]) end
+    for i = 1, numberOfButtons do Button.draw(buttons[i]) end
+    for i = 1, numberOfButtons do Button.endUpdate(buttons[i]) end
 end
 
 GUI.run()
