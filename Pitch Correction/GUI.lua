@@ -336,6 +336,7 @@ function GUI.run()
 
     gfx.x = 1
     gfx.y = 1
+    gfx.set(0.7, 0.7, 0.7, 1, 0)
     local fps = 1 / (reaper.time_precise() - timer)
     gfx.drawnumber(fps, 1)
 end

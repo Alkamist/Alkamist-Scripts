@@ -11,7 +11,7 @@ local Button = {}
 function Button.new(object)
     local self = {}
 
-    self.color = { 0.3, 0.3, 0.3, 1.0, 0 }
+    self.color = { 0.3, 0.3, 0.3 }
     self.alpha = 1.0
     self.blendMode = 0
 

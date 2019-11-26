@@ -1,10 +1,29 @@
 local reaper = reaper
 local table = table
 local math = math
+local type = type
 local pairs = pairs
 local gfx = gfx
 
 local Fn = {}
+
+function Fn.setColor(color)
+    gfx.set(color[1], color[2], color[3], gfx.a, gfx.mode)
+end
+function Fn.addColor(color, adder)
+    if type(adder) == "table" then
+        return { color[1] + adder[1], color[2] + adder[2], color[3] + adder[3] }
+    else
+        return { color[1] + adder, color[2] + adder, color[3] + adder }
+    end
+end
+function Fn.multiplyColor(color, multiplier)
+    if type(multiplier) == "table" then
+        return { color[1] * multiplier[1], color[2] * multiplier[2], color[3] * multiplier[3] }
+    else
+        return { color[1] * multiplier, color[2] * multiplier, color[3] * multiplier }
+    end
+end
 
 -- Used to make initializing objects easier.
 function Fn.makeNew(states, base, object)
