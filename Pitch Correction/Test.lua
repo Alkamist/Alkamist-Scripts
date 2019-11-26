@@ -4,7 +4,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\
 local Fn = require("Fn")
 local GUI = require("GUI")
 --local PolyLine = require("PolyLine")
-local Image = require("Image")
+--local Image = require("Image")
 local Button = require("Button")
 
 GUI.initialize{
@@ -21,14 +21,14 @@ local button = Button.new{
     x = 50,
     y = 50,
     width = 200,
-    height = 100,
+    height = 100
 }
-local image = Image.new{
-    x = 200,
-    y = 200,
-    width = 1000,
-    height = 1000,
-}
+--local image = Image.new{
+--    x = 200,
+--    y = 200,
+--    width = 1000,
+--    height = 1000,
+--}
 
 --local line = PolyLine.new{
 --    x = 0,
@@ -46,15 +46,14 @@ local image = Image.new{
 --end
 
 function GUI.update()
-    Button.update(button)
-    Fn.callWithChanges(Button.update, button, { x = button.x + image.x, y = button.y + image.y })
-    Image.update(image)
+    button:update()
+    --Image.update(image)
 
-    Button.draw(button)
-    Image.draw(image, function() Button.draw(button) end)
+    button:draw()
+    --Image.draw(image, function() Button.draw(button) end)
 
-    Button.endUpdate(button)
-    Image.endUpdate(image)
+    button:endUpdate()
+    --Image.endUpdate(image)
 end
 
 GUI.run()
