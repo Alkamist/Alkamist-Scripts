@@ -76,6 +76,7 @@ function PolyLine:sortPoints()
     table.sort(self.points, self.sortFn)
 end
 function PolyLine:update()
+    Widget.update(self)
     self.boxSelect:update()
 
     self.mouseOverIndex, self.mouseIsOverPoint = Fn.getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, "x", "y", mouse.x - self.x, mouse.y - self.y, self.mouseEditPixelRange)
@@ -145,6 +146,7 @@ function PolyLine:draw()
     self.boxSelect:draw()
 end
 function PolyLine:endUpdate()
+    Widget.endUpdate(self)
     self.boxSelect:endUpdate()
 end
 

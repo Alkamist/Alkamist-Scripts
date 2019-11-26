@@ -4,47 +4,64 @@ local pairs = pairs
 
 local Fn = require("Fn")
 local Widget = require("Widget")
-local GUI = require("GUI.AlkamistGUI")
+local GUI = require("GUI")
 local mouse = GUI.mouse
 
-local Image = {}
-function Image.new(object)
-    local self = {}
-
-    self.imageBuffer = graphics.getNewImageBuffer()
-    self.backgroundColor = { 0, 0, 0 }
-
-    return Widget.new(Fn.makeNew(self, Image, object))
+local usedImageBuffers = {}
+local function getNewImageBuffer()
+    for i = 0, 1023 do
+        if usedImageBuffers[i] == nil then
+            usedImageBuffers[i] = true
+            return i
+        end
+    end
 end
 
-function Image:clear()
+local Image = {}
+function Image.new(self)
+    local states = {}
+
+    states.imageBuffer = getNewImageBuffer()
+    states.backgroundColor = { 0, 0, 0 }
+
+    local self = Widget.new(Fn.initialize(self, states))
+    Image.clear(self)
+    return self
+end
+
+function Image.clear(self)
     local imageBuffer = self.imageBuffer
     gfx.setimgdim(imageBuffer, -1, -1)
     gfx.setimgdim(imageBuffer, self.width, self.height)
 end
-function Image:draw(drawingOperation)
-    local alpha, blendMode, dest = gfx.a, gfx.mode, gfx.dest
-    local x, y, w, h = self.x, self.y, self.width, self.height
+function Image.update(self)
+    Widget.update(self, function() end)
+end
+function Image.draw(self, drawFn)
+    Widget.draw(self, function()
+        local dest = gfx.dest
+        local x, y, w, h = self.x, self.y, self.width, self.height
 
-    gfx.dest = self.imageBuffer
-    gfx.a = 1
-    gfx.mode = 0
+        gfx.dest = self.imageBuffer
+        gfx.a = 1
+        gfx.mode = 0
 
-    local backgroundColor = self.backgroundColor
-    if backgroundColor then
-        Fn.setColor(self.backgroundColor)
-        gfx.rect(x, y, w, h, true)
-    end
+        local backgroundColor = self.backgroundColor
+        if backgroundColor then
+            Fn.setColor(self.backgroundColor)
+            gfx.rect(0, 0, w, h, true)
+        end
 
-    if drawingOperation then
-        drawingOperation()
-    end
+        if drawFn then
+            drawFn()
+        end
 
-    gfx.dest = dest
-    --gfx.blit(source, scale, rotation[, srcx, srcy, srcw, srch, destx, desty, destw, desth, rotxoffs, rotyoffs])
-    gfx.blit(self.imageBuffer, 1.0, 0, 0, 0, w, h, x, y, w, h, 0, 0)
-
-    gfx.a, gfx.mode = alpha, blendMode
+        gfx.dest = dest
+        gfx.blit(self.imageBuffer, 1.0, 0, 0, 0, w, h, x, y, w, h, 0, 0)
+    end)
+end
+function Image.endUpdate(self)
+    Widget.endUpdate(self, function() end)
 end
 
 return Image
