@@ -217,11 +217,12 @@ function MouseControl.new()
     self.hasDraggedSincePress = false
     self.timeOfPreviousPress = nil
     self.timeSincePreviousPress = nil
+    self.update = MouseControl.update
 
     return self
 end
 
-function MouseControl.update(self, state)
+function MouseControl:update(state)
     if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
     self.wasPreviouslyPressed = self.isPressed
     self.isPressed = state
@@ -241,9 +242,10 @@ local MouseButton = {}
 function MouseButton.new(bitValue)
     local self = MouseControl.new()
     self.bitValue = bitValue or 0
+    self.update = MouseButton.update
     return self
 end
-function MouseButton.update(self)
+function MouseButton:update()
     local bitValue = self.bitValue
     MouseControl.update(self, GUI.mouse.cap & bitValue == bitValue)
 end
@@ -251,9 +253,10 @@ local KeyboardKey = {}
 function KeyboardKey.new(character)
     local self = MouseControl.new()
     self.character = character or ""
+    self.update = KeyboardKey.update
     return self
 end
-function KeyboardKey.update(self)
+function KeyboardKey:update()
     local character = self.character
     MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
 end
@@ -315,9 +318,9 @@ function GUI.run()
     mouse.wheelJustMoved = mouse.wheel ~= 0
     mouse.hWheelJustMoved = mouse.hWheel ~= 0
 
-    for k, v in pairs(mouse.buttons) do MouseButton.update(v) end
-    for k, v in pairs(keyboard.modifiers) do MouseButton.update(v) end
-    for k, v in pairs(keyboard.keys) do KeyboardKey.update(v) end
+    for k, v in pairs(mouse.buttons) do v:update() end
+    for k, v in pairs(keyboard.modifiers) do v:update() end
+    for k, v in pairs(keyboard.keys) do v:update() end
 
     local char = characterTableInverted[gfx.getchar()]
     keyboard.char = char
