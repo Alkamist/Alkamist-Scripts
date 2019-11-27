@@ -46,16 +46,25 @@ local image2 = Image.new{
     backgroundColor = { 0.7, 0.5, 0.2 }
 }
 
-
 button.widgets = { button2 }
 image.widgets = { button }
 image2.widgets = { image }
 
+local imageX = image.x
+local imageY = image.y
+local xRandom = 0
+local yRandom = 0
+
 function image:update()
+    xRandom = 5 - math.random() * 10
+    yRandom = 5 - math.random() * 10
+
     if self:justDraggedBy(GUI.mouse.buttons.right) then
-        self.x = self.x + GUI.mouse.xChange
-        self.y = self.y + GUI.mouse.yChange
+        imageX = imageX + GUI.mouse.xChange
+        imageY = imageY + GUI.mouse.yChange
     end
+    self.x = image2.x + imageX + xRandom
+    self.y = image2.y + imageY + yRandom
 end
 function image2:update()
     if self:justDraggedBy(GUI.mouse.buttons.middle) then
