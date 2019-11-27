@@ -197,7 +197,8 @@ local GUI = {
         heightChange = 0,
         heightJustChanged = false,
         dock = 0,
-        wasJustResized = false
+        wasJustResized = false,
+        widgets = {}
     }
 }
 
@@ -273,8 +274,6 @@ function GUI.keyboard.createKey(character)
     GUI.keys[character] = KeyboardKey.new(character)
 end
 
-function GUI.update() end
-
 function GUI.initialize(parameters)
     local parameters = parameters or {}
     GUI.window.title = parameters.title or GUI.window.title or ""
@@ -324,7 +323,11 @@ function GUI.run()
     keyboard.char = char
     if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
 
-    GUI.update()
+    local widgets = window.widgets
+    local numberOfWidgets = #widgets
+    for i = 1, numberOfWidgets do widgets[i]:doUpdate() end
+    for i = 1, numberOfWidgets do widgets[i]:doDraw() end
+    for i = 1, numberOfWidgets do widgets[i]:doEndUpdate() end
 
     if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
     gfx.update()

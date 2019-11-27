@@ -26,10 +26,15 @@ function Fn.multiplyColor(color, multiplier)
 end
 
 -- Used to make initializing objects easier.
-function Fn.initialize(self, states)
+function Fn.initialize(self, base, states)
     local self = self or {}
     for k, v in pairs(states) do if
         self[k] == nil then
+            self[k] = v
+        end
+    end
+    for k, v in pairs(base) do if
+        self[k] == nil and k ~= "new" then
             self[k] = v
         end
     end
