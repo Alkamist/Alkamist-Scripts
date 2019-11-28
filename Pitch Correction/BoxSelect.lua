@@ -12,20 +12,20 @@ local mouse = GUI.mouse
 local keyboard = GUI.keyboard
 
 local BoxSelect = {}
-function BoxSelect.new(object)
-    local self = {}
+function BoxSelect:new()
+    local states = {}
 
-    self.x1 = 0
-    self.x2 = 0
-    self.y1 = 0
-    self.y2 = 0
-    self.isActive = false
-    self.thingsToSelect = {}
-    self.selectionControl = mouse.buttons.right
-    self.additiveControl = keyboard.modifiers.shift
-    self.inversionControl = keyboard.modifiers.control
+    states.x1 = 0
+    states.x2 = 0
+    states.y1 = 0
+    states.y2 = 0
+    states.isActive = false
+    states.thingsToSelect = {}
+    states.selectionControl = mouse.buttons.right
+    states.additiveControl = keyboard.modifiers.shift
+    states.inversionControl = keyboard.modifiers.control
 
-    return Widget.new(Fn.makeNew(self, BoxSelect, object))
+    return Widget.new(Fn.initialize(self, BoxSelect, states))
 end
 
 function BoxSelect:thingIsInside(thing)
@@ -83,14 +83,11 @@ function BoxSelect:makeSelection()
     self.isActive = false
 end
 function BoxSelect:update()
-    Widget.update(self)
-
     if self.selectionControl.justPressed then self:startSelection(mouse.x, mouse.y) end
     if self.selectionControl.isPressed then self:editSelection(mouse.x, mouse.y) end
     if self.selectionControl.justReleased then self:makeSelection() end
 end
 function BoxSelect:draw()
-    local alpha, blendMode = gfx.a, gfx.mode
     local x, y, w, h = self.x, self.y, self.width, self.height
 
     if self.isActive then
@@ -100,11 +97,7 @@ function BoxSelect:draw()
         gfx.set(1, 1, 1, -0.04, 1)
         gfx.rect(x + 1, y + 1, w - 2, h - 2, true)
     end
-
-    gfx.a, gfx.mode = alpha, blendMode
 end
-function BoxSelect:endUpdate()
-    Widget.endUpdate(self)
-end
+function BoxSelect:endUpdate() end
 
 return BoxSelect

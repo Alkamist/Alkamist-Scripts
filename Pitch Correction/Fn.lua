@@ -40,6 +40,18 @@ function Fn.initialize(self, base, states)
     end
     return self
 end
+function Fn.makeGetSet(initialValue, defaultValue)
+    local value
+    if initialValue ~= nil then
+        value = initialValue
+    else
+        value = defaultValue
+    end
+    return function(self, v)
+        if v ~= nil then value = v end
+        return value
+    end
+end
 function Fn.callWithChanges(fn, defaults, changes)
     local storedDefaults = {}
     for k, v in pairs(changes) do
