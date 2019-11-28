@@ -177,6 +177,8 @@ local GUI = {
         hWheel = 0,
         hWheelJustMoved = false,
         justMoved = false,
+        _isInsideWidget = {},
+        _wasPreviouslyInsideWidget = {},
         buttons = {}
     },
     keyboard = {
@@ -201,6 +203,12 @@ local GUI = {
         widgets = {}
     }
 }
+local mouse = GUI.mouse
+local buttons = mouse.buttons
+local keyboard = GUI.keyboard
+local modifiers = keyboard.modifiers
+local keys = keyboard.keys
+local window = GUI.window
 
 local MouseControl = {}
 function MouseControl.new()
@@ -217,18 +225,51 @@ function MouseControl.new()
     self.hasDraggedSincePress = false
     self.timeOfPreviousPress = nil
     self.timeSincePreviousPress = nil
-    self.update = MouseControl.update
+    self._wasPressedInsideWidget = {}
 
+    for k, v in pairs(MouseControl) do
+        if k ~= "new" then
+            self[k] = v
+        end
+    end
     return self
 end
+function MouseControl:wasPressedInsideWidget(widget)
+    return self._wasPressedInsideWidget[widget]
+end
+function MouseControl:justDraggedWidget(widget)
+    return self.justDragged and self._wasPressedInsideWidget[widget]
+end
+function MouseControl:justStartedDraggingWidget(widget)
+    return self.justStartedDragging and self._wasPressedInsideWidget[widget]
+end
+function MouseControl:justStoppedDraggingWidget(widget)
+    return self.justStoppedDragging and self._wasPressedInsideWidget[widget]
+end
+function MouseControl:updateWidgetBasedStates(widget)
+    if mouse:isInsideWidget(widget) and self.justPressed then
+        self._wasPressedInsideWidget[widget] = true
+    end
+    if self.justReleased then
+        self._wasPressedInsideWidget[widget] = false
+    end
 
+    local childWidgets = widget.widgets
+    if childWidgets then
+        for i = 1, #childWidgets do
+            self:updateWidgetBasedStates(childWidgets[i])
+        end
+    end
+end
 function MouseControl:update(state)
     if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
     self.wasPreviouslyPressed = self.isPressed
+
     self.isPressed = state
+
     self.justPressed = self.isPressed and not self.wasPreviouslyPressed
     self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-    self.justDragged = self.isPressed and GUI.mouse.justMoved
+    self.justDragged = self.isPressed and mouse.justMoved
     self.justStartedDragging = self.justDragged and not self.hasDraggedSincePress
     if self.justDragged then self.hasDraggedSincePress = true end
     self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
@@ -237,7 +278,13 @@ function MouseControl:update(state)
         self.timeSincePreviousPress = reaper.time_precise() - self.timeOfPreviousPress
         self.justDoublePressed = self.justPressed and self.timeSincePreviousPress <= 0.5
     end
+
+    local widgets = window.widgets
+    for i = 1, #widgets do
+        self:updateWidgetBasedStates(widgets[i])
+    end
 end
+
 local MouseButton = {}
 function MouseButton.new(bitValue)
     local self = MouseControl.new()
@@ -247,8 +294,9 @@ function MouseButton.new(bitValue)
 end
 function MouseButton:update()
     local bitValue = self.bitValue
-    MouseControl.update(self, GUI.mouse.cap & bitValue == bitValue)
+    MouseControl.update(self, mouse.cap & bitValue == bitValue)
 end
+
 local KeyboardKey = {}
 function KeyboardKey.new(character)
     local self = MouseControl.new()
@@ -261,41 +309,15 @@ function KeyboardKey:update()
     MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
 end
 
-GUI.mouse.buttons.left = MouseButton.new(1)
-GUI.mouse.buttons.middle = MouseButton.new(64)
-GUI.mouse.buttons.right = MouseButton.new(2)
-GUI.keyboard.modifiers.shift = MouseButton.new(8)
-GUI.keyboard.modifiers.control = MouseButton.new(4)
-GUI.keyboard.modifiers.windows = MouseButton.new(32)
-GUI.keyboard.modifiers.alt = MouseButton.new(16)
-GUI.keyboard.keys = {}
+buttons.left = MouseButton.new(1)
+buttons.middle = MouseButton.new(64)
+buttons.right = MouseButton.new(2)
+modifiers.shift = MouseButton.new(8)
+modifiers.control = MouseButton.new(4)
+modifiers.windows = MouseButton.new(32)
+modifiers.alt = MouseButton.new(16)
 
-function GUI.window.setBackgroundColor(r, g, b)
-    gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
-end
-function GUI.keyboard.createKey(character)
-    GUI.keys[character] = KeyboardKey.new(character)
-end
-
-function GUI.initialize(parameters)
-    local parameters = parameters or {}
-    GUI.window.title = parameters.title or GUI.window.title or ""
-    GUI.window.x = parameters.x or GUI.window.x or 0
-    GUI.window.y = parameters.y or GUI.window.y or 0
-    GUI.window.width = parameters.width or GUI.window.width  or 0
-    GUI.window.height = parameters.height or GUI.window.height or 0
-    GUI.window.dock = parameters.dock or GUI.window.dock or 0
-    gfx.init(GUI.window.title, GUI.window.width, GUI.window.height, GUI.window.dock, GUI.window.x, GUI.window.y)
-end
-
-local mouse = GUI.mouse
-local keyboard = GUI.keyboard
-local window = GUI.window
-function GUI.run()
-    local timer = reaper.time_precise()
-
-    window.width = gfx.w
-    window.height = gfx.h
+function mouse:update()
     mouse.x = gfx.mouse_x
     mouse.y = gfx.mouse_y
     mouse.cap = gfx.mouse_cap
@@ -303,13 +325,6 @@ function GUI.run()
     gfx.mouse_wheel = 0
     mouse.hWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
-
-    window.widthChange = window.width - window.previousWidth
-    window.widthJustChanged = window.width ~= window.previousWidth
-    window.heightChange = window.height - window.previousHeight
-    window.heightJustChanged = window.height ~= window.previousHeight
-    window.wasJustResized = window.widthJustChanged or window.heightJustChanged
-
     mouse.xChange = mouse.x - mouse.previousX
     mouse.xJustChanged = mouse.x ~= mouse.previousX
     mouse.yChange = mouse.y - mouse.previousY
@@ -319,8 +334,79 @@ function GUI.run()
     mouse.hWheelJustMoved = mouse.hWheel ~= 0
 
     for k, v in pairs(mouse.buttons) do v:update() end
+end
+function mouse:updateWidgetBasedStates(widget)
+    mouse._wasPreviouslyInsideWidget[widget] = mouse:isInsideWidget(widget)
+
+    local childWidgets = widget.widgets
+    if childWidgets then
+        for i = 1, #childWidgets do
+            mouse:updateWidgetBasedStates(childWidgets[i])
+        end
+    end
+end
+function mouse:endUpdate()
+    local widgets = window.widgets
+    local numberOfWidgets = #widgets
+    for i = 1, numberOfWidgets do
+        local widget = widgets[i]
+        mouse:updateWidgetBasedStates(widget)
+    end
+
+    mouse.previousX = mouse.x
+    mouse.previousY = mouse.y
+end
+function mouse:isInsideWidget(widget)
+    return widget:pointIsInside(mouse.x, mouse.y)
+end
+function mouse:wasPreviouslyInsideWidget(widget)
+    return mouse._wasPreviouslyInsideWidget[widget]
+end
+function mouse:justEnteredWidget(widget)
+    return mouse:isInsideWidget(widget) and not mouse:wasPreviouslyInsideWidget(widget)
+end
+function mouse:justLeftWidget(widget)
+    return not mouse:isInsideWidget(widget) and mouse:wasPreviouslyInsideWidget(widget)
+end
+function keyboard:update()
     for k, v in pairs(keyboard.modifiers) do v:update() end
     for k, v in pairs(keyboard.keys) do v:update() end
+end
+function keyboard:endUpdate() end
+function keyboard:createKey(character)
+    keys[character] = KeyboardKey.new(character)
+end
+function window:update()
+    window.widthChange = window.width - window.previousWidth
+    window.widthJustChanged = window.width ~= window.previousWidth
+    window.heightChange = window.height - window.previousHeight
+    window.heightJustChanged = window.height ~= window.previousHeight
+    window.wasJustResized = window.widthJustChanged or window.heightJustChanged
+end
+function window:endUpdate()
+    window.previousWidth = window.width
+    window.previousHeight = window.height
+end
+function window:setBackgroundColor(r, g, b)
+    gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
+end
+function GUI.window:initialize(parameters)
+    local parameters = parameters or {}
+    window.title = parameters.title or window.title or ""
+    window.x = parameters.x or window.x or 0
+    window.y = parameters.y or window.y or 0
+    window.width = parameters.width or window.width  or 0
+    window.height = parameters.height or window.height or 0
+    window.dock = parameters.dock or window.dock or 0
+    gfx.init(window.title, window.width, window.height, window.dock, window.x, window.y)
+end
+
+function GUI.run()
+    local timer = reaper.time_precise()
+
+    window:update()
+    mouse:update()
+    keyboard:update()
 
     local char = characterTableInverted[gfx.getchar()]
     keyboard.char = char
@@ -335,10 +421,8 @@ function GUI.run()
     if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
     gfx.update()
 
-    window.previousWidth = window.width
-    window.previousHeight = window.height
-    mouse.previousX = mouse.x
-    mouse.previousY = mouse.y
+    window:endUpdate()
+    mouse:endUpdate()
 
     gfx.x = 1
     gfx.y = 1

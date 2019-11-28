@@ -2,100 +2,60 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
 local Fn = require("Fn")
-
-local function createProxy(object)
-    local object = object or {}
-    local properties = {}
-
-    function object:addProperty(name, property)
-        object[name] = nil
-        if type(property) == "table" then
-            properties[name] = property
-        end
-    end
-
-    return setmetatable(object, {
-        __index = function(t, k)
-            local propertyGet = properties[k].get
-            if propertyGet then
-                return propertyGet(t)
-            end
-        end,
-        __newindex = function(t, k, v)
-            local propertySet = properties[k]
-            if propertySet then
-                return propertySet(t, v)
-            end
-        end,
-        __pairs = function(t)
-            return function(t, k)
-                local fieldKey = next(properties, k)
-                return fieldKey, t[fieldKey]
-            end, t, nil
-        end
-    })
-end
-
-local test1 = createProxy{
-    a = 1
-}
-test1:addProperty("b", {
-    get = function(self) return 123123123 end,
-    set = function(self, v) end
-})
-
-for k, v in pairs(test1) do msg(k) end
-
---msg(test1.a)
---test1.a = 5
---msg(test1.a)
---
---test1:addProperty("a", {
---    get = function(self) return 123123123 end,
---    set = function(self, v) end
---})
---
---msg(test1.a)
---test1.a = 5
---msg(test1.a)
-
---local timer = reaper.time_precise()
---for i = 1, 1000000 do
---    test1.a = 0
---    local asdf = test1.a
---end
---msg(reaper.time_precise() - timer)
---
---local test2 = { a = 0 }
---
---local timer = reaper.time_precise()
---for i = 1, 1000000 do
---    test2.a = 0
---    local asdf = test2.a
---end
---msg(reaper.time_precise() - timer)
-
-
-
-
-
-
-
---local GUI = require("GUI")
+local GUI = require("GUI")
+local Button = require("Button")
 --local PolyLine = require("PolyLine")
 --local Image = require("Image")
---local Button = require("Button")
 --local BoxSelect = require("BoxSelect")
---
---GUI.initialize{
---    title = "Alkamist Pitch Correction",
---    x = 400,
---    y = 200,
---    width = 1000,
---    height = 700,
---    dock = 0
---}
---GUI.window.setBackgroundColor(0.2, 0.2, 0.2)
+
+GUI.window:initialize{
+    title = "Alkamist Pitch Correction",
+    x = 400,
+    y = 200,
+    width = 1000,
+    height = 700,
+    dock = 0
+}
+GUI.window:setBackgroundColor(0.2, 0.2, 0.2)
+
+local button1 = Button.new{
+    x = 50,
+    y = 50,
+    width = 50,
+    height = 50,
+    label = "1"
+}
+local button2 = Button.new{
+    x = 50,
+    y = 50,
+    width = 50,
+    height = 50,
+    label = "2"
+}
+button1.widgets = { button2 }
+
+button2.relativeX = button2.x
+button2:setProperty("x", {
+    get = function(self) return self.relativeX + button1.x end,
+    set = function(self, v) self.relativeX = v - button1.x end
+})
+
+button2.relativeY = button2.y
+button2:setProperty("y", {
+    get = function(self) return self.relativeY + button1.y end,
+    set = function(self, v) self.relativeY = v - button1.y end
+})
+
+function button1:update()
+    Button.update(self)
+    if GUI.mouse.buttons.left:justDraggedWidget(self) then
+        self.x = self.x + GUI.mouse.xChange
+        self.y = self.y + GUI.mouse.yChange
+    end
+end
+
+GUI.window.widgets = { button1 }
+GUI.run()
 --
 --local button = Button.new{
 --    x = 5,

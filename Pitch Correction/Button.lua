@@ -2,52 +2,54 @@ local reaper = reaper
 local gfx = gfx
 local pairs = pairs
 
+local Proxy = require("Proxy")
 local Fn = require("Fn")
+local Widget = require("Widget")
 local GUI = require("GUI")
 local mouse = GUI.mouse
-local Widget = require("Widget")
+local buttons = mouse.buttons
+local leftMouseButton = buttons.left
+local keyboard = GUI.keyboard
+local modifiers = keyboard.modifiers
+local keys = keyboard.keys
+local window = GUI.window
+local widgets = window.widgets
 
 local Button = {}
 function Button:new()
-    local states = {}
+    local defaults = {
+        color = { 0.3, 0.3, 0.3 },
+        isPressed = false,
+        wasPreviouslyPressed = false,
+        isGlowing = false,
+        glowWhenMouseIsOver = true,
+        pressControl = leftMouseButton,
+        toggleControl = nil,
+        label = "",
+        labelFont = "Arial",
+        labelFontSize = 14
+    }
 
-    states.color = { 0.3, 0.3, 0.3 }
+    Widget.new(self)
 
-    states.isPressed = false
-    states.wasPreviouslyPressed = false
-    states.justPressed = false
-    states.justReleased = false
-    states.isGlowing = false
-    states.glowWhenMouseIsOver = true
-    states.pressControl = mouse.buttons.left
-    states.toggleControl = nil
+    self:setProperty("justPressed", { get = function(self) return self.isPressed and not self.wasPreviouslyPressed end })
+    self:setProperty("justReleased", { get = function(self) return not self.isPressed and self.wasPreviouslyPressed end })
 
-    states.label = ""
-    states.labelFont = "Arial"
-    states.labelFontSize = 14
-
-    return Widget.new(Fn.initialize(self, Button, states))
+    Fn.initialize(self, defaults)
+    Fn.initialize(self, Button)
+    return self
 end
 
 function Button:update()
     if self.glowWhenMouseIsOver then
-        if self.mouseJustEntered then self.isGlowing = true end
-        if self.mouseJustLeft then self.isGlowing = false end
+        self.isGlowing = mouse:isInsideWidget(self)
     end
     if self.pressControl then
-        if self.pressControl.justPressed and self.mouseIsInside then self.isPressed = true end
+        if self.pressControl.justPressed and mouse:isInsideWidget(self) then self.isPressed = true end
         if self.pressControl.justReleased then self.isPressed = false end
     end
     if self.toggleControl then
-        if self.toggleControl.justPressed and self.mouseIsInside then self.isPressed = not self.isPressed end
-    end
-
-    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
-    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-
-    if self:justDraggedBy(self.pressControl) then
-        self.x = self.x + mouse.xChange
-        self.y = self.y + mouse.yChange
+        if self.toggleControl.justPressed and mouse:isInsideWidget(self) then self.isPressed = not self.isPressed end
     end
 end
 function Button:draw()
