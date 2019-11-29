@@ -15,9 +15,11 @@ local function createProxy(object)
         return properties[name]
     end
     function object:setProperty(name, property)
-        object[name] = nil
         if type(property) == "table" then
+            local initialValue = object[name]
+            object[name] = nil
             properties[name] = property
+            object[name] = initialValue
         end
     end
     function object:removeProperty(name)

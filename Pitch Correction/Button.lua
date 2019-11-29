@@ -1,93 +1,103 @@
-local reaper = reaper
-local gfx = gfx
-local pairs = pairs
-
-local Proxy = require("Proxy")
-local Fn = require("Fn")
-local Widget = require("Widget")
 local GUI = require("GUI")
 local mouse = GUI.mouse
-local buttons = mouse.buttons
-local leftMouseButton = buttons.left
+local mouseButtons = mouse.buttons
+local leftMouseButton = mouseButtons.left
+local middleMouseButton = mouseButtons.middle
+local rightMouseButton = mouseButtons.right
 local keyboard = GUI.keyboard
-local modifiers = keyboard.modifiers
-local keys = keyboard.keys
+local keyboardModifiers = keyboard.modifiers
+local shiftKey = keyboardModifiers.shift
+local controlKey = keyboardModifiers.control
+local windowsKey = keyboardModifiers.windows
+local altKey = keyboardModifiers.alt
+local keyboardKeys = GUI.keyboard.keys
 local window = GUI.window
-local widgets = window.widgets
+
+local pairs = pairs
+local type = type
+
+local Fn = require("Fn")
+local initialize = Fn.initialize
+
+local Widget = require("Widget")
+
+local setColor = gfx.set
+local drawRectangle = gfx.rect
+local drawString = gfx.drawstr
+local setFont = gfx.setfont
 
 local Button = {}
 function Button:new()
     local defaults = {
-        color = { 0.3, 0.3, 0.3 },
-        isPressed = false,
-        wasPreviouslyPressed = false,
-        isGlowing = false,
-        glowWhenMouseIsOver = true,
-        pressControl = leftMouseButton,
-        toggleControl = nil,
         label = "",
         labelFont = "Arial",
-        labelFontSize = 14
+        labelFontSize = 14,
+        isPressed = false,
+        wasPreviouslyPressed = false,
+        justPressed = false,
+        justReleased = false,
+        isGlowing = false,
+        color = { 0.3, 0.3, 0.3 },
+        pressControl = leftMouseButton,
+        toggleControl = nil,
+        glowWhenMouseIsInside = true
     }
 
-    Widget.new(self)
-
-    self:setProperty("justPressed", { get = function(self) return self.isPressed and not self.wasPreviouslyPressed end })
-    self:setProperty("justReleased", { get = function(self) return not self.isPressed and self.wasPreviouslyPressed end })
-
-    Fn.initialize(self, defaults)
-    Fn.initialize(self, Button)
-    return self
+    initialize(self, defaults)
+    initialize(self, Button)
+    return Widget.new(self)
 end
 
 function Button:update()
-    if self.glowWhenMouseIsOver then
-        self.isGlowing = mouse:isInsideWidget(self)
-    end
+    Widget.update(self)
+
+    if self.glowWhenMouseIsInside then self.isGlowing = self.mouseIsInside end
     if self.pressControl then
-        if self.pressControl.justPressed and mouse:isInsideWidget(self) then self.isPressed = true end
+        if self.pressControl.justPressed and self.mouseIsInside then self.isPressed = true end
         if self.pressControl.justReleased then self.isPressed = false end
     end
-    if self.toggleControl then
-        if self.toggleControl.justPressed and mouse:isInsideWidget(self) then self.isPressed = not self.isPressed end
-    end
+
+    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
+    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
 end
 function Button:draw()
+    local a, mode = gfx.a, gfx.mode
+
     local x, y, w, h = self.x, self.y, self.width, self.height
-    local text = self.label
-    local font = self.labelFont
-    local fontSize = self.labelFontSize
-    local isPressed = self.isPressed
-    local isGlowing = self.isGlowing
+    local text, font, fontSize = self.label, self.labelFont, self.labelFontSize
+    local isPressed, isGlowing = self.isPressed, self.isGlowing
+    local color = self.color
 
     gfx.x = x
     gfx.y = y
 
     -- Draw the body.
-    Fn.setColor(self.color)
-    gfx.rect(x, y, w, h, true)
+    setColor(color[1], color[2], color[3], gfx.a, gfx.mode)
+    drawRectangle(x, y, w, h, true)
 
     -- Draw a dark outline around.
-    gfx.set(0.15, 0.15, 0.15, gfx.a, gfx.mode)
-    gfx.rect(x, y, w, h, false)
+    setColor(0.15, 0.15, 0.15, gfx.a, gfx.mode)
+    drawRectangle(x, y, w, h, false)
 
     -- Draw a light outline around.
-    gfx.set(1, 1, 1, 0.1, 1)
-    gfx.rect(x + 1, y + 1, w - 2, h - 2, false)
+    setColor(1, 1, 1, 0.1, 1)
+    drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
 
     -- Draw the label.
-    gfx.set(1, 1, 1, 0.4, 1)
-    gfx.setfont(1, font, fontSize)
-    gfx.drawstr(text, 5, x + w, y + h)
+    setColor(1, 1, 1, 0.4, 1)
+    setFont(1, font, fontSize)
+    drawString(text, 5, x + w, y + h)
 
     if isPressed then
-        gfx.set(1, 1, 1, -0.15, 1)
-        gfx.rect(x + 1, y + 1, w - 2, h - 2, true)
+        setColor(1, 1, 1, -0.15, 1)
+        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
 
     elseif isGlowing then
-        gfx.set(1, 1, 1, 0.15, 1)
-        gfx.rect(x + 1, y + 1, w - 2, h - 2, true)
+        setColor(1, 1, 1, 0.15, 1)
+        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
     end
+
+    gfx.a, gfx.mode = a, mode
 end
 function Button:endUpdate()
     self.wasPreviouslyPressed = self.isPressed

@@ -1,14 +1,32 @@
-local reaper = reaper
-local pairs = pairs
+local GUI = require("GUI")
+local mouse = GUI.mouse
+local mouseButtons = mouse.buttons
+local leftMouseButton = mouseButtons.left
+local middleMouseButton = mouseButtons.middle
+local rightMouseButton = mouseButtons.right
+local keyboard = GUI.keyboard
+local keyboardModifiers = keyboard.modifiers
+local shiftKey = keyboardModifiers.shift
+local controlKey = keyboardModifiers.control
+local windowsKey = keyboardModifiers.windows
+local altKey = keyboardModifiers.alt
+local keyboardKeys = GUI.keyboard.keys
+local window = GUI.window
 
-local Proxy = require("Proxy")
+local pairs = pairs
+local type = type
+
 local Fn = require("Fn")
---local GUI = require("GUI")
---local mouse = GUI.mouse
---local mouseButtons = mouse.buttons
---local keyboard = GUI.keyboard
---local keyboardModifiers = keyboard.modifiers
---local keyboardKeys = GUI.keyboard.keys
+local initialize = Fn.initialize
+
+local function updateWidgetMouseControlState(widget, control)
+    if control.justPressed and widget.mouseIsInside then
+        widget._controlWasPressedInside[control] = true
+    end
+    if control.justReleased then
+        widget._controlWasPressedInside[control] = false
+    end
+end
 
 local Widget = {}
 function Widget:new()
@@ -17,66 +35,43 @@ function Widget:new()
         y = 0,
         width = 0,
         height = 0,
-        alpha = 1.0,
-        blendMode = 0,
-        widgets = {}
+        mouseIsInside = false,
+        _controlWasPressedInside = {}
     }
 
-    Proxy.new(self)
-
-    Fn.initialize(self, defaults)
-    Fn.initialize(self, Widget)
+    initialize(self, defaults)
+    initialize(self, Widget)
     return self
 end
 
-function Widget:pointIsInside(pointX, pointY)
+function Widget:controlWasPressedInside(control)
+    return self._controlWasPressedInside[control]
+end
+function Widget:controlJustDragged(control)
+    return self._controlWasPressedInside[control] and control.justDragged
+end
+function Widget:controlJustStartedDragging(control)
+    return self._controlWasPressedInside[control] and control.justStartedDragging
+end
+function Widget:controlJustStoppedDragging(control)
+    return self._controlWasPressedInside[control] and control.justStoppedDragging
+end
+function Widget:pointIsInside(point)
     local x, y, w, h = self.x, self.y, self.width, self.height
+    local pointX, pointY = point.x, point.y
     return pointX >= x and pointX <= x + w
        and pointY >= y and pointY <= y + h
 end
-function Widget:doChildWidgetUpdates()
-    local childWidgets = self.widgets
-    if childWidgets then
-        for i = 1, #childWidgets do
-            local childWidget = childWidgets[i]
-            childWidget:doUpdate()
-        end
-    end
-end
-function Widget:doUpdate()
-    self:doChildWidgetUpdates()
-    if self.update then self:update() end
-end
-function Widget:doChildWidgetDraws()
-    local childWidgets = self.widgets
-    if childWidgets then
-        for i = 1, #childWidgets do
-            local childWidget = childWidgets[i]
-            childWidget:doDraw()
-        end
-    end
-end
-function Widget:doDraw()
-    local a, mode, dest = gfx.a, gfx.mode, gfx.dest
-    gfx.a = self.alpha
-    gfx.mode = self.blendMode
-    if self.draw then self:draw() end
-    gfx.a, gfx.mode, gfx.dest = a, mode, dest
+local mousePoint = {}
+function Widget:update()
+    mousePoint.x, mousePoint.y = mouse.x, mouse.y
+    self.mouseIsInside = self:pointIsInside(mousePoint)
 
-    self:doChildWidgetDraws()
+    for k, v in pairs(mouseButtons) do updateWidgetMouseControlState(self, v) end
+    for k, v in pairs(keyboardModifiers) do updateWidgetMouseControlState(self, v) end
+    for k, v in pairs(keyboardKeys) do updateWidgetMouseControlState(self, v) end
 end
-function Widget:doChildWidgetEndUpdates()
-    local childWidgets = self.widgets
-    if childWidgets then
-        for i = 1, #childWidgets do
-            local childWidget = childWidgets[i]
-            childWidget:doEndUpdate()
-        end
-    end
-end
-function Widget:doEndUpdate()
-    self:doChildWidgetEndUpdates()
-    if self.endUpdate then self:endUpdate() end
-end
+function Widget:draw() end
+function Widget:endUpdate() end
 
 return Widget

@@ -8,7 +8,9 @@ local gfx = gfx
 local Fn = {}
 
 function Fn.setColor(color)
-    gfx.set(color[1], color[2], color[3], gfx.a, gfx.mode)
+    local alpha = color[4] or gfx.a or 1.0
+    local mode = color[5] or gfx.mode or 0
+    gfx.set(color[1], color[2], color[3], alpha, mode)
 end
 function Fn.addColor(color, adder)
     if type(adder) == "table" then
@@ -34,18 +36,6 @@ function Fn.initialize(self, states)
         end
     end
     return self
-end
-function Fn.callWithChanges(fn, defaults, changes)
-    local storedDefaults = {}
-    for k, v in pairs(changes) do
-        storedDefaults[k] = defaults[k]
-        defaults[k] = v
-    end
-    local output = fn(defaults)
-    for k, v in pairs(storedDefaults) do
-        defaults[k] = v
-    end
-    return output
 end
 
 -- Efficiently removes entries from an array based on some condition function.
@@ -202,6 +192,12 @@ end
 function Fn.pointIsInsideBounds(pX, pY, x1, y1, x2, y2)
     return pX >= x1 and pX <= x2
        and pY >= y1 and pY <= y2
+end
+function Fn.pointIsInsideRectangle(point, rectangle)
+    local x, y, w, h = rectangle.x, rectangle.y, rectangle.width, rectangle.height
+    local pointX, pointY = point.x, point.y
+    return pointX >= x and pointX <= x + w
+       and pointY >= y and pointY <= y + h
 end
 
 return Fn
