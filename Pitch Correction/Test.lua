@@ -23,10 +23,10 @@ local DrawableButton = require("DrawableButton")
 window:initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 window:setBackgroundColor(0.2, 0.2, 0.2)
 
-local numberOfButtons = 200
+local numberOfButtons = 3000
 local x = 0
 local y = 0
-local buttonSize = 20
+local buttonSize = 8
 local buttons = {}
 for i = 1, numberOfButtons do
     buttons[i] = DrawableButton.new{
@@ -51,7 +51,7 @@ for i = 1, numberOfButtons do
         }
     }
 
-    x = x + buttonSize
+    x = x + buttonSize + math.random() * 4
     if x > 1000 - buttonSize then
         x = 0
         y = y + buttonSize
@@ -83,7 +83,7 @@ end
 function GUI.update()
     for i = 1, numberOfButtons do
         local button = buttons[i]
-        button.button.pressState[1] = math.random() > 0.5
+        --button.button.pressState[1] = math.random() > 0.5
         button:draw()
     end
 end

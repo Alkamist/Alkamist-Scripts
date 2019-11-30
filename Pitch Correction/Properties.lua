@@ -12,6 +12,7 @@ local property_mt = {
         local propertyGet = property.get
         if propertyGet then return propertyGet(t) end
     end,
+
     __newindex = function(t, k, v)
         local properties = rawget(t, "_properties")
         local property = properties[k]
@@ -22,6 +23,7 @@ local property_mt = {
         local propertySet = property.set
         if propertySet then return propertySet(t, v) end
     end,
+
     __pairs = function(t)
         local wentThroughAllProperties = false
         return function(t, k)
