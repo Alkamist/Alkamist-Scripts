@@ -4,13 +4,10 @@ local min = math.min
 
 local BoxSelect = {}
 
-function BoxSelect.new(selectionControl, additiveStateFn, inversionStateFn)
+function BoxSelect.new(bounds, selectionControl, additiveStateFn, inversionStateFn)
     local self = {}
 
-    self.x1 = 0
-    self.x2 = 0
-    self.y1 = 0
-    self.y2 = 0
+    self.bounds = bounds
     self.isActive = false
     self.thingsToSelect = {}
     self.selectionControl = selectionButton
@@ -18,23 +15,25 @@ function BoxSelect.new(selectionControl, additiveStateFn, inversionStateFn)
     self.inversionStateFn = inversionStateFn
 
     local function _startSelection(self, startingX, startingY)
-        self.x1 = startingX
-        self.x2 = startingX
-        self.y1 = startingY
-        self.y2 = startingY
-        self.x = startingX
-        self.y = startingY
-        self.width = 0
-        self.height = 0
+        local bounds = self.bounds
+        bounds.x = startingX
+        bounds.y = startingY
+        bounds.width = 0
+        bounds.height = 0
     end
     local function _editSelection(editX, editY)
+        local bounds = self.bounds
         self.isActive = true
-        self.x2 = editX
-        self.y2 = editY
-        self.x = min(self.x1, self.x2)
-        self.y = min(self.y1, self.y2)
-        self.width = abs(self.x1 - self.x2)
-        self.height = abs(self.y1 - self.y2)
+
+        local x1 = self.x
+        local y1 = self.y
+        local x2 = editX
+        local y2 = editY
+
+        bounds.x = min(x1, x2)
+        bounds.y = min(y1, y2)
+        bounds.width = abs(x1 - x2)
+        bounds.height = abs(y1 - y2)
     end
     local function _makeSelection(self)
         local thingsToSelect = self.thingsToSelect
