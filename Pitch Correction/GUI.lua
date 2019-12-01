@@ -1,360 +1,138 @@
 local reaper = reaper
 local gfx = gfx
-local pairs = pairs
+local gfxUpdate = gfx.update
+local gfxInit = gfx.init
 
-local function invertTable(t)
-    local invertedTable = {}
-    for k, v in pairs(t) do
-        invertedTable[v] = k
-    end
-    return invertedTable
-end
-local characterTable = {
-    ["Close"]     = -1,
-    ["Backspace"] = 8,
-    ["Tab"]       = 8,
-    ["Enter"]     = 13,
-    ["Escape"]    = 27,
-    ["Space"]     = 32,
-    ["Delete"]    = 127,
-    ["Home"]      = 1752132965,
-    ["End"]       = 6647396,
-    ["Insert"]    = 6909555,
-    ["Delete"]    = 6579564,
-    ["PageUp"]    = 1885828464,
-    ["PageDown"]  = 1885824110,
-    ["Up"]        = 30064,
-    ["Down"]      = 1685026670,
-    ["Left"]      = 1818584692,
-    ["Right"]     = 1919379572,
-    ["F1"]        = 26161,
-    ["F2"]        = 26162,
-    ["F3"]        = 26163,
-    ["F4"]        = 26164,
-    ["F5"]        = 26165,
-    ["F6"]        = 26166,
-    ["F7"]        = 26167,
-    ["F8"]        = 26168,
-    ["F9"]        = 26169,
-    ["F10"]       = 6697264,
-    ["F11"]       = 6697265,
-    ["F12"]       = 6697266,
-    ["Control+a"] = 1,
-    ["Control+b"] = 2,
-    ["Control+c"] = 3,
-    ["Control+d"] = 4,
-    ["Control+e"] = 5,
-    ["Control+f"] = 6,
-    ["Control+g"] = 7,
-    ["Control+h"] = 8,
-    ["Control+i"] = 9,
-    ["Control+j"] = 10,
-    ["Control+k"] = 11,
-    ["Control+l"] = 12,
-    --["Control+m"] = 13,
-    ["Control+n"] = 14,
-    ["Control+o"] = 15,
-    ["Control+p"] = 16,
-    ["Control+q"] = 17,
-    ["Control+r"] = 18,
-    ["Control+s"] = 19,
-    ["Control+t"] = 20,
-    ["Control+u"] = 21,
-    ["Control+v"] = 22,
-    ["Control+w"] = 23,
-    ["Control+x"] = 24,
-    ["Control+y"] = 25,
-    ["Control+z"] = 26,
-    ["!"]         = 33,
-    ["\""]        = 34,
-    ["#"]         = 35,
-    ["$"]         = 36,
-    ["%"]         = 37,
-    ["&"]         = 38,
-    ["\'"]        = 39,
-    ["("]         = 40,
-    [")"]         = 41,
-    ["*"]         = 42,
-    ["+"]         = 43,
-    [","]         = 44,
-    ["."]         = 45,
-    ["/"]         = 47,
-    ["0"]         = 48,
-    ["1"]         = 49,
-    ["2"]         = 50,
-    ["3"]         = 51,
-    ["4"]         = 52,
-    ["5"]         = 53,
-    ["6"]         = 54,
-    ["7"]         = 55,
-    ["8"]         = 56,
-    ["9"]         = 57,
-    [":"]         = 58,
-    [";"]         = 59,
-    ["<"]         = 60,
-    ["="]         = 61,
-    [">"]         = 62,
-    ["?"]         = 63,
-    ["@"]         = 64,
-    ["A"]         = 65,
-    ["B"]         = 66,
-    ["C"]         = 67,
-    ["D"]         = 68,
-    ["E"]         = 69,
-    ["F"]         = 70,
-    ["G"]         = 71,
-    ["H"]         = 72,
-    ["I"]         = 73,
-    ["J"]         = 74,
-    ["K"]         = 75,
-    ["L"]         = 76,
-    ["M"]         = 77,
-    ["N"]         = 78,
-    ["O"]         = 79,
-    ["P"]         = 80,
-    ["Q"]         = 81,
-    ["R"]         = 82,
-    ["S"]         = 83,
-    ["T"]         = 84,
-    ["U"]         = 85,
-    ["V"]         = 86,
-    ["W"]         = 87,
-    ["X"]         = 88,
-    ["Y"]         = 89,
-    ["Z"]         = 90,
-    ["%["]        = 91,
-    ["\\"]        = 92,
-    ["%]"]        = 93,
-    ["^"]         = 94,
-    ["_"]         = 95,
-    ["`"]         = 96,
-    ["a"]         = 97,
-    ["b"]         = 98,
-    ["c"]         = 99,
-    ["d"]         = 100,
-    ["e"]         = 101,
-    ["f"]         = 102,
-    ["g"]         = 103,
-    ["h"]         = 104,
-    ["i"]         = 105,
-    ["j"]         = 106,
-    ["k"]         = 107,
-    ["l"]         = 108,
-    ["m"]         = 109,
-    ["n"]         = 110,
-    ["o"]         = 111,
-    ["p"]         = 112,
-    ["q"]         = 113,
-    ["r"]         = 114,
-    ["s"]         = 115,
-    ["t"]         = 116,
-    ["u"]         = 117,
-    ["v"]         = 118,
-    ["w"]         = 119,
-    ["x"]         = 120,
-    ["y"]         = 121,
-    ["z"]         = 122,
-    ["{"]         = 123,
-    ["|"]         = 124,
-    ["}"]         = 125,
-    ["~"]         = 126,
-}
-local characterTableInverted = invertTable(characterTable)
+local mouseCap = { 0, 0 }
+local mouseX = { 0, 0 }
+local mouseY = { 0, 0 }
+local mouseWheel = { 0, 0 }
+local mouseHWheel = { 0, 0 }
+local keyboardChar = { nil, nil }
+local windowTitle = { "", "" }
+local windowX = { 0, 0 }
+local windowY = { 0, 0 }
+local windowWidth = { 0, 0 }
+local windowHeight = { 0, 0 }
+local windowDock = { 0, 0 }
+local leftMouseButtonState = { false, false }
+local middleMouseButtonState = { false, false }
+local rightMouseButtonState = { false, false }
+local shiftKeyState = { false, false }
+local controlKeyState = { false, false }
+local windowsKeyState = { false, false }
+local altKeyState = { false, false }
+
+--local leftBitValue = 1
+--local middleBitValue = 64
+--local rightBitValue = 2
+--local shiftBitValue = 8
+--local controlBitValue = 4
+--local windowsBitValue = 32
+--local altBitValue = 16
+--
+--local function getMouseButtonState(mouseCap, bitValue) return mouseCap & bitValue == bitValue end
+--local gfxGetChar = gfx.getchar
+--local function getKeyState(character)
+--    return gfxGetChar(characterTable[character]) > 0
+--end
 
 local GUI = {
-    mouse = {
-        cap = 0,
-        x = 0,
-        previousX = 0,
-        xChange = 0,
-        xJustChanged = false,
-        y = 0,
-        previousY = 0,
-        yChange = 0,
-        yJustChanged = false,
-        wheel = 0,
-        wheelJustMoved = false,
-        hWheel = 0,
-        hWheelJustMoved = false,
-        justMoved = false,
-        buttons = {}
-    },
-    keyboard = {
-        keys = {},
-        modifiers = {},
-        char = nil
-    },
-    window = {
-        title = "",
-        x = 0,
-        y = 0,
-        width = 0,
-        previousWidth = 0,
-        widthChange = 0,
-        widthJustChanged = false,
-        height = 0,
-        previousHeight = 0,
-        heightChange = 0,
-        heightJustChanged = false,
-        dock = 0,
-        wasJustResized = false
-    }
+    mouseCap = mouseCap,
+    mouseX = mouseX,
+    mouseY = mouseY,
+    mouseWheel = mouseWheel,
+    mouseHWheel = mouseHWheel,
+    keyboardChar = keyboardChar,
+    windowTitle = windowTitle,
+    windowX = windowX,
+    windowY = windowY,
+    windowWidth = windowWidth,
+    windowHeight = windowHeight,
+    windowDock = windowDock,
+    leftMouseButtonState = leftMouseButtonState,
+    middleMouseButtonState = middleMouseButtonState,
+    rightMouseButtonState = rightMouseButtonState,
+    shiftKeyState = shiftKeyState,
+    controlKeyState = controlKeyState,
+    windowsKeyState = windowsKeyState,
+    altKeyState = altKeyState
 }
-local mouse = GUI.mouse
-local buttons = mouse.buttons
-local keyboard = GUI.keyboard
-local modifiers = keyboard.modifiers
-local keys = keyboard.keys
-local window = GUI.window
 
-local MouseControl = {}
-function MouseControl.new()
-    local self = {}
-
-    self.isPressed = false
-    self.wasPreviouslyPressed = false
-    self.justPressed = false
-    self.justReleased = false
-    self.justDoublePressed = false
-    self.justDragged = false
-    self.justStartedDragging = false
-    self.justStoppedDragging = false
-    self.hasDraggedSincePress = false
-    self.timeOfPreviousPress = nil
-    self.timeSincePreviousPress = nil
-
-    for k, v in pairs(MouseControl) do
-        if k ~= "new" then
-            self[k] = v
-        end
-    end
-    return self
-end
-function MouseControl:update(state)
-    if self.justPressed then self.timeOfPreviousPress = reaper.time_precise() end
-    self.wasPreviouslyPressed = self.isPressed
-
-    self.isPressed = state
-
-    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
-    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-    self.justDragged = self.isPressed and mouse.justMoved
-    self.justStartedDragging = self.justDragged and not self.hasDraggedSincePress
-    if self.justDragged then self.hasDraggedSincePress = true end
-    self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
-    if self.justReleased then self.hasDraggedSincePress = false end
-    if self.timeOfPreviousPress then
-        self.timeSincePreviousPress = reaper.time_precise() - self.timeOfPreviousPress
-        self.justDoublePressed = self.justPressed and self.timeSincePreviousPress <= 0.5
-    end
-end
-
-local MouseButton = {}
-function MouseButton.new(bitValue)
-    local self = MouseControl.new()
-    self.bitValue = bitValue or 0
-    self.update = MouseButton.update
-    return self
-end
-function MouseButton:update()
-    local bitValue = self.bitValue
-    MouseControl.update(self, mouse.cap & bitValue == bitValue)
-end
-
-local KeyboardKey = {}
-function KeyboardKey.new(character)
-    local self = MouseControl.new()
-    self.character = character or ""
-    self.update = KeyboardKey.update
-    return self
-end
-function KeyboardKey:update()
-    local character = self.character
-    MouseControl.update(self, gfx.getchar(characterTable[character]) > 0)
-end
-
-buttons.left = MouseButton.new(1)
-buttons.middle = MouseButton.new(64)
-buttons.right = MouseButton.new(2)
-modifiers.shift = MouseButton.new(8)
-modifiers.control = MouseButton.new(4)
-modifiers.windows = MouseButton.new(32)
-modifiers.alt = MouseButton.new(16)
-
-function mouse:update()
-    mouse.x = gfx.mouse_x
-    mouse.y = gfx.mouse_y
-    mouse.cap = gfx.mouse_cap
-    mouse.wheel = gfx.mouse_wheel / 120
-    gfx.mouse_wheel = 0
-    mouse.hWheel = gfx.mouse_hwheel / 120
-    gfx.mouse_hwheel = 0
-    mouse.xChange = mouse.x - mouse.previousX
-    mouse.xJustChanged = mouse.x ~= mouse.previousX
-    mouse.yChange = mouse.y - mouse.previousY
-    mouse.yJustChanged = mouse.y ~= mouse.previousY
-    mouse.justMoved = mouse.xJustChanged or mouse.yJustChanged
-    mouse.wheelJustMoved = mouse.wheel ~= 0
-    mouse.hWheelJustMoved = mouse.hWheel ~= 0
-
-    for k, v in pairs(mouse.buttons) do v:update() end
-end
-function mouse:endUpdate()
-    mouse.previousX = mouse.x
-    mouse.previousY = mouse.y
-end
-function keyboard:update()
-    for k, v in pairs(keyboard.modifiers) do v:update() end
-    for k, v in pairs(keyboard.keys) do v:update() end
-end
-function keyboard:endUpdate() end
-function keyboard:createKey(character)
-    keys[character] = KeyboardKey.new(character)
-end
-function window:update()
-    window.widthChange = window.width - window.previousWidth
-    window.widthJustChanged = window.width ~= window.previousWidth
-    window.heightChange = window.height - window.previousHeight
-    window.heightJustChanged = window.height ~= window.previousHeight
-    window.wasJustResized = window.widthJustChanged or window.heightJustChanged
-end
-function window:endUpdate()
-    window.previousWidth = window.width
-    window.previousHeight = window.height
-end
-function window:setBackgroundColor(r, g, b)
+function GUI.setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
-function window:initialize(title, width, height, dock, x, y)
-    window.title = title or window.title or ""
-    window.x = x or window.x or 0
-    window.y = y or window.y or 0
-    window.width = width or window.width  or 0
-    window.height = height or window.height or 0
-    window.dock = dock or window.dock or 0
-    gfx.init(title, width, height, dock, x, y)
+function GUI.initialize(title, width, height, dock, x, y)
+    local title = title or windowTitle[1] or ""
+    local x = x or windowX[1] or 0
+    local y = y or windowY[1] or 0
+    local width = width or windowWidth[1]  or 0
+    local height = height or windowHeight[1] or 0
+    local dock = dock or windowDock[1] or 0
+
+    windowTitle[1], windowTitle[2] = title
+    windowX[1], windowX[2] = x
+    windowY[1], windowY[2] = y
+    windowWidth[1], windowWidth[2] = width
+    windowHeight[1], windowHeight[2] = height
+    windowDock[1], windowDock[2] = dock
+
+    gfxInit(title, width, height, dock, x, y)
 end
-
 function GUI.update() end
-
 function GUI.run()
     local timer = reaper.time_precise()
 
-    window:update()
-    mouse:update()
-    keyboard:update()
+    mouseX[1] = gfx.mouse_x
+    mouseY[1] = gfx.mouse_y
+    mouseCap[1] = gfx.mouse_cap
+    mouseWheel[1] = gfx.mouse_wheel / 120
+    gfx.mouse_wheel = 0
+    mouseHWheel[1] = gfx.mouse_hwheel / 120
+    gfx.mouse_hwheel = 0
 
-    local char = characterTableInverted[gfx.getchar()]
-    keyboard.char = char
-    if char == "Space" then reaper.Main_OnCommandEx(40044, 0, 0) end
+    local char = gfx.getchar()
+    keyboardChar[1] = char
+
+    windowWidth[1] = gfx.w
+    windowHeight[1] = gfx.h
+
+    leftMouseButtonState[1] = mouseCap & 1 == 1
+    middleMouseButtonState[1] = mouseCap & 64 == 64
+    rightMouseButtonState[1] = mouseCap & 2 == 2
+    shiftKeyState[1] = mouseCap & 8 == 8
+    controlKeyState[1] = mouseCap & 4 == 4
+    windowsKeyState[1] = mouseCap & 32 == 32
+    altKeyState[1] = mouseCap & 16 == 16
+
+    -- Pass through space.
+    if char == 32 then reaper.Main_OnCommandEx(40044, 0, 0) end
 
     GUI.update()
 
-    if char ~= "Escape" and char ~= "Close" then reaper.defer(GUI.run) end
-    gfx.update()
+    -- Keep the window open unless escape or the close button are pushed.
+    if char ~= 27 and char ~= -1 then reaper.defer(GUI.run) end
+    gfxUpdate()
 
-    window:endUpdate()
-    mouse:endUpdate()
+    mouseCap[2] = mouseCap[1]
+    mouseX[2] = mouseX[1]
+    mouseY[2] = mouseY[1]
+    mouseWheel[2] = mouseWheel[1]
+    mouseHWheel[2] = mouseHWheel[1]
+    keyboardChar[2] = keyboardChar[1]
+    windowTitle[2] = windowTitle[1]
+    windowX[2] = windowX[1]
+    windowY[2] = windowY[1]
+    windowWidth[2] = windowWidth[1]
+    windowHeight[2] = windowHeight[1]
+    windowDock[2] = windowDock[1]
+    leftMouseButtonState[2] = leftMouseButtonState[1]
+    middleMouseButtonState[2] = middleMouseButtonState[1]
+    rightMouseButtonState[2] = rightMouseButtonState[1]
+    shiftKeyState[2] = shiftKeyState[1]
+    controlKeyState[2] = controlKeyState[1]
+    windowsKeyState[2] = windowsKeyState[1]
+    altKeyState[2] = altKeyState[1]
 
     gfx.x = 1
     gfx.y = 1

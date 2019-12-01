@@ -4,38 +4,38 @@ function DragTracker:new()
     local self = self or {}
 
     self.control = self.control
-    self.thingsToTrack = self.thingsToTrack
-    self._wasPressedInsideThing = {}
+    self.objectsToTrack = self.objectsToTrack
+    self._wasPressedInside = {}
 
     return self
 end
 
-function DragTracker:wasPressedInsideThing(thing)
-    return self._wasPressedInsideThing[thing]
+function DragTracker:wasPressedInside(object)
+    return self._wasPressedInside[object]
 end
-function DragTracker:justDraggedThing(thing)
-    return self:wasPressedInsideThing(thing) and self.control:justDragged()
+function DragTracker:justDragged(object)
+    return self:wasPressedInside(object) and self.control:justDragged()
 end
-function DragTracker:justStartedDraggingThing(thing)
-    return self:wasPressedInsideThing(thing) and self.control:justStartedDragging()
+function DragTracker:justStartedDragging(object)
+    return self:wasPressedInside(object) and self.control:justStartedDragging()
 end
-function DragTracker:justStoppedDraggingThing(thing)
-    return self:wasPressedInsideThing(thing) and self.control:justStoppedDragging()
+function DragTracker:justStoppedDragging(object)
+    return self:wasPressedInside(object) and self.control:justStoppedDragging()
 end
+local controlPoint = {}
 function DragTracker:update()
-    bounds.update(self)
-
-    local controls = self.controls
-    for i = 1, #self.controls do
-        local control = controls[i]
+    local objectsToTrack = self.objectsToTrack
+    local control = self.control
+    local wasPressedInside = self._wasPressedInside
+    for i = 1, #objectsToTrack do
+        local object = objectsToTrack[i]
         controlPoint.x = control.x
         controlPoint.y = control.y
-
-        if control:justPressed() and self:pointIsInside(controlPoint) then
-            self._controlWasPressedInside[control] = true
+        if control:justPressed() and object:pointIsInside(controlPoint) then
+            wasPressedInside[object] = true
         end
         if control:justReleased() then
-            self._controlWasPressedInside[control] = false
+            wasPressedInside[object] = false
         end
     end
 end
