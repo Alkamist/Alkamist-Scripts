@@ -4,15 +4,6 @@ local DrawableButton = {}
 
 function DrawableButton:new()
     local self = self or {}
-
-    self.x = self.x
-    self.y = self.y
-    self.width = self.width
-    self.height = self.height
-    self.button = self.button
-    self.drawable = self.drawable
-    self.colors = self.colors
-
     for k, v in pairs(DrawableButton) do if self[k] == nil then self[k] = v end end
     return self
 end
