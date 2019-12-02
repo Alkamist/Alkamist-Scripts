@@ -156,3 +156,8 @@ local characterTable = {
     ["~"]         = 126,
 }
 local characterTableInverted = invertTable(characterTable)
+
+--local gfxGetChar = gfx.getchar
+--local function getKeyState(character)
+--    return gfxGetChar(characterTable[character]) > 0
+--end
