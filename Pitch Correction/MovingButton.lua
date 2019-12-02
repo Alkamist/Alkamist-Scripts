@@ -19,8 +19,9 @@ function MovingButton:justMoved()
     return x1 ~= x2 or y1 ~= y2
 end
 function MovingButton:justDragged() return self:isPressed() and self:justMoved() end
-function MovingButton:justStartedDragging() return self:justDragged() and not self._hasDraggedSincePress end
-function MovingButton:justStoppedDragging() return self:justReleased() and not self._hasDraggedSincePress end
+function MovingButton:hasDraggedSincePress() return self._hasDraggedSincePress end
+function MovingButton:justStartedDragging() return self:justDragged() and not self:hasDraggedSincePress() end
+function MovingButton:justStoppedDragging() return self:justReleased() and not  self:hasDraggedSincePress() end
 
 function MovingButton:update()
     if self:justDragged() then self._hasDraggedSincePress = true end

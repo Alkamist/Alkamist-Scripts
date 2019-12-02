@@ -8,32 +8,15 @@ local GUI = require("GUI")
 GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
-local Button = require("Button")
-local MovingButton = require("MovingButton")
+local createMouseButtons = require("CreateMouseButtons")
 
-local previousLeftMouseButtonState = false
-local previousMouseX = 0
-local previousMouseY = 0
-
-local button1 = Button.new{
-    isPressed = GUI.leftMouseButtonIsPressed,
-    wasPreviouslyPressed = function() return previousLeftMouseButtonState end,
-    getX = GUI.getMouseX,
-    getPreviousX = function() return previousMouseX end,
-    getY = GUI.getMouseY,
-    getPreviousY = function() return previousMouseY end
-}
-
-button1 = MovingButton.new(button1)
+local buttons = createMouseButtons(GUI)
 
 function GUI.update()
-    if button1:justStartedDragging() then msg("left") end
-
-    button1:update()
-
-    previousLeftMouseButtonState = GUI.leftMouseButtonIsPressed()
-    previousMouseX = GUI.getMouseX()
-    previousMouseY = GUI.getMouseY()
+    for k, v in pairs(buttons) do
+        if v:justPressed() then msg(k) end
+        v:update()
+    end
 end
 
 GUI.run()
