@@ -1,31 +1,23 @@
-local MovingButton = {}
+-- x, y
+return function(self, state)
+    local _previousX = state.x
+    local _previousY = state.y
+    local _hasDraggedSincePress = false
 
-function MovingButton:new()
-    local self = self or {}
-    for k, v in pairs(MovingButton) do if self[k] == nil then self[k] = v end end
+    function self.hasDraggedSincePress() return _hasDraggedSincePress end
+    function self.justMoved() return state.x ~= _previousX or state.y ~= _previousY end
+    function self.justDragged() return self.isPressed() and self.justMoved() end
+    function self.justStartedDragging() return self.justDragged() and not _hasDraggedSincePress end
+    function self.justStoppedDragging() return self.justReleased() and not  _hasDraggedSincePress end
 
-    self._hasDraggedSincePress = false
+    local _oldUpdate = self.update
+    function self.update()
+        _oldUpdate()
+        _previousX = _x
+        _previousY = _y
+        if self.justDragged() then _hasDraggedSincePress = true end
+        if self.justReleased() then _hasDraggedSincePress = false end
+    end
 
     return self
 end
-
-function MovingButton:getX() end
-function MovingButton:getPreviousX() end
-function MovingButton:getY() end
-function MovingButton:getPreviousY() end
-
-function MovingButton:justMoved()
-    local x1, x2, y1, y2 = self:getX(), self:getPreviousX(), self:getY(), self:getPreviousY()
-    return x1 ~= x2 or y1 ~= y2
-end
-function MovingButton:justDragged() return self:isPressed() and self:justMoved() end
-function MovingButton:hasDraggedSincePress() return self._hasDraggedSincePress end
-function MovingButton:justStartedDragging() return self:justDragged() and not self:hasDraggedSincePress() end
-function MovingButton:justStoppedDragging() return self:justReleased() and not  self:hasDraggedSincePress() end
-
-function MovingButton:update()
-    if self:justDragged() then self._hasDraggedSincePress = true end
-    if self:justReleased() then self._hasDraggedSincePress = false end
-end
-
-return MovingButton
