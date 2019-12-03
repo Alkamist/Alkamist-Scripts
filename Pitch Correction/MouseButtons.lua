@@ -1,9 +1,10 @@
 local pairs = pairs
 
 local Button = require("Button")
-local MovingButton = require("MovingButton")
 
-return function(GUI)
+local MouseButtons = {}
+
+function MouseButtons.new(GUI)
     local buttons = {}
     local states = {
         left = function() return GUI.leftMouseButtonIsPressed end,
@@ -16,16 +17,18 @@ return function(GUI)
     }
 
     for buttonName, buttonIsPressedFn in pairs(states) do
-        local buttonState = {}
-        local movingButtonState = {}
+        local button = {}
 
-        local button = Button({}, buttonState)
-        button = MovingButton(button, movingButtonState)
+        function button:update()
+            button.isPressed = buttonIsPressedFn()
+            button.x = GUI.mouseX
+            button.y = GUI.mouseY
 
-        function button.updateState()
-            buttonState.isPressed = buttonIsPressedFn()
-            movingButtonState.x = GUI.mouseX
-            movingButtonState.y = GUI.mouseY
+            Button.updateMovingButton(button)
+
+            button.wasPreviouslyPressed = button.isPressed
+            button.previousX = button.x
+            button.previousY = button.y
         end
 
         buttons[buttonName] = button
@@ -33,3 +36,5 @@ return function(GUI)
 
     return buttons
 end
+
+return MouseButtons
