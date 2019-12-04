@@ -9,13 +9,14 @@ GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local MouseButtons = require("MouseButtons")
-local buttons = MouseButtons.new(GUI)
-local leftMouseButton = buttons.left
+local leftMouseButton = MouseButtons.left
 
 function GUI.update()
-    leftMouseButton.update()
+    for k, v in pairs(MouseButtons) do
+        v:update()
 
-    if leftMouseButton.justMoved then msg("left") end
+        if v.justPressed then msg(k) end
+    end
 end
 
 GUI.run()

@@ -11,10 +11,30 @@ local gfxSetFont = gfx.setfont
 local gfxMeasureStr = gfx.measurestr
 local gfxDrawStr = gfx.drawstr
 
--- x, y, alpha, blendMode
-local Drawable = {}
+local Graphics = {}
 
-function Drawable:setColor(rOrColor, g, b)
+function Graphics:new(o)
+    local self = setmetatable(o or {}, { __index = self })
+    self:initialize()
+    return self
+end
+
+function Graphics:initialize()
+    local defaults = {
+        x = 0,
+        y = 0,
+        alpha = 1,
+        blendMode = 0
+    }
+
+    for k, v in pairs(defaults) do
+        if self[k] == nil then
+            self[k] = v
+        end
+    end
+end
+
+function Graphics:setColor(rOrColor, g, b)
     if type(rOrColor) == "number" then
         gfxSet(rOrColor, g, b, self.alpha, self.blendMode)
     else
@@ -23,12 +43,12 @@ function Drawable:setColor(rOrColor, g, b)
         gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
     end
 end
-function Drawable:drawRectangle(x, y, w, h, filled)
+function Graphics:drawRectangle(x, y, w, h, filled)
     local drawX = self.x + x
     local drawY = self.y + y
     gfxRect(drawX, drawY, w, h, filled)
 end
-function Drawable:drawLine(x, y, x2, y2, antiAliased)
+function Graphics:drawLine(x, y, x2, y2, antiAliased)
     local positionX = self.x
     local positionY = self.y
     local drawX = positionX + x
@@ -37,12 +57,12 @@ function Drawable:drawLine(x, y, x2, y2, antiAliased)
     local drawY2 = positionY + y2
     gfxLine(drawX, drawY, drawX2, drawY2, antiAliased)
 end
-function Drawable:drawCircle(x, y, r, filled, antiAliased)
+function Graphics:drawCircle(x, y, r, filled, antiAliased)
     local drawX = self.x + x
     local drawY = self.y + y
     gfxCircle(drawX, drawY, r, filled, antiAliased)
 end
-function Drawable:drawString(str, x, y, x2, y2, flags)
+function Graphics:drawString(str, x, y, x2, y2, flags)
     local positionX = self.x
     local positionY = self.y
     local drawX = positionX + x
@@ -57,15 +77,15 @@ function Drawable:drawString(str, x, y, x2, y2, flags)
         gfxDrawStr(str)
     end
 end
-function Drawable:setFont(fontOrName, fontSize)
+function Graphics:setFont(fontOrName, fontSize)
     if type(fontOrName) == "string" then
         gfxSetFont(1, fontOrName, fontSize)
     else
         gfxSetFont(1, fontOrName.name, fontOrName.size)
     end
 end
-function Drawable:measureString(str)
+function Graphics:measureString(str)
     return gfxMeasureStr(str)
 end
 
-return Drawable
+return Graphics

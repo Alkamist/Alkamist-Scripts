@@ -1,40 +1,34 @@
-local pairs = pairs
-
-local Button = require("Button")
+local GUI = require("GUI")
+local MovingButton = require("MovingButton")
 
 local MouseButtons = {}
 
-function MouseButtons.new(GUI)
-    local buttons = {}
-    local states = {
-        left = function() return GUI.leftMouseButtonIsPressed end,
-        middle = function() return GUI.middleMouseButtonIsPressed end,
-        right = function() return GUI.rightMouseButtonIsPressed end,
-        shift = function() return GUI.shiftKeyIsPressed end,
-        control = function() return GUI.controKeyIsPressed end,
-        windows = function() return GUI.windowsKeyIsPressed end,
-        alt = function() return GUI.altKeyIsPressed end,
-    }
+local states = {
+    left = function() return GUI.leftMouseButtonIsPressed end,
+    middle = function() return GUI.middleMouseButtonIsPressed end,
+    right = function() return GUI.rightMouseButtonIsPressed end,
+    shift = function() return GUI.shiftKeyIsPressed end,
+    control = function() return GUI.controlKeyIsPressed end,
+    windows = function() return GUI.windowsKeyIsPressed end,
+    alt = function() return GUI.altKeyIsPressed end,
+}
 
-    for buttonName, buttonIsPressedFn in pairs(states) do
-        local button = {}
+for buttonName, buttonIsPressedFn in pairs(states) do
+    local button = MovingButton:new()
 
-        function button:update()
-            button.isPressed = buttonIsPressedFn()
-            button.x = GUI.mouseX
-            button.y = GUI.mouseY
+    function button:update()
+        self.isPressed = buttonIsPressedFn()
+        self.x = GUI.mouseX
+        self.y = GUI.mouseY
 
-            Button.updateMovingButton(button)
+        MovingButton.update(self)
 
-            button.wasPreviouslyPressed = button.isPressed
-            button.previousX = button.x
-            button.previousY = button.y
-        end
-
-        buttons[buttonName] = button
+        self.wasPreviouslyPressed = self.isPressed
+        self.previousX = self.x
+        self.previousY = self.y
     end
 
-    return buttons
+    MouseButtons[buttonName] = button
 end
 
 return MouseButtons
