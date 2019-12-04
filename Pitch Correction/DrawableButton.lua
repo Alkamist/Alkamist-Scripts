@@ -1,11 +1,10 @@
 local Graphics = require("Graphics")
 local MovingButton = require("MovingButton")
 
-local DrawableButton = MovingButton:new()
+local DrawableButton = {}
 
-function DrawableButton:initialize()
-    MovingButton.initialize(self)
-
+function DrawableButton:new(object)
+    local object = object or {}
     local defaults = {
         width = 0,
         height = 0,
@@ -13,19 +12,15 @@ function DrawableButton:initialize()
         outlineColor = { 0.15, 0.15, 0.15, 1, 0 },
         highlightColor = { 1, 1, 1, 0.15, 1 },
         pressedColor = { 1, 1, 1, -0.15, 1 },
-        graphics = Graphics:new()
+        graphics = Graphics:new{
+            x = object.x,
+            y = object.y
+        }
     }
 
-    for k, v in pairs(defaults) do
-        if self[k] == nil then
-            self[k] = v
-        end
-    end
-end
-
-function DrawableButton:pointIsInside(point)
-    return point.x >= self.x and point.y <= self.x + self.width
-       and point.y >= self.y and point.y <= self.y + self.height
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return MovingButton:new(object)
 end
 
 function DrawableButton:draw()

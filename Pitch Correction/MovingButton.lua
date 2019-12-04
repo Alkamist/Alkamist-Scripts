@@ -1,10 +1,9 @@
 local Button = require("Button")
 
-local MovingButton = Button:new()
+local MovingButton = {}
 
-function MovingButton:initialize()
-    Button.initialize(self)
-
+function MovingButton:new(object)
+    local object = object or {}
     local defaults = {
         x = 0,
         previousX = 0,
@@ -17,11 +16,9 @@ function MovingButton:initialize()
         hasDraggedSincePress = false
     }
 
-    for k, v in pairs(defaults) do
-        if self[k] == nil then
-            self[k] = v
-        end
-    end
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return Button:new(object)
 end
 
 function MovingButton:update()

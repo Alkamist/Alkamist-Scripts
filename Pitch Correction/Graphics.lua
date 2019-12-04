@@ -13,13 +13,8 @@ local gfxDrawStr = gfx.drawstr
 
 local Graphics = {}
 
-function Graphics:new(o)
-    local self = setmetatable(o or {}, { __index = self })
-    self:initialize()
-    return self
-end
-
-function Graphics:initialize()
+function Graphics:new(object)
+    local object = object or {}
     local defaults = {
         x = 0,
         y = 0,
@@ -27,11 +22,9 @@ function Graphics:initialize()
         blendMode = 0
     }
 
-    for k, v in pairs(defaults) do
-        if self[k] == nil then
-            self[k] = v
-        end
-    end
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return object
 end
 
 function Graphics:setColor(rOrColor, g, b)

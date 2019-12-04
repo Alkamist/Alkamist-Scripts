@@ -1,12 +1,7 @@
 local Button = {}
 
-function Button:new(o)
-    local self = setmetatable(o or {}, { __index = self })
-    self:initialize()
-    return self
-end
-
-function Button:initialize()
+function Button:new(object)
+    local object = object or {}
     local defaults = {
         isPressed = false,
         wasPreviouslyPressed = false,
@@ -14,11 +9,9 @@ function Button:initialize()
         justReleased = false
     }
 
-    for k, v in pairs(defaults) do
-        if self[k] == nil then
-            self[k] = v
-        end
-    end
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return object
 end
 
 function Button:update()
