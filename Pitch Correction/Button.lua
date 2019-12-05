@@ -103,10 +103,15 @@ function Button:updateGlowConditions()
 
     self.isGlowing = self.glowWhenControlIsInside and (pressControlIsInside or toggleControlIsInside)
 end
+function Button:updateGraphics()
+    self.graphics.x = self.x
+    self.graphics.y = self.y
+end
 function Button:update()
     self:updatePressConditions()
     self:updateDragConditions()
     self:updateGlowConditions()
+    self:updateGraphics()
 end
 function Button:draw()
     local graphics = self.graphics

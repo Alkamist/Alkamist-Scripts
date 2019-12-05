@@ -10,6 +10,7 @@ GUI:setBackgroundColor(0.2, 0.2, 0.2)
 
 local MouseButtons = require("MouseButtons")
 local Button = require("Button")
+local BoxSelect = require("BoxSelect")
 
 local button1 = Button:new{
     x = 100,
@@ -20,13 +21,27 @@ local button1 = Button:new{
     toggleControl = MouseButtons.right
 }
 
+local boxSelect = BoxSelect:new{
+    selectionControl = MouseButtons.right
+}
+
 MouseButtons.left.objectsToDrag = { button1 }
 
+local x = MouseButtons.left.x
+local previousX = MouseButtons.left.x
 function GUI.update()
     for k, v in pairs(MouseButtons) do v:update() end
     button1:update()
-    if MouseButtons.left.justDraggedObject[button1] then msg("yee") end
+    boxSelect:update()
+
+    previousX = x
+    x = MouseButtons.left.x
+    if MouseButtons.left.justDraggedObject[button1] then
+        button1.x = button1.x + x - previousX
+    end
+
     button1:draw()
+    boxSelect:draw()
 end
 
 GUI:run()

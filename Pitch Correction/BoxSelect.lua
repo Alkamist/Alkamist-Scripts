@@ -1,85 +1,102 @@
+local Graphics = require("Graphics")
+
 local math = math
 local abs = math.abs
 local min = math.min
+local max = math.max
 
 local BoxSelect = {}
 
-function BoxSelect.new(bounds, selectionControl, additiveStateFn, inversionStateFn)
-    local self = {}
+function BoxSelect:new(object)
+    local object = object or {}
+    local defaults = {}
 
-    self.bounds = bounds
-    self.isActive = false
-    self.thingsToSelect = {}
-    self.selectionControl = selectionButton
-    self.additiveStateFn = additiveStateFn
-    self.inversionStateFn = inversionStateFn
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
+    defaults.isActive = false
 
-    local function _startSelection(self, startingX, startingY)
-        local bounds = self.bounds
-        bounds.x = startingX
-        bounds.y = startingY
-        bounds.width = 0
-        bounds.height = 0
-    end
-    local function _editSelection(editX, editY)
-        local bounds = self.bounds
-        self.isActive = true
+    defaults.objectsToSelect = {}
+    defaults.objectIsSelected = {}
+    defaults.selectionControl = nil
+    defaults.shouldAdd = false
+    defaults.shouldInvert = false
 
-        local x1 = self.x
-        local y1 = self.y
-        local x2 = editX
-        local y2 = editY
+    defaults.bodyColor = { 1, 1, 1, -0.04, 1 }
+    defaults.outlineColor = { 1, 1, 1, 0.3, 1 }
+    defaults.graphics = Graphics:new{
+        x = object.x,
+        y = object.y
+    }
 
-        bounds.x = min(x1, x2)
-        bounds.y = min(y1, y2)
-        bounds.width = abs(x1 - x2)
-        bounds.height = abs(y1 - y2)
-    end
-    local function _makeSelection(self)
-        local thingsToSelect = self.thingsToSelect
-        local thingIsInside = self.thingIsInside
-        local setThingSelected = self.setThingSelected
-        local thingIsSelected = self.thingIsSelected
-        local shouldAdd = additiveStateFn()
-        local shouldInvert = inversionStateFn()
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return object
+end
 
-        if thingsToSelect then
-            for i = 1, #thingsToSelect do
-                local thing = thingsToSelect[i]
+function BoxSelect:pointIsInside(point)
+    return point.x >= self.x and point.x <= self.x + self.width
+       and point.y >= self.y and point.y <= self.y + self.height
+end
+function BoxSelect:startSelection(point)
+    self.x = point.x
+    self.y = point.y
+    self.width = 0
+    self.height = 0
+end
+function BoxSelect:editSelection(point)
+    self.isActive = true
 
-                if thingIsInside(self, thing) then
-                    if shouldInvert then
-                        setThingSelected(self, thing, not thingIsSelected(self, thing))
-                    else
-                        setThingSelected(self, thing, true)
-                    end
+    self.x = min(self.x, point.x)
+    self.y = min(self.y, point.y)
+    self.width = abs(self.x - point.x)
+    self.height = abs(self.y - point.y)
+end
+function BoxSelect:makeSelection()
+    if self.objectsToSelect then
+        for i = 1, #self.objectsToSelect do
+            local object = self.objectsToSelect[i]
+
+            if self:pointIsInside(object) then
+                if self.shouldInvert then
+                    self.objectIsSelected[object] = not self.objectIsSelected[object]
                 else
-                    if not shouldAdd and not shouldInvert then
-                        setThingSelected(self, thing, false)
-                    end
+                    self.objectIsSelected[object] = true
+                end
+            else
+                if not self.shouldAdd and not self.shouldInvert then
+                    self.objectIsSelected[object] = false
                 end
             end
         end
-        self.isActive = false
     end
+    self.isActive = false
+end
+function BoxSelect:updateGraphics()
+    self.graphics.x = self.x
+    self.graphics.y = self.y
+end
+function BoxSelect:update()
+    local selectionControl = self.selectionControl
+    if selectionControl.justPressed then self:startSelection(selectionControl) end
+    if selectionControl.isPressed then self:editSelection(selectionControl) end
+    if selectionControl.justReleased then self:makeSelection() end
+    self:updateGraphics()
+end
+function BoxSelect:draw()
+    local graphics = self.graphics
+    local w, h = self.width, self.height
 
-    function BoxSelect:thingIsInside(thing)
-        return self:pointIsInside(thing)
-    end
-    function BoxSelect:setThingSelected(thing, shouldSelect)
-        thing.isSelected = shouldSelect
-    end
-    function BoxSelect:thingIsSelected(thing)
-        return thing.isSelected
-    end
-    function BoxSelect:update()
-        local selectionControl = self.selectionControl
-        if selectionControl:justPressed() then _startSelection(self, selectionControl.x, selectionControl.y) end
-        if selectionControl.isPressed then _editSelection(self, selectionControl.x, selectionControl.y) end
-        if selectionControl:justReleased() then _makeSelection(self) end
-    end
+    if self.isActive then
+        -- Draw the body.
+        graphics:setColor(self.bodyColor)
+        graphics:drawRectangle(1, 1, w - 2, h - 2, true)
 
-    return self
+        -- Draw the outline.
+        graphics:setColor(self.outlineColor)
+        graphics:drawRectangle(0, 0, w, h, false)
+    end
 end
 
 return BoxSelect
