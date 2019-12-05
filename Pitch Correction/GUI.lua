@@ -25,10 +25,10 @@ local GUI = {
     altKeyState = false
 }
 
-function GUI.setBackgroundColor(r, g, b)
+function GUI:setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
-function GUI.initialize(title, width, height, dock, x, y)
+function GUI:initialize(title, width, height, dock, x, y)
     local title = title or GUI.windowTitle or ""
     local x = x or GUI.windowX or 0
     local y = y or GUI.windowY or 0
@@ -45,8 +45,8 @@ function GUI.initialize(title, width, height, dock, x, y)
 
     gfxInit(title, width, height, dock, x, y)
 end
-function GUI.update() end
-function GUI.run()
+function GUI:update() end
+function GUI:run()
     local timer = reaper.time_precise()
 
     local mouseCap = gfx.mouse_cap

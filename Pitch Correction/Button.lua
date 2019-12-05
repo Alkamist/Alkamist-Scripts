@@ -49,7 +49,7 @@ function Button:new(object)
 end
 
 function Button:pointIsInside(point)
-    return point.x >= self.x and point.y <= self.x + self.width
+    return point.x >= self.x and point.x <= self.x + self.width
        and point.y >= self.y and point.y <= self.y + self.height
 end
 function Button:updatePressConditions()
