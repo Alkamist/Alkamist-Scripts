@@ -22,8 +22,8 @@ function BoxSelect:new(object)
     defaults.objectsToSelect = {}
     defaults.objectIsSelected = {}
     defaults.selectionControl = nil
-    defaults.shouldAdd = false
-    defaults.shouldInvert = false
+    defaults.additiveControl = nil
+    defaults.inversionControl = nil
 
     defaults.bodyColor = { 1, 1, 1, -0.04, 1 }
     defaults.outlineColor = { 1, 1, 1, 0.3, 1 }
@@ -58,19 +58,25 @@ function BoxSelect:editSelection(point)
     self.height = abs(self.startingY - point.y)
 end
 function BoxSelect:makeSelection()
-    if self.objectsToSelect then
-        for i = 1, #self.objectsToSelect do
-            local object = self.objectsToSelect[i]
+    local objectsToSelect = self.objectsToSelect
+    local additiveControl = self.additiveControl
+    local inversionControl = self.inversionControl
+    local objectIsSelected = self.objectIsSelected
+    local pointIsInside = self.pointIsInside
 
-            if self:pointIsInside(object) then
-                if self.shouldInvert then
-                    self.objectIsSelected[object] = not self.objectIsSelected[object]
+    if objectsToSelect then
+        for i = 1, #objectsToSelect do
+            local object = objectsToSelect[i]
+
+            if pointIsInside(self, object) then
+                if inversionControl.isPressed then
+                    objectIsSelected[object] = not objectIsSelected[object]
                 else
-                    self.objectIsSelected[object] = true
+                    objectIsSelected[object] = true
                 end
             else
-                if not self.shouldAdd and not self.shouldInvert then
-                    self.objectIsSelected[object] = false
+                if not additiveControl.isPressed and not inversionControl.isPressed then
+                    objectIsSelected[object] = false
                 end
             end
         end

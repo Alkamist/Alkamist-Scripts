@@ -22,7 +22,10 @@ local button1 = Button:new{
 }
 
 local boxSelect = BoxSelect:new{
-    selectionControl = MouseButtons.right
+    selectionControl = MouseButtons.right,
+    additiveControl = MouseButtons.shift,
+    inversionControl = MouseButtons.control,
+    objectsToSelect = { button1 }
 }
 
 MouseButtons.left.objectsToDrag = { button1 }
@@ -40,6 +43,8 @@ function GUI.update()
 
     button1:update()
     boxSelect:update()
+
+    button1.isPressed = boxSelect.objectIsSelected[button1]
 
     button1:draw()
     boxSelect:draw()
