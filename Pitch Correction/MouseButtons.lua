@@ -1,5 +1,5 @@
 local GUI = require("GUI")
-local MovingButton = require("MovingButton")
+local Button = require("Button")
 
 local MouseButtons = {}
 
@@ -14,14 +14,14 @@ local states = {
 }
 
 for buttonName, buttonIsPressedFn in pairs(states) do
-    local button = MovingButton:new()
+    local button = Button:new()
 
     function button:update()
         self.isPressed = buttonIsPressedFn()
         self.x = GUI.mouseX
         self.y = GUI.mouseY
 
-        MovingButton.update(self)
+        Button.update(self)
 
         self.wasPreviouslyPressed = self.isPressed
         self.previousX = self.x

@@ -9,18 +9,23 @@ GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local MouseButtons = require("MouseButtons")
-local WidgetButton = require("WidgetButton")
+local Button = require("Button")
 
-local button1 = WidgetButton:new{
+local button1 = Button:new{
     x = 100,
     y = 100,
     width = 100,
-    height = 40
+    height = 40,
+    pressControl = MouseButtons.left,
+    toggleControl = MouseButtons.right
 }
+
+MouseButtons.left.objectsToDrag = { button1 }
 
 function GUI.update()
     for k, v in pairs(MouseButtons) do v:update() end
     button1:update()
+    if MouseButtons.left.justDraggedObject[button1] then msg("yee") end
     button1:draw()
 end
 

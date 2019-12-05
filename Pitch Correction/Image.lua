@@ -2,15 +2,6 @@ local reaper = reaper
 local gfx = gfx
 local pairs = pairs
 
-local Fn = require("Fn")
-local Widget = require("Widget")
-local GUI = require("GUI")
-local mouse = GUI.mouse
-local mouseButtons = mouse.buttons
-local keyboard = GUI.keyboard
-local keyboardModifiers = keyboard.modifiers
-local keyboardKeys = GUI.keyboard.keys
-
 local usedImageBuffers = {}
 local function getNewImageBuffer()
     for i = 0, 1023 do
@@ -21,18 +12,21 @@ local function getNewImageBuffer()
     end
 end
 
-local Image = {}
-function Image:new()
-    local defaults = {
-        imageBuffer = getNewImageBuffer(),
-        backgroundColor = { 0, 0, 0 }
-    }
+function Image:new(object)
+    local object = object or {}
+    local defaults = {}
 
-    Fn.initialize(self, defaults)
-    Fn.initialize(self, Image)
-    Widget.new(self)
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
+    defaults.imageBuffer = getNewImageBuffer()
+    defaults.backgroundColor = { 0, 0, 0, 1, 0 }
+
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     self:clear()
-    return self
+    return object
 end
 
 function Image:clear()
@@ -40,24 +34,19 @@ function Image:clear()
     gfx.setimgdim(imageBuffer, -1, -1)
     gfx.setimgdim(imageBuffer, self.width, self.height)
 end
-function Image:doDraw()
-    local a, mode, dest = gfx.a, gfx.mode, gfx.dest
-    gfx.a = self.alpha
-    gfx.mode = self.blendMode
-    gfx.dest = self.imageBuffer
 
+function Image:draw()
     local x, y, w, h = self.x, self.y, self.width, self.height
     local backgroundColor = self.backgroundColor
+    local graphics = self.graphics
+
     if backgroundColor then
-        self:setColor(self.backgroundColor)
-        gfx.rect(0, 0, w, h, true)
+        graphics:setColor(self.backgroundColor)
+        graphics:drawRectangle(0, 0, w, h, true)
     end
-    if self.draw then self:draw() end
 
     gfx.dest = dest
     gfx.blit(self.imageBuffer, 1.0, 0, 0, 0, w, h, x, y, w, h, 0, 0)
-
-    gfx.a, gfx.mode = a, mode
 end
 
 return Image
