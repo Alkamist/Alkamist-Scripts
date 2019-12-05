@@ -16,6 +16,8 @@ function BoxSelect:new(object)
     defaults.width = 0
     defaults.height = 0
     defaults.isActive = false
+    defaults.startingX = 0
+    defaults.startingY = 0
 
     defaults.objectsToSelect = {}
     defaults.objectIsSelected = {}
@@ -40,18 +42,20 @@ function BoxSelect:pointIsInside(point)
        and point.y >= self.y and point.y <= self.y + self.height
 end
 function BoxSelect:startSelection(point)
-    self.x = point.x
-    self.y = point.y
+    self.startingX = point.x
+    self.startingY = point.y
+    self.x = self.startingX
+    self.y = self.startingY
     self.width = 0
     self.height = 0
 end
 function BoxSelect:editSelection(point)
     self.isActive = true
 
-    self.x = min(self.x, point.x)
-    self.y = min(self.y, point.y)
-    self.width = abs(self.x - point.x)
-    self.height = abs(self.y - point.y)
+    self.x = min(self.startingX, point.x)
+    self.y = min(self.startingY, point.y)
+    self.width = abs(self.startingX - point.x)
+    self.height = abs(self.startingY - point.y)
 end
 function BoxSelect:makeSelection()
     if self.objectsToSelect then

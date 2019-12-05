@@ -31,14 +31,15 @@ local x = MouseButtons.left.x
 local previousX = MouseButtons.left.x
 function GUI.update()
     for k, v in pairs(MouseButtons) do v:update() end
-    button1:update()
-    boxSelect:update()
 
     previousX = x
     x = MouseButtons.left.x
     if MouseButtons.left.justDraggedObject[button1] then
         button1.x = button1.x + x - previousX
     end
+
+    button1:update()
+    boxSelect:update()
 
     button1:draw()
     boxSelect:draw()
