@@ -9,6 +9,21 @@ ButtonDraw.filter = tiny.requireAll(
     "bodyColor", "outlineColor", "pressedColor", "highlightColor"
 )
 
+function ButtonDrag:getDefault()
+    local e = {}
+    e.x = 0
+    e.y = 0
+    e.width = 0
+    e.height = 0
+    e.isPressed = false
+    e.isGlowing = false
+    e.bodyColor = { 0.4, 0.4, 0.4, 1, 0 }
+    e.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
+    e.pressedColor = { 1, 1, 1, 0.1, 1 }
+    e.highlightColor = { 1, 1, 1, -0.15, 1 }
+    return e
+end
+
 function ButtonDraw:process(e, dt)
     local x, y, w, h = e.x, e.y, e.width, e.height
 

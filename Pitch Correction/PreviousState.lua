@@ -2,12 +2,14 @@ local tiny = require("tiny")
 
 local PreviousState = tiny.processingSystem()
 
-PreviousState.filter = tiny.requireAll(
-    "isPressed"
+PreviousState.filter = tiny.requireAny(
+    "isPressed", "x", "y"
 )
 
 function PreviousState:process(e, dt)
-    self.wasPreviouslyPressed = self.isPressed
+    e.wasPreviouslyPressed = e.isPressed
+    e.previousX = e.x
+    e.previousY = e.y
 end
 
 return PreviousState

@@ -7,10 +7,10 @@ Position.filter = tiny.requireAll(
 )
 
 function Position:process(e, dt)
-    e.xChange = self.x - self.previousX
-    e.xJustChanged = self.x ~= self.previousX
-    e.yChange = self.y - self.previousY
-    e.yJustChanged = self.y ~= self.previousY
+    e.xChange = e.x - e.previousX
+    e.xJustChanged = e.x ~= e.previousX
+    e.yChange = e.y - e.previousY
+    e.yJustChanged = e.y ~= e.previousY
     e.justMoved = e.xJustChanged or e.yJustChanged
 end
 

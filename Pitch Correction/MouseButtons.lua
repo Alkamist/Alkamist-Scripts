@@ -1,9 +1,7 @@
+local tiny = require("tiny")
 local GUI = require("GUI")
-local Button = require("Button")
 
-local MouseButtons = {}
-
-local states = {
+local mouseStateFns = {
     left = function() return GUI.leftMouseButtonIsPressed end,
     middle = function() return GUI.middleMouseButtonIsPressed end,
     right = function() return GUI.rightMouseButtonIsPressed end,
@@ -13,22 +11,20 @@ local states = {
     alt = function() return GUI.altKeyIsPressed end,
 }
 
-for buttonName, buttonIsPressedFn in pairs(states) do
-    local button = Button:new()
+local MouseButtons = tiny.processingSystem()
 
-    function button:update()
-        self.isPressed = buttonIsPressedFn()
-        self.x = GUI.mouseX
-        self.y = GUI.mouseY
+MouseButtons.filter = tiny.requireAll(
+    "mouseButtonName"
+)
 
-        Button.update(self)
+function MouseButtons:onAdd(e)
 
-        self.wasPreviouslyPressed = self.isPressed
-        self.previousX = self.x
-        self.previousY = self.y
-    end
+end
 
-    MouseButtons[buttonName] = button
+function MouseButtons:process(e, dt)
+    e.isPressed = mouseStateFns[e.mouseButtonName]()
+    e.x = GUI.mouseX
+    e.y = GUI.mouseY
 end
 
 return MouseButtons

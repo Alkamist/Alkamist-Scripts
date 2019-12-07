@@ -6,9 +6,18 @@ ButtonState.filter = tiny.requireAll(
     "isPressed", "wasPreviouslyPressed"
 )
 
+function ButtonState:getDefault()
+    local e = {}
+    e.isPressed = false
+    e.wasPreviouslyPressed = false
+    e.justPressed = false
+    e.justReleased = false
+    return e
+end
+
 function ButtonState:process(e, dt)
-    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
-    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
+    e.justPressed = e.isPressed and not e.wasPreviouslyPressed
+    e.justReleased = not e.isPressed and e.wasPreviouslyPressed
 end
 
 --function Button:justDraggedObject(object) return Button.wasPressedInsideObject(self, object) and Button.justDragged(self) end
