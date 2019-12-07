@@ -7,6 +7,17 @@ local gfx = gfx
 local gfxUpdate = gfx.update
 local gfxInit = gfx.init
 local gfxGetChar = gfx.getchar
+local gfxSet = gfx.set
+local gfxRect = gfx.rect
+local gfxLine = gfx.line
+local gfxCircle = gfx.circle
+local gfxTriangle = gfx.triangle
+local gfxRoundRect = gfx.roundrect
+local gfxSetFont = gfx.setfont
+local gfxMeasureStr = gfx.measurestr
+local gfxDrawStr = gfx.drawstr
+
+local type = type
 
 local GUI = {
     mouseCap = 0,
@@ -29,6 +40,40 @@ local GUI = {
     windowsKeyIsPressed = false,
     altKeyState = false
 }
+
+function GUI.setColor(rOrColor, g, b)
+    if type(rOrColor) == "number" then
+        gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)
+    else
+        local alpha = rOrColor[4] or gfx.a or 1
+        local blendMode = rOrColor[5] or gfx.mode or 0
+        gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
+    end
+end
+function GUI.drawRectangle(x, y, w, h, filled)
+    gfxRect(x, y, w, h, filled)
+end
+function GUI.drawLine(x, y, x2, y2, antiAliased)
+    gfxLine(x, y, x2, y2, antiAliased)
+end
+function GUI.drawCircle(x, y, r, filled, antiAliased)
+    gfxCircle(x, y, r, filled, antiAliased)
+end
+function GUI.drawString(str, x, y, x2, y2, flags)
+    gfx.x = x
+    gfx.y = y
+    if flags then
+        gfxDrawStr(str, flags, x2, y2)
+    else
+        gfxDrawStr(str)
+    end
+end
+function GUI.setFont(fontName, fontSize)
+    gfxSetFont(1, fontName, fontSize)
+end
+function GUI.measureString(str)
+    return gfxMeasureStr(str)
+end
 
 function GUI.setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
