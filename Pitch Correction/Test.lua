@@ -5,49 +5,37 @@ function msg(m) reaper.ShowConsoleMsg(tostring(m) .. "\n") end
 package.path = reaper.GetResourcePath() .. package.config:sub(1,1) .. "Scripts\\Alkamist Scripts\\Pitch Correction\\?.lua;" .. package.path
 local GUI = require("GUI")
 
-GUI:initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
-GUI:setBackgroundColor(0.2, 0.2, 0.2)
+GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
+GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
-local MouseButtons = require("MouseButtons")
-local Button = require("Button")
-local BoxSelect = require("BoxSelect")
+local tiny = require("tiny")
 
-local button1 = Button:new{
-    x = 100,
-    y = 100,
-    width = 100,
-    height = 40,
-    pressControl = MouseButtons.left,
-    toggleControl = MouseButtons.right
-}
+local WidgetSystem = tiny.processingSystem()
+WidgetSystem.filter = tiny.requireAll("x", "y")
 
-local boxSelect = BoxSelect:new{
-    selectionControl = MouseButtons.right,
-    additiveControl = MouseButtons.shift,
-    inversionControl = MouseButtons.control,
-    objectsToSelect = { button1 }
-}
+function WidgetSystem:process(e, dt)
+    e.x = e.x + dt
 
-MouseButtons.left.objectsToDrag = { button1 }
-
-local x = MouseButtons.left.x
-local previousX = MouseButtons.left.x
-function GUI.update()
-    for k, v in pairs(MouseButtons) do v:update() end
-
-    previousX = x
-    x = MouseButtons.left.x
-    if MouseButtons.left.justDraggedObject[button1] then
-        button1.x = button1.x + x - previousX
-    end
-
-    button1:update()
-    boxSelect:update()
-
-    button1.isPressed = boxSelect.objectIsSelected[button1]
-
-    button1:draw()
-    boxSelect:draw()
+    gfx.x = 300
+    gfx.y = 300
+    gfx.set(0.7, 0.7, 0.7, 1, 0)
+    gfx.drawnumber(e.x, 1)
 end
 
-GUI:run()
+local test1 = {
+    x = 50,
+    y = 50
+}
+
+local world = tiny.world(WidgetSystem, test1)
+
+function GUI.update(dt)
+    world:update(dt)
+
+    gfx.x = 1
+    gfx.y = 1
+    gfx.set(0.7, 0.7, 0.7, 1, 0)
+    gfx.drawnumber(1 / dt, 1)
+end
+
+GUI.run()

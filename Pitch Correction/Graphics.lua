@@ -15,17 +15,19 @@ local Graphics = {}
 
 function Graphics:new(object)
     local object = object or {}
-    local defaults = {
-        x = 0,
-        y = 0,
-        alpha = 1,
-        blendMode = 0
-    }
+    local defaults = {}
+
+    defaults.drawX = 0
+    defaults.drawY = 0
+    defaults.alpha = 1
+    defaults.blendMode = 0
 
     for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
     for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
     return object
 end
+
+
 
 function Graphics:setColor(rOrColor, g, b)
     if type(rOrColor) == "number" then
@@ -37,13 +39,13 @@ function Graphics:setColor(rOrColor, g, b)
     end
 end
 function Graphics:drawRectangle(x, y, w, h, filled)
-    local drawX = self.x + x
-    local drawY = self.y + y
+    local drawX = self.drawX + x
+    local drawY = self.drawY + y
     gfxRect(drawX, drawY, w, h, filled)
 end
 function Graphics:drawLine(x, y, x2, y2, antiAliased)
-    local positionX = self.x
-    local positionY = self.y
+    local positionX = self.drawX
+    local positionY = self.drawY
     local drawX = positionX + x
     local drawY = positionY + y
     local drawX2 = positionX + x2
@@ -51,19 +53,19 @@ function Graphics:drawLine(x, y, x2, y2, antiAliased)
     gfxLine(drawX, drawY, drawX2, drawY2, antiAliased)
 end
 function Graphics:drawCircle(x, y, r, filled, antiAliased)
-    local drawX = self.x + x
-    local drawY = self.y + y
+    local drawX = self.drawX + x
+    local drawY = self.drawY + y
     gfxCircle(drawX, drawY, r, filled, antiAliased)
 end
 function Graphics:drawString(str, x, y, x2, y2, flags)
-    local positionX = self.x
-    local positionY = self.y
+    local positionX = self.drawX
+    local positionY = self.drawY
     local drawX = positionX + x
     local drawY = positionY + y
     local drawX2 = positionX + x2
     local drawY2 = positionY + y2
-    gfx.x = drawX
-    gfx.y = drawY
+    gfx.drawX = drawX
+    gfx.drawY = drawY
     if flags then
         gfxDrawStr(str, flags, drawX2, drawY2)
     else

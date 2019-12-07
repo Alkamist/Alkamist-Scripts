@@ -1,7 +1,12 @@
 local reaper = reaper
+local reaperTimePrecise = reaper.time_precise
+local reaperMainOnCommandEx = reaper.Main_OnCommandEx
+local reaperDefer = reaper.defer
+
 local gfx = gfx
 local gfxUpdate = gfx.update
 local gfxInit = gfx.init
+local gfxGetChar = gfx.getchar
 
 local GUI = {
     mouseCap = 0,
@@ -25,10 +30,10 @@ local GUI = {
     altKeyState = false
 }
 
-function GUI:setBackgroundColor(r, g, b)
+function GUI.setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
-function GUI:initialize(title, width, height, dock, x, y)
+function GUI.initialize(title, width, height, dock, x, y)
     local title = title or GUI.windowTitle or ""
     local x = x or GUI.windowX or 0
     local y = y or GUI.windowY or 0
@@ -45,10 +50,11 @@ function GUI:initialize(title, width, height, dock, x, y)
 
     gfxInit(title, width, height, dock, x, y)
 end
-function GUI:update() end
-function GUI:run()
-    local timer = reaper.time_precise()
+function GUI.update(dt) end
 
+local currentTime = reaperTimePrecise()
+local previousTime = currentTime
+function GUI.run()
     local mouseCap = gfx.mouse_cap
     GUI.mouseCap = mouseCap
     GUI.mouseX = gfx.mouse_x
@@ -58,7 +64,7 @@ function GUI:run()
     GUI.mouseHWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
 
-    local char = gfx.getchar()
+    local char = gfxGetChar()
     GUI.keyboardChar = char
 
     GUI.windowWidth = gfx.w
@@ -73,19 +79,15 @@ function GUI:run()
     GUI.altKeyIsPressed = mouseCap & 16 == 16
 
     -- Pass through the space bar.
-    if char == 32 then reaper.Main_OnCommandEx(40044, 0, 0) end
+    if char == 32 then reaperMainOnCommandEx(40044, 0, 0) end
 
-    GUI.update()
+    currentTime = reaperTimePrecise()
+    GUI.update(currentTime - previousTime)
+    previousTime = currentTime
 
     -- Keep the window open unless escape or the close button are pushed.
-    if char ~= 27 and char ~= -1 then reaper.defer(GUI.run) end
+    if char ~= 27 and char ~= -1 then reaperDefer(GUI.run) end
     gfxUpdate()
-
-    gfx.x = 1
-    gfx.y = 1
-    gfx.set(0.7, 0.7, 0.7, 1, 0)
-    local fps = 1 / (reaper.time_precise() - timer)
-    gfx.drawnumber(fps, 1)
 end
 
 return GUI

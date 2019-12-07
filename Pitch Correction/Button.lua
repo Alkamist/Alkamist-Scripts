@@ -1,141 +1,117 @@
-local Graphics = require("Graphics")
+local function GetSet(privateName)
+    return function(self, v)
+        if v == nil then
+            return self[privateName]
+        else
+            self[privateName] = v
+        end
+    end
+end
 
 local Button = {}
 
-function Button:new(object)
-    local object = object or {}
-    local defaults = {}
+Button.isPressed = GetSet("Button_isPressed")
+Button.wasPreviouslyPressed = GetSet("Button_wasPreviouslyPressed")
+Button.hasDraggedSincePress = GetSet("Button_hasDraggedSincePress")
+Button.wasPressedInsideObject = GetSet("Button_wasPressedInsideObject")
+Button.isGlowing = GetSet("Button_isGlowing")
+Button.glowWhenControlIsInside = GetSet("Button_glowWhenControlIsInside")
+Button.bodyColor = GetSet("Button_bodyColor")
+Button.outlineColor = GetSet("Button_outlineColor")
+Button.highlightColor = GetSet("Button_highlightColor")
+Button.pressedColor = GetSet("Button_pressedColor")
+Button.pressControl = GetSet("Button_pressControl")
+Button.toggleControl = GetSet("Button_toggleControl")
+Button.objectsToDrag = GetSet("Button_objectsToDrag")
 
-    defaults.x = 0
-    defaults.previousX = 0
-    defaults.y = 0
-    defaults.previousY = 0
-    defaults.justMoved = false
-    defaults.width = 0
-    defaults.height = 0
+function Button:justPressed() return Button.isPressed(self) and not Button.wasPreviouslyPressed(self) end
+function Button:justReleased() return not Button.isPressed(self) and Button.wasPreviouslyPressed(self) end
+function Button:justDragged() return Button.isPressed(self) and Position.justMoved(self) end
+function Button:justStartedDragging() return Button.justDragged(self) and not Button.hasDraggedSincePress(self) end
+function Button:justStoppedDragging() return Button.justReleased(self) and Button.hasDraggedSincePress(self) end
+function Button:justDraggedObject(object) return Button.wasPressedInsideObject(self, object) and Button.justDragged(self) end
+function Button:justStartedDraggingObject(object) return Button.wasPressedInsideObject(self, object) and Button.justStartedDragging(self) end
+function Button:justStoppedDraggingObject(object) return Button.wasPressedInsideObject(self, object) and Button.justStoppedDragging(self) end
 
-    defaults.pressControl = nil
-    defaults.toggleControl = nil
-    defaults.glowWhenControlIsInside = true
-    defaults.isGlowing = false
-
-    defaults.isPressed = false
-    defaults.wasPreviouslyPressed = false
-    defaults.justPressed = false
-    defaults.justReleased = false
-    defaults.justDragged = false
-    defaults.justStartedDragging = false
-    defaults.justStoppedDragging = false
-    defaults.hasDraggedSincePress = false
-
-    defaults.objectsToDrag = {}
-    defaults.wasPressedInsideObject = {}
-    defaults.justDraggedObject = {}
-    defaults.justStartedDraggingObject = {}
-    defaults.justStoppedDraggingObject = {}
-
-    defaults.bodyColor = { 0.4, 0.4, 0.4, 1, 0 }
-    defaults.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
-    defaults.highlightColor = { 1, 1, 1, 0.1, 1 }
-    defaults.pressedColor = { 1, 1, 1, -0.15, 1 }
-    defaults.graphics = Graphics:new{
-        x = object.x,
-        y = object.y
-    }
-
-    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
-    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
-    return object
+function Button:initialize()
+    Button.isPressed(self, false)
+    Button.wasPreviouslyPressed(self, false)
+    Button.hasDraggedSincePress(self, false)
+    Button.wasPressedInsideObject(self, {})
+    Button.isGlowing(self, false)
+    Button.glowWhenControlIsInside(self, true)
+    Button.bodyColor(self, { 0.4, 0.4, 0.4, 1, 0 })
+    Button.outlineColor(self, { 0.15, 0.15, 0.15, 1, 0 })
+    Button.highlightColor(self, { 1, 1, 1, 0.1, 1 })
+    Button.pressedColor(self, { 1, 1, 1, -0.15, 1 })
+    Button.pressControl(self, MouseButtons.left)
+    Button.toggleControl(self, nil)
+    Button.objectsToDrag(self, nil)
 end
 
-function Button:pointIsInside(point)
-    return point.x >= self.x and point.x <= self.x + self.width
-       and point.y >= self.y and point.y <= self.y + self.height
-end
-function Button:updatePressConditions()
-    local pressControl = self.pressControl
-    local toggleControl = self.toggleControl
+function Button.update(e)
+    local pressControl = e.pressControl
+    local toggleControl = e.toggleControl
 
     if pressControl then
-        if self:pointIsInside(pressControl) and pressControl.justPressed then
-            self.isPressed = true
+        if Button.pointIsInside(self, pressControl) and Button.justPressed(pressControl) then
+            Button.isPressed(self, true)
         end
-        if pressControl.justReleased then
-            self.isPressed = false
+        if pressControl:justReleased() then
+            Button.isPressed(self, false)
         end
     end
 
     if toggleControl then
-        if self:pointIsInside(toggleControl) and toggleControl.justPressed then
-            self.isPressed = not self.isPressed
+        if Button.pointIsInside(self, toggleControl) and Button.justPressed(toggleControl) then
+            Button.isPressed(self, not Button.isPressed(self))
         end
     end
 
-    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
-    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-end
-function Button:updateDragConditions()
-    self.justMoved = self.x ~= self.previousX or self.y ~= self.previousY
-    self.justDragged = self.isPressed and self.justMoved
-    self.justStartedDragging = self.justDragged and not self.hasDraggedSincePress
-    self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
-    if self.justDragged then self.hasDraggedSincePress = true end
-    if self.justReleased then self.hasDraggedSincePress = false end
+    if Button.justDragged(self) then Button.hasDraggedSincePress(self, true) end
+    if Button.justReleased(self) then Button.hasDraggedSincePress(self, false) end
 
-    local objectsToDrag = self.objectsToDrag
+    local objectsToDrag = Button.objectsToDrag(self)
     for i = 1, #objectsToDrag do
         local object = objectsToDrag[i]
-        if self.justPressed and object:pointIsInside(self) then
-            self.wasPressedInsideObject[object] = true
-        end
-        if self.justReleased then
-            self.wasPressedInsideObject[object] = false
+
+        if Button.justPressed(self) and Button.pointIsInside(object, self) then
+            Button.wasPressedInsideObject(self, object, true)
         end
 
-        self.justDraggedObject[object] = self.wasPressedInsideObject[object] and self.justDragged
-        self.justStartedDraggingObject[object] = self.wasPressedInsideObject[object] and self.justStartedDragging
-        self.justStoppedDraggingObject[object] = self.wasPressedInsideObject[object] and self.justStoppedDragging
+        if Button.justReleased(self) then
+            Button.wasPressedInsideObject(self, object, false)
+        end
     end
-end
-function Button:updateGlowConditions()
-    local pressControlIsInside = pressControl and self:pointIsInside(pressControl)
-    local toggleControlIsInside = pressControl and self:pointIsInside(pressControl)
 
-    self.isGlowing = self.glowWhenControlIsInside and (pressControlIsInside or toggleControlIsInside)
+    local pressControlIsInside = pressControl and Button.pointIsInside(pressControl, self)
+    local toggleControlIsInside = toggleControl and Button.pointIsInside(toggleControl, self)
+
+    Button.isGlowing(self, Button.glowWhenControlIsInside(self) and (pressControlIsInside or toggleControlIsInside))
 end
-function Button:updateGraphics()
-    self.graphics.x = self.x
-    self.graphics.y = self.y
-end
-function Button:update()
-    self:updatePressConditions()
-    self:updateDragConditions()
-    self:updateGlowConditions()
-    self:updateGraphics()
-end
-function Button:draw()
-    local graphics = self.graphics
-    local w, h = self.width, self.height
+
+function Button.draw(e, GUI)
+    local w, h = e.w, e.h
 
     -- Draw the body.
-    graphics:setColor(self.bodyColor)
-    graphics:drawRectangle(1, 1, w - 2, h - 2, true)
+    GUI.setColor(e.bodyColor)
+    GUI.drawRectangle(e, 1, 1, w - 2, h - 2, true)
 
     -- Draw a dark outline around.
-    graphics:setColor(self.outlineColor)
-    graphics:drawRectangle(0, 0, w, h, false)
+    GUI.setColor(e.outlineColor)
+    GUI.drawRectangle(e, 0, 0, w, h, false)
 
     -- Draw a light outline around.
-    graphics:setColor(self.highlightColor)
-    graphics:drawRectangle(1, 1, w - 2, h - 2, false)
+    GUI.setColor(e.highlightColor)
+    GUI.drawRectangle(e, 1, 1, w - 2, h - 2, false)
 
-    if self.isPressed then
-        graphics:setColor(self.pressedColor)
-        graphics:drawRectangle(1, 1, w - 2, h - 2, true)
+    if e.isPressed then
+        GUI.setColor(e.pressedColor)
+        GUI.drawRectangle(e, 1, 1, w - 2, h - 2, true)
 
-    elseif self.isGlowing then
-        graphics:setColor(self.highlightColor)
-        graphics:drawRectangle(1, 1, w - 2, h - 2, true)
+    elseif e.isGlowing then
+        GUI.setColor(e.highlightColor)
+        GUI.drawRectangle(e, 1, 1, w - 2, h - 2, true)
     end
 end
 

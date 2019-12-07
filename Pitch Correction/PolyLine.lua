@@ -4,52 +4,77 @@ local pairs = pairs
 local math = math
 local table = table
 
-local Fn = require("Fn")
+local MouseButtons = require("MouseButtons")
 local Widget = require("Widget")
 local BoxSelect = require("BoxSelect")
-local GUI = require("GUI")
-local mouse = GUI.mouse
-local keyboard = GUI.keyboard
-local leftMouseButton = mouse.buttons.left
-local rightMouseButton = mouse.buttons.right
-local shiftKey = keyboard.modifiers.shift
-local controlKey = keyboard.modifiers.control
+
+local function arrayRemove(t, fn)
+    local n = #t
+    local j = 1
+    for i = 1, n do
+        if not fn(i, j) then
+            if i ~= j then
+                t[j] = t[i]
+                t[i] = nil
+            end
+            j = j + 1
+        else
+            t[i] = nil
+        end
+    end
+end
+local function arrayInsert(t, newThing, sortFn)
+    local amount = #t
+    if amount == 0 then
+        t[1] = newThing
+        return 1
+    end
+
+    for i = 1, amount do
+        local thing = t[i]
+        if not sortFn(thing, newThing) then
+            table.insert(t, i, newThing)
+            return i
+        end
+    end
+
+    t[amount + 1] = newThing
+    return amount + 1
+end
 
 local PolyLine = {}
-function PolyLine.new(object)
-    local self = {}
 
-    self.x = 0
-    self.y = 0
-    self.points = {}
-    self.editPointIndex = nil
+function PolyLine:new(object)
+    local object = object or {}
+    local defaults = {}
 
-    local lineColor = { 0.5, 0.5, 0.5 }
-    self.lineColor = lineColor
-    self.pointColor = Fn.addColor(lineColor, 0.03)
-    self.glowColor = { 1.0, 1.0, 1.0 }
+    defaults.points = {}
+    defaults.editPointIndex = nil
 
-    self.mouseEditPixelRange = 6
-    self.glowWhenMouseIsOver = true
+    local lineColor = { 0.5, 0.5, 0.5, 1, 0 }
+    defaults.lineColor = lineColor
+    defaults.pointColor = { lineColor[1] + 0.03, lineColor[2] + 0.03, lineColor[3] + 0.03, lineColor[4], lineColor[5] }
+    defaults.glowColor = { 1.0, 1.0, 1.0, 0.1, 0 }
 
-    self.drawLineFn = function(self, point, nextPoint) gfx.line(point.x + self.x, point.y + self.y, nextPoint.x + self.x, nextPoint.y + self.y, true) end
-    self.drawPointFn = function(self, point) gfx.rect(point.x + self.x - 1, point.y + self.y - 1, 3, 3, true) end
-    self.sortFn = function(before, after) return before.x < after.x end
+    defaults.mouseEditPixelRange = 6
+    defaults.glowWhenMouseIsOver = true
 
-    local function _getX(self) return self.x end
-    local function _getY(self) return self.y end
-    self.boxSelect = BoxSelect.new{
-        thingsToSelect = self.points,
-        selectionControl = rightMouseButton,
-        additiveControl = shiftKey,
-        inversionControl = controlKey,
-        thingIsInside = function(box, thing)
-            return box:pointIsInside(thing.x + _getX(object), thing.y + _getY(object))
-        end
+    --defaults.drawLineFn = function(self, point, nextPoint) self.line(point.x + self.x, point.y + self.y, nextPoint.x + self.x, nextPoint.y + self.y, true) end
+    --defaults.drawPointFn = function(self, point) gfx.rect(point.x + self.x - 1, point.y + self.y - 1, 3, 3, true) end
+    defaults.sortFn = function(before, after) return before.x < after.x end
+
+    defaults.boxSelect = BoxSelect.new{
+        thingsToSelect = defaults.points,
+        selectionControl = MouseButtons.left,
+        additiveControl = MouseButtons.shift,
+        inversionControl = MouseButtons.control
     }
 
-    return Widget.new(Fn.makeNew(self, PolyLine, object))
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    return Widget:new(object)
 end
+
 function PolyLine:insertPoint(point)
     Fn.arrayInsert(self.points, point, self.sortFn)
 end
@@ -82,7 +107,7 @@ function PolyLine:update()
     self.mouseOverIndex, self.mouseIsOverPoint = Fn.getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, "x", "y", mouse.x - self.x, mouse.y - self.y, self.mouseEditPixelRange)
 
     local editPoint = nil
-    if leftMouseButton.justPressed and self.mouseOverIndex then
+    if MouseButtons.left.justPressed and self.mouseOverIndex then
         self.editPointIndex = self.mouseOverIndex
         editPoint = self.points[self.editPointIndex]
 
@@ -101,7 +126,7 @@ function PolyLine:update()
         self:sortPoints()
     end
 
-    if leftMouseButton.justReleased then
+    if MouseButtons.left.justReleased then
         self.editPointIndex = nil
     end
 end
