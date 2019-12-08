@@ -1,4 +1,3 @@
-local tiny = require("tiny")
 local GUI = require("GUI")
 
 local mouseStateFns = {
@@ -11,37 +10,17 @@ local mouseStateFns = {
     alt = function() return GUI.altKeyIsPressed end,
 }
 
-local MouseButtons = tiny.processingSystem()
-
-MouseButtons.filter = tiny.requireAll(
-    "mouseButtonName"
-)
-
-function MouseButtons:create(world)
-    local buttons = {}
-    for k, v in pairs(mouseStateFns) do
-        local button = {
-            mouseButtonName = k,
-            isPressed = false,
-            wasPreviouslyPressed = false,
-            justPressed = false,
-            justReleased = false,
-            justMoved = false,
-            x = 0,
-            y = 0,
-            previousX = 0,
-            previousY = 0
-        }
-        world:addEntity(button)
-        buttons[k] = button
-    end
-    return buttons
+local MouseButtons = {}
+for k, v in pairs(mouseStateFns) do
+    MouseButtons[k] = {}
 end
 
-function MouseButtons:process(e, dt)
-    e.isPressed = mouseStateFns[e.mouseButtonName]()
-    e.x = GUI.mouseX
-    e.y = GUI.mouseY
+function MouseButtons:updateState(dt)
+    for k, v in pairs(mouseStateFns) do
+        self[k].isPressed = v()
+        self[k].x = GUI.mouseX
+        self[k].y = GUI.mouseY
+    end
 end
 
 return MouseButtons

@@ -8,38 +8,7 @@ local GUI = require("GUI")
 GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
-local tiny = require("tiny")
-
-local ButtonState = require("ButtonState")
-local ButtonDrag = require("ButtonDrag")
-local ButtonDraw = require("ButtonDraw")
-local PreviousState = require("PreviousState")
-local MouseButtons = require("MouseButtons")
-local Position = require("Position")
-
-local world = tiny.world()
-world:add(MouseButtons, Position, ButtonState, ButtonDrag, ButtonDraw, PreviousState)
-
-
-
---local button1 = {
---    x = 50,
---    y = 50,
---    width = 100,
---    height = 40,
---    isPressed = true,
---    isGlowing = false,
---    bodyColor = { 0.4, 0.4, 0.4, 1, 0 },
---    outlineColor = { 0.15, 0.15, 0.15, 1, 0 },
---    highlightColor = { 1, 1, 1, 0.1, 1 },
---    pressedColor = { 1, 1, 1, -0.15, 1 }
---}
-local mouseButtons = MouseButtons:create(world)
-
 function GUI.update(dt)
-    world:update(dt)
-
-    msg(mouseButtons.left.justPressed)
 
     gfx.x = 1
     gfx.y = 1

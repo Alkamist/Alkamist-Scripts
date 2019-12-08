@@ -1,17 +1,35 @@
-local tiny = require("tiny")
+local Position = {}
 
-local Position = tiny.processingSystem()
+function Position.filter(system, entity)
+    return entity.Position
+end
+function Position:getDefaults()
+    local defaults = {}
 
-Position.filter = tiny.requireAll(
-    "x", "y", "previousX", "previousY"
-)
+    defaults.x = 0
+    defaults.previousX = 0
+    defaults.xChange = 0
+    defaults.xJustChanged = false
 
-function Position:process(e, dt)
-    e.xChange = e.x - e.previousX
-    e.xJustChanged = e.x ~= e.previousX
-    e.yChange = e.y - e.previousY
-    e.yJustChanged = e.y ~= e.previousY
-    e.justMoved = e.xJustChanged or e.yJustChanged
+    defaults.y = 0
+    defaults.previousY = 0
+    defaults.yChange = 0
+    defaults.yJustChanged = false
+
+    defaults.justMoved = false
+
+    return defaults
+end
+function Position:updatePreviousState(dt)
+    self.previousX = self.x
+    self.previousY = self.y
+end
+function Position:updateState(dt)
+    self.xChange = self.x - self.previousX
+    self.xJustChanged = self.x ~= self.previousX
+    self.yChange = self.y - self.previousY
+    self.yJustChanged = self.y ~= self.previousY
+    self.justMoved = self.xJustChanged or self.yJustChanged
 end
 
 return Position
