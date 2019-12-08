@@ -17,8 +17,25 @@ MouseButtons.filter = tiny.requireAll(
     "mouseButtonName"
 )
 
-function MouseButtons:onAdd(e)
-
+function MouseButtons:create(world)
+    local buttons = {}
+    for k, v in pairs(mouseStateFns) do
+        local button = {
+            mouseButtonName = k,
+            isPressed = false,
+            wasPreviouslyPressed = false,
+            justPressed = false,
+            justReleased = false,
+            justMoved = false,
+            x = 0,
+            y = 0,
+            previousX = 0,
+            previousY = 0
+        }
+        world:addEntity(button)
+        buttons[k] = button
+    end
+    return buttons
 end
 
 function MouseButtons:process(e, dt)

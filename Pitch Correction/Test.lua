@@ -34,15 +34,12 @@ world:add(MouseButtons, Position, ButtonState, ButtonDrag, ButtonDraw, PreviousS
 --    highlightColor = { 1, 1, 1, 0.1, 1 },
 --    pressedColor = { 1, 1, 1, -0.15, 1 }
 --}
-local button1 = {
-    mouseButtonName = "left",
-}
-world:addEntity(button1)
+local mouseButtons = MouseButtons:create(world)
 
 function GUI.update(dt)
     world:update(dt)
 
-    msg(button1.justPressed)
+    msg(mouseButtons.left.justPressed)
 
     gfx.x = 1
     gfx.y = 1

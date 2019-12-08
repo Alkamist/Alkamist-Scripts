@@ -6,17 +6,17 @@ ButtonDrag.filter = tiny.requireAll(
     "isPressed", "justReleased", "justMoved"
 )
 
-function ButtonDrag:getDefault()
-    local e = {}
-    e.isPressed = false
-    e.justReleased = false
-    e.justMoved = false
-    e.justDragged = false
-    e.justStartedDragging = false
-    e.justStoppedDragging = false
-    e.hasDraggedSincePress = false
-    return e
-end
+--function ButtonDrag:getDefault()
+--    local e = {}
+--    e.isPressed = false
+--    e.justReleased = false
+--    e.justMoved = false
+--    e.justDragged = false
+--    e.justStartedDragging = false
+--    e.justStoppedDragging = false
+--    e.hasDraggedSincePress = false
+--    return e
+--end
 
 function ButtonDrag:process(e, dt)
     e.justDragged = e.isPressed and e.justMoved

@@ -6,14 +6,14 @@ ButtonState.filter = tiny.requireAll(
     "isPressed", "wasPreviouslyPressed"
 )
 
-function ButtonState:getDefault()
-    local e = {}
-    e.isPressed = false
-    e.wasPreviouslyPressed = false
-    e.justPressed = false
-    e.justReleased = false
-    return e
-end
+--function ButtonState:getDefault()
+--    local e = {}
+--    e.isPressed = false
+--    e.wasPreviouslyPressed = false
+--    e.justPressed = false
+--    e.justReleased = false
+--    return e
+--end
 
 function ButtonState:process(e, dt)
     e.justPressed = e.isPressed and not e.wasPreviouslyPressed
