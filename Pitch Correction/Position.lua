@@ -1,7 +1,7 @@
 local Position = {}
 
-function Position.filter(system, entity)
-    return entity.Position
+function Position:filter()
+    return self.Position
 end
 function Position:getDefaults()
     local defaults = {}

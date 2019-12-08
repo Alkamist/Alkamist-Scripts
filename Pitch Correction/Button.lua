@@ -2,8 +2,16 @@ local GUI = require("GUI")
 
 local Button = {}
 
-function Button.filter(system, entity)
-    return entity.Button and entity.Position
+local function mouseIsInsideButton(self)
+    local x, y, w, h = self.x, self.y, self.width, self.height
+    local mouseX = GUI.mouseX
+    local mouseY = GUI.mouseY
+    return mouseX >= x and mouseX <= x + w
+       and mouseY >= y and mouseY <= y + h
+end
+
+function Button:filter()
+    return self.Position and self.Button
 end
 function Button:getDefaults()
     local defaults = {}
@@ -30,8 +38,8 @@ function Button:getDefaults()
     defaults.isGlowing = false
     defaults.bodyColor = { 0.4, 0.4, 0.4, 1, 0 }
     defaults.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
-    defaults.pressedColor = { 1, 1, 1, 0.1, 1 }
-    defaults.highlightColor = { 1, 1, 1, -0.15, 1 }
+    defaults.pressedColor = { 1, 1, 1, -0.1, 1 }
+    defaults.highlightColor = { 1, 1, 1, 0.1, 1 }
 
     return defaults
 end
@@ -46,6 +54,7 @@ function Button:updateState(dt)
     self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
     if self.justDragged then self.hasDraggedSincePress = true end
     if self.justReleased then self.hasDraggedSincePress = false end
+    self.isGlowing = mouseIsInsideButton(self)
 end
 function Button:draw(dt)
     local x, y, w, h = self.x, self.y, self.width, self.height

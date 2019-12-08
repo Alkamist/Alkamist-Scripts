@@ -100,6 +100,8 @@ function GUI.update(dt) end
 local currentTime = reaperTimePrecise()
 local previousTime = currentTime
 function GUI.run()
+    local timer = reaperTimePrecise()
+
     local mouseCap = gfx.mouse_cap
     GUI.mouseCap = mouseCap
     GUI.mouseX = gfx.mouse_x
@@ -133,6 +135,11 @@ function GUI.run()
     -- Keep the window open unless escape or the close button are pushed.
     if char ~= 27 and char ~= -1 then reaperDefer(GUI.run) end
     gfxUpdate()
+
+    gfx.x = 1
+    gfx.y = 1
+    gfx.set(0.7, 0.7, 0.7, 1, 0)
+    gfx.drawnumber(1 / (reaperTimePrecise() - timer), 1)
 end
 
 return GUI

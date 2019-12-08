@@ -1,14 +1,8 @@
 local tiny = require("tiny")
 
-local function addFunctionToWorldAsSystem(world, filter, fn)
-    if fn then
-        local system = tiny.processingSystem{
-            filter = filter,
-            process = fn
-        }
-        world:addSystem(system)
-    end
-end
+local ECS = {}
+local world = tiny.world()
+
 local function initializeEntity(entity, object)
     local defaults = object:getDefaults()
     for k, v in pairs(defaults) do
@@ -19,33 +13,46 @@ local function initializeEntity(entity, object)
     return entity
 end
 
-local ECS = {}
+function ECS.setSystems(objects)
+    local numberOfSystems = #objects
 
-function ECS.newWorld() return tiny.world() end
-function ECS.addSystemsToWorld(world, groupOfObjects)
-    local numberOfObjects = #groupOfObjects
-
-    for i = 1, numberOfObjects do
-        local object = groupOfObjects[i]
-        addFunctionToWorldAsSystem(world, object.filter, object.updateState)
+    for i = 1, numberOfSystems do
+        local object = objects[i]
+        local system = tiny.processingSystem{
+            filter = function(system, entity) return object.filter(entity) end,
+            process = function(system, entity, dt) object.updateState(entity, dt) end,
+            onAdd = function(system, entity) initializeEntity(entity, object) end
+        }
+        world:addSystem(system)
     end
 
-    for i = 1, numberOfObjects do
-        local object = groupOfObjects[i]
-        local drawFilter = function(system, entity)
-            return object.filter(system, entity) and entity.shouldDraw
+    for i = 1, numberOfSystems do
+        local object = objects[i]
+        if object.draw then
+            local system = tiny.processingSystem{
+                filter = function(system, entity) return object.filter(entity) and entity.shouldDraw end,
+                process = function(system, entity, dt) object.draw(entity, dt) end,
+                onAdd = function(system, entity) initializeEntity(entity, object) end
+            }
+            world:addSystem(system)
         end
-        addFunctionToWorldAsSystem(world, drawFilter, object.draw)
     end
 
-    for i = 1, numberOfObjects do
-        local object = groupOfObjects[i]
-        addFunctionToWorldAsSystem(world, object.filter, object.updatePreviousState)
+    for i = 1, numberOfSystems do
+        local object = objects[i]
+        local system = tiny.processingSystem{
+            filter = function(system, entity) return object.filter(entity) end,
+            process = function(system, entity, dt) object.updatePreviousState(entity, dt) end,
+            onAdd = function(system, entity) initializeEntity(entity, object) end
+        }
+        world:addSystem(system)
     end
 end
-function ECS.addEntitiesToWorld(world, groupOfEntities)
-    for i = 1, #groupOfEntities do
-        local entity = groupOfEntities[i]
-        initializeEntity(entity, object)
-    end
+function ECS.addEntity(entity)
+    world:addEntity(entity)
 end
+function ECS.update(dt)
+    world:update(dt)
+end
+
+return ECS
