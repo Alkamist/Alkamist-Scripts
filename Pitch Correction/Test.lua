@@ -12,33 +12,38 @@ local ECS = require("ECS")
 
 local Position = require("Position")
 local Button = require("Button")
-ECS.setSystems{ Position, Button }
+local MouseButton = require("MouseButton")
+ECS.setSystems{ MouseButton, Position, Button }
 
-local x = 0
-local y = 0
-local buttons = {}
-for i = 1, 5000 do
-    buttons[i] = {
-        Position = true,
-        Button = true,
-        shouldDraw = true,
-        x = x, y = y, width = 10, height = 10
-    }
-    ECS.addEntity(buttons[i])
+--local x = 0
+--local y = 0
+--local buttons = {}
+--for i = 1, 5000 do
+--    buttons[i] = {
+--        Position = true,
+--        Button = true,
+--        shouldDraw = true,
+--        x = x, y = y, width = 10, height = 10
+--    }
+--    ECS.addEntity(buttons[i])
+--
+--    x = x + 10
+--    if x > 990 then
+--        x = 0
+--        y = y + 10
+--    end
+--end
 
-    x = x + 10
-    if x > 990 then
-        x = 0
-        y = y + 10
-    end
-end
+local left = { MouseButton = true, buttonName = "left" }
+ECS.addEntity(left)
 
 function GUI.update(dt)
-    for i = 1, 5000 do
-        buttons[i].x = buttons[i].x + 2.5 - math.random() * 5
-        buttons[i].y = buttons[i].y + 2.5 - math.random() * 5
-    end
+    --for i = 1, 5000 do
+    --    buttons[i].x = buttons[i].x + 2.5 - math.random() * 5
+    --    buttons[i].y = buttons[i].y + 2.5 - math.random() * 5
+    --end
     ECS.update(dt)
+    if left.justPressed then msg("left") end
 
     --gfx.x = 1
     --gfx.y = 1
