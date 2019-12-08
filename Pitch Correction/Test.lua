@@ -10,10 +10,7 @@ GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local ECS = require("ECS")
 
-local Position = require("Position")
-local Button = require("Button")
-local MouseButton = require("MouseButton")
-ECS.setSystems{ MouseButton, Position, Button }
+local MouseButtons = require("MouseButtons")
 
 --local x = 0
 --local y = 0
@@ -34,16 +31,14 @@ ECS.setSystems{ MouseButton, Position, Button }
 --    end
 --end
 
-local left = { MouseButton = true, buttonName = "left" }
-ECS.addEntity(left)
-
 function GUI.update(dt)
     --for i = 1, 5000 do
     --    buttons[i].x = buttons[i].x + 2.5 - math.random() * 5
     --    buttons[i].y = buttons[i].y + 2.5 - math.random() * 5
     --end
     ECS.update(dt)
-    if left.justPressed then msg("left") end
+
+    if MouseButtons.left.justDragged then msg("left") end
 
     --gfx.x = 1
     --gfx.y = 1

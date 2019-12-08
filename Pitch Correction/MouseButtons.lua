@@ -1,4 +1,7 @@
+local ECS = require("ECS")
 local GUI = require("GUI")
+local Position = require("Position")
+local Button = require("Button")
 
 local mouseStateFns = {
     left = function() return GUI.leftMouseButtonIsPressed end,
@@ -32,4 +35,17 @@ function MouseButton:updateState(dt)
     self.y = GUI.mouseY
 end
 
-return MouseButton
+ECS.addSystem(MouseButton)
+ECS.addSystem(Position)
+ECS.addSystem(Button)
+
+local MouseButtons = {}
+for k, v in pairs(mouseStateFns) do
+    MouseButtons[k] = {
+        MouseButton = true,
+        buttonName = k
+    }
+    ECS.addEntity(MouseButtons[k])
+end
+
+return MouseButtons
