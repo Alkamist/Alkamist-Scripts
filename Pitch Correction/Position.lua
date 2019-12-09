@@ -1,35 +1,29 @@
 local Position = {}
 
-function Position:filter()
-    return self.Position
+function Position:new()
+    local self = self or {}
+    for k, v in pairs(Position) do self[k] = v end
+    self:setX(0)
+    self:setPreviousX(0)
+    self:setY(0)
+    self:setPreviousY(0)
+    return self
 end
-function Position:getDefaults()
-    local defaults = {}
 
-    defaults.x = 0
-    defaults.previousX = 0
-    defaults.xChange = 0
-    defaults.xJustChanged = false
+function Position:getX() return self._x end
+function Position:setX(v) self._x = v end
+function Position:getPreviousX() return self._previousX end
+function Position:setPreviousX(v) self._previousX = v end
+function Position:getY() return self._y end
+function Position:setY(v) self._y = v end
+function Position:getPreviousY() return self._previousY end
+function Position:setPreviousY(v) self._previousY = v end
 
-    defaults.y = 0
-    defaults.previousY = 0
-    defaults.yChange = 0
-    defaults.yJustChanged = false
+function Position:justMoved() return self:getX() ~= self:getPreviousX() or self:getY() ~= self:getPreviousY() end
 
-    defaults.justMoved = false
-
-    return defaults
-end
-function Position:updatePreviousState(dt)
-    self.previousX = self.x
-    self.previousY = self.y
-end
-function Position:updateState(dt)
-    self.xChange = self.x - self.previousX
-    self.xJustChanged = self.x ~= self.previousX
-    self.yChange = self.y - self.previousY
-    self.yJustChanged = self.y ~= self.previousY
-    self.justMoved = self.xJustChanged or self.yJustChanged
+function Position:update(dt)
+    self:setPreviousX(self:getX())
+    self:setPreviousY(self:getY())
 end
 
 return Position

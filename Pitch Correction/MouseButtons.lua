@@ -1,6 +1,4 @@
-local ECS = require("ECS")
 local GUI = require("GUI")
-local Position = require("Position")
 local Button = require("Button")
 
 local mouseStateFns = {
@@ -15,37 +13,36 @@ local mouseStateFns = {
 
 local MouseButton = {}
 
-function MouseButton:filter()
-    return self.MouseButton and self.buttonName
+function MouseButton:new()
+    local self = self or {}
+    Button.new(self)
+    for k, v in pairs(MouseButton) do self[k] = v end
+    return self
 end
-function MouseButton:getDefaults()
-    local defaults = {}
-    defaults.Position = true
-    defaults.Button = true
-    return defaults
-end
-function MouseButton:updatePreviousState(dt)
-    self.wasPreviouslyPressed = self.isPressed
-    self.previousX = self.x
-    self.previousY = self.y
-end
+
+function MouseButton:getButtonName() return self._buttonName end
+function MouseButton:setButtonName(v) self._buttonName = v end
+
 function MouseButton:updateState(dt)
-    self.isPressed = mouseStateFns[self.buttonName]()
-    self.x = GUI.mouseX
-    self.y = GUI.mouseY
+    self:setIsPressed(mouseStateFns[self:getButtonName()]())
+    self:setX(GUI.mouseX)
+    self:setY(GUI.mouseY)
 end
 
-ECS.addSystem(MouseButton)
-ECS.addSystem(Position)
-ECS.addSystem(Button)
-
+local listOfButtons = {}
 local MouseButtons = {}
 for k, v in pairs(mouseStateFns) do
-    MouseButtons[k] = {
-        MouseButton = true,
-        buttonName = k
-    }
-    ECS.addEntity(MouseButtons[k])
+    local newButton = MouseButton.new()
+    newButton:setButtonName(k)
+
+    MouseButtons[k] = newButton
+    listOfButtons[#listOfButtons + 1] = MouseButtons[k]
+end
+
+function MouseButtons:updateState(dt)
+    for i = 1, #listOfButtons do
+        listOfButtons[i]:update(dt)
+    end
 end
 
 return MouseButtons

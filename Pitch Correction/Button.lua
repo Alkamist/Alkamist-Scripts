@@ -1,84 +1,35 @@
-local GUI = require("GUI")
+local Position = require("Position")
 
 local Button = {}
 
-local function mouseIsInsideButton(self)
-    local x, y, w, h = self.x, self.y, self.width, self.height
-    local mouseX = GUI.mouseX
-    local mouseY = GUI.mouseY
-    return mouseX >= x and mouseX <= x + w
-       and mouseY >= y and mouseY <= y + h
+function Button:new()
+    local self = self or {}
+    Position.new(self)
+    for k, v in pairs(Button) do self[k] = v end
+    self:setIsPressed(false)
+    self:setWasPreviouslyPressed(false)
+    self:setHasDraggedSincePress(false)
+    return self
 end
 
-function Button:filter()
-    return self.Position and self.Button
-end
-function Button:getDefaults()
-    local defaults = {}
+function Button:isPressed() return self._isPressed end
+function Button:setIsPressed(v) self._isPressed = v end
+function Button:wasPreviouslyPressed() return self._wasPreviouslyPressed end
+function Button:setWasPreviouslyPressed(v) self._wasPreviouslyPressed = v end
+function Button:hasDraggedSincePress() return self._hasDraggedSincePress end
+function Button:setHasDraggedSincePress(v) self._hasDraggedSincePress = v end
 
-    defaults.x = 0
-    defaults.y = 0
-    defaults.width = 0
-    defaults.height = 0
+function Button:justPressed() return self:isPressed() and not self:wasPreviouslyPressed() end
+function Button:justReleased() return not self:isPressed() and self:wasPreviouslyPressed() end
+function Button:justDragged() return self:isPressed() and self:justMoved() end
+function Button:justStartedDragging() return self:justDragged() and not self:hasDraggedSincePress() end
+function Button:justStoppedDragging() return self:justReleased() and self:hasDraggedSincePress() end
 
-    defaults.isPressed = false
-    defaults.wasPreviouslyPressed = false
-    defaults.justPressed = false
-    defaults.justReleased = false
-    defaults.justDragged = false
-    defaults.hasDraggedSincePress = false
-    defaults.justStartedDragging = false
-    defaults.justStoppedDragging = false
-    defaults.wasPressedInsideObject = {}
-    defaults.justDraggedObject = {}
-    defaults.justStartedDraggingObject = {}
-    defaults.justStoppedDraggingObject = {}
-    defaults.objectsToDrag = {}
-
-    defaults.isGlowing = false
-    defaults.bodyColor = { 0.4, 0.4, 0.4, 1, 0 }
-    defaults.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
-    defaults.pressedColor = { 1, 1, 1, -0.1, 1 }
-    defaults.highlightColor = { 1, 1, 1, 0.1, 1 }
-
-    return defaults
-end
-function Button:updatePreviousState(dt)
-    self.wasPreviouslyPressed = self.isPressed
-end
-function Button:updateState(dt)
-    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
-    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-    self.justDragged = self.isPressed and self.justMoved
-    self.justStartedDragging = self.justDragged and not self.hasDraggedSincePress
-    self.justStoppedDragging = self.justReleased and self.hasDraggedSincePress
-    if self.justDragged then self.hasDraggedSincePress = true end
-    if self.justReleased then self.hasDraggedSincePress = false end
-    self.isGlowing = mouseIsInsideButton(self)
-end
-function Button:draw(dt)
-    local x, y, w, h = self.x, self.y, self.width, self.height
-
-    -- Draw the body.
-    GUI.setColor(self.bodyColor)
-    GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
-
-    -- Draw a dark outline around.
-    GUI.setColor(self.outlineColor)
-    GUI.drawRectangle(x, y, w, h, false)
-
-    -- Draw a light outline around.
-    GUI.setColor(self.highlightColor)
-    GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
-
-    if self.isPressed then
-        GUI.setColor(self.pressedColor)
-        GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
-
-    elseif self.isGlowing then
-        GUI.setColor(self.highlightColor)
-        GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
-    end
+function Button:update(dt)
+    Position.update(self, dt)
+    if self:justDragged() then self:setHasDraggedSincePress(true) end
+    if self:justReleased() then self:setHasDraggedSincePress(false) end
+    self:setWasPreviouslyPressed(self:isPressed())
 end
 
 return Button
