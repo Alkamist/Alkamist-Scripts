@@ -19,17 +19,45 @@ local function MouseButton(self)
     self.MouseButton = true
     Button(self)
     local _buttonUpdateState = self.updateState
+    local _buttonUpdatePreviousState = self.updatePreviousState
 
     local _buttonName
+    local _objectsToDrag = {}
+    local _wasPressedInsideObject = {}
 
+    function self.getObjectsToDrag() return _objectsToDrag end
+    function self.setObjectsToDrag(v) _objectsToDrag = v end
     function self.getButtonName() return _buttonName end
     function self.setButtonName(v) _buttonName = v end
+
+    function self.wasPressedInsideObject(object) return _wasPressedInsideObject[object] end
+    function self.justPressedObject(object) return self.wasPressedInsideObject(object) and self.justPressed() end
+    function self.justReleasedObject(object) return self.wasPressedInsideObject(object) and self.justReleased() end
+    function self.justDraggedObject(object) return self.wasPressedInsideObject(object) and self.justDragged() end
+    function self.justStartedDraggingObject(object) return self.wasPressedInsideObject(object) and self.justStartedDragging() end
+    function self.justStoppedDraggingObject(object) return self.wasPressedInsideObject(object) and self.justStoppedDragging() end
 
     function self.updateState(dt)
         self.setIsPressed(mouseStateFns[self.getButtonName()]())
         self.setX(GUI.mouseX)
         self.setY(GUI.mouseY)
         _buttonUpdateState(dt)
+
+        if self.justPressed() then
+            local objectsToDrag = self.getObjectsToDrag()
+            for i = 1, #objectsToDrag do
+                local object = objectsToDrag[i]
+                if object.mouseIsInside() then
+                    _wasPressedInsideObject[object] = true
+                end
+            end
+        end
+    end
+    function self.updatePreviousState(dt)
+        if self.justReleased() then
+            _wasPressedInsideObject = {}
+        end
+        _buttonUpdatePreviousState(dt)
     end
 
     return self

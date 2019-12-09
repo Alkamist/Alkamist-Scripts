@@ -14,7 +14,11 @@ return function(self)
     function self.getPreviousY() return _previousY end
     function self.setPreviousY(v) _previousY = v end
 
-    function self.justMoved() return self.getX() ~= self.getPreviousX() or self.getY() ~= self.getPreviousY() end
+    function self.getXChange() return self.getX() - self.getPreviousX() end
+    function self.xChanged() return self.getX() ~= self.getPreviousX() end
+    function self.getYChange() return self.getY() - self.getPreviousY() end
+    function self.yChanged() return self.getY() ~= self.getPreviousY() end
+    function self.justMoved() return self.xChanged() or self.yChanged() end
 
     function self.updateState(dt) end
     function self.updatePreviousState(dt)
