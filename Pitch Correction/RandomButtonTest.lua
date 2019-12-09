@@ -29,21 +29,23 @@ for i = 1, numberOfButtons do
     end
 end
 
+MouseButtons.left.setObjectsToDrag(buttons)
+
 function GUI.update(dt)
     MouseButtons.updateState(dt)
 
     for i = 1, numberOfButtons do
         local button = buttons[i]
 
-        --button.setX(button.getX() + 2 - math.random() * 4)
-        --button.setY(button.getY() + 2 - math.random() * 4)
+        button.setX(button.getX() + 2 - math.random() * 4)
+        button.setY(button.getY() + 2 - math.random() * 4)
+        button.setIsPressed(MouseButtons.left.wasPressedInsideObject(button))
 
         if MouseButtons.left.justDraggedObject(button) then
             button.setX(button.getX() + MouseButtons.left.getXChange())
             button.setY(button.getY() + MouseButtons.left.getYChange())
         end
 
-        button.updateState()
         button.draw()
         button.updatePreviousState(dt)
     end

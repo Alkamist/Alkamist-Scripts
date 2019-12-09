@@ -22,11 +22,10 @@ local function MouseButton(self)
     local _buttonUpdatePreviousState = self.updatePreviousState
 
     local _buttonName
-    local _objectsToDrag = {}
+    local _objectsToTrack = {}
     local _wasPressedInsideObject = {}
 
-    function self.getObjectsToDrag() return _objectsToDrag end
-    function self.setObjectsToDrag(v) _objectsToDrag = v end
+    function self.trackObject(object) _objectsToTrack[#_objectsToTrack + 1] = object end
     function self.getButtonName() return _buttonName end
     function self.setButtonName(v) _buttonName = v end
 
@@ -44,9 +43,8 @@ local function MouseButton(self)
         _buttonUpdateState(dt)
 
         if self.justPressed() then
-            local objectsToDrag = self.getObjectsToDrag()
-            for i = 1, #objectsToDrag do
-                local object = objectsToDrag[i]
+            for i = 1, #_objectsToTrack do
+                local object = _objectsToTrack[i]
                 if object.mouseIsInside() then
                     _wasPressedInsideObject[object] = true
                 end

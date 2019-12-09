@@ -1,4 +1,5 @@
 local GUI = require("GUI")
+local MouseButtons = require("MouseButtons")
 local Button = require("Button")
 
 return function(self)
@@ -6,12 +7,14 @@ return function(self)
     if self.DrawableButton then return self end
     self.DrawableButton = true
     Button(self)
+    local _buttonUpdateState = self.updateState
 
     local _width, _height
     local _bodyColor
     local _outlineColor
     local _highlightColor
     local _pressedColor
+    local _shouldToggle
 
     function self.getWidth() return _width end
     function self.setWidth(v) _width = v end
@@ -25,6 +28,8 @@ return function(self)
     function self.setHighlightColor(v) _highlightColor = v end
     function self.getPressedColor() return _pressedColor end
     function self.setPressedColor(v) _pressedColor = v end
+    function self.shouldToggle() return _shouldToggle end
+    function self.setShouldToggle(v) _shouldToggle = v end
 
     function self.mouseIsInside()
         local x, y, w, h = self.getX(), self.getY(), self.getWidth(), self.getHeight()
@@ -33,6 +38,22 @@ return function(self)
             and mouseY >= y and mouseY <= y + h
     end
 
+    function self.updateState(dt)
+        _buttonUpdateState(dt)
+
+        if MouseButtons.left.justPressedObject(self) then
+            if self.shouldToggle() then
+                self.setIsPressed(not self.isPressed())
+            else
+                self.setIsPressed(true)
+            end
+        end
+        if MouseButtons.left.justReleasedObject(self) then
+            if not self.shouldToggle() then
+                self.setIsPressed(false)
+            end
+        end
+    end
     function self.draw(dt)
         local x, y, w, h = self.getX(), self.getY(), self.getWidth(), self.getHeight()
         local isPressed, mouseIsInside = self.isPressed(), self.mouseIsInside()
@@ -66,6 +87,9 @@ return function(self)
     self.setOutlineColor{ 0.15, 0.15, 0.15, 1, 0 }
     self.setPressedColor{ 1, 1, 1, -0.1, 1 }
     self.setHighlightColor{ 1, 1, 1, 0.1, 1 }
+    self.setShouldToggle(false)
+
+    MouseButtons.left.trackObject(self)
 
     return self
 end
