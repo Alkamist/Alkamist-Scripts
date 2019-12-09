@@ -41,20 +41,6 @@ local GUI = {
     altKeyState = false
 }
 
---local function updateMouseButton(self, bitValue)
---    self.wasPreviouslyPressed = self.isPressed
---    self.previousX = self.x
---    self.previousY = self.y
---
---    self.x = GUI.mouseX
---    self.y = GUI.mouseY
---    self.justMoved = self.x
---    self.isPressed = GUI.mouseCap & bitValue == bitValue
---    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
---    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
---    self.justDragged = self.isPressed and
---end
-
 function GUI.setColor(rOrColor, g, b)
     if type(rOrColor) == "number" then
         gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)

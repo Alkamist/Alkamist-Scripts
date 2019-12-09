@@ -11,44 +11,50 @@ local mouseStateFns = {
     alt = function() return GUI.altKeyIsPressed end,
 }
 
-local MouseButton = {}
-setmetatable(MouseButton, { __index = Button })
 
-function MouseButton:new()
+
+local function MouseButton(self)
     local self = self or {}
-    Button.new(self)
-    setmetatable(self, { __index = MouseButton })
+    if self.MouseButton then return self end
+    self.MouseButton = true
+    Button(self)
+    local _buttonUpdateState = self.updateState
+
+    local _buttonName
+
+    function self.getButtonName() return _buttonName end
+    function self.setButtonName(v) _buttonName = v end
+
+    function self.updateState(dt)
+        self.setIsPressed(mouseStateFns[self.getButtonName()]())
+        self.setX(GUI.mouseX)
+        self.setY(GUI.mouseY)
+        _buttonUpdateState(dt)
+    end
+
     return self
 end
 
-function MouseButton:getButtonName() return self._buttonName end
-function MouseButton:setButtonName(v) self._buttonName = v end
 
-function MouseButton:updateState(dt)
-    self:setIsPressed(mouseStateFns[self:getButtonName()]())
-    self:setX(GUI.mouseX)
-    self:setY(GUI.mouseY)
-    Button.updateState(self, dt)
-end
 
 local listOfButtons = {}
 local MouseButtons = {}
 for k, v in pairs(mouseStateFns) do
-    local newButton = MouseButton.new()
-    newButton:setButtonName(k)
+    local newButton = MouseButton()
+    newButton.setButtonName(k)
 
     MouseButtons[k] = newButton
     listOfButtons[#listOfButtons + 1] = MouseButtons[k]
 end
 
-function MouseButtons:updateState(dt)
+function MouseButtons.updateState(dt)
     for i = 1, #listOfButtons do
-        listOfButtons[i]:updateState(dt)
+        listOfButtons[i].updateState(dt)
     end
 end
-function MouseButtons:updatePreviousState(dt)
+function MouseButtons.updatePreviousState(dt)
     for i = 1, #listOfButtons do
-        listOfButtons[i]:updatePreviousState(dt)
+        listOfButtons[i].updatePreviousState(dt)
     end
 end
 
