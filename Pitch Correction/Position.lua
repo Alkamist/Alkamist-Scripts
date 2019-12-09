@@ -2,7 +2,7 @@ local Position = {}
 
 function Position:new()
     local self = self or {}
-    for k, v in pairs(Position) do self[k] = v end
+    setmetatable(self, { __index = Position })
     self:setX(0)
     self:setPreviousX(0)
     self:setY(0)
@@ -21,7 +21,8 @@ function Position:setPreviousY(v) self._previousY = v end
 
 function Position:justMoved() return self:getX() ~= self:getPreviousX() or self:getY() ~= self:getPreviousY() end
 
-function Position:update(dt)
+function Position:updateState(dt) end
+function Position:updatePreviousState(dt)
     self:setPreviousX(self:getX())
     self:setPreviousY(self:getY())
 end

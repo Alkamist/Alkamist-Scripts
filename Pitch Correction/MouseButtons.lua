@@ -12,11 +12,12 @@ local mouseStateFns = {
 }
 
 local MouseButton = {}
+setmetatable(MouseButton, { __index = Button })
 
 function MouseButton:new()
     local self = self or {}
     Button.new(self)
-    for k, v in pairs(MouseButton) do self[k] = v end
+    setmetatable(self, { __index = MouseButton })
     return self
 end
 
@@ -27,6 +28,7 @@ function MouseButton:updateState(dt)
     self:setIsPressed(mouseStateFns[self:getButtonName()]())
     self:setX(GUI.mouseX)
     self:setY(GUI.mouseY)
+    Button.updateState(self, dt)
 end
 
 local listOfButtons = {}
@@ -41,7 +43,12 @@ end
 
 function MouseButtons:updateState(dt)
     for i = 1, #listOfButtons do
-        listOfButtons[i]:update(dt)
+        listOfButtons[i]:updateState(dt)
+    end
+end
+function MouseButtons:updatePreviousState(dt)
+    for i = 1, #listOfButtons do
+        listOfButtons[i]:updatePreviousState(dt)
     end
 end
 

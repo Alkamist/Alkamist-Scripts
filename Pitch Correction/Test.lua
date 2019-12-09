@@ -11,7 +11,10 @@ GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 function GUI.update(dt)
     MouseButtons:updateState(dt)
-    if MouseButtons.left:justPressed() then msg("left") end
+
+    if MouseButtons.left:justStoppedDragging() then msg("left") end
+
+    MouseButtons:updatePreviousState(dt)
 end
 
 GUI.run()

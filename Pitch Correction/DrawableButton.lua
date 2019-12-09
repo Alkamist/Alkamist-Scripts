@@ -2,11 +2,12 @@ local GUI = require("GUI")
 local Button = require("Button")
 
 local DrawableButton = {}
+setmetatable(DrawableButton, { __index = Button })
 
 function DrawableButton:new()
     local self = self or {}
     Button.new(self)
-    for k, v in pairs(DrawableButton) do self[k] = v end
+    setmetatable(self, { __index = DrawableButton })
     self:setWidth(0)
     self:setHeight(0)
     self:setBodyColor{ 0.4, 0.4, 0.4, 1, 0 }
