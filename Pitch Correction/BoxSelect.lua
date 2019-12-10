@@ -1,9 +1,53 @@
-local Widget = require("Widget")
+local Position = require("Position")
 
 local math = math
 local abs = math.abs
 local min = math.min
 local max = math.max
+
+return function(self)
+    local self = self or {}
+    if self.BoxSelect then return self end
+    self.BoxSelect = true
+    Position(self)
+    local _positionUpdatePreviousState = self.updatePreviousState
+
+    local _startingX
+    local _startingY
+    local _isActive
+
+    function self.getBodyColor() return _isPressed end
+    function self.setBodyColor(v) _isPressed = v end
+    function self.wasPreviouslyPressed() return _wasPreviouslyPressed end
+    function self.setWasPreviouslyPressed(v) _wasPreviouslyPressed = v end
+    function self.hasDraggedSincePress() return _hasDraggedSincePress end
+    function self.setHasDraggedSincePress(v) _hasDraggedSincePress = v end
+
+    function self.justPressed() return self.isPressed() and not self.wasPreviouslyPressed() end
+    function self.justReleased() return not self.isPressed() and self.wasPreviouslyPressed() end
+    function self.justDragged() return self.isPressed() and self.justMoved() end
+    function self.justStartedDragging() return self.justDragged() and not self.hasDraggedSincePress() end
+    function self.justStoppedDragging() return self.justReleased() and self.hasDraggedSincePress() end
+
+    function self.updatePreviousState(dt)
+        if self.justDragged() then self.setHasDraggedSincePress(true) end
+        if self.justReleased() then self.setHasDraggedSincePress(false) end
+        self.setWasPreviouslyPressed(self.isPressed())
+        _positionUpdatePreviousState(dt)
+    end
+
+    self.setIsPressed(false)
+    self.setWasPreviouslyPressed(false)
+    self.setHasDraggedSincePress(false)
+
+    return self
+end
+
+
+
+
+
+
 
 local BoxSelect = {}
 

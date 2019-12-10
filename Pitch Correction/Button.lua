@@ -1,39 +1,60 @@
-local Position = require("Position")
+local GUI = require("GUI")
+local Widget = require("Widget")
 
-return function(self)
-    local self = self or {}
-    if self.Button then return self end
-    self.Button = true
-    Position(self)
-    local _positionUpdatePreviousState = self.updatePreviousState
+local Button = {}
 
-    local _isPressed
-    local _wasPreviouslyPressed
-    local _hasDraggedSincePress
-
-    function self.isPressed() return _isPressed end
-    function self.setIsPressed(v) _isPressed = v end
-    function self.wasPreviouslyPressed() return _wasPreviouslyPressed end
-    function self.setWasPreviouslyPressed(v) _wasPreviouslyPressed = v end
-    function self.hasDraggedSincePress() return _hasDraggedSincePress end
-    function self.setHasDraggedSincePress(v) _hasDraggedSincePress = v end
-
-    function self.justPressed() return self.isPressed() and not self.wasPreviouslyPressed() end
-    function self.justReleased() return not self.isPressed() and self.wasPreviouslyPressed() end
-    function self.justDragged() return self.isPressed() and self.justMoved() end
-    function self.justStartedDragging() return self.justDragged() and not self.hasDraggedSincePress() end
-    function self.justStoppedDragging() return self.justReleased() and self.hasDraggedSincePress() end
-
-    function self.updatePreviousState(dt)
-        if self.justDragged() then self.setHasDraggedSincePress(true) end
-        if self.justReleased() then self.setHasDraggedSincePress(false) end
-        self.setWasPreviouslyPressed(self.isPressed())
-        _positionUpdatePreviousState(dt)
-    end
-
-    self.setIsPressed(false)
-    self.setWasPreviouslyPressed(false)
-    self.setHasDraggedSincePress(false)
-
-    return self
+function Button:new(object)
+    local object = object or {}
+    local defaults = {}
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
+    defaults.isPressed = false
+    defaults.isGlowing = false
+    defaults.bodyColor = { 0.4, 0.4, 0.4, 1, 0 }
+    defaults.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
+    defaults.pressedColor = { 1, 1, 1, -0.1, 1 }
+    defaults.highlightColor = { 1, 1, 1, 0.1, 1 }
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    return Widget:new(object)
 end
+
+function Button:onLeftMouseButtonJustPressed()
+    self.isPressed = true
+end
+function Button:onLeftMouseButtonJustReleased()
+    self.isPressed = false
+end
+function Button:onUpdate(dt)
+    self.isGlowing = self:pointIsInside(GUI.mouseX, GUI.mouseY)
+end
+function Button:onDraw(dt)
+    local x, y, w, h = self.x, self.y, self.width, self.height
+    local isPressed, isGlowing = self.isPressed, self.isGlowing
+    local bodyColor, outlineColor, highlightColor, pressedColor = self.bodyColor, self.outlineColor, self.highlightColor, self.pressedColor
+
+    -- Draw the body.
+    GUI.setColor(bodyColor)
+    GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+
+    -- Draw a dark outline around.
+    GUI.setColor(outlineColor)
+    GUI.drawRectangle(x, y, w, h, false)
+
+    -- Draw a light outline around.
+    GUI.setColor(highlightColor)
+    GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
+
+    if isPressed then
+        GUI.setColor(pressedColor)
+        GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+
+    elseif isGlowing then
+        GUI.setColor(highlightColor)
+        GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+    end
+end
+
+return Button
