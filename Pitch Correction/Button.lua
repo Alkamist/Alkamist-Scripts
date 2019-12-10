@@ -21,10 +21,10 @@ function Button:new(object)
     return Widget:new(object)
 end
 
-function Button:onLeftMouseButtonJustPressed()
+function Button:onLeftMouseButtonJustPressedWidget()
     self.isPressed = true
 end
-function Button:onLeftMouseButtonJustReleased()
+function Button:onLeftMouseButtonJustReleasedWidget()
     self.isPressed = false
 end
 function Button:onUpdate(dt)

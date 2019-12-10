@@ -1,3 +1,4 @@
+local GUI = require("GUI")
 local Widget = require("Widget")
 
 local math = math
@@ -28,8 +29,10 @@ function BoxSelect:objectIsSelected(object)
     return object.isSelected
 end
 
+function BoxSelect:onLeftMouseButtonJustPressed()
+
+end
 function BoxSelect:onRightMouseButtonJustPressed()
-    msg("yee")
     self.startingX = GUI.mouseX
     self.startingY = GUI.mouseY
     self.x = self.startingX
@@ -56,7 +59,7 @@ function BoxSelect:onRightMouseButtonJustReleased()
         for i = 1, #objectsToSelect do
             local object = objectsToSelect[i]
 
-            if pointIsInside(self, object) then
+            if pointIsInside(self, object.x, object.y) then
                 if shouldInvert then
                     setObjectSelected(self, object, not objectIsSelected(self, object))
                 else

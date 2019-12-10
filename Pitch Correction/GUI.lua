@@ -240,88 +240,151 @@ local function processWidgetEvents(dt)
 
         if GUI.windowWasJustResized then widget:onWindowJustResized() end
 
-        if GUI.leftMouseButtonJustPressed and mouseIsInsideWidget then
-            GUI.leftMouseButtonWasPressedInsideWidget[widget] = true
+        if GUI.leftMouseButtonJustPressed then
             widget:onLeftMouseButtonJustPressed()
+            if mouseIsInsideWidget then
+                GUI.leftMouseButtonWasPressedInsideWidget[widget] = true
+                widget:onLeftMouseButtonJustPressedWidget()
+            end
         end
-        if GUI.leftMouseButtonJustReleased and GUI.leftMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.leftMouseButtonJustReleased then
             widget:onLeftMouseButtonJustReleased()
-            GUI.leftMouseButtonWasPressedInsideWidget[widget] = false
+            if GUI.leftMouseButtonWasPressedInsideWidget[widget] then
+                widget:onLeftMouseButtonJustReleasedWidget()
+                GUI.leftMouseButtonWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.leftMouseButtonJustDragged and GUI.leftMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.leftMouseButtonJustDragged then
             widget:onLeftMouseButtonJustDragged()
+            if GUI.leftMouseButtonWasPressedInsideWidget[widget] then
+                widget:onLeftMouseButtonJustDraggedWidget()
+            end
         end
 
-        if GUI.middleMouseButtonJustPressed and mouseIsInsideWidget then
-            GUI.middleMouseButtonWasPressedInsideWidget[widget] = true
+        if GUI.middleMouseButtonJustPressed then
             widget:onMiddleMouseButtonJustPressed()
+            if mouseIsInsideWidget then
+                GUI.middleMouseButtonWasPressedInsideWidget[widget] = true
+                widget:onMiddleMouseButtonJustPressedWidget()
+            end
         end
-        if GUI.middleMouseButtonJustReleased and GUI.middleMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.middleMouseButtonJustReleased then
             widget:onMiddleMouseButtonJustReleased()
-            GUI.middleMouseButtonWasPressedInsideWidget[widget] = false
+            if GUI.middleMouseButtonWasPressedInsideWidget[widget] then
+                widget:onMiddleMouseButtonJustReleasedWidget()
+                GUI.middleMouseButtonWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.middleMouseButtonJustDragged and GUI.middleMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.middleMouseButtonJustDragged then
             widget:onMiddleMouseButtonJustDragged()
+            if GUI.middleMouseButtonWasPressedInsideWidget[widget] then
+                widget:onMiddleMouseButtonJustDraggedWidget()
+            end
         end
 
-        if GUI.rightMouseButtonJustPressed and mouseIsInsideWidget then
-            GUI.rightMouseButtonWasPressedInsideWidget[widget] = true
+        if GUI.rightMouseButtonJustPressed then
             widget:onRightMouseButtonJustPressed()
+            if mouseIsInsideWidget then
+                GUI.rightMouseButtonWasPressedInsideWidget[widget] = true
+                widget:onRightMouseButtonJustPressedWidget()
+            end
         end
-        if GUI.rightMouseButtonJustReleased and GUI.rightMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.rightMouseButtonJustReleased then
             widget:onRightMouseButtonJustReleased()
-            GUI.rightMouseButtonWasPressedInsideWidget[widget] = false
+            if GUI.rightMouseButtonWasPressedInsideWidget[widget] then
+                widget:onRightMouseButtonJustReleasedWidget()
+                GUI.rightMouseButtonWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.rightMouseButtonJustDragged and GUI.rightMouseButtonWasPressedInsideWidget[widget] then
+        if GUI.rightMouseButtonJustDragged then
             widget:onRightMouseButtonJustDragged()
+            if GUI.rightMouseButtonWasPressedInsideWidget[widget] then
+                widget:onRightMouseButtonJustDraggedWidget()
+            end
         end
 
-        if GUI.shiftKeyJustPressed and mouseIsInsideWidget then
-            GUI.shiftKeyWasPressedInsideWidget[widget] = true
+        if GUI.shiftKeyJustPressed then
             widget:onShiftKeyJustPressed()
+            if mouseIsInsideWidget then
+                GUI.shiftKeyWasPressedInsideWidget[widget] = true
+                widget:onShiftKeyJustPressedWidget()
+            end
         end
-        if GUI.shiftKeyJustReleased and GUI.shiftKeyWasPressedInsideWidget[widget] then
+        if GUI.shiftKeyJustReleased then
             widget:onShiftKeyJustReleased()
-            GUI.shiftKeyWasPressedInsideWidget[widget] = false
+            if GUI.shiftKeyWasPressedInsideWidget[widget] then
+                widget:onShiftKeyJustReleasedWidget()
+                GUI.shiftKeyWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.shiftKeyJustDragged and GUI.shiftKeyWasPressedInsideWidget[widget] then
+        if GUI.shiftKeyJustDragged then
             widget:onShiftKeyJustDragged()
+            if GUI.shiftKeyWasPressedInsideWidget[widget] then
+                widget:onShiftKeyJustDraggedWidget()
+            end
         end
 
-        if GUI.controlKeyJustPressed and mouseIsInsideWidget then
-            GUI.controlKeyWasPressedInsideWidget[widget] = true
+        if GUI.controlKeyJustPressed then
             widget:onControlKeyJustPressed()
+            if mouseIsInsideWidget then
+                GUI.controlKeyWasPressedInsideWidget[widget] = true
+                widget:onControlKeyJustPressedWidget()
+            end
         end
-        if GUI.controlKeyJustReleased and GUI.controlKeyWasPressedInsideWidget[widget] then
+        if GUI.controlKeyJustReleased then
             widget:onControlKeyJustReleased()
-            GUI.controlKeyWasPressedInsideWidget[widget] = false
+            if GUI.controlKeyWasPressedInsideWidget[widget] then
+                widget:onControlKeyJustReleasedWidget()
+                GUI.controlKeyWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.controlKeyJustDragged and GUI.controlKeyWasPressedInsideWidget[widget] then
+        if GUI.controlKeyJustDragged then
             widget:onControlKeyJustDragged()
+            if GUI.controlKeyWasPressedInsideWidget[widget] then
+                widget:onControlKeyJustDraggedWidget()
+            end
         end
 
-        if GUI.windowsKeyJustPressed and mouseIsInsideWidget then
-            GUI.windowsKeyWasPressedInsideWidget[widget] = true
+        if GUI.windowsKeyJustPressed then
             widget:onWindowsKeyJustPressed()
+            if mouseIsInsideWidget then
+                GUI.windowsKeyWasPressedInsideWidget[widget] = true
+                widget:onWindowsKeyJustPressedWidget()
+            end
         end
-        if GUI.windowsKeyJustReleased and GUI.windowsKeyWasPressedInsideWidget[widget] then
+        if GUI.windowsKeyJustReleased then
             widget:onWindowsKeyJustReleased()
-            GUI.windowsKeyWasPressedInsideWidget[widget] = false
+            if GUI.windowsKeyWasPressedInsideWidget[widget] then
+                widget:onWindowsKeyJustReleasedWidget()
+                GUI.windowsKeyWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.windowsKeyJustDragged and GUI.windowsKeyWasPressedInsideWidget[widget] then
+        if GUI.windowsKeyJustDragged then
             widget:onWindowsKeyJustDragged()
+            if GUI.windowsKeyWasPressedInsideWidget[widget] then
+                widget:onWindowsKeyJustDraggedWidget()
+            end
         end
 
-        if GUI.altKeyJustPressed and mouseIsInsideWidget then
-            GUI.altKeyWasPressedInsideWidget[widget] = true
+        if GUI.altKeyJustPressed then
             widget:onAltKeyJustPressed()
+            if mouseIsInsideWidget then
+                GUI.altKeyWasPressedInsideWidget[widget] = true
+                widget:onAltKeyJustPressedWidget()
+            end
         end
-        if GUI.altKeyJustReleased and GUI.altKeyWasPressedInsideWidget[widget] then
+        if GUI.altKeyJustReleased then
             widget:onAltKeyJustReleased()
-            GUI.altKeyWasPressedInsideWidget[widget] = false
+            if GUI.altKeyWasPressedInsideWidget[widget] then
+                widget:onAltKeyJustReleasedWidget()
+                GUI.altKeyWasPressedInsideWidget[widget] = false
+            end
         end
-        if GUI.altKeyJustDragged and GUI.altKeyWasPressedInsideWidget[widget] then
+        if GUI.altKeyJustDragged then
             widget:onAltKeyJustDragged()
+            if GUI.altKeyWasPressedInsideWidget[widget] then
+                widget:onAltKeyJustDraggedWidget()
+            end
         end
 
         if GUI.keyboardChar then widget:onKeyTyped(GUI.keyboardChar) end
