@@ -9,6 +9,10 @@ GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local Button = require("Button")
+local BoxSelect = require("BoxSelect")
+
+local boxSelect = BoxSelect:new()
+GUI.addWidget(boxSelect)
 
 local x = 0
 local y = 0

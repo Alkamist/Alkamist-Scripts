@@ -328,9 +328,9 @@ local function processWidgetEvents(dt)
     end
 
     for i = 1, #widgets do
-        local a, mode = gfx.a, gfx.mode
+        local a, mode, dest = gfx.a, gfx.mode, gfx.dest
         widgets[i]:onDraw(dt)
-        gfx.a, gfx.mode = a, mode
+        gfx.a, gfx.mode, gfx.dest = a, mode, dest
     end
 
     for i = 1, #widgets do widgets[i]:onEndUpdate(dt) end
