@@ -94,7 +94,7 @@ local GUI = {
     altKeyJustReleased = false,
     altKeyWasPressedInsideWidget = {},
 
-    widgets = {}
+    systems = {}
 }
 
 function GUI.setColor(rOrColor, g, b)
@@ -131,10 +131,6 @@ function GUI.measureString(str)
     return gfxMeasureStr(str)
 end
 
-function GUI.addWidget(widget)
-    GUI.widgets[#GUI.widgets + 1] = widget
-end
-
 function GUI.setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
@@ -155,6 +151,8 @@ function GUI.initialize(title, width, height, dock, x, y)
 
     gfxInit(title, width, height, dock, x, y)
 end
+
+function GUI.update(dt) end
 
 local function updateGUIStates()
     GUI.mouseCap = gfx.mouse_cap
@@ -229,19 +227,6 @@ local function updateGUIPreviousStates()
     GUI.windowsKeyWasPreviouslyPressed = GUI.windowsKeyIsPressed
     GUI.altKeyWasPreviouslyPressed = GUI.altKeyIsPressed
 end
-local function processWidgets(dt)
-    local widgets = GUI.widgets
-
-    for i = 1, #widgets do widgets[i]:onUpdate(dt) end
-
-    for i = 1, #widgets do
-        local a, mode, dest = gfx.a, gfx.mode, gfx.dest
-        widgets[i]:onDraw(dt)
-        gfx.a, gfx.mode, gfx.dest = a, mode, dest
-    end
-
-    for i = 1, #widgets do widgets[i]:onEndUpdate(dt) end
-end
 
 local currentTime = reaperTimePrecise()
 local previousTime = currentTime
@@ -255,7 +240,7 @@ function GUI.run()
 
     currentTime = reaperTimePrecise()
     local dt = currentTime - previousTime
-    processWidgets(dt)
+    GUI.update(dt)
     previousTime = currentTime
 
     updateGUIPreviousStates()
