@@ -74,75 +74,6 @@ local function getDistanceBetweenTwoPoints(x1, y1, x2, y2)
     local dy = y1 - y2
     return sqrt(dx * dx + dy * dy)
 end
-local function getIndexAndDistanceOfSegmentClosestToPoint(points, x, y)
-    local numberOfPoints = #points
-    if numberOfPoints < 1 then return nil end
-
-    local lowestDistance
-    local lowestDistanceIndex = 1
-
-    for i = 1, numberOfPoints do
-        local point = points[i]
-        local nextPoint = points[i + 1]
-
-        local distance
-        if nextPoint then
-            distance = getMinimumDistanceBetweenPointAndLineSegment(x, y, point.x, point.y, nextPoint.x, nextPoint.y)
-        end
-        lowestDistance = lowestDistance or distance
-
-        if distance and distance < lowestDistance then
-            lowestDistance = distance
-            lowestDistanceIndex = i
-        end
-    end
-
-    return lowestDistanceIndex, lowestDistance
-end
-local function getIndexAndDistanceOfPointClosestToPoint(points, x, y)
-    local numberOfPoints = #points
-    if numberOfPoints < 1 then return nil end
-
-    local lowestDistance
-    local lowestDistanceIndex = 1
-
-    for i = 1, numberOfPoints do
-        local point = points[i]
-
-        local distance = getDistanceBetweenTwoPoints(x, y, point.x, point.y)
-        lowestDistance = lowestDistance or distance
-
-        if distance and distance < lowestDistance then
-            lowestDistance = distance
-            lowestDistanceIndex = i
-        end
-    end
-
-    return lowestDistanceIndex, lowestDistance
-end
-local function getIndexOfPointOrSegmentClosestToPointWithinDistance(points, x, y, distance)
-    local index
-    local indexIsPoint
-    local segmentIndex, segmentDistance = getIndexAndDistanceOfSegmentClosestToPoint(points, x, y)
-    local pointIndex, pointDistance = getIndexAndDistanceOfPointClosestToPoint(points, x, y)
-    local pointIsClose = false
-    local segmentIsClose = false
-
-    if pointDistance then pointIsClose = pointDistance <= distance end
-    if segmentDistance then segmentIsClose = segmentDistance <= distance end
-
-    if pointIsClose or segmentIsClose then
-        if segmentIsClose then
-            index = segmentIndex
-            indexIsPoint = false
-        end
-        if pointIsClose then
-            index = pointIndex
-            indexIsPoint = true
-        end
-    end
-    return index, indexIsPoint
-end
 
 local PolyLineState = {}
 
@@ -155,26 +86,77 @@ function PolyLineState:getDefaults()
     defaults.mouseEditPixelRange = 6
     defaults.glowWhenMouseIsOver = true
     defaults.mouseOverIndex = nil
+    defaults.mouseOverDistance = nil
     defaults.mouseIsOverPoint = nil
     return defaults
 end
 function PolyLineState:update()
     local points = self.points
+    local mouseX = GUI.mouseX
+    local mouseY = GUI.mouseY
+
+    local lowestPointDistance
+    local closestPointIndex
+    local lowestLineDistance
+    local closestLineIndex
 
     for i = 1, #points do
         local point = points[i]
+        local pointX = point.x
+        local pointY = point.y
+
         point.glowPoint = false
         point.glowLine = false
-    end
 
-    self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, GUI.mouseX, GUI.mouseY, self.mouseEditPixelRange)
-    if self.mouseOverIndex then
-        if self.mouseIsOverPoint then
-            points[self.mouseOverIndex].glowPoint = true
-        else
-            points[self.mouseOverIndex].glowLine = true
+        local pointDistance = getDistanceBetweenTwoPoints(mouseX, mouseY, pointX, pointY)
+
+        lowestPointDistance = lowestPointDistance or pointDistance
+        if pointDistance < lowestPointDistance then
+            lowestPointDistance = pointDistance
+            closestPointIndex = i
+        end
+
+        local nextPoint = points[i + 1]
+        if nextPoint then
+            local nextPointX = nextPoint.x
+            local nextPointY = nextPoint.y
+
+            local lineDistance = getMinimumDistanceBetweenPointAndLineSegment(mouseX, mouseY, pointX, pointY, nextPointX, nextPointY)
+            lowestLineDistance = lowestLineDistance or lineDistance
+            if lineDistance < lowestLineDistance then
+                lowestLineDistance = lineDistance
+                closestLineIndex = i
+            end
         end
     end
+
+    local mouseOverIndex
+    local mouseOverDistance
+    local mouseIsOverPoint
+    local mouseEditPixelRange = self.mouseEditPixelRange
+
+    if lowestPointDistance < mouseEditPixelRange then
+        mouseOverIndex = closestPointIndex
+        mouseOverDistance = lowestPointDistance
+        mouseIsOverPoint = true
+
+    elseif lowestLineDistance < mouseEditPixelRange then
+        mouseOverIndex = closestLineIndex
+        mouseOverDistance = lowestLineDistance
+        mouseIsOverPoint = false
+    end
+
+    if mouseOverIndex and self.glowWhenMouseIsOver then
+        if mouseIsOverPoint then
+            points[mouseOverIndex].glowPoint = true
+        else
+            points[mouseOverIndex].glowLine = true
+        end
+    end
+
+    self.mouseOverIndex = mouseOverIndex
+    self.mouseOverDistance = mouseOverDistance
+    self.mouseIsOverPoint = mouseIsOverPoint
 end
 
 return PolyLineState
