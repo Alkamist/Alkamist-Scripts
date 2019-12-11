@@ -1,11 +1,11 @@
 local GUI = require("GUI")
 
-local Rectangle = {}
+local RectangleMouseBehavior = {}
 
-function Rectangle:requires()
-    return self.Rectangle
+function RectangleMouseBehavior:requires()
+    return self.RectangleMouseBehavior
 end
-function Rectangle:getDefaults()
+function RectangleMouseBehavior:getDefaults()
     local defaults = {}
     defaults.x = 0
     defaults.y = 0
@@ -14,12 +14,11 @@ function Rectangle:getDefaults()
     defaults.mouseIsInside = false
     return defaults
 end
-function Rectangle:update(dt)
+function RectangleMouseBehavior:update(dt)
     local x, y, w, h = self.x, self.y, self.width, self.height
     local mouseX, mouseY = GUI.mouseX, GUI.mouseY
-
     self.mouseIsInside = mouseX >= x and mouseX <= x + w
                      and mouseY >= y and mouseY <= y + h
 end
 
-return Rectangle
+return RectangleMouseBehavior

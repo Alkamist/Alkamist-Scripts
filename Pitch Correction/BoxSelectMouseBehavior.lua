@@ -52,12 +52,12 @@ local function makeSelection(self)
     self.isActive = false
 end
 
-local BoxSelectState = {}
+local BoxSelectMouseBehavior = {}
 
-function BoxSelectState:requires()
-    return self.BoxSelectState
+function BoxSelectMouseBehavior:requires()
+    return self.BoxSelectMouseBehavior
 end
-function BoxSelectState:getDefaults()
+function BoxSelectMouseBehavior:getDefaults()
     local defaults = {}
     defaults.startingX = 0
     defaults.startingY = 0
@@ -67,10 +67,10 @@ function BoxSelectState:getDefaults()
     defaults.outlineColor = { 1, 1, 1, 0.3, 1 }
     return defaults
 end
-function BoxSelectState:update(dt)
+function BoxSelectMouseBehavior:update(dt)
     if GUI.rightMouseButtonJustPressed then startSelection(self) end
     if GUI.rightMouseButtonJustDragged then editSelection(self) end
     if GUI.rightMouseButtonJustReleased then makeSelection(self) end
 end
 
-return BoxSelectState
+return BoxSelectMouseBehavior

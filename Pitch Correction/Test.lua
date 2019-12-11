@@ -10,12 +10,10 @@ GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local ECS = require("ECS")
 
-ECS.addSystem(require("Rectangle"))
-ECS.addSystem(require("BoxSelectState"))
+ECS.addSystem(require("RectangleMouseBehavior"))
+ECS.addSystem(require("BoxSelectMouseBehavior"))
 ECS.addSystem(require("ButtonMouseBehavior"))
-ECS.addSystem(require("PolyLineState"))
 ECS.addSystem(require("ButtonDraw"))
-ECS.addSystem(require("PolyLineDraw"))
 ECS.addSystem(require("BoxSelectDraw"))
 
 --local buttons = {}
@@ -26,7 +24,7 @@ ECS.addSystem(require("BoxSelectDraw"))
 --local numberOfButtons = 100
 --for i = 1, numberOfButtons do
 --    local button = {}
---    button.Rectangle = true
+--    button.RectangleMouseBehavior = true
 --    button.ButtonMouseBehavior = true
 --    button.ButtonDraw = true
 --    button.x = x
@@ -44,23 +42,23 @@ ECS.addSystem(require("BoxSelectDraw"))
 --    end
 --end
 
-local polyLine1 = {
-    PolyLineState = true,
-    PolyLineDraw = true,
-    points = {}
-}
-for i = 1, 100 do
-    local point = {
-        x = i * 5,
-        y = 200 + math.random() * 100
-    }
-    polyLine1.points[i] = point
-end
+--local polyLine1 = {
+--    PolyLineState = true,
+--    PolyLineDraw = true,
+--    points = {}
+--}
+--for i = 1, 100 do
+--    local point = {
+--        x = i * 5,
+--        y = 200 + math.random() * 100
+--    }
+--    polyLine1.points[i] = point
+--end
 
-ECS.addEntity(polyLine1)
+--ECS.addEntity(polyLine1)
 
 ECS.addEntity{
-    BoxSelectState = true,
+    BoxSelectMouseBehavior = true,
     BoxSelectDraw = true,
 --    objectsToSelect = buttons
 }
