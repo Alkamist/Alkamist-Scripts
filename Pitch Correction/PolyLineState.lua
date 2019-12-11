@@ -96,17 +96,14 @@ function PolyLineState:update()
     local mouseY = GUI.mouseY
 
     local lowestPointDistance
-    local closestPointIndex
+    local closestPointIndex = 1
     local lowestLineDistance
-    local closestLineIndex
+    local closestLineIndex = 1
 
     for i = 1, #points do
         local point = points[i]
         local pointX = point.x
         local pointY = point.y
-
-        point.glowPoint = false
-        point.glowLine = false
 
         local pointDistance = getDistanceBetweenTwoPoints(mouseX, mouseY, pointX, pointY)
 
@@ -144,14 +141,6 @@ function PolyLineState:update()
         mouseOverIndex = closestLineIndex
         mouseOverDistance = lowestLineDistance
         mouseIsOverPoint = false
-    end
-
-    if mouseOverIndex and self.glowWhenMouseIsOver then
-        if mouseIsOverPoint then
-            points[mouseOverIndex].glowPoint = true
-        else
-            points[mouseOverIndex].glowLine = true
-        end
     end
 
     self.mouseOverIndex = mouseOverIndex

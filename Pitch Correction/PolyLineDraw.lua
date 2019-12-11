@@ -1,4 +1,5 @@
 local GUI = require("GUI")
+local setColor = GUI.setColor
 
 local PolyLineDraw = {}
 
@@ -11,20 +12,18 @@ function PolyLineDraw:getDefaults()
     defaults.glowWhenMouseIsOver = true
     defaults.mouseOverIndex = nil
     defaults.mouseIsOverPoint = nil
-    local lineColor = { 0.5, 0.5, 0.5, 1, 0 }
-    defaults.lineColor = lineColor
-    defaults.pointColor = { lineColor[1] + 0.03, lineColor[2] + 0.03, lineColor[3] + 0.03, lineColor[4], lineColor[5] }
+    defaults.lineColor = { 0.5, 0.5, 0.5, 1, 0 }
+    defaults.pointShade = { 1, 1, 1, 0.1, 0 }
     defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
     defaults.drawLineFn = function(self, point, nextPoint) GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true) end
     defaults.drawPointFn = function(self, point) GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true) end
     return defaults
 end
 function PolyLineDraw:update(dt)
-    local setColor = GUI.setColor
     local drawLineFn = self.drawLineFn
     local drawPointFn = self.drawPointFn
     local lineColor = self.lineColor
-    local pointColor = self.pointColor
+    local pointShade = self.pointShade
     local glowColor = self.glowColor
     local mouseOverIndex = self.mouseOverIndex
     local mouseIsOverPoint = self.mouseIsOverPoint
@@ -48,7 +47,10 @@ function PolyLineDraw:update(dt)
             end
         end
 
-        setColor(pointColor)
+        setColor(lineColor)
+        drawPointFn(self, point)
+
+        setColor(pointShade)
         drawPointFn(self, point)
 
         if shouldGlowPoint then

@@ -15,7 +15,7 @@ ECS.addSystem(require("BoxSelectMouseBehavior"))
 ECS.addSystem(require("ButtonMouseBehavior"))
 ECS.addSystem(require("PolyLineState"))
 ECS.addSystem(require("ButtonDraw"))
-ECS.addSystem(require("PitchCorrectionDraw"))
+ECS.addSystem(require("PolyLineDraw"))
 ECS.addSystem(require("BoxSelectDraw"))
 
 --local buttons = {}
@@ -48,20 +48,20 @@ local pitchCorrections = {}
 
 for i = 1, 100 do
     pitchCorrections[i] = {
-        PitchCorrectionDraw = true,
         x = i * 5,
         y = 200 + math.random() * 100,
         isActive = math.random() > 0.5
     }
+    pitchCorrections[i].correctedY = pitchCorrections[i].y + 100
 end
-for i = 1, 100 do
-    pitchCorrections[i].nextPoint = pitchCorrections[i + 1]
-    ECS.addEntity(pitchCorrections[i])
-end
+--for i = 1, 200 do
+--    pitchCorrections[i].nextPoint = pitchCorrections[i + 1]
+--    ECS.addEntity(pitchCorrections[i])
+--end
 
 local polyLine1 = {
-    PolyLineState = true,
     PolyLineDraw = true,
+    PolyLineState = true,
     points = pitchCorrections
 }
 
@@ -70,7 +70,7 @@ ECS.addEntity(polyLine1)
 ECS.addEntity{
     BoxSelectMouseBehavior = true,
     BoxSelectDraw = true,
---    objectsToSelect = buttons
+    objectsToSelect = polyLine1.points
 }
 
 function GUI.update(dt)
