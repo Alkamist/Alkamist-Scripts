@@ -153,14 +153,28 @@ function PolyLineState:getDefaults()
     local defaults = {}
     defaults.points = {}
     defaults.mouseEditPixelRange = 6
-    defaults.editPointIndex = nil
     defaults.glowWhenMouseIsOver = true
     defaults.mouseOverIndex = nil
     defaults.mouseIsOverPoint = nil
     return defaults
 end
 function PolyLineState:update()
+    local points = self.points
+
+    for i = 1, #points do
+        local point = points[i]
+        point.glowPoint = false
+        point.glowLine = false
+    end
+
     self.mouseOverIndex, self.mouseIsOverPoint = getIndexOfPointOrSegmentClosestToPointWithinDistance(self.points, GUI.mouseX, GUI.mouseY, self.mouseEditPixelRange)
+    if self.mouseOverIndex then
+        if self.mouseIsOverPoint then
+            points[self.mouseOverIndex].glowPoint = true
+        else
+            points[self.mouseOverIndex].glowLine = true
+        end
+    end
 end
 
 return PolyLineState

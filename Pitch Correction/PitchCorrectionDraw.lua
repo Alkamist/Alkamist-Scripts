@@ -10,24 +10,27 @@ function PitchCorrectionDraw:requires()
 end
 function PitchCorrectionDraw:getDefaults()
     local defaults = {}
-    defaults.point = {}
-    defaults.nextPoint = {}
-    defaults.glowIndex = nil
+    defaults.x = 0
+    defaults.y = 0
+    defaults.isActive = true
+    defaults.nextPoint = nil
+    defaults.glowPoint = false
+    defaults.glowLine = false
     defaults.activeColor = { 0.3, 0.3, 0.8, 1, 0 }
     defaults.inactiveColor = { 0.8, 0.3, 0.3, 1, 0 }
     defaults.glowColor = { 1, 1, 1, 0.4, 1 }
     return defaults
 end
 function PitchCorrectionDraw:update(dt)
-    local point = self.point
-    local pointX = point.x
-    local pointY = point.y
-    local pointIsActive = point.isActive
+    local pointX = self.x
+    local pointY = self.y
+    local pointIsActive = self.isActive
     local nextPoint = self.nextPoint
-    local glowIndex = self.glowIndex
     local activeColor = self.activeColor
     local inactiveColor = self.inactiveColor
     local glowColor = self.glowColor
+    local glowPoint = self.glowPoint
+    local glowLine = self.glowLine
 
     if nextPoint and pointIsActive then
         local nextPointX = nextPoint.x
@@ -36,7 +39,7 @@ function PitchCorrectionDraw:update(dt)
         setColor(activeColor)
         drawLine(pointX, pointY, nextPointX, nextPointY, true)
 
-        if glowIndex == 2 then
+        if glowLine then
             setColor(glowColor)
             drawLine(pointX, pointY, nextPointX, nextPointY, true)
         end
@@ -47,11 +50,11 @@ function PitchCorrectionDraw:update(dt)
     else
         setColor(inactiveColor)
     end
-    drawCircle(pointX, pointY, 5, true, true)
+    drawCircle(pointX, pointY, 3, true, true)
 
-    if glowIndex == 1 then
+    if glowPoint then
         setColor(glowColor)
-        drawCircle(pointX, pointY, 5, true, true)
+        drawCircle(pointX, pointY, 3, true, true)
     end
 end
 
