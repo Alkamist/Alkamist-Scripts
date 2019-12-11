@@ -9,39 +9,61 @@ GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
 local ECS = require("ECS")
-local Rectangle = require("Rectangle")
-local ButtonState = require("ButtonState")
-local ButtonDraw = require("ButtonDraw")
 
-ECS.addSystem(Rectangle)
-ECS.addSystem(ButtonState)
-ECS.addSystem(ButtonDraw)
+ECS.addSystem(require("Rectangle"))
+ECS.addSystem(require("BoxSelectState"))
+ECS.addSystem(require("ButtonMouseBehavior"))
+ECS.addSystem(require("PolyLineState"))
+ECS.addSystem(require("ButtonDraw"))
+ECS.addSystem(require("PolyLineDraw"))
+ECS.addSystem(require("BoxSelectDraw"))
 
-local buttons = {}
+--local buttons = {}
+--
+--local x = 0
+--local y = 0
+--local size = 60
+--local numberOfButtons = 100
+--for i = 1, numberOfButtons do
+--    local button = {}
+--    button.Rectangle = true
+--    button.ButtonMouseBehavior = true
+--    button.ButtonDraw = true
+--    button.x = x
+--    button.y = y
+--    button.width = size
+--    button.height = size
+--    buttons[i] = button
+--
+--    ECS.addEntity(button)
+--
+--    x = x + size
+--    if x >= 1000 - size then
+--        x = 0
+--        y = y + size
+--    end
+--end
 
-local x = 0
-local y = 0
-local size = 80
-local numberOfButtons = 100
-for i = 1, numberOfButtons do
-    local button = {}
-    button.Rectangle = true
-    button.ButtonState = true
-    button.ButtonDraw = true
-    button.x = x
-    button.y = y
-    button.width = size
-    button.height = size
-    buttons[i] = button
-
-    ECS.addEntity(button)
-
-    x = x + size
-    if x >= 1000 - size then
-        x = 0
-        y = y + size
-    end
+local polyLine1 = {
+    PolyLineState = true,
+    PolyLineDraw = true,
+    points = {}
+}
+for i = 1, 100 do
+    local point = {
+        x = i * 5,
+        y = 200 + math.random() * 100
+    }
+    polyLine1.points[i] = point
 end
+
+ECS.addEntity(polyLine1)
+
+ECS.addEntity{
+    BoxSelectState = true,
+    BoxSelectDraw = true,
+--    objectsToSelect = buttons
+}
 
 function GUI.update(dt)
     ECS.update(dt)

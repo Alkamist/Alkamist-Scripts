@@ -1,17 +1,17 @@
 local GUI = require("GUI")
 
-local ButtonState = {}
+local ButtonMouseBehavior = {}
 
-function ButtonState:requires()
-    return self.ButtonState
+function ButtonMouseBehavior:requires()
+    return self.ButtonMouseBehavior
 end
-function ButtonState:getDefaults()
+function ButtonMouseBehavior:getDefaults()
     local defaults = {}
     defaults.isPressed = false
     defaults.mouseIsInside = false
     return defaults
 end
-function ButtonState:update(dt)
+function ButtonMouseBehavior:update(dt)
     if self.mouseIsInside and GUI.leftMouseButtonJustPressed then
         self.isPressed = true
     end
@@ -20,4 +20,4 @@ function ButtonState:update(dt)
     end
 end
 
-return ButtonState
+return ButtonMouseBehavior

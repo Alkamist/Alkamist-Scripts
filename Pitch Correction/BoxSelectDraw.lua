@@ -2,6 +2,9 @@ local GUI = require("GUI")
 
 local BoxSelectDraw = {}
 
+function BoxSelectDraw:requires()
+    return self.BoxSelectDraw
+end
 function BoxSelectDraw:getDefaults()
     local defaults = {}
     defaults.x = 0
@@ -12,9 +15,6 @@ function BoxSelectDraw:getDefaults()
     defaults.bodyColor = { 1, 1, 1, -0.04, 1 }
     defaults.outlineColor = { 1, 1, 1, 0.3, 1 }
     return defaults
-end
-function BoxSelectDraw:filter()
-    return self.BoxSelectDraw
 end
 function BoxSelectDraw:update(dt)
     local x, y, w, h = self.x, self.y, self.width, self.height

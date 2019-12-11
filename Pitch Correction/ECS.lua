@@ -1,7 +1,8 @@
+local type = type
+
 local ECS = {}
 
 local systems = {}
-local entities = {}
 
 local function initializeEntityBasedOnSystem(system, entity)
     for k, v in pairs(system.getDefaults()) do if entity[k] == nil then entity[k] = v end end
@@ -25,7 +26,6 @@ function ECS.addEntity(entity)
         end
     end
 end
-
 function ECS.update(dt)
     for i = 1, #systems do
         local system = systems[i]

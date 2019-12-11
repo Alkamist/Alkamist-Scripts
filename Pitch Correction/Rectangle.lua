@@ -14,7 +14,6 @@ function Rectangle:getDefaults()
     defaults.mouseIsInside = false
     return defaults
 end
-
 function Rectangle:update(dt)
     local x, y, w, h = self.x, self.y, self.width, self.height
     local mouseX, mouseY = GUI.mouseX, GUI.mouseY
