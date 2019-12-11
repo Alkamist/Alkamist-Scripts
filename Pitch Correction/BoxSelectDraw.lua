@@ -17,9 +17,9 @@ function BoxSelectDraw:getDefaults()
     return defaults
 end
 function BoxSelectDraw:update(dt)
-    local x, y, w, h = self.x, self.y, self.width, self.height
-
     if self.isActive then
+        local x, y, w, h = self.x, self.y, self.width, self.height
+
         -- Draw the body.
         GUI.setColor(self.bodyColor)
         GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)

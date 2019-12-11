@@ -30,7 +30,10 @@ local GUI = {
     previousMouseY = 0,
 
     mouseWheel = 0,
+    mouseWheelJustMoved = false,
+
     mouseHWheel = 0,
+    mouseHWheelJustMoved = false,
 
     keyboardChar = nil,
 
@@ -162,6 +165,9 @@ local function updateGUIStates()
     gfx.mouse_wheel = 0
     GUI.mouseHWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
+
+    GUI.mouseWheelJustMoved = GUI.mouseWheel ~= 0
+    GUI.mouseHWheelJustMoved = GUI.mouseHWheel ~= 0
 
     GUI.keyboardChar = gfxGetChar()
 
