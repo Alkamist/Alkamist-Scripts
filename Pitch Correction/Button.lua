@@ -1,10 +1,15 @@
 local GUI = require("GUI")
-local Widget = require("Widget")
 
 local Button = {}
 
 function Button:new(object)
     local object = object or {}
+    local defaults = self:getDefaults()
+    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
+    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
+    return object
+end
+function Button:getDefaults()
     local defaults = {}
     defaults.x = 0
     defaults.y = 0
@@ -16,19 +21,55 @@ function Button:new(object)
     defaults.outlineColor = { 0.15, 0.15, 0.15, 1, 0 }
     defaults.pressedColor = { 1, 1, 1, -0.1, 1 }
     defaults.highlightColor = { 1, 1, 1, 0.1, 1 }
-    for k, v in pairs(self) do if object[k] == nil then object[k] = v end end
-    for k, v in pairs(defaults) do if object[k] == nil then object[k] = v end end
-    return Widget:new(object)
+    return defaults
 end
 
-function Button:onLeftMouseButtonJustPressedWidget()
-    self.isPressed = true
+function Button:pointIsInside(pointX, pointY)
+    local x, y, w, h = self.x, self.y, self.width, self.height
+    return pointX >= x and pointX <= x + w
+       and pointY >= y and pointY <= y + h
 end
-function Button:onLeftMouseButtonJustReleasedWidget()
-    self.isPressed = false
+
+function Button:press()
+    if not self.isPressed then
+        self.isPressed = true
+        self:onPress()
+    end
 end
+function Button:release()
+    if self.isPressed then
+        self.isPressed = false
+        self:onRelease()
+    end
+end
+function Button:toggle()
+    if self.isPressed then
+        self:release()
+    else
+        self:press()
+    end
+end
+
+function Button:handleMouseControl()
+    if self.mouseIsInside and GUI.leftMouseButtonJustPressed then
+        self:press()
+        self.leftMouseButtonWasPressedInside = true
+    end
+    if GUI.leftMouseButtonJustReleased and self.leftMouseButtonWasPressedInside then
+        self:release()
+        self.leftMouseButtonWasPressedInside = false
+    end
+end
+function Button:handleMouseOverGlow()
+    self.isGlowing = self.mouseIsInside
+end
+
+function Button:onPress() end
+function Button:onRelease() end
 function Button:onUpdate(dt)
-    self.isGlowing = self:pointIsInside(GUI.mouseX, GUI.mouseY)
+    self.mouseIsInside = self:pointIsInside(GUI.mouseX, GUI.mouseY)
+    self:handleMouseOverGlow()
+    self:handleMouseControl()
 end
 function Button:onDraw(dt)
     local x, y, w, h = self.x, self.y, self.width, self.height
@@ -56,5 +97,6 @@ function Button:onDraw(dt)
         GUI.drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
     end
 end
+function Button:onEndUpdate(dt) end
 
 return Button

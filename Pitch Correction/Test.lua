@@ -12,9 +12,25 @@ local Button = require("Button")
 local BoxSelect = require("BoxSelect")
 
 local buttons = {}
-local x = 400
-local y = 400
-local size = 12
+local boxSelect = BoxSelect:new()
+
+boxSelect.objectsToSelect = buttons
+function boxSelect:setObjectSelected(object, shouldSelect)
+    if shouldSelect then
+        object:press()
+    else
+        object:release()
+    end
+end
+function boxSelect:objectIsSelected(object)
+    return object.isPressed
+end
+
+GUI.addWidget(boxSelect)
+
+local x = 0
+local y = 0
+local size = 80
 local numberOfButtons = 100
 for i = 1, numberOfButtons do
     local button = Button:new()
@@ -24,39 +40,24 @@ for i = 1, numberOfButtons do
     button.height = size
     buttons[i] = button
 
-    --function button:onLeftMouseButtonJustDragged()
-    --    if self.isPressed then
-    --        self.x = self.x + GUI.mouseXChange
-    --        self.y = self.y + GUI.mouseYChange
-    --    end
-    --end
-    function button:onLeftMouseButtonJustPressedWidget() end
-    function button:onLeftMouseButtonJustReleasedWidget() end
-    function button:onUpdate(dt)
-        self.x = self.x + 2 - math.random() * 4
-        self.y = self.y + 2 - math.random() * 4
-        Button.onUpdate(self, dt)
+    function button:onUpdate()
+        Button.onUpdate(self)
+        if self.isPressed and GUI.leftMouseButtonJustDragged then
+            self.x = self.x + GUI.mouseXChange
+            self.y = self.y + GUI.mouseYChange
+        end
+        --self.x = self.x + 2 - math.random() * 4
+        --self.y = self.y + 2 - math.random() * 4
     end
+    function button:handleMouseControl() end
 
     GUI.addWidget(button)
 
-    --x = x + size
-    --if x >= 1000 - size then
-    --    x = 0
-    --    y = y + size
-    --end
+    x = x + size
+    if x >= 1000 - size then
+        x = 0
+        y = y + size
+    end
 end
-
-local boxSelect = BoxSelect:new()
-boxSelect.objectsToSelect = buttons
-
-function boxSelect:setObjectSelected(object, shouldSelect)
-    object.isPressed = shouldSelect
-end
-function boxSelect:objectIsSelected(object)
-    return object.isPressed
-end
-
-GUI.addWidget(boxSelect)
 
 GUI.run()
