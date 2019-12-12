@@ -8,37 +8,20 @@ local GUI = require("GUI")
 GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
-local ECS = require("ECS")
+local PolyLine = require("PolyLine")
 
-ECS.addSystem(require("PitchEditorTake"))
-ECS.addSystem(require("TakePitchPoints"))
-ECS.addSystem(require("PolyLineState"))
-ECS.addSystem(require("PolyLineDraw"))
-
-local test1 = {
-    --PitchEditorTake = true,
-    PolyLineState = true,
-    PolyLineDraw = true,
-    --TakePitchPoints = true,
-    --startAnalyzingPitch = true,
-    points = {},
-    --x = 50,
-    --y = 50,
-    --width = 900,
-    --height = 600
-}
+local test1 = PolyLine.new()
 
 for i = 1, 200 do
     test1.points[i] = {
-        x = i * 3 - 3,
+        x = i * 5,
         y = 200 + math.random() * 200
     }
 end
 
-ECS.addEntity(test1)
-
 function GUI.update(dt)
-    ECS.update(dt)
+    PolyLine.update(test1, dt)
+    PolyLine.draw(test1, dt)
 end
 
 GUI.run()

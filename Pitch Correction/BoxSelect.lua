@@ -1,4 +1,6 @@
 local GUI = require("GUI")
+local setColor = GUI.setColor
+local drawRectangle = GUI.drawRectangle
 
 local math = math
 local abs = math.abs
@@ -29,8 +31,8 @@ end
 local function makeSelection(self)
     local objectsToSelect = self.objectsToSelect
     local numberOfObjectsToSelect = #objectsToSelect
-    local shouldInvert = GUI.controlKeyIsPressed
-    local shouldAdd = GUI.shiftKeyIsPressed
+    local shouldInvert = GUI.controlKey.isPressed
+    local shouldAdd = GUI.shiftKey.isPressed
 
     if objectsToSelect then
         for i = 1, numberOfObjectsToSelect do
@@ -52,25 +54,43 @@ local function makeSelection(self)
     self.isActive = false
 end
 
-local BoxSelectMouseBehavior = {}
+local BoxSelect = {}
 
-function BoxSelectMouseBehavior:requires()
-    return self.BoxSelectMouseBehavior
-end
-function BoxSelectMouseBehavior:getDefaults()
+function BoxSelect:new()
+    local self = self or {}
+
     local defaults = {}
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
     defaults.startingX = 0
     defaults.startingY = 0
     defaults.isActive = false
     defaults.objectsToSelect = {}
     defaults.bodyColor = { 1, 1, 1, -0.04, 1 }
     defaults.outlineColor = { 1, 1, 1, 0.3, 1 }
-    return defaults
+
+    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
+    return self
 end
-function BoxSelectMouseBehavior:update(dt)
-    if GUI.rightMouseButtonJustPressed then startSelection(self) end
-    if GUI.rightMouseButtonJustDragged then editSelection(self) end
-    if GUI.rightMouseButtonJustReleased then makeSelection(self) end
+function BoxSelect:update(dt)
+    if GUI.rightMouseButton.justPressed then startSelection(self) end
+    if GUI.rightMouseButton.justDragged then editSelection(self) end
+    if GUI.rightMouseButton.justReleased then makeSelection(self) end
+end
+function BoxSelect:draw(dt)
+    if self.isActive then
+        local x, y, w, h = self.x, self.y, self.width, self.height
+
+        -- Draw the body.
+        setColor(self.bodyColor)
+        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+
+        -- Draw the outline.
+        setColor(self.outlineColor)
+        drawRectangle(x, y, w, h, false)
+    end
 end
 
-return BoxSelectMouseBehavior
+return BoxSelect

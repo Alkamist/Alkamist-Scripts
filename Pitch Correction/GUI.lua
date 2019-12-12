@@ -22,83 +22,73 @@ local type = type
 local GUI = {
     mouseCap = 0,
     previousMouseCap = 0,
-
     mouseX = 0,
     previousMouseX = 0,
-
     mouseY = 0,
     previousMouseY = 0,
-
     mouseWheel = 0,
     mouseWheelJustMoved = false,
-
     mouseHWheel = 0,
     mouseHWheelJustMoved = false,
-
     keyboardChar = nil,
-
     windowTitle = "",
     windowX = 0,
     windowY = 0,
-
     windowWidth = 0,
     previousWindowWidth = 0,
     windowWidthChange = 0,
     windowWidthJustChanged = false,
-
     windowHeight = 0,
     previousWindowHeight = 0,
     windowHeightChange = 0,
     windowHeightJustChanged = false,
-
     windowWasJustResized = false,
-
     windowDock = 0,
-
-    leftMouseButtonIsPressed = false,
-    leftMouseButtonWasPreviouslyPressed = false,
-    leftMouseButtonJustPressed = false,
-    leftMouseButtonJustReleased = false,
-    leftMouseButtonWasPressedInsideWidget = {},
-
-    middleMouseButtonIsPressed = false,
-    middleMouseButtonWasPreviouslyPressed = false,
-    middleMouseButtonJustPressed = false,
-    middleMouseButtonJustReleased = false,
-    middleMouseButtonWasPressedInsideWidget = {},
-
-    rightMouseButtonIsPressed = false,
-    rightMouseButtonWasPreviouslyPressed = false,
-    rightMouseButtonJustPressed = false,
-    rightMouseButtonJustReleased = false,
-    rightMouseButtonWasPressedInsideWidget = {},
-
-    shiftKeyIsPressed = false,
-    shiftKeyWasPreviouslyPressed = false,
-    shiftKeyJustPressed = false,
-    shiftKeyJustReleased = false,
-    shiftKeyWasPressedInsideWidget = {},
-
-    controlKeyIsPressed = false,
-    controlKeyWasPreviouslyPressed = false,
-    controlKeyJustPressed = false,
-    controlKeyJustReleased = false,
-    controlKeyWasPressedInsideWidget = {},
-
-    windowsKeyIsPressed = false,
-    windowsKeyWasPreviouslyPressed = false,
-    windowsKeyJustPressed = false,
-    windowsKeyJustReleased = false,
-    windowsKeyWasPressedInsideWidget = {},
-
-    altKeyJustPressed = false,
-    altKeyWasPreviouslyPressed = false,
-    altKeyJustPressed = false,
-    altKeyJustReleased = false,
-    altKeyWasPressedInsideWidget = {},
-
     systems = {}
 }
+
+local function initializeMouseButton(bitValue)
+    local self = {}
+    self.bitValue = bitValue
+    self.trackedObjects = {}
+    self.wasPressedInsideObject = {}
+    self.justPressedObject = {}
+    self.justReleasedObject = {}
+    self.justDraggedObject = {}
+    return self
+end
+local function updateMouseButtonState(self)
+    self.isPressed = GUI.mouseCap & self.bitValue == self.bitValue
+    self.justPressed = self.isPressed and not self.wasPreviouslyPressed
+    self.justReleased = not self.isPressed and self.wasPreviouslyPressed
+    self.justDragged = self.isPressed and GUI.mouseJustMoved
+
+    local trackedObjects = self.trackedObjects
+    for i = 1, #trackedObjects do
+        local object = trackedObjects[i]
+
+        if object:pointIsInside(GUI.mouseX, GUI.mouseY) and self.justPressed then
+            self.wasPressedInsideObject[object] = true
+        end
+
+        self.justPressedObject[object] = self.justPressed and self.wasPressedInsideObject[object]
+        self.justReleasedObject[object] = self.justReleased and self.wasPressedInsideObject[object]
+        self.justDraggedObject[object] = self.justDragged and self.wasPressedInsideObject[object]
+
+        if self.justReleased then self.wasPressedInsideObject[object] = false end
+    end
+end
+local function updateMouseButtonPreviousState(self)
+    self.wasPreviouslyPressed = self.isPressed
+end
+
+GUI.leftMouseButton = initializeMouseButton(1)
+GUI.middleMouseButton = initializeMouseButton(64)
+GUI.rightMouseButton = initializeMouseButton(2)
+GUI.shiftKey = initializeMouseButton(8)
+GUI.controlKey = initializeMouseButton(4)
+GUI.windowsKey = initializeMouseButton(32)
+GUI.altKey = initializeMouseButton(16)
 
 function GUI.setColor(rOrColor, g, b)
     if type(rOrColor) == "number" then
@@ -188,37 +178,13 @@ local function updateGUIStates()
     GUI.mouseYJustChanged = GUI.mouseY ~= GUI.previousMouseY
     GUI.mouseJustMoved = GUI.mouseXJustChanged or GUI.mouseYJustChanged
 
-    GUI.leftMouseButtonIsPressed = GUI.mouseCap & 1 == 1
-    GUI.middleMouseButtonIsPressed = GUI.mouseCap & 64 == 64
-    GUI.rightMouseButtonIsPressed = GUI.mouseCap & 2 == 2
-    GUI.shiftKeyIsPressed = GUI.mouseCap & 8 == 8
-    GUI.controlKeyIsPressed = GUI.mouseCap & 4 == 4
-    GUI.windowsKeyIsPressed = GUI.mouseCap & 32 == 32
-    GUI.altKeyIsPressed = GUI.mouseCap & 16 == 16
-
-    GUI.leftMouseButtonJustPressed = GUI.leftMouseButtonIsPressed and not GUI.leftMouseButtonWasPreviouslyPressed
-    GUI.middleMouseButtonJustPressed = GUI.middleMouseButtonIsPressed and not GUI.middleMouseButtonWasPreviouslyPressed
-    GUI.rightMouseButtonJustPressed = GUI.rightMouseButtonIsPressed and not GUI.rightMouseButtonWasPreviouslyPressed
-    GUI.shiftKeyJustPressed = GUI.shiftKeyIsPressed and not GUI.shiftKeyWasPreviouslyPressed
-    GUI.controlKeyJustPressed = GUI.controlKeyIsPressed and not GUI.controlKeyWasPreviouslyPressed
-    GUI.windowsKeyJustPressed = GUI.windowsKeyIsPressed and not GUI.windowsKeyWasPreviouslyPressed
-    GUI.altKeyJustPressed = GUI.altKeyIsPressed and not GUI.altKeyWasPreviouslyPressed
-
-    GUI.leftMouseButtonJustReleased = not GUI.leftMouseButtonIsPressed and GUI.leftMouseButtonWasPreviouslyPressed
-    GUI.middleMouseButtonJustReleased = not GUI.middleMouseButtonIsPressed and GUI.middleMouseButtonWasPreviouslyPressed
-    GUI.rightMouseButtonJustReleased = not GUI.rightMouseButtonIsPressed and GUI.rightMouseButtonWasPreviouslyPressed
-    GUI.shiftKeyJustReleased = not GUI.shiftKeyIsPressed and GUI.shiftKeyWasPreviouslyPressed
-    GUI.controlKeyJustReleased = not GUI.controlKeyIsPressed and GUI.controlKeyWasPreviouslyPressed
-    GUI.windowsKeyJustReleased = not GUI.windowsKeyIsPressed and GUI.windowsKeyWasPreviouslyPressed
-    GUI.altKeyJustReleased = not GUI.altKeyIsPressed and GUI.altKeyWasPreviouslyPressed
-
-    GUI.leftMouseButtonJustDragged = GUI.leftMouseButtonIsPressed and GUI.mouseJustMoved
-    GUI.middleMouseButtonJustDragged = GUI.middleMouseButtonIsPressed and GUI.mouseJustMoved
-    GUI.rightMouseButtonJustDragged = GUI.rightMouseButtonIsPressed and GUI.mouseJustMoved
-    GUI.shiftKeyJustDragged = GUI.shiftKeyIsPressed and GUI.mouseJustMoved
-    GUI.controlKeyJustDragged = GUI.controlKeyIsPressed and GUI.mouseJustMoved
-    GUI.windowsKeyJustDragged = GUI.windowsKeyIsPressed and GUI.mouseJustMoved
-    GUI.altKeyJustDragged = GUI.altKeyIsPressed and GUI.mouseJustMoved
+    updateMouseButtonState(GUI.leftMouseButton)
+    updateMouseButtonState(GUI.middleMouseButton)
+    updateMouseButtonState(GUI.rightMouseButton)
+    updateMouseButtonState(GUI.shiftKey)
+    updateMouseButtonState(GUI.controlKey)
+    updateMouseButtonState(GUI.windowsKey)
+    updateMouseButtonState(GUI.altKey)
 end
 local function updateGUIPreviousStates()
     GUI.previousMouseCap = GUI.mouseCap
@@ -227,13 +193,13 @@ local function updateGUIPreviousStates()
     GUI.previousWindowWidth = GUI.windowWidth
     GUI.previousWindowHeight = GUI.windowHeight
 
-    GUI.leftMouseButtonWasPreviouslyPressed = GUI.leftMouseButtonIsPressed
-    GUI.middleMouseButtonWasPreviouslyPressed = GUI.middleMouseButtonIsPressed
-    GUI.rightMouseButtonWasPreviouslyPressed = GUI.rightMouseButtonIsPressed
-    GUI.shiftKeyWasPreviouslyPressed = GUI.shiftKeyIsPressed
-    GUI.controlKeyWasPreviouslyPressed = GUI.controlKeyIsPressed
-    GUI.windowsKeyWasPreviouslyPressed = GUI.windowsKeyIsPressed
-    GUI.altKeyWasPreviouslyPressed = GUI.altKeyIsPressed
+    updateMouseButtonPreviousState(GUI.leftMouseButton)
+    updateMouseButtonPreviousState(GUI.middleMouseButton)
+    updateMouseButtonPreviousState(GUI.rightMouseButton)
+    updateMouseButtonPreviousState(GUI.shiftKey)
+    updateMouseButtonPreviousState(GUI.controlKey)
+    updateMouseButtonPreviousState(GUI.windowsKey)
+    updateMouseButtonPreviousState(GUI.altKey)
 end
 
 local currentTime = reaperTimePrecise()

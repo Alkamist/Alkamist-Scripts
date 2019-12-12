@@ -8,69 +8,22 @@ local GUI = require("GUI")
 GUI.initialize("Alkamist Pitch Correction", 1000, 700, 0, 400, 200)
 GUI.setBackgroundColor(0.2, 0.2, 0.2)
 
-local ECS = require("ECS")
-local Rectangle = require("Rectangle")
-local ButtonState = require("ButtonState")
-local ButtonDraw = require("ButtonDraw")
-
-local RandomMover = {}
-function RandomMover:requires()
-    return self.RandomMover
-end
-function RandomMover:getDefaults()
-    local defaults = {}
-    defaults.x = 0
-    defaults.y = 0
-    return defaults
-end
-function RandomMover:update(dt)
-    self.x = self.x + 2 - math.random() * 4
-    self.y = self.y + 2 - math.random() * 4
-end
-
-local ButtonDrag = {}
-function ButtonDrag:requires()
-    return self.ButtonDrag
-end
-function ButtonDrag:getDefaults()
-    local defaults = {}
-    defaults.x = 0
-    defaults.y = 0
-    return defaults
-end
-function ButtonDrag:update(dt)
-    if self.isPressed and GUI.mouseJustMoved then
-        self.x = self.x + GUI.mouseXChange
-        self.y = self.y + GUI.mouseYChange
-    end
-end
-
-ECS.addSystem(RandomMover)
-ECS.addSystem(Rectangle)
-ECS.addSystem(ButtonState)
-ECS.addSystem(ButtonDrag)
-ECS.addSystem(ButtonDraw)
+local Button = require("Button")
+local BoxSelect = require("BoxSelect")
 
 local buttons = {}
-
 local x = 0
 local y = 0
-local size = 80
-local numberOfButtons = 100
+local size = 15
+local numberOfButtons = 3000
 for i = 1, numberOfButtons do
-    local button = {}
-    button.RandomMover = true
-    button.Rectangle = true
-    button.ButtonState = true
-    button.ButtonDrag = true
-    button.ButtonDraw = true
-    button.x = x
-    button.y = y
-    button.width = size
-    button.height = size
+    local button = Button.new{
+        x = x,
+        y = y,
+        width = size,
+        height = size
+    }
     buttons[i] = button
-
-    ECS.addEntity(button)
 
     x = x + size
     if x >= 1000 - size then
@@ -79,8 +32,28 @@ for i = 1, numberOfButtons do
     end
 end
 
+local boxSelect = BoxSelect.new{
+    objectsToSelect = buttons
+}
+
 function GUI.update(dt)
-    ECS.update(dt)
+    BoxSelect.update(boxSelect, dt)
+    for i = 1, numberOfButtons do
+        local button = buttons[i]
+
+        button.x = button.x + 2 - math.random() * 4
+        button.y = button.y + 2 - math.random() * 4
+
+        if GUI.leftMouseButton.justDraggedObject[button] and button.isSelected then
+            button.x = button.x + GUI.mouseXChange
+            button.y = button.y + GUI.mouseYChange
+        end
+
+        Button.update(button, dt)
+        button.isPressed = button.isSelected
+        Button.draw(button, dt)
+    end
+    BoxSelect.draw(boxSelect, dt)
 end
 
 GUI.run()
