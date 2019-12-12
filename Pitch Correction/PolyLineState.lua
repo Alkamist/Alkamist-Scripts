@@ -5,39 +5,6 @@ local sqrt = math.sqrt
 local table = table
 local tableInsert = table.insert
 
-local function arrayRemove(t, fn)
-    local n = #t
-    local j = 1
-    for i = 1, n do
-        if not fn(i, j) then
-            if i ~= j then
-                t[j] = t[i]
-                t[i] = nil
-            end
-            j = j + 1
-        else
-            t[i] = nil
-        end
-    end
-end
-local function arrayInsert(t, newThing, sortFn)
-    local amount = #t
-    if amount == 0 then
-        t[1] = newThing
-        return 1
-    end
-
-    for i = 1, amount do
-        local thing = t[i]
-        if not sortFn(thing, newThing) then
-            tableInsert(t, i, newThing)
-            return i
-        end
-    end
-
-    t[amount + 1] = newThing
-    return amount + 1
-end
 local function getMinimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
     local A = pointX - lineX1
     local B = pointY - lineY1
@@ -92,6 +59,7 @@ function PolyLineState:getDefaults()
 end
 function PolyLineState:update()
     local points = self.points
+    if point == nil then return end
     local mouseX = GUI.mouseX
     local mouseY = GUI.mouseY
 
@@ -126,6 +94,8 @@ function PolyLineState:update()
             end
         end
     end
+
+    if lowestPointDistance == nil or lowestLineDistance == nil then return end
 
     local mouseOverIndex
     local mouseOverDistance

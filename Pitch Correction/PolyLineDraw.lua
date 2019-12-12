@@ -20,6 +20,8 @@ function PolyLineDraw:getDefaults()
     return defaults
 end
 function PolyLineDraw:update(dt)
+    local points = self.points
+    if points == nil then return end
     local drawLineFn = self.drawLineFn
     local drawPointFn = self.drawPointFn
     local lineColor = self.lineColor
@@ -28,7 +30,6 @@ function PolyLineDraw:update(dt)
     local mouseOverIndex = self.mouseOverIndex
     local mouseIsOverPoint = self.mouseIsOverPoint
     local glowWhenMouseIsOver = self.glowWhenMouseIsOver
-    local points = self.points
 
     for i = 1, #points do
         local point = points[i]

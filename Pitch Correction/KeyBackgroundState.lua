@@ -48,18 +48,12 @@ function KeyBackgroundState:getDefaults()
     return defaults
 end
 function KeyBackgroundState:update()
-    local selectedItem = reaper.GetSelectedMediaItem(0, 0)
-    --self.take = reaper.GetActiveTake(selectedItem)
-    if selectedItem then
-        self.timeStart = reaper.GetMediaItemInfo_Value(selectedItem, "D_POSITION")
-        self.timeLength = reaper.GetMediaItemInfo_Value(selectedItem, "D_LENGTH")
-    else
-        self.timeStart = 0
-        self.timeLength = 0
-    end
-
     self.relativeMouseX = GUI.mouseX - self.x
     self.relativeMouseY = GUI.mouseY - self.y
+
+    self.timeStart = self.itemLeftTime
+    self.timeLength = self.itemLength
+
     self.mouseTime = pixelsToTime(self, self.relativeMouseX)
     self.snappedMouseTime = round(self.mouseTime)
     self.mousePitch = pixelsToPitch(self, self.relativeMouseY)
