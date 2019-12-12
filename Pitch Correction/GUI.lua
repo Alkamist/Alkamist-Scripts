@@ -149,7 +149,9 @@ function GUI.initialize(title, width, height, dock, x, y)
     GUI.windowX = x
     GUI.windowY = y
     GUI.windowWidth = width
+    GUI.previousWindowWidth = width
     GUI.windowHeight = height
+    GUI.previousWindowHeight = height
     GUI.windowDock = dock
 
     gfxInit(title, width, height, dock, x, y)
