@@ -59,7 +59,6 @@ function PolyLineState:getDefaults()
 end
 function PolyLineState:update()
     local points = self.points
-    if point == nil then return end
     local mouseX = GUI.mouseX
     local mouseY = GUI.mouseY
 
@@ -94,8 +93,6 @@ function PolyLineState:update()
             end
         end
     end
-
-    if lowestPointDistance == nil or lowestLineDistance == nil then return end
 
     local mouseOverIndex
     local mouseOverDistance
