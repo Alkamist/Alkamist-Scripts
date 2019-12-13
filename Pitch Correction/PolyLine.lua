@@ -139,8 +139,37 @@ function PolyLine:new()
 end
 
 function PolyLine:update(dt)
-    self.boxSelect.objectsToSelect = self.points
+    local points = self.points
+    self.boxSelect.objectsToSelect = points
     updateMouseOverInfo(self)
+
+    if GUI.leftMouseButton.justPressed and self.mouseOverIndex then
+        self.editPointIndex = self.mouseOverIndex
+        self.editPoint = points[self.editPointIndex]
+
+        if not GUI.shiftKey.isPressed and not self.editPoint.isSelected then
+            for i = 1, #points do
+                local point = points[i]
+                point.isSelected = false
+            end
+        end
+
+        self.editPoint.isSelected = true
+    end
+    if GUI.leftMouseButton.justReleased then
+        self.editPointIndex = nil
+        self.editPoint = nil
+    end
+    if self.editPoint and GUI.leftMouseButton.justDragged then
+        for i = 1, #points do
+            local point = points[i]
+            if point.isSelected then
+                point.x = point.x + GUI.mouseXChange
+                point.y = point.y + GUI.mouseYChange
+            end
+        end
+    end
+
     BoxSelect.update(self.boxSelect, dt)
 end
 function PolyLine:draw(dt)
