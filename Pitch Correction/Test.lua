@@ -12,9 +12,9 @@ local PolyLine = require("PolyLine")
 
 local test1 = PolyLine.new()
 
-for i = 1, 200 do
+for i = 1, 10000 do
     test1.points[i] = {
-        x = i * 5,
+        x = i * 0.1,
         y = 200 + math.random() * 200
     }
 end

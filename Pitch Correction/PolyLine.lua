@@ -7,6 +7,7 @@ local math = math
 local sqrt = math.sqrt
 local table = table
 local tableInsert = table.insert
+local tableSort = table.sort
 
 local function getMinimumDistanceBetweenPointAndLineSegment(pointX, pointY, lineX1, lineY1, lineX2, lineY2)
     local A = pointX - lineX1
@@ -101,48 +102,8 @@ local function updateMouseOverInfo(self)
     self.mouseOverDistance = mouseOverDistance
     self.mouseIsOverPoint = mouseIsOverPoint
 end
-
-local PolyLine = {}
-
-function PolyLine:new()
-    local self = self or {}
-
-    local defaults = {}
-    defaults.x = 0
-    defaults.y = 0
-    defaults.width = 0
-    defaults.height = 0
-    defaults.mouseEditPixelRange = 6
-    defaults.points = {}
-    defaults.glowWhenMouseIsOver = true
-    defaults.mouseOverIndex = nil
-    defaults.mouseOverDistance = nil
-    defaults.mouseIsOverPoint = nil
-    defaults.lineColor = { 0.5, 0.5, 0.5, 1, 0 }
-    defaults.pointShade = { 1, 1, 1, 0.1, 0 }
-    defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
-    defaults.drawLineFn = function(self, point, nextPoint) GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true) end
-    defaults.drawPointFn = function(self, point) GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true) end
-
-    function defaults:pointIsInside(pointX, pointY)
-        local x, y, w, h = self.x, self.y, self.width, self.height
-        return pointX >= x and pointX <= x + w
-           and pointY >= y and pointY <= y + h
-    end
-
-    defaults.boxSelect = BoxSelect.new()
-
-    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
-    --tableInsert(GUI.leftMouseButton.trackedObjects, self)
-    --tableInsert(GUI.rightMouseButton.trackedObjects, self)
-    return self
-end
-
-function PolyLine:update(dt)
+local function handleSelectionAndMovementLogic(self)
     local points = self.points
-    self.boxSelect.objectsToSelect = points
-    updateMouseOverInfo(self)
-
     if GUI.leftMouseButton.justPressed and self.mouseOverIndex then
         self.editPointIndex = self.mouseOverIndex
         self.editPoint = points[self.editPointIndex]
@@ -168,8 +129,57 @@ function PolyLine:update(dt)
                 point.y = point.y + GUI.mouseYChange
             end
         end
+        tableSort(points, self.sortFn)
+    end
+end
+
+local PolyLine = {}
+
+function PolyLine:new()
+    local self = self or {}
+
+    local defaults = {}
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
+    defaults.mouseEditPixelRange = 6
+    defaults.points = {}
+    defaults.glowWhenMouseIsOver = true
+    defaults.mouseOverIndex = nil
+    defaults.mouseOverDistance = nil
+    defaults.mouseIsOverPoint = nil
+    defaults.lineColor = { 0.5, 0.5, 0.5, 1, 0 }
+    defaults.pointShade = { 1, 1, 1, 0.1, 0 }
+    defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
+
+    function defaults:drawLineFn(point, nextPoint)
+        GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    end
+    function defaults:drawPointFn(point)
+        GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
+    end
+    function defaults:pointIsInside(pointX, pointY)
+        local x, y, w, h = self.x, self.y, self.width, self.height
+        return pointX >= x and pointX <= x + w
+           and pointY >= y and pointY <= y + h
+    end
+    function defaults.sortFn(before, after)
+        return before.x < after.x
     end
 
+    defaults.boxSelect = BoxSelect.new()
+
+    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
+    --tableInsert(GUI.leftMouseButton.trackedObjects, self)
+    --tableInsert(GUI.rightMouseButton.trackedObjects, self)
+    return self
+end
+
+function PolyLine:update(dt)
+    self.boxSelect.objectsToSelect = self.points
+    updateMouseOverInfo(self)
+    handleSelectionAndMovementLogic(self)
     BoxSelect.update(self.boxSelect, dt)
 end
 function PolyLine:draw(dt)
