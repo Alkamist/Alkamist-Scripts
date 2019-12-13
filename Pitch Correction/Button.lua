@@ -31,12 +31,12 @@ function Button:pointIsInside(pointX, pointY)
     return pointX >= x and pointX <= x + w
        and pointY >= y and pointY <= y + h
 end
-function Button:update(dt)
+function Button:update()
     if GUI.leftMouseButton.justPressedObject[self] then self.isPressed = true end
     if GUI.leftMouseButton.justReleasedObject[self] then self.isPressed = false end
     self.isGlowing = self:pointIsInside(GUI.mouseX, GUI.mouseY)
 end
-function Button:draw(dt)
+function Button:draw()
     local x, y, w, h = self.x, self.y, self.width, self.height
     local bodyColor, outlineColor, highlightColor, pressedColor = self.bodyColor, self.outlineColor, self.highlightColor, self.pressedColor
 

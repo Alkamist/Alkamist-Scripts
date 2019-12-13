@@ -76,12 +76,12 @@ function BoxSelect:makeSelection()
     end
     self.isActive = false
 end
-function BoxSelect:update(dt)
+function BoxSelect:update()
     if GUI.rightMouseButton.justPressed then self:startSelection() end
     if GUI.rightMouseButton.justDragged then self:editSelection() end
     if GUI.rightMouseButton.justReleased then self:makeSelection() end
 end
-function BoxSelect:draw(dt)
+function BoxSelect:draw()
     if self.isActive then
         local x, y, w, h = self.x, self.y, self.width, self.height
 

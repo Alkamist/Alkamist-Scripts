@@ -83,6 +83,8 @@ function PolyLine:drawPointFn(point)
 end
 function PolyLine:updateMouseOverInfo()
     local points = self.points
+    local numberOfPoints = #points
+    if numberOfPoints < 1 then return end
     local mouseX = GUI.mouseX
     local mouseY = GUI.mouseY
 
@@ -91,7 +93,7 @@ function PolyLine:updateMouseOverInfo()
     local lowestLineDistance
     local closestLineIndex = 1
 
-    for i = 1, #points do
+    for i = 1, numberOfPoints do
         local point = points[i]
         local pointX = point.x
         local pointY = point.y
@@ -171,14 +173,14 @@ function PolyLine:handleMovementLogic()
         tableSort(points, self.sortFn)
     end
 end
-function PolyLine:update(dt)
+function PolyLine:update()
     self.boxSelect.objectsToSelect = self.points
     self:updateMouseOverInfo()
     self:handleSelectionLogic()
     self:handleMovementLogic()
-    self.boxSelect:update(dt)
+    self.boxSelect:update()
 end
-function PolyLine:draw(dt)
+function PolyLine:draw()
     local points = self.points
     local drawLineFn = self.drawLineFn
     local drawPointFn = self.drawPointFn
@@ -218,7 +220,7 @@ function PolyLine:draw(dt)
         end
     end
 
-    self.boxSelect:draw(dt)
+    self.boxSelect:draw()
 end
 
 return PolyLine
