@@ -45,7 +45,43 @@ local function getDistanceBetweenTwoPoints(x1, y1, x2, y2)
     local dy = y1 - y2
     return sqrt(dx * dx + dy * dy)
 end
-local function updateMouseOverInfo(self)
+
+local PolyLine = {}
+
+function PolyLine:new()
+    local self = self or {}
+
+    local defaults = {}
+    defaults.x = 0
+    defaults.y = 0
+    defaults.width = 0
+    defaults.height = 0
+    defaults.mouseEditPixelRange = 6
+    defaults.points = {}
+    defaults.glowWhenMouseIsOver = true
+    defaults.mouseOverIndex = nil
+    defaults.mouseOverDistance = nil
+    defaults.mouseIsOverPoint = nil
+    defaults.lineColor = { 0.5, 0.5, 0.5, 1, 0 }
+    defaults.pointShade = { 1, 1, 1, 0.1, 0 }
+    defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
+
+    defaults.boxSelect = BoxSelect.new()
+
+    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
+    for k, v in pairs(PolyLine) do if self[k] == nil then self[k] = v end end
+    return self
+end
+function PolyLine.sortFn(before, after)
+    return before.x < after.x
+end
+function PolyLine:drawLineFn(point, nextPoint)
+    GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+end
+function PolyLine:drawPointFn(point)
+    GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
+end
+function PolyLine:updateMouseOverInfo()
     local points = self.points
     local mouseX = GUI.mouseX
     local mouseY = GUI.mouseY
@@ -102,7 +138,7 @@ local function updateMouseOverInfo(self)
     self.mouseOverDistance = mouseOverDistance
     self.mouseIsOverPoint = mouseIsOverPoint
 end
-local function handleSelectionAndMovementLogic(self)
+function PolyLine:handleSelectionLogic()
     local points = self.points
     if GUI.leftMouseButton.justPressed and self.mouseOverIndex then
         self.editPointIndex = self.mouseOverIndex
@@ -121,6 +157,9 @@ local function handleSelectionAndMovementLogic(self)
         self.editPointIndex = nil
         self.editPoint = nil
     end
+end
+function PolyLine:handleMovementLogic()
+    local points = self.points
     if self.editPoint and GUI.leftMouseButton.justDragged then
         for i = 1, #points do
             local point = points[i]
@@ -132,55 +171,12 @@ local function handleSelectionAndMovementLogic(self)
         tableSort(points, self.sortFn)
     end
 end
-
-local PolyLine = {}
-
-function PolyLine:new()
-    local self = self or {}
-
-    local defaults = {}
-    defaults.x = 0
-    defaults.y = 0
-    defaults.width = 0
-    defaults.height = 0
-    defaults.mouseEditPixelRange = 6
-    defaults.points = {}
-    defaults.glowWhenMouseIsOver = true
-    defaults.mouseOverIndex = nil
-    defaults.mouseOverDistance = nil
-    defaults.mouseIsOverPoint = nil
-    defaults.lineColor = { 0.5, 0.5, 0.5, 1, 0 }
-    defaults.pointShade = { 1, 1, 1, 0.1, 0 }
-    defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
-
-    function defaults:drawLineFn(point, nextPoint)
-        GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
-    end
-    function defaults:drawPointFn(point)
-        GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
-    end
-    function defaults:pointIsInside(pointX, pointY)
-        local x, y, w, h = self.x, self.y, self.width, self.height
-        return pointX >= x and pointX <= x + w
-           and pointY >= y and pointY <= y + h
-    end
-    function defaults.sortFn(before, after)
-        return before.x < after.x
-    end
-
-    defaults.boxSelect = BoxSelect.new()
-
-    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
-    --tableInsert(GUI.leftMouseButton.trackedObjects, self)
-    --tableInsert(GUI.rightMouseButton.trackedObjects, self)
-    return self
-end
-
 function PolyLine:update(dt)
     self.boxSelect.objectsToSelect = self.points
-    updateMouseOverInfo(self)
-    handleSelectionAndMovementLogic(self)
-    BoxSelect.update(self.boxSelect, dt)
+    self:updateMouseOverInfo()
+    self:handleSelectionLogic()
+    self:handleMovementLogic()
+    self.boxSelect:update(dt)
 end
 function PolyLine:draw(dt)
     local points = self.points
@@ -222,7 +218,7 @@ function PolyLine:draw(dt)
         end
     end
 
-    BoxSelect.draw(self.boxSelect, dt)
+    self.boxSelect:draw(dt)
 end
 
 return PolyLine

@@ -4,10 +4,9 @@ local reaper = reaper
 
 local PitchEditorTake = {}
 
-function PitchEditorTake:requires()
-    return self.PitchEditorTake
-end
-function PitchEditorTake:getDefaults()
+function PitchEditorTake:new()
+    local self = self or {}
+
     local defaults = {}
     defaults.itemLength = 0.0
     defaults.itemLeftTime = 0.0
@@ -24,7 +23,10 @@ function PitchEditorTake:getDefaults()
     defaults.takeFileName = nil
     defaults.takeSampleRate = nil
     defaults.takeSourceLength = nil
-    return defaults
+
+    for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
+    for k, v in pairs(PitchEditorTake) do if self[k] == nil then self[k] = v end end
+    return self
 end
 function PitchEditorTake:update()
     self.itemPointer = reaper.GetSelectedMediaItem(0, 0)

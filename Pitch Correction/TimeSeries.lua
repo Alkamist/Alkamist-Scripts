@@ -5,8 +5,8 @@ local table = table
 
 local TimeSeries = {}
 
-function TimeSeries.sortPoints(points)
-    table.sort(points, function(left, right)
+function TimeSeries:sortPoints()
+    table.sort(self, function(left, right)
         local leftTime = left.time
         local rightTime = right.time
         if leftTime and rightTime then
@@ -14,16 +14,16 @@ function TimeSeries.sortPoints(points)
         end
     end)
 end
-function TimeSeries.clearPointsWithinTimeRange(points, leftTime, rightTime)
-    Array.remove(points, function(i, j)
-        return points[i].time >= leftTime and points[i].time <= rightTime
+function TimeSeries:clearPointsWithinTimeRange(leftTime, rightTime)
+    Array.remove(self, function(i, j)
+        return self[i].time >= leftTime and self[i].time <= rightTime
     end)
 end
-function TimeSeries.removeDuplicatePoints(points, tolerance)
+function TimeSeries:removeDuplicatePoints(tolerance)
     local tolerance = tolerance or 0.0001
     local newPoints = {}
-    for i = 1, #points do
-        local point = points[i]
+    for i = 1, #self do
+        local point = self[i]
         local pointIsDuplicate = false
         for j = 1, #newPoints do
             if math.abs(point.time - newPoints[j].time) < tolerance then
