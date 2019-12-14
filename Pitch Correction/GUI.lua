@@ -18,6 +18,7 @@ local gfxMeasureStr = gfx.measurestr
 local gfxDrawStr = gfx.drawstr
 
 local type = type
+local pairs = pairs
 
 local GUI = {
     mouse = {
