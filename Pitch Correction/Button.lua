@@ -27,9 +27,9 @@ function Button:pointIsInside(pointX, pointY)
        and pointY >= y and pointY <= y + h
 end
 function Button:update()
-    if self.leftMouseButton.justPressedObject[self] then self.isPressed = true end
-    if self.leftMouseButton.justReleasedObject[self] then self.isPressed = false end
-    self.isGlowing = self:pointIsInside(self.mouseX, self.mouseY)
+    if self.mouse.buttons.left:justPressedWidget(self) then self.isPressed = true end
+    if self.mouse.buttons.left:justReleasedWidget(self) then self.isPressed = false end
+    self.isGlowing = self:pointIsInside(self.mouse.x, self.mouse.y)
 end
 function Button:draw()
     local setColor = self.setColor

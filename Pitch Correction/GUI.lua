@@ -64,34 +64,39 @@ local GUI = {
 local function initializeMouseButton(bitValue)
     local self = {}
     self.bitValue = bitValue
-    self.trackedObjects = {}
-    self.wasPressedInsideObject = {}
-    self.justPressedObject = {}
-    self.justReleasedObject = {}
-    self.justDraggedObject = {}
+    self._wasPressedInsideWidget = {}
+    self._justPressedWidget = {}
+    self._justReleasedWidget = {}
+    self._justDraggedWidget = {}
+
+    function self:wasPressedInsideWidget(widget) return self._wasPressedInsideWidget[widget] end
+    function self:justPressedWidget(widget) return self._justPressedWidget[widget] end
+    function self:justReleasedWidget(widget) return self._justReleasedWidget[widget] end
+    function self:justDraggedWidget(widget) return self._justDraggedWidget[widget] end
+
     return self
 end
 local function updateMouseButtonState(self)
-    local mouse.x, mouse.y = GUI.mouse.x, GUI.mouse.y
+    local mouseX, mouseY = GUI.mouse.x, GUI.mouse.y
 
     self.isPressed = GUI.mouse.cap & self.bitValue == self.bitValue
     self.justPressed = self.isPressed and not self.wasPreviouslyPressed
     self.justReleased = not self.isPressed and self.wasPreviouslyPressed
     self.justDragged = self.isPressed and GUI.mouse.justMoved
 
-    local trackedObjects = self.trackedObjects
-    for i = 1, #trackedObjects do
-        local object = trackedObjects[i]
+    local widgets = GUI.widgets
+    for i = 1, #widgets do
+        local widget = widgets[i]
 
-        if object:pointIsInside(mouse.x, mouse.y) and self.justPressed then
-            self.wasPressedInsideObject[object] = true
+        if widget:pointIsInside(mouseX, mouseY) and self.justPressed then
+            self._wasPressedInsideWidget[widget] = true
         end
 
-        self.justPressedObject[object] = self.justPressed and self.wasPressedInsideObject[object]
-        self.justReleasedObject[object] = self.justReleased and self.wasPressedInsideObject[object]
-        self.justDraggedObject[object] = self.justDragged and self.wasPressedInsideObject[object]
+        self._justPressedWidget[widget] = self.justPressed and self._wasPressedInsideWidget[widget]
+        self._justReleasedWidget[widget] = self.justReleased and self._wasPressedInsideWidget[widget]
+        self._justDraggedWidget[widget] = self.justDragged and self._wasPressedInsideWidget[widget]
 
-        if self.justReleased then self.wasPressedInsideObject[object] = false end
+        if self.justReleased then self._wasPressedInsideWidget[widget] = false end
     end
 end
 local function updateMouseButtonPreviousState(self)
@@ -253,14 +258,14 @@ function GUI.run()
     updateGUIStates()
 
     -- Pass through the space bar.
-    if GUI.keyboardChar == 32 then reaperMainOnCommandEx(40044, 0, 0) end
+    if GUI.keyboard.char == 32 then reaperMainOnCommandEx(40044, 0, 0) end
 
     updateWidgets()
 
     updateGUIPreviousStates()
 
     -- Keep the window open unless escape or the close button are pushed.
-    if GUI.keyboardChar ~= 27 and GUI.keyboardChar ~= -1 then reaperDefer(GUI.run) end
+    if GUI.keyboard.char ~= 27 and GUI.keyboard.char ~= -1 then reaperDefer(GUI.run) end
     gfxUpdate()
 
     gfx.x = 1
