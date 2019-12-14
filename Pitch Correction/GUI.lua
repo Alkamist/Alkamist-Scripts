@@ -111,54 +111,61 @@ GUI.keyboard.modifiers.control = initializeMouseButton(4)
 GUI.keyboard.modifiers.windows = initializeMouseButton(32)
 GUI.keyboard.modifiers.alt = initializeMouseButton(16)
 
-function GUI.makeDrawable(self)
-    function self:setColor(rOrColor, g, b)
-        if type(rOrColor) == "number" then
-            gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)
-        else
-            local alpha = rOrColor[4] or gfx.a or 1
-            local blendMode = rOrColor[5] or gfx.mode or 0
-            gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
-        end
-    end
-    function self:drawRectangle(x, y, w, h, filled)
-        local x = x + self.x
-        local y = y + self.y
-        gfxRect(x, y, w, h, filled)
-    end
-    function self:drawLine(x, y, x2, y2, antiAliased)
-        local x = x + self.x
-        local y = y + self.y
-        local x2 = x2 + self.x
-        local y2 = y2 + self.y
-        gfxLine(x, y, x2, y2, antiAliased)
-    end
-    function self:drawCircle(x, y, r, filled, antiAliased)
-        local x = x + self.x
-        local y = y + self.y
-        gfxCircle(x, y, r, filled, antiAliased)
-    end
-    function self:drawString(str, x, y, x2, y2, flags)
-        local x = x + self.x
-        local y = y + self.y
-        local x2 = x2 + self.x
-        local y2 = y2 + self.y
-        gfx.x = x
-        gfx.y = y
-        if flags then
-            gfxDrawStr(str, flags, x2, y2)
-        else
-            gfxDrawStr(str)
-        end
-    end
-    function self:setFont(fontName, fontSize)
-        gfxSetFont(1, fontName, fontSize)
-    end
-    function self:measureString(str)
-        return gfxMeasureStr(str)
-    end
+local drawingFunctions = {}
 
-    return self
+function drawingFunctions:setColor(rOrColor, g, b)
+    if type(rOrColor) == "number" then
+        gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)
+    else
+        local alpha = rOrColor[4] or gfx.a or 1
+        local blendMode = rOrColor[5] or gfx.mode or 0
+        gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
+    end
+end
+function drawingFunctions:drawRectangle(x, y, w, h, filled)
+    local x = x + self.x
+    local y = y + self.y
+    gfxRect(x, y, w, h, filled)
+end
+function drawingFunctions:drawLine(x, y, x2, y2, antiAliased)
+    local x = x + self.x
+    local y = y + self.y
+    local x2 = x2 + self.x
+    local y2 = y2 + self.y
+    gfxLine(x, y, x2, y2, antiAliased)
+end
+function drawingFunctions:drawCircle(x, y, r, filled, antiAliased)
+    local x = x + self.x
+    local y = y + self.y
+    gfxCircle(x, y, r, filled, antiAliased)
+end
+function drawingFunctions:drawString(str, x, y, x2, y2, flags)
+    local x = x + self.x
+    local y = y + self.y
+    local x2 = x2 + self.x
+    local y2 = y2 + self.y
+    gfx.x = x
+    gfx.y = y
+    if flags then
+        gfxDrawStr(str, flags, x2, y2)
+    else
+        gfxDrawStr(str)
+    end
+end
+function drawingFunctions:setFont(fontName, fontSize)
+    gfxSetFont(1, fontName, fontSize)
+end
+function drawingFunctions:measureString(str)
+    return gfxMeasureStr(str)
+end
+
+function GUI.makeDrawable(widget)
+    for k, v in pairs(drawingFunctions) do
+        if widget[k] == nil then
+            widget[k] = v
+        end
+    end
+    return widget
 end
 function GUI.addWidget(widget)
     local widgets = GUI.widgets
