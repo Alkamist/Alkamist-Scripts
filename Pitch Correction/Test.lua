@@ -14,37 +14,36 @@ GUI.setBackgroundColor(0.2, 0.2, 0.2)
 --    x = 50, y = 50, width = 900, height = 600
 --}
 
-local Properties = require("Properties")
+--local Properties = require("Properties")
 local Button = require("Button")
-local PitchEditorTake = require("PitchEditorTake")
-local PitchAnalyzer = require("PitchAnalyzer")
-local PolyLine = require("PolyLine")
+--local PitchEditorTake = require("PitchEditorTake")
+--local PitchAnalyzer = require("PitchAnalyzer")
+--local PolyLine = require("PolyLine")
 
-local take = PitchEditorTake.new()
-local pitchAnalyzer = PitchAnalyzer.new{
-    take = take
-}
-local polyLine = PolyLine.new{
-    points = pitchAnalyzer.points
-}
+--local take = PitchEditorTake.new()
+--local pitchAnalyzer = PitchAnalyzer.new{
+--    take = take
+--}
+--local polyLine = PolyLine.new{
+--    points = pitchAnalyzer.points
+--}
 
 local button = Button.new{
     x = 0, y = 0, width = 70, height = 30
 }
-Properties.setProperty(button, "isPressed", {
-    get = function(self) return self._isPressed end,
-    set = function(self, v)
-        self._isPressed = v
-        pitchAnalyzer:analyzePitch()
-    end
-})
+--Properties.setProperty(button, "isPressed", {
+--    get = function(self) return self._isPressed end,
+--    set = function(self, v)
+--        self._isPressed = v
+--        pitchAnalyzer:analyzePitch()
+--    end
+--})
 
-function GUI.update()
-    button:update()
-    take:update()
-    polyLine:update()
-    --polyLine:draw()
-    button:draw()
-end
+GUI.addWidget(button)
+
+--function GUI.update()
+--    button:update()
+--    button:draw()
+--end
 
 GUI.run()

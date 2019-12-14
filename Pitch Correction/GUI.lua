@@ -20,31 +20,45 @@ local gfxDrawStr = gfx.drawstr
 local type = type
 
 local GUI = {
-    mouseCap = 0,
-    previousMouseCap = 0,
-    mouseX = 0,
-    previousMouseX = 0,
-    mouseY = 0,
-    previousMouseY = 0,
-    mouseWheel = 0,
-    mouseWheelJustMoved = false,
-    mouseHWheel = 0,
-    mouseHWheelJustMoved = false,
-    keyboardChar = nil,
-    windowTitle = "",
-    windowX = 0,
-    windowY = 0,
-    windowWidth = 0,
-    previousWindowWidth = 0,
-    windowWidthChange = 0,
-    windowWidthJustChanged = false,
-    windowHeight = 0,
-    previousWindowHeight = 0,
-    windowHeightChange = 0,
-    windowHeightJustChanged = false,
-    windowWasJustResized = false,
-    windowDock = 0,
-    systems = {}
+    mouse = {
+        justMoved = false,
+        cap = 0,
+        previousCap = 0,
+        x = 0,
+        previousX = 0,
+        xChange = 0,
+        xJustChanged = false,
+        y = 0,
+        previousY = 0,
+        yChange = 0,
+        yJustChanged = false,
+        wheel = 0,
+        wheelJustMoved = false,
+        hWheel = 0,
+        hWheelJustMoved = false,
+        buttons = {}
+    },
+    keyboard = {
+        char = nil,
+        modifiers = {},
+        keys = {}
+    },
+    window = {
+        title = "",
+        x = 0,
+        y = 0,
+        width = 0,
+        previousWidth = 0,
+        widthChange = 0,
+        widthJustChanged = false,
+        height = 0,
+        previousHeight = 0,
+        heightChange = 0,
+        heightJustChanged = false,
+        wasJustResized = false,
+        dock = 0
+    },
+    widgets = {}
 }
 
 local function initializeMouseButton(bitValue)
@@ -58,16 +72,18 @@ local function initializeMouseButton(bitValue)
     return self
 end
 local function updateMouseButtonState(self)
-    self.isPressed = GUI.mouseCap & self.bitValue == self.bitValue
+    local mouse.x, mouse.y = GUI.mouse.x, GUI.mouse.y
+
+    self.isPressed = GUI.mouse.cap & self.bitValue == self.bitValue
     self.justPressed = self.isPressed and not self.wasPreviouslyPressed
     self.justReleased = not self.isPressed and self.wasPreviouslyPressed
-    self.justDragged = self.isPressed and GUI.mouseJustMoved
+    self.justDragged = self.isPressed and GUI.mouse.justMoved
 
     local trackedObjects = self.trackedObjects
     for i = 1, #trackedObjects do
         local object = trackedObjects[i]
 
-        if object:pointIsInside(GUI.mouseX, GUI.mouseY) and self.justPressed then
+        if object:pointIsInside(mouse.x, mouse.y) and self.justPressed then
             self.wasPressedInsideObject[object] = true
         end
 
@@ -82,128 +98,155 @@ local function updateMouseButtonPreviousState(self)
     self.wasPreviouslyPressed = self.isPressed
 end
 
-GUI.leftMouseButton = initializeMouseButton(1)
-GUI.middleMouseButton = initializeMouseButton(64)
-GUI.rightMouseButton = initializeMouseButton(2)
-GUI.shiftKey = initializeMouseButton(8)
-GUI.controlKey = initializeMouseButton(4)
-GUI.windowsKey = initializeMouseButton(32)
-GUI.altKey = initializeMouseButton(16)
+GUI.mouse.buttons.left = initializeMouseButton(1)
+GUI.mouse.buttons.middle = initializeMouseButton(64)
+GUI.mouse.buttons.right = initializeMouseButton(2)
+GUI.keyboard.modifiers.shift = initializeMouseButton(8)
+GUI.keyboard.modifiers.control = initializeMouseButton(4)
+GUI.keyboard.modifiers.windows = initializeMouseButton(32)
+GUI.keyboard.modifiers.alt = initializeMouseButton(16)
 
-function GUI.setColor(rOrColor, g, b)
-    if type(rOrColor) == "number" then
-        gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)
-    else
-        local alpha = rOrColor[4] or gfx.a or 1
-        local blendMode = rOrColor[5] or gfx.mode or 0
-        gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
+function GUI.makeDrawable(self)
+    function self:setColor(rOrColor, g, b)
+        if type(rOrColor) == "number" then
+            gfxSet(rOrColor, g, b, gfx.a or 1, gfx.mode or 0)
+        else
+            local alpha = rOrColor[4] or gfx.a or 1
+            local blendMode = rOrColor[5] or gfx.mode or 0
+            gfxSet(rOrColor[1], rOrColor[2], rOrColor[3], alpha, blendMode)
+        end
     end
-end
-function GUI.drawRectangle(x, y, w, h, filled)
-    gfxRect(x, y, w, h, filled)
-end
-function GUI.drawLine(x, y, x2, y2, antiAliased)
-    gfxLine(x, y, x2, y2, antiAliased)
-end
-function GUI.drawCircle(x, y, r, filled, antiAliased)
-    gfxCircle(x, y, r, filled, antiAliased)
-end
-function GUI.drawString(str, x, y, x2, y2, flags)
-    gfx.x = x
-    gfx.y = y
-    if flags then
-        gfxDrawStr(str, flags, x2, y2)
-    else
-        gfxDrawStr(str)
+    function self:drawRectangle(x, y, w, h, filled)
+        local x = x + self.x
+        local y = y + self.y
+        gfxRect(x, y, w, h, filled)
     end
+    function self:drawLine(x, y, x2, y2, antiAliased)
+        local x = x + self.x
+        local y = y + self.y
+        local x2 = x2 + self.x
+        local y2 = y2 + self.y
+        gfxLine(x, y, x2, y2, antiAliased)
+    end
+    function self:drawCircle(x, y, r, filled, antiAliased)
+        local x = x + self.x
+        local y = y + self.y
+        gfxCircle(x, y, r, filled, antiAliased)
+    end
+    function self:drawString(str, x, y, x2, y2, flags)
+        local x = x + self.x
+        local y = y + self.y
+        local x2 = x2 + self.x
+        local y2 = y2 + self.y
+        gfx.x = x
+        gfx.y = y
+        if flags then
+            gfxDrawStr(str, flags, x2, y2)
+        else
+            gfxDrawStr(str)
+        end
+    end
+    function self:setFont(fontName, fontSize)
+        gfxSetFont(1, fontName, fontSize)
+    end
+    function self:measureString(str)
+        return gfxMeasureStr(str)
+    end
+
+    return self
 end
-function GUI.setFont(fontName, fontSize)
-    gfxSetFont(1, fontName, fontSize)
+function GUI.addWidget(widget)
+    local widgets = GUI.widgets
+
+    GUI.makeDrawable(widget)
+    widget.mouse = GUI.mouse
+    widget.keyboard = GUI.keyboard
+    widget.window = GUI.window
+
+    widgets[#widgets + 1] = widget
 end
-function GUI.measureString(str)
-    return gfxMeasureStr(str)
+local function updateWidgets()
+    local widgets = GUI.widgets
+    for i = 1, #widgets do widgets[i]:update() end
+    for i = 1, #widgets do widgets[i]:draw() end
 end
 
 function GUI.setBackgroundColor(r, g, b)
     gfx.clear = r * 255 + g * 255 * 256 + b * 255 * 65536
 end
 function GUI.initialize(title, width, height, dock, x, y)
-    local title = title or GUI.windowTitle or ""
-    local x = x or GUI.windowX or 0
-    local y = y or GUI.windowY or 0
-    local width = width or GUI.windowWidth  or 0
-    local height = height or GUI.windowHeight or 0
-    local dock = dock or GUI.windowDock or 0
+    local title = title or GUI.window.title or ""
+    local x = x or GUI.window.x or 0
+    local y = y or GUI.window.y or 0
+    local width = width or GUI.window.width  or 0
+    local height = height or GUI.window.height or 0
+    local dock = dock or GUI.window.dock or 0
 
-    GUI.windowTitle = title
-    GUI.windowX = x
-    GUI.windowY = y
-    GUI.windowWidth = width
-    GUI.previousWindowWidth = width
-    GUI.windowHeight = height
-    GUI.previousWindowHeight = height
-    GUI.windowDock = dock
+    GUI.window.title = title
+    GUI.window.x = x
+    GUI.window.y = y
+    GUI.window.width = width
+    GUI.window.previousWidth = width
+    GUI.window.height = height
+    GUI.window.previousHeight = height
+    GUI.window.dock = dock
 
     gfxInit(title, width, height, dock, x, y)
 end
 
-function GUI.update(dt) end
-
 local function updateGUIStates()
-    GUI.mouseCap = gfx.mouse_cap
-    GUI.mouseX = gfx.mouse_x
-    GUI.mouseY = gfx.mouse_y
-    GUI.mouseWheel = gfx.mouse_wheel / 120
+    GUI.mouse.cap = gfx.mouse_cap
+    GUI.mouse.x = gfx.mouse_x
+    GUI.mouse.y = gfx.mouse_y
+    GUI.mouse.wheel = gfx.mouse_wheel / 120
     gfx.mouse_wheel = 0
-    GUI.mouseHWheel = gfx.mouse_hwheel / 120
+    GUI.mouse.hWheel = gfx.mouse_hwheel / 120
     gfx.mouse_hwheel = 0
 
-    GUI.mouseWheelJustMoved = GUI.mouseWheel ~= 0
-    GUI.mouseHWheelJustMoved = GUI.mouseHWheel ~= 0
+    GUI.mouse.wheelJustMoved = GUI.mouse.wheel ~= 0
+    GUI.mouse.hWheelJustMoved = GUI.mouse.hWheel ~= 0
 
-    GUI.keyboardChar = gfxGetChar()
+    GUI.keyboard.char = gfxGetChar()
 
-    GUI.windowWidth = gfx.w
-    GUI.windowHeight = gfx.h
+    GUI.window.width = gfx.w
+    GUI.window.height = gfx.h
 
-    GUI.windowWidthChange = GUI.windowWidth - GUI.previousWindowWidth
-    GUI.windowWidthJustChanged = GUI.windowWidth ~= GUI.previousWindowWidth
-    GUI.windowHeightChange = GUI.windowHeight - GUI.previousWindowHeight
-    GUI.windowHeightJustChanged = GUI.windowHeight ~= GUI.previousWindowHeight
-    GUI.windowWasJustResized = GUI.windowWidthJustChanged or GUI.windowHeightJustChanged
+    GUI.window.widthChange = GUI.window.width - GUI.window.previousWidth
+    GUI.window.widthJustChanged = GUI.window.width ~= GUI.window.previousWidth
+    GUI.window.heightChange = GUI.window.height - GUI.window.previousHeight
+    GUI.window.heightJustChanged = GUI.window.height ~= GUI.window.previousHeight
+    GUI.windowWasJustResized = GUI.window.widthJustChanged or GUI.window.heightJustChanged
 
-    GUI.mouseXChange = GUI.mouseX - GUI.previousMouseX
-    GUI.mouseXJustChanged = GUI.mouseX ~= GUI.previousMouseX
-    GUI.mouseYChange = GUI.mouseY - GUI.previousMouseY
-    GUI.mouseYJustChanged = GUI.mouseY ~= GUI.previousMouseY
-    GUI.mouseJustMoved = GUI.mouseXJustChanged or GUI.mouseYJustChanged
+    GUI.mouse.xChange = GUI.mouse.x - GUI.mouse.previousX
+    GUI.mouse.xJustChanged = GUI.mouse.x ~= GUI.mouse.previousX
+    GUI.mouse.yChange = GUI.mouse.y - GUI.mouse.previousY
+    GUI.mouse.yJustChanged = GUI.mouse.y ~= GUI.mouse.previousY
+    GUI.mouse.justMoved = GUI.mouse.xJustChanged or GUI.mouse.yJustChanged
 
-    updateMouseButtonState(GUI.leftMouseButton)
-    updateMouseButtonState(GUI.middleMouseButton)
-    updateMouseButtonState(GUI.rightMouseButton)
-    updateMouseButtonState(GUI.shiftKey)
-    updateMouseButtonState(GUI.controlKey)
-    updateMouseButtonState(GUI.windowsKey)
-    updateMouseButtonState(GUI.altKey)
+    updateMouseButtonState(GUI.mouse.buttons.left)
+    updateMouseButtonState(GUI.mouse.buttons.middle)
+    updateMouseButtonState(GUI.mouse.buttons.right)
+    updateMouseButtonState(GUI.keyboard.modifiers.shift)
+    updateMouseButtonState(GUI.keyboard.modifiers.control)
+    updateMouseButtonState(GUI.keyboard.modifiers.windows)
+    updateMouseButtonState(GUI.keyboard.modifiers.alt)
 end
 local function updateGUIPreviousStates()
-    GUI.previousMouseCap = GUI.mouseCap
-    GUI.previousMouseX = GUI.mouseX
-    GUI.previousMouseY = GUI.mouseY
-    GUI.previousWindowWidth = GUI.windowWidth
-    GUI.previousWindowHeight = GUI.windowHeight
+    GUI.mouse.previousCap = GUI.mouse.cap
+    GUI.mouse.previousX = GUI.mouse.x
+    GUI.mouse.previousY = GUI.mouse.y
+    GUI.window.previousWidth = GUI.window.width
+    GUI.window.previousHeight = GUI.window.height
 
-    updateMouseButtonPreviousState(GUI.leftMouseButton)
-    updateMouseButtonPreviousState(GUI.middleMouseButton)
-    updateMouseButtonPreviousState(GUI.rightMouseButton)
-    updateMouseButtonPreviousState(GUI.shiftKey)
-    updateMouseButtonPreviousState(GUI.controlKey)
-    updateMouseButtonPreviousState(GUI.windowsKey)
-    updateMouseButtonPreviousState(GUI.altKey)
+    updateMouseButtonPreviousState(GUI.mouse.buttons.left)
+    updateMouseButtonPreviousState(GUI.mouse.buttons.middle)
+    updateMouseButtonPreviousState(GUI.mouse.buttons.right)
+    updateMouseButtonPreviousState(GUI.keyboard.modifiers.shift)
+    updateMouseButtonPreviousState(GUI.keyboard.modifiers.control)
+    updateMouseButtonPreviousState(GUI.keyboard.modifiers.windows)
+    updateMouseButtonPreviousState(GUI.keyboard.modifiers.alt)
 end
 
-local currentTime = reaperTimePrecise()
-local previousTime = currentTime
 function GUI.run()
     local timer = reaperTimePrecise()
 
@@ -212,10 +255,7 @@ function GUI.run()
     -- Pass through the space bar.
     if GUI.keyboardChar == 32 then reaperMainOnCommandEx(40044, 0, 0) end
 
-    currentTime = reaperTimePrecise()
-    local dt = currentTime - previousTime
-    GUI.update(dt)
-    previousTime = currentTime
+    updateWidgets()
 
     updateGUIPreviousStates()
 

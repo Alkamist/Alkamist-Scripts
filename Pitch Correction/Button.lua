@@ -1,7 +1,3 @@
-local GUI = require("GUI")
-local setColor = GUI.setColor
-local drawRectangle = GUI.drawRectangle
-
 local pairs = pairs
 local table = table
 
@@ -23,7 +19,6 @@ function Button:new()
 
     for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
     for k, v in pairs(Button) do if self[k] == nil then self[k] = v end end
-    table.insert(GUI.leftMouseButton.trackedObjects, self)
     return self
 end
 function Button:pointIsInside(pointX, pointY)
@@ -32,33 +27,35 @@ function Button:pointIsInside(pointX, pointY)
        and pointY >= y and pointY <= y + h
 end
 function Button:update()
-    if GUI.leftMouseButton.justPressedObject[self] then self.isPressed = true end
-    if GUI.leftMouseButton.justReleasedObject[self] then self.isPressed = false end
-    self.isGlowing = self:pointIsInside(GUI.mouseX, GUI.mouseY)
+    if self.leftMouseButton.justPressedObject[self] then self.isPressed = true end
+    if self.leftMouseButton.justReleasedObject[self] then self.isPressed = false end
+    self.isGlowing = self:pointIsInside(self.mouseX, self.mouseY)
 end
 function Button:draw()
+    local setColor = self.setColor
+    local drawRectangle = self.drawRectangle
     local x, y, w, h = self.x, self.y, self.width, self.height
     local bodyColor, outlineColor, highlightColor, pressedColor = self.bodyColor, self.outlineColor, self.highlightColor, self.pressedColor
 
     -- Draw the body.
-    setColor(bodyColor)
-    drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+    setColor(self, bodyColor)
+    drawRectangle(self, 1, 1, w - 2, h - 2, true)
 
     -- Draw a dark outline around.
-    setColor(outlineColor)
-    drawRectangle(x, y, w, h, false)
+    setColor(self, outlineColor)
+    drawRectangle(self, 0, 0, w, h, false)
 
     -- Draw a light outline around.
-    setColor(highlightColor)
-    drawRectangle(x + 1, y + 1, w - 2, h - 2, false)
+    setColor(self, highlightColor)
+    drawRectangle(self, 1, 1, w - 2, h - 2, false)
 
     if self.isPressed then
-        setColor(pressedColor)
-        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+        setColor(self, pressedColor)
+        drawRectangle(self, 1, 1, w - 2, h - 2, true)
 
     elseif self.isGlowing then
-        setColor(highlightColor)
-        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+        setColor(self, highlightColor)
+        drawRectangle(self, 1, 1, w - 2, h - 2, true)
     end
 end
 
