@@ -73,20 +73,20 @@ function KeyEditor:update()
     local mouseX = mouse.x
     local mouseY = mouse.y
 
-    --self.mouseTime = self:pixelsToTime(self.relativeMouseX)
-    --self.snappedMouseTime = round(self.mouseTime)
-    --self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
-    --self.snappedMousePitch = round(self.mousePitch)
+    self.mouseTime = self:pixelsToTime(mouseX)
+    self.snappedMouseTime = round(self.mouseTime)
+    self.mousePitch = self:pixelsToPitch(mouseY)
+    self.snappedMousePitch = round(self.mousePitch)
 
     if self.window.wasJustResized then
         self.width = self.width + self.window.widthChange
         self.height = self.height + self.window.heightChange
     end
-    --if self.mouse.buttons.left.justPressed then
-    --    self.mouseTimeOnLeftDown = self.mouseTime
-    --    self.mousePitchOnLeftDown = self.mousePitch
-    --    self.snappedMousePitchOnLeftDown = self.snappedMousePitch
-    --end
+    if self.mouse.buttons.left.justPressed then
+        self.mouseTimeOnLeftDown = self.mouseTime
+        self.mousePitchOnLeftDown = self.mousePitch
+        self.snappedMousePitchOnLeftDown = self.snappedMousePitch
+    end
     if self.mouse.buttons.middle.justPressed then
         self.xTarget = mouseX
         self.yTarget = mouseY
@@ -101,8 +101,8 @@ function KeyEditor:update()
         end
     end
     if self.mouse.wheelJustMoved then
-        local xSensitivity = 55.0
-        local ySensitivity = 55.0
+        local xSensitivity = 48.0
+        local ySensitivity = 48.0
 
         self.xTarget = mouseX
         self.yTarget = mouseY
@@ -120,14 +120,14 @@ function KeyEditor:drawKeys()
     local drawRectangle = self.drawRectangle
     local x, y, w, h = self.x, self.y, self.width, self.height
     local pitchHeight = self.pitchHeight
-    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5) - self.y
+    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
     local blackKeyColor = self.blackKeyColor
     local whiteKeyColor = self.whiteKeyColor
     local keyCenterLineColor = self.keyCenterLineColor
     local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
 
     for i = 1, pitchHeight do
-        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5) - self.y
+        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
         setColor(self, blackKeyColor)
@@ -137,15 +137,15 @@ function KeyEditor:drawKeys()
                 setColor(self, whiteKeyColor)
             end
         end
-        drawRectangle(self, x, y + keyEnd, w, keyHeight + 1, true)
+        drawRectangle(self, x, keyEnd, w, keyHeight + 1, true)
 
         setColor(self, blackKeyColor)
-        drawLine(self, x, y + keyEnd, x + w - 1, y + keyEnd, false)
+        drawLine(self, x, keyEnd, x + w - 1, keyEnd, false)
 
         if keyHeight > minimumKeyHeightToDrawCenterLine then
-            local keyCenterLine = self:pitchToPixels(pitchHeight - i) - self.y
+            local keyCenterLine = self:pitchToPixels(pitchHeight - i)
             setColor(self, keyCenterLineColor)
-            drawLine(self, x, y + keyCenterLine, x + w - 1, y + keyCenterLine, false)
+            drawLine(self, x, keyCenterLine, x + w - 1, keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
@@ -160,13 +160,13 @@ function KeyEditor:drawEdges()
     setColor(self, self.edgeColor)
     local leftEdgePixels = self:timeToPixels(0.0)
     local rightEdgePixels = self:timeToPixels(self.timeLength)
-    drawLine(self, x + leftEdgePixels, y, x + leftEdgePixels, y + h, false)
-    drawLine(self, x + rightEdgePixels, y, x + rightEdgePixels, y + h, false)
+    drawLine(self, leftEdgePixels, y, leftEdgePixels, y + h, false)
+    drawLine(self, rightEdgePixels, y, rightEdgePixels, y + h, false)
 
     setColor(self, self.edgeShade)
-    drawRectangle(self, x, y, leftEdgePixels, h, true)
+    drawRectangle(self, 0, y, leftEdgePixels, h, true)
     local rightShadeStart = rightEdgePixels + 1
-    drawRectangle(self, x + rightShadeStart, y, w - rightShadeStart, h, true)
+    drawRectangle(self, rightShadeStart, y, 1 + x + w - rightShadeStart, h, true)
 end
 function KeyEditor:drawEditCursor()
     local setColor = self.setColor
@@ -177,20 +177,20 @@ function KeyEditor:drawEditCursor()
     local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - timeStart)
 
     setColor(self, self.editCursorColor)
-    drawLine(self, x + editCursorPixels, y, x + editCursorPixels, y + h, false)
+    drawLine(self, editCursorPixels, y, editCursorPixels, y + h, false)
 
     local playState = reaper.GetPlayState()
     local projectIsPlaying = playState & 1 == 1
     local projectIsRecording = playState & 4 == 4
     if projectIsPlaying or projectIsRecording then
         setColor(self, self.playCursorColor)
-        drawLine(self, x + playPositionPixels, y, x + playPositionPixels, y + h, false)
+        drawLine(self, playPositionPixels, y, playPositionPixels, y + h, false)
     end
 end
 function KeyEditor:draw()
     self:drawKeys()
-    --self:drawEdges()
-    --self:drawEditCursor()
+    self:drawEdges()
+    self:drawEditCursor()
 end
 
 return KeyEditor
