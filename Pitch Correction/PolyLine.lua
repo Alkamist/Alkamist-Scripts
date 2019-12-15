@@ -1,8 +1,3 @@
-local GUI = require("GUI")
-local setColor = GUI.setColor
-
-local BoxSelect = require("BoxSelect")
-
 local math = math
 local sqrt = math.sqrt
 local table = table
@@ -52,10 +47,6 @@ function PolyLine:new()
     local self = self or {}
 
     local defaults = {}
-    defaults.x = 0
-    defaults.y = 0
-    defaults.width = 0
-    defaults.height = 0
     defaults.mouseEditPixelRange = 6
     defaults.points = {}
     defaults.glowWhenMouseIsOver = true
@@ -66,8 +57,6 @@ function PolyLine:new()
     defaults.pointShade = { 1, 1, 1, 0.1, 0 }
     defaults.glowColor = { 1.0, 1.0, 1.0, 0.4, 0 }
 
-    defaults.boxSelect = BoxSelect.new()
-
     for k, v in pairs(defaults) do if self[k] == nil then self[k] = v end end
     for k, v in pairs(PolyLine) do if self[k] == nil then self[k] = v end end
     return self
@@ -76,17 +65,17 @@ function PolyLine.sortFn(before, after)
     return before.x < after.x
 end
 function PolyLine:drawLineFn(point, nextPoint)
-    GUI.drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
+    self:drawLine(point.x, point.y, nextPoint.x, nextPoint.y, true)
 end
 function PolyLine:drawPointFn(point)
-    GUI.drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
+    self:drawRectangle(point.x - 1, point.y - 1, 3, 3, true)
 end
 function PolyLine:updateMouseOverInfo()
     local points = self.points
     local numberOfPoints = #points
     if numberOfPoints < 1 then return end
-    local mouseX = GUI.mouseX
-    local mouseY = GUI.mouseY
+    local mouseX = self.mouse.x
+    local mouseY = self.mouse.y
 
     local lowestPointDistance
     local closestPointIndex = 1
@@ -142,11 +131,11 @@ function PolyLine:updateMouseOverInfo()
 end
 function PolyLine:handleSelectionLogic()
     local points = self.points
-    if GUI.leftMouseButton.justPressed and self.mouseOverIndex then
+    if self.mouse.buttons.left.justPressed and self.mouseOverIndex then
         self.editPointIndex = self.mouseOverIndex
         self.editPoint = points[self.editPointIndex]
 
-        if not GUI.shiftKey.isPressed and not self.editPoint.isSelected then
+        if not self.keyboard.modifiers.shift.isPressed and not self.editPoint.isSelected then
             for i = 1, #points do
                 local point = points[i]
                 point.isSelected = false
@@ -155,30 +144,28 @@ function PolyLine:handleSelectionLogic()
 
         self.editPoint.isSelected = true
     end
-    if GUI.leftMouseButton.justReleased then
+    if self.mouse.buttons.left.justReleased then
         self.editPointIndex = nil
         self.editPoint = nil
     end
 end
 function PolyLine:handleMovementLogic()
     local points = self.points
-    if self.editPoint and GUI.leftMouseButton.justDragged then
+    if self.editPoint and self.mouse.buttons.left.justDragged then
         for i = 1, #points do
             local point = points[i]
             if point.isSelected then
-                point.x = point.x + GUI.mouseXChange
-                point.y = point.y + GUI.mouseYChange
+                point.x = point.x + self.mouse.xChange
+                point.y = point.y + self.mouse.yChange
             end
         end
         tableSort(points, self.sortFn)
     end
 end
 function PolyLine:update()
-    self.boxSelect.objectsToSelect = self.points
     self:updateMouseOverInfo()
     self:handleSelectionLogic()
     self:handleMovementLogic()
-    self.boxSelect:update()
 end
 function PolyLine:draw()
     local points = self.points
@@ -190,6 +177,7 @@ function PolyLine:draw()
     local mouseOverIndex = self.mouseOverIndex
     local mouseIsOverPoint = self.mouseIsOverPoint
     local glowWhenMouseIsOver = self.glowWhenMouseIsOver
+    local setColor = self.setColor
 
     for i = 1, #points do
         local point = points[i]
@@ -199,28 +187,26 @@ function PolyLine:draw()
         local shouldGlowPoint = pointIsSelected or (glowWhenMouseIsOver and mouseOverIndex == i and mouseIsOverPoint)
 
         if nextPoint then
-            setColor(lineColor)
+            setColor(self, lineColor)
             drawLineFn(self, point, nextPoint)
 
             if shouldGlowLine then
-                setColor(glowColor)
+                setColor(self, glowColor)
                 drawLineFn(self, point, nextPoint)
             end
         end
 
-        setColor(lineColor)
+        setColor(self, lineColor)
         drawPointFn(self, point)
 
-        setColor(pointShade)
+        setColor(self, pointShade)
         drawPointFn(self, point)
 
         if shouldGlowPoint then
-            setColor(glowColor)
+            setColor(self, glowColor)
             drawPointFn(self, point)
         end
     end
-
-    self.boxSelect:draw()
 end
 
 return PolyLine

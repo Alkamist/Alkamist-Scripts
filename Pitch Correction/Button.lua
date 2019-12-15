@@ -39,23 +39,23 @@ function Button:draw()
 
     -- Draw the body.
     setColor(self, bodyColor)
-    drawRectangle(self, 1, 1, w - 2, h - 2, true)
+    drawRectangle(self, x + 1, y + 1, w - 2, h - 2, true)
 
     -- Draw a dark outline around.
     setColor(self, outlineColor)
-    drawRectangle(self, 0, 0, w, h, false)
+    drawRectangle(self, x, y, w, h, false)
 
     -- Draw a light outline around.
     setColor(self, highlightColor)
-    drawRectangle(self, 1, 1, w - 2, h - 2, false)
+    drawRectangle(self, x + 1, y + 1, w - 2, h - 2, false)
 
     if self.isPressed then
         setColor(self, pressedColor)
-        drawRectangle(self, 1, 1, w - 2, h - 2, true)
+        drawRectangle(self, x + 1, y + 1, w - 2, h - 2, true)
 
     elseif self.isGlowing then
         setColor(self, highlightColor)
-        drawRectangle(self, 1, 1, w - 2, h - 2, true)
+        drawRectangle(self, x + 1, y + 1, w - 2, h - 2, true)
     end
 end
 

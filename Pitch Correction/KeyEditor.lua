@@ -1,8 +1,3 @@
-local GUI = require("GUI")
-local setColor = GUI.setColor
-local drawLine = GUI.drawLine
-local drawRectangle = GUI.drawRectangle
-
 local reaper = reaper
 local ipairs = ipairs
 local table = table
@@ -74,51 +69,51 @@ function KeyEditor:changeYScroll(change) self.yScroll = getNewScroll(change, sel
 function KeyEditor:changeXZoom(change) self.xZoom, self.xScroll = getNewZoomAndScroll(change, self.xZoom, self.xScroll, self.xTarget, self.width) end
 function KeyEditor:changeYZoom(change) self.yZoom, self.yScroll = getNewZoomAndScroll(change, self.yZoom, self.yScroll, self.yTarget, self.height) end
 function KeyEditor:update()
-    self.relativeMouseX = GUI.mouseX - self.x
-    self.relativeMouseY = GUI.mouseY - self.y
-
     self.mouseTime = self:pixelsToTime(self.relativeMouseX)
     self.snappedMouseTime = round(self.mouseTime)
     self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
     self.snappedMousePitch = round(self.mousePitch)
 
-    if GUI.windowWasJustResized then
-        self.width = self.width + GUI.windowWidthChange
-        self.height = self.height + GUI.windowHeightChange
+    if self.window.wasJustResized then
+        self.width = self.width + self.window.widthChange
+        self.height = self.height + self.window.heightChange
     end
-    if GUI.leftMouseButton.justPressed then
+    if self.mouse.buttons.left.justPressed then
         self.mouseTimeOnLeftDown = self.mouseTime
         self.mousePitchOnLeftDown = self.mousePitch
         self.snappedMousePitchOnLeftDown = self.snappedMousePitch
     end
-    if GUI.middleMouseButton.justPressed then
+    if self.mouse.buttons.middle.justPressed then
         self.xTarget = self.relativeMouseX
         self.yTarget = self.relativeMouseY
     end
-    if GUI.middleMouseButton.justDragged then
-        if GUI.shiftKey.isPressed then
-            self:changeXZoom(GUI.mouseXChange)
-            self:changeYZoom(GUI.mouseYChange)
+    if self.mouse.buttons.middle.justDragged then
+        if self.keyboard.modifiers.shift.isPressed then
+            self:changeXZoom(self.mouse.xChange)
+            self:changeYZoom(self.mouse.yChange)
         else
-            self:changeXScroll(GUI.mouseXChange)
-            self:changeYScroll(GUI.mouseYChange)
+            self:changeXScroll(self.mouse.xChange)
+            self:changeYScroll(self.mouse.yChange)
         end
     end
-    if GUI.mouseWheelJustMoved then
+    if self.mouse.wheelJustMoved then
         local xSensitivity = 55.0
         local ySensitivity = 55.0
 
         self.xTarget = self.relativeMouseX
         self.yTarget = self.relativeMouseY
 
-        if GUI.controlKey.isPressed then
-            self:changeYZoom(GUI.mouseWheel * ySensitivity)
+        if self.keyboard.modifiers.control.isPressed then
+            self:changeYZoom(self.mouse.wheel * ySensitivity)
         else
-            self:changeXZoom(GUI.mouseWheel * xSensitivity)
+            self:changeXZoom(self.mouse.wheel * xSensitivity)
         end
     end
 end
 function KeyEditor:drawKeys()
+    local setColor = self.setColor
+    local drawLine = self.drawLine
+    local drawRectangle = self.drawRectangle
     local x, y, w, h = self.x, self.y, self.width, self.height
     local pitchHeight = self.pitchHeight
     local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
@@ -131,56 +126,61 @@ function KeyEditor:drawKeys()
         local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
         local keyHeight = keyEnd - previousKeyEnd
 
-        setColor(blackKeyColor)
+        setColor(self, blackKeyColor)
         for j = 1, numberOfWhiteKeys do
             local value = whiteKeyNumbers[j]
             if i == value then
-                setColor(whiteKeyColor)
+                setColor(self, whiteKeyColor)
             end
         end
-        drawRectangle(x, y + keyEnd, w, keyHeight + 1, true)
+        drawRectangle(self, x, y + keyEnd, w, keyHeight + 1, true)
 
-        setColor(blackKeyColor)
-        drawLine(x, y + keyEnd, x + w - 1, y + keyEnd, false)
+        setColor(self, blackKeyColor)
+        drawLine(self, x, y + keyEnd, x + w - 1, y + keyEnd, false)
 
         if keyHeight > minimumKeyHeightToDrawCenterLine then
             local keyCenterLine = self:pitchToPixels(pitchHeight - i)
-            setColor(keyCenterLineColor)
-            drawLine(x, y + keyCenterLine, x + w - 1, y + keyCenterLine, false)
+            setColor(self, keyCenterLineColor)
+            drawLine(self, x, y + keyCenterLine, x + w - 1, y + keyCenterLine, false)
         end
 
         previousKeyEnd = keyEnd
     end
 end
 function KeyEditor:drawEdges()
+    local setColor = self.setColor
+    local drawLine = self.drawLine
+    local drawRectangle = self.drawRectangle
     local x, y, w, h = self.x, self.y, self.width, self.height
 
-    setColor(self.edgeColor)
+    setColor(self, self.edgeColor)
     local leftEdgePixels = self:timeToPixels(0.0)
     local rightEdgePixels = self:timeToPixels(self.timeLength)
-    drawLine(x + leftEdgePixels, y, x + leftEdgePixels, y + h, false)
-    drawLine(x + rightEdgePixels, y, x + rightEdgePixels, y + h, false)
+    drawLine(self, x + leftEdgePixels, y, x + leftEdgePixels, y + h, false)
+    drawLine(self, x + rightEdgePixels, y, x + rightEdgePixels, y + h, false)
 
-    setColor(self.edgeShade)
-    drawRectangle(x, y, leftEdgePixels, h, true)
+    setColor(self, self.edgeShade)
+    drawRectangle(self, x, y, leftEdgePixels, h, true)
     local rightShadeStart = rightEdgePixels + 1
-    drawRectangle(x + rightShadeStart, y, w - rightShadeStart, h, true)
+    drawRectangle(self, x + rightShadeStart, y, w - rightShadeStart, h, true)
 end
 function KeyEditor:drawEditCursor()
+    local setColor = self.setColor
+    local drawLine = self.drawLine
     local x, y, w, h = self.x, self.y, self.width, self.height
     local timeStart = self.timeStart
     local editCursorPixels = self:timeToPixels(reaper.GetCursorPosition() - timeStart)
     local playPositionPixels = self:timeToPixels(reaper.GetPlayPosition() - timeStart)
 
-    setColor(self.editCursorColor)
-    drawLine(x + editCursorPixels, y, x + editCursorPixels, y + h, false)
+    setColor(self, self.editCursorColor)
+    drawLine(self, x + editCursorPixels, y, x + editCursorPixels, y + h, false)
 
     local playState = reaper.GetPlayState()
     local projectIsPlaying = playState & 1 == 1
     local projectIsRecording = playState & 4 == 4
     if projectIsPlaying or projectIsRecording then
-        setColor(self.playCursorColor)
-        drawLine(x + playPositionPixels, y, x + playPositionPixels, y + h, false)
+        setColor(self, self.playCursorColor)
+        drawLine(self, x + playPositionPixels, y, x + playPositionPixels, y + h, false)
     end
 end
 function KeyEditor:draw()

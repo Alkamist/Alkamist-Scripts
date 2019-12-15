@@ -89,15 +89,17 @@ local function updateMouseButtonState(self)
     for i = 1, #widgets do
         local widget = widgets[i]
 
-        if widget:pointIsInside(mouseX, mouseY) and self.justPressed then
-            self._wasPressedInsideWidget[widget] = true
+        if widget.pointIsInside then
+            if widget:pointIsInside(mouseX, mouseY) and self.justPressed then
+                self._wasPressedInsideWidget[widget] = true
+            end
+
+            self._justPressedWidget[widget] = self.justPressed and self._wasPressedInsideWidget[widget]
+            self._justReleasedWidget[widget] = self.justReleased and self._wasPressedInsideWidget[widget]
+            self._justDraggedWidget[widget] = self.justDragged and self._wasPressedInsideWidget[widget]
+
+            if self.justReleased then self._wasPressedInsideWidget[widget] = false end
         end
-
-        self._justPressedWidget[widget] = self.justPressed and self._wasPressedInsideWidget[widget]
-        self._justReleasedWidget[widget] = self.justReleased and self._wasPressedInsideWidget[widget]
-        self._justDraggedWidget[widget] = self.justDragged and self._wasPressedInsideWidget[widget]
-
-        if self.justReleased then self._wasPressedInsideWidget[widget] = false end
     end
 end
 local function updateMouseButtonPreviousState(self)
@@ -124,27 +126,27 @@ function drawingFunctions:setColor(rOrColor, g, b)
     end
 end
 function drawingFunctions:drawRectangle(x, y, w, h, filled)
-    local x = x + self.x
-    local y = y + self.y
+    local x = x + self.xDrawOffset
+    local y = y + self.yDrawOffset
     gfxRect(x, y, w, h, filled)
 end
 function drawingFunctions:drawLine(x, y, x2, y2, antiAliased)
-    local x = x + self.x
-    local y = y + self.y
-    local x2 = x2 + self.x
-    local y2 = y2 + self.y
+    local x = x + self.xDrawOffset
+    local y = y + self.yDrawOffset
+    local x2 = x2 + self.xDrawOffset
+    local y2 = y2 + self.yDrawOffset
     gfxLine(x, y, x2, y2, antiAliased)
 end
 function drawingFunctions:drawCircle(x, y, r, filled, antiAliased)
-    local x = x + self.x
-    local y = y + self.y
+    local x = x + self.xDrawOffset
+    local y = y + self.yDrawOffset
     gfxCircle(x, y, r, filled, antiAliased)
 end
 function drawingFunctions:drawString(str, x, y, x2, y2, flags)
-    local x = x + self.x
-    local y = y + self.y
-    local x2 = x2 + self.x
-    local y2 = y2 + self.y
+    local x = x + self.xDrawOffset
+    local y = y + self.yDrawOffset
+    local x2 = x2 + self.xDrawOffset
+    local y2 = y2 + self.yDrawOffset
     gfx.x = x
     gfx.y = y
     if flags then
@@ -175,6 +177,8 @@ function GUI.addWidget(widget)
     widget.mouse = GUI.mouse
     widget.keyboard = GUI.keyboard
     widget.window = GUI.window
+    widget.xDrawOffset = widget.xDrawOffset or 0
+    widget.yDrawOffset = widget.yDrawOffset or 0
 
     widgets[#widgets + 1] = widget
 end

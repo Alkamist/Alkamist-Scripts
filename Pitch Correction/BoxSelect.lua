@@ -1,7 +1,3 @@
-local GUI = require("GUI")
-local setColor = GUI.setColor
-local drawRectangle = GUI.drawRectangle
-
 local pairs = pairs
 local math = math
 local abs = math.abs
@@ -29,33 +25,35 @@ function BoxSelect:new()
     for k, v in pairs(BoxSelect) do if self[k] == nil then self[k] = v end end
     return self
 end
-function BoxSelect:objectIsInside(object)
+function BoxSelect:pointIsInside(pointX, pointY)
     local x, y, w, h = self.x, self.y, self.width, self.height
-    local objectX, objectY = object.x, object.y
-    return objectX >= x and objectX <= x + w
-       and objectY >= y and objectY <= y + h
+    return pointX >= x and pointX <= x + w
+       and pointY >= y and pointY <= y + h
 end
-function BoxSelect:startSelection()
-    self.startingX = GUI.mouseX
-    self.startingY = GUI.mouseY
+function BoxSelect:objectIsInside(object)
+    return self:pointIsInside(object.x, object.y)
+end
+function BoxSelect:startSelection(x, y)
+    self.startingX = x
+    self.startingY = y
     self.x = self.startingX
     self.y = self.startingY
     self.width = 0
     self.height = 0
 end
-function BoxSelect:editSelection()
+function BoxSelect:editSelection(x, y)
     self.isActive = true
-    self.x = min(self.startingX, GUI.mouseX)
-    self.y = min(self.startingY, GUI.mouseY)
-    self.width = abs(self.startingX - GUI.mouseX)
-    self.height = abs(self.startingY - GUI.mouseY)
+    self.x = min(self.startingX, x)
+    self.y = min(self.startingY, y)
+    self.width = abs(self.startingX - x)
+    self.height = abs(self.startingY - y)
 end
 function BoxSelect:makeSelection()
     local objectIsInside = self.objectIsInside
     local objectsToSelect = self.objectsToSelect
     local numberOfObjectsToSelect = #objectsToSelect
-    local shouldInvert = GUI.controlKey.isPressed
-    local shouldAdd = GUI.shiftKey.isPressed
+    local shouldInvert = self.keyboard.modifiers.control.isPressed
+    local shouldAdd = self.keyboard.modifiers.shift.isPressed
 
     if objectsToSelect then
         for i = 1, numberOfObjectsToSelect do
@@ -77,21 +75,25 @@ function BoxSelect:makeSelection()
     self.isActive = false
 end
 function BoxSelect:update()
-    if GUI.rightMouseButton.justPressed then self:startSelection() end
-    if GUI.rightMouseButton.justDragged then self:editSelection() end
-    if GUI.rightMouseButton.justReleased then self:makeSelection() end
+    local mouseX = self.mouse.x
+    local mouseY = self.mouse.y
+    if self.mouse.buttons.right.justPressed then self:startSelection(mouseX, mouseY) end
+    if self.mouse.buttons.right.justDragged then self:editSelection(mouseX, mouseY) end
+    if self.mouse.buttons.right.justReleased then self:makeSelection() end
 end
 function BoxSelect:draw()
     if self.isActive then
+        local setColor = self.setColor
+        local drawRectangle = self.drawRectangle
         local x, y, w, h = self.x, self.y, self.width, self.height
 
         -- Draw the body.
-        setColor(self.bodyColor)
-        drawRectangle(x + 1, y + 1, w - 2, h - 2, true)
+        setColor(self, self.bodyColor)
+        drawRectangle(self, x + 1, y + 1, w - 2, h - 2, true)
 
         -- Draw the outline.
-        setColor(self.outlineColor)
-        drawRectangle(x, y, w, h, false)
+        setColor(self, self.outlineColor)
+        drawRectangle(self, x, y, w, h, false)
     end
 end
 
