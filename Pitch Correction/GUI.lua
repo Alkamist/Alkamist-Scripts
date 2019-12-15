@@ -232,7 +232,7 @@ local function updateGUIStates()
     GUI.window.widthJustChanged = GUI.window.width ~= GUI.window.previousWidth
     GUI.window.heightChange = GUI.window.height - GUI.window.previousHeight
     GUI.window.heightJustChanged = GUI.window.height ~= GUI.window.previousHeight
-    GUI.windowWasJustResized = GUI.window.widthJustChanged or GUI.window.heightJustChanged
+    GUI.window.wasJustResized = GUI.window.widthJustChanged or GUI.window.heightJustChanged
 
     GUI.mouse.xChange = GUI.mouse.x - GUI.mouse.previousX
     GUI.mouse.xJustChanged = GUI.mouse.x ~= GUI.mouse.previousX

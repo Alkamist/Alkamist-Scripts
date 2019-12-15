@@ -42,7 +42,7 @@ function KeyEditor:new()
     defaults.yZoom = 1.0
     defaults.yScroll = 0.0
     defaults.yTarget = 0.0
-    defaults.timeLength = 0.0
+    defaults.timeLength = 1.0
     defaults.timeStart = 0.0
     defaults.pitchHeight = 128
     defaults.minimumKeyHeightToDrawCenterLine = 16
@@ -60,48 +60,52 @@ function KeyEditor:new()
     for k, v in pairs(KeyEditor) do if self[k] == nil then self[k] = v end end
     return self
 end
-function KeyEditor:pixelsToTime(pixels) return self.timeLength * (self.xScroll + pixels / (self.width * self.xZoom)) end
-function KeyEditor:timeToPixels(time) return self.xZoom * self.width * (time / self.timeLength - self.xScroll) end
-function KeyEditor:pixelsToPitch(pixels) return self.pitchHeight * (1.0 - (self.yScroll + pixels / (self.height * self.yZoom))) - 0.5 end
-function KeyEditor:pitchToPixels(pitch) return self.yZoom * self.height * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.yScroll) end
+function KeyEditor:pixelsToTime(pixels) return self.timeLength * (self.xScroll + (pixels - self.x) / (self.width * self.xZoom)) end
+function KeyEditor:timeToPixels(time) return self.x + self.xZoom * self.width * (time / self.timeLength - self.xScroll) end
+function KeyEditor:pixelsToPitch(pixels) return self.pitchHeight * (1.0 - (self.yScroll + (pixels - self.y) / (self.height * self.yZoom))) - 0.5 end
+function KeyEditor:pitchToPixels(pitch) return self.y + self.yZoom * self.height * ((1.0 - (0.5 + pitch) / self.pitchHeight) - self.yScroll) end
 function KeyEditor:changeXScroll(change) self.xScroll = getNewScroll(change, self.xZoom, self.xScroll, self.width) end
 function KeyEditor:changeYScroll(change) self.yScroll = getNewScroll(change, self.yZoom, self.yScroll, self.height) end
 function KeyEditor:changeXZoom(change) self.xZoom, self.xScroll = getNewZoomAndScroll(change, self.xZoom, self.xScroll, self.xTarget, self.width) end
 function KeyEditor:changeYZoom(change) self.yZoom, self.yScroll = getNewZoomAndScroll(change, self.yZoom, self.yScroll, self.yTarget, self.height) end
 function KeyEditor:update()
-    self.mouseTime = self:pixelsToTime(self.relativeMouseX)
-    self.snappedMouseTime = round(self.mouseTime)
-    self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
-    self.snappedMousePitch = round(self.mousePitch)
+    local mouse = self.mouse
+    local mouseX = mouse.x
+    local mouseY = mouse.y
+
+    --self.mouseTime = self:pixelsToTime(self.relativeMouseX)
+    --self.snappedMouseTime = round(self.mouseTime)
+    --self.mousePitch = self:pixelsToPitch(self.relativeMouseY)
+    --self.snappedMousePitch = round(self.mousePitch)
 
     if self.window.wasJustResized then
         self.width = self.width + self.window.widthChange
         self.height = self.height + self.window.heightChange
     end
-    if self.mouse.buttons.left.justPressed then
-        self.mouseTimeOnLeftDown = self.mouseTime
-        self.mousePitchOnLeftDown = self.mousePitch
-        self.snappedMousePitchOnLeftDown = self.snappedMousePitch
-    end
+    --if self.mouse.buttons.left.justPressed then
+    --    self.mouseTimeOnLeftDown = self.mouseTime
+    --    self.mousePitchOnLeftDown = self.mousePitch
+    --    self.snappedMousePitchOnLeftDown = self.snappedMousePitch
+    --end
     if self.mouse.buttons.middle.justPressed then
-        self.xTarget = self.relativeMouseX
-        self.yTarget = self.relativeMouseY
+        self.xTarget = mouseX
+        self.yTarget = mouseY
     end
     if self.mouse.buttons.middle.justDragged then
         if self.keyboard.modifiers.shift.isPressed then
-            self:changeXZoom(self.mouse.xChange)
-            self:changeYZoom(self.mouse.yChange)
+            self:changeXZoom(mouse.xChange)
+            self:changeYZoom(mouse.yChange)
         else
-            self:changeXScroll(self.mouse.xChange)
-            self:changeYScroll(self.mouse.yChange)
+            self:changeXScroll(mouse.xChange)
+            self:changeYScroll(mouse.yChange)
         end
     end
     if self.mouse.wheelJustMoved then
         local xSensitivity = 55.0
         local ySensitivity = 55.0
 
-        self.xTarget = self.relativeMouseX
-        self.yTarget = self.relativeMouseY
+        self.xTarget = mouseX
+        self.yTarget = mouseY
 
         if self.keyboard.modifiers.control.isPressed then
             self:changeYZoom(self.mouse.wheel * ySensitivity)
@@ -116,14 +120,14 @@ function KeyEditor:drawKeys()
     local drawRectangle = self.drawRectangle
     local x, y, w, h = self.x, self.y, self.width, self.height
     local pitchHeight = self.pitchHeight
-    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5)
+    local previousKeyEnd = self:pitchToPixels(pitchHeight + 0.5) - self.y
     local blackKeyColor = self.blackKeyColor
     local whiteKeyColor = self.whiteKeyColor
     local keyCenterLineColor = self.keyCenterLineColor
     local minimumKeyHeightToDrawCenterLine = self.minimumKeyHeightToDrawCenterLine
 
     for i = 1, pitchHeight do
-        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5)
+        local keyEnd = self:pitchToPixels(pitchHeight - i + 0.5) - self.y
         local keyHeight = keyEnd - previousKeyEnd
 
         setColor(self, blackKeyColor)
@@ -139,7 +143,7 @@ function KeyEditor:drawKeys()
         drawLine(self, x, y + keyEnd, x + w - 1, y + keyEnd, false)
 
         if keyHeight > minimumKeyHeightToDrawCenterLine then
-            local keyCenterLine = self:pitchToPixels(pitchHeight - i)
+            local keyCenterLine = self:pitchToPixels(pitchHeight - i) - self.y
             setColor(self, keyCenterLineColor)
             drawLine(self, x, y + keyCenterLine, x + w - 1, y + keyCenterLine, false)
         end
@@ -185,8 +189,8 @@ function KeyEditor:drawEditCursor()
 end
 function KeyEditor:draw()
     self:drawKeys()
-    self:drawEdges()
-    self:drawEditCursor()
+    --self:drawEdges()
+    --self:drawEditCursor()
 end
 
 return KeyEditor
